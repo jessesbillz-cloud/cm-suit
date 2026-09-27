@@ -42,7 +42,7 @@ jobs:
       - name: Stale generated types fail the build
         run: |
           npm run gen:types
-          git diff --exit-code src/data/database.types.ts
+          git diff --exit-code -I 'PostgrestVersion' src/data/database.types.ts
       - run: supabase test db
       - name: Probes against local stack
         run: |

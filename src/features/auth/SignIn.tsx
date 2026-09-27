@@ -30,7 +30,7 @@ export function SignIn({ onSignedIn }: SignInProps) {
   }
 
   /** A code that already arrived (e.g. after a rate-limited resend) can be entered without sending another. */
-  function useExistingCode() {
+  function enterExistingCode() {
     const addr = validEmail();
     if (addr) setSentTo(addr);
   }
@@ -103,7 +103,7 @@ export function SignIn({ onSignedIn }: SignInProps) {
           Send code
         </Button>
         <p className="text-xs text-ink-2">We email you a code. There is no password.</p>
-        <button type="button" className="self-start text-sm text-accent hover:underline" onClick={useExistingCode}>
+        <button type="button" className="self-start text-sm text-accent hover:underline" onClick={enterExistingCode}>
           I already have a code
         </button>
       </form>
