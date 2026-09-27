@@ -2,7 +2,7 @@
 // Shared plumbing for the security probes (SPEC §6.8): env, clients, a check recorder that prints a table,
 // and the object lists derived from supabase/migrations. Update the lists in the same PR as the migration.
 import process from 'node:process';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 export function requireEnv(name: string): string {
   const v = process.env[name];
@@ -10,7 +10,9 @@ export function requireEnv(name: string): string {
   return v;
 }
 
-export function makeClient(url: string, key: string): SupabaseClient {
+export type Client = ReturnType<typeof createClient>;
+
+export function makeClient(url: string, key: string): Client {
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
@@ -74,7 +76,7 @@ export class Report {
 
 export function errText(e: unknown): string {
   if (e instanceof Error) return e.message;
-  if (e && typeof e === 'object' && 'message' in e) return String((e as { message: unknown }).message);
+  if (e && typeof e === 'object' && 'message' in e) return String(e.message);
   return String(e);
 }
 

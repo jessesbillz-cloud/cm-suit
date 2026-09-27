@@ -48,7 +48,7 @@ export type ThumbPageRow = PageKey & { thumbnail_path: string };
  * Upsert on (file_id, page_no) in batches. Rows in one call must share the same columns: PostgREST only updates the
  * columns sent, so a text upsert never clears a thumbnail and vice versa.
  */
-export async function upsertPages<T extends TextPageRow | ThumbPageRow>(db: Db, rows: readonly T[]): Promise<void> {
+export async function upsertPages(db: Db, rows: readonly (TextPageRow | ThumbPageRow)[]): Promise<void> {
   for (let i = 0; i < rows.length; i += PAGE_BATCH) {
     const batch = rows.slice(i, i + PAGE_BATCH);
     checked(await db.from('file_pages').upsert(batch, { onConflict: 'file_id,page_no' }), 'upsert file pages');

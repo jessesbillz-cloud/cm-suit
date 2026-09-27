@@ -42,10 +42,8 @@ export function useEnterProject() {
     async (info: AccessLinkInfo): Promise<string | null> => {
       await acceptInvites();
       await qc.invalidateQueries({ queryKey: qk.myProjects });
-      const projects = await qc.fetchQuery({
-        queryKey: qk.myProjects,
-        queryFn: async () => throwIfError(await supabase.rpc('my_projects')),
-      });
+      const projects = throwIfError(await supabase.rpc('my_projects'));
+      qc.setQueryData(qk.myProjects, projects);
       const hit = projects.find((p) => p.project_id === info.project_id) ?? projects.find((p) => p.name === info.project_name);
       return hit?.project_id ?? null;
     },

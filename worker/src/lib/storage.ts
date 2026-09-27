@@ -2,7 +2,6 @@
 import { createWriteStream } from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import type { Db } from './supabase.js';
 import { HashingPassThrough } from './hash.js';
 
@@ -25,7 +24,7 @@ export async function openObject(db: Db, bucket: string, path: string): Promise<
   }
   const length = res.headers.get('content-length');
   const size = length === null ? null : Number(length);
-  const body = Readable.fromWeb(res.body as unknown as NodeWebReadableStream<Uint8Array>);
+  const body = Readable.fromWeb(res.body);
   return { body, size: size !== null && Number.isFinite(size) ? size : null };
 }
 

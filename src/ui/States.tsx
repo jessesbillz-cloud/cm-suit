@@ -38,7 +38,7 @@ interface ErrorStateProps {
 
 function errorIdOf(e: unknown): string | null {
   if (e !== null && typeof e === 'object' && 'errorId' in e) {
-    const id = (e as { errorId: unknown }).errorId;
+    const id: unknown = e.errorId;
     return typeof id === 'string' ? id : null;
   }
   return null;

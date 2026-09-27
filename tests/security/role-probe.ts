@@ -5,8 +5,7 @@
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY, PROBE_SERVICE_ROLE_KEY. Exits non-zero on any failure. Cleans up even on failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { Report, errText, makeClient, requireEnv, rowsOf } from './_lib';
+import { type Client, Report, errText, makeClient, requireEnv, rowsOf } from './_lib';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -170,7 +169,7 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
   return s;
 }
 
-async function signIn(u: ProbeUser): Promise<SupabaseClient> {
+async function signIn(u: ProbeUser): Promise<Client> {
   const c = makeClient(url, anonKey);
   const { error } = await c.auth.signInWithPassword({ email: u.email, password: u.password });
   if (error) throw new Error(`sign in ${u.email}: ${error.message}`);
@@ -180,19 +179,19 @@ async function signIn(u: ProbeUser): Promise<SupabaseClient> {
 // ---------------------------------------------------------------------------------------------------------------
 // Checks (as each user)
 // ---------------------------------------------------------------------------------------------------------------
-async function hasCap(c: SupabaseClient, project: string, cap: string): Promise<boolean> {
+async function hasCap(c: Client, project: string, cap: string): Promise<boolean> {
   const res = await c.rpc('has_capability', { p_project_id: project, p_cap: cap });
   if (res.error) throw new Error(`has_capability(${cap}): ${res.error.message}`);
   return res.data === true;
 }
-async function count(c: SupabaseClient, table: string, col: string, val: string): Promise<number> {
+async function count(c: Client, table: string, col: string, val: string): Promise<number> {
   return must(await c.from(table).select('*').eq(col, val), `${table} select`).length;
 }
-async function myProjects(c: SupabaseClient): Promise<string[]> {
+async function myProjects(c: Client): Promise<string[]> {
   return must(await c.rpc('my_projects'), 'my_projects').map((r) => str(r, 'project_id'));
 }
 
-async function checkMatrix(s: Seed, clients: Map<UserKey, SupabaseClient>): Promise<void> {
+async function checkMatrix(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
   const got = new Map<string, Set<Role>>();
   await Promise.all(ROLES.map(async (role) => {
     const c = clients.get(role);
@@ -214,7 +213,7 @@ async function checkMatrix(s: Seed, clients: Map<UserKey, SupabaseClient>): Prom
   }
 }
 
-async function checkIsolation(s: Seed, c: SupabaseClient, who: string): Promise<void> {
+async function checkIsolation(s: Seed, c: Client, who: string): Promise<void> {
   for (const [table, col] of [['projects', 'id'], ['project_members', 'project_id'], ['folders', 'project_id'], ['files', 'project_id'], ['activity', 'project_id']] as const) {
     await report.guard('isolation', `${who}: ${table}`, async () => {
       const n = await count(c, table, col, s.projB);
@@ -227,7 +226,7 @@ async function checkIsolation(s: Seed, c: SupabaseClient, who: string): Promise<
   });
 }
 
-async function checkLockedOut(s: Seed, c: SupabaseClient, who: string): Promise<void> {
+async function checkLockedOut(s: Seed, c: Client, who: string): Promise<void> {
   await report.guard('lockout', who, async () => {
     report.check('lockout', `${who}: has_capability false`, !(await hasCap(c, s.projA, 'dailies.read_all')));
     const ids = await myProjects(c);
@@ -237,7 +236,7 @@ async function checkLockedOut(s: Seed, c: SupabaseClient, who: string): Promise<
   });
 }
 
-async function checkBidderWall(s: Seed, clients: Map<UserKey, SupabaseClient>): Promise<void> {
+async function checkBidderWall(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
   const b1 = user(s, 'bidder');
   const b2 = user(s, 'bidder2');
   const pairs: [UserKey, ProbeUser, ProbeUser, string, string][] = [
@@ -247,7 +246,7 @@ async function checkBidderWall(s: Seed, clients: Map<UserKey, SupabaseClient>): 
   for (const [key, me, other, mine, theirs] of pairs) {
     const c = clients.get(key);
     if (!c) throw new Error(`no client for ${key}`);
-    await report.guard('bidder wall', `${key}`, async () => {
+    await report.guard('bidder wall', key, async () => {
       const members = must(await c.from('project_members').select('user_id').eq('project_id', s.projA), 'members');
       report.check('bidder wall', `${key}: project_members = own row only`,
         members.length === 1 && members[0]?.['user_id'] === me.id, `${members.length} rows`);
@@ -284,7 +283,7 @@ async function checkBidderWall(s: Seed, clients: Map<UserKey, SupabaseClient>): 
   report.todo('bidder wall', 'prices, questions, submissions (bid tables)', 'Phase 1 adds bid_pricing / bid_questions; extend here');
 }
 
-async function checkPricing(s: Seed, clients: Map<UserKey, SupabaseClient>): Promise<void> {
+async function checkPricing(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
   // At aal1 nobody may read received bid files except the uploading bidder (checked above).
   for (const role of ROLES.filter((r) => r !== 'bidder')) {
     const c = clients.get(role);
@@ -334,9 +333,9 @@ async function main(): Promise<void> {
   try {
     users = await ensureUsers();
     const s = await seed(users, created);
-    const clients = new Map<UserKey, SupabaseClient>();
+    const clients = new Map<UserKey, Client>();
     for (const [key, u] of users) clients.set(key, await signIn(u));
-    const get = (k: UserKey): SupabaseClient => {
+    const get = (k: UserKey): Client => {
       const c = clients.get(k);
       if (!c) throw new Error(`no client for ${k}`);
       return c;

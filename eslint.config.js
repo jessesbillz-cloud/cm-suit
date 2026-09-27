@@ -60,7 +60,7 @@ export default tseslint.config(
   },
   {
     files: ['worker/**', 'scripts/**', 'tests/**'],
-    rules: { 'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }] },
+    rules: { 'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }], 'no-console': 'off' },
   },
   {
     files: ['**/*.mjs', '**/*.js'],
