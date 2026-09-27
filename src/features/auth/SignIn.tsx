@@ -20,12 +20,25 @@ export function SignIn({ onSignedIn }: SignInProps) {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
-  function submit() {
+  function validEmail(): string | null {
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) {
       setProblem(parsed.error.issues[0]?.message ?? 'Enter a valid email address.');
-      return;
+      return null;
     }
+    return parsed.data;
+  }
+
+  /** A code that already arrived (e.g. after a rate-limited resend) can be entered without sending another. */
+  function useExistingCode() {
+    const addr = validEmail();
+    if (addr) setSentTo(addr);
+  }
+
+  function submit() {
+    const addr = validEmail();
+    if (!addr) return;
+    const parsed = { data: addr };
     setBusy(true);
     setProblem(null);
     sendCode(parsed.data)
@@ -90,6 +103,9 @@ export function SignIn({ onSignedIn }: SignInProps) {
           Send code
         </Button>
         <p className="text-xs text-ink-2">We email you a code. There is no password.</p>
+        <button type="button" className="self-start text-sm text-accent hover:underline" onClick={useExistingCode}>
+          I already have a code
+        </button>
       </form>
     </PublicPage>
   );
