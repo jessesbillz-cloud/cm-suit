@@ -2,7 +2,7 @@
 import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { parseLayout, type LayoutChoices } from '../lib/layout';
-import { parseProjectSettings, type ProjectSettings } from '../lib/settings';
+import { parseOrgSettings, parseProjectSettings, type ProjectSettings } from '../lib/settings';
 import { useUser } from './auth';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
@@ -231,6 +231,19 @@ export function useCapability(projectId: string | null, cap: string) {
       ? async () =>
           isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }))
       : skipToken,
+    staleTime: 60_000,
+  });
+}
+
+/** A company's settings, through its one schema (lib/settings). */
+export function useOrgSettings(orgId: string) {
+  return useQuery({
+    queryKey: qk.orgSettings(orgId),
+    queryFn: async () => {
+      if (isMock()) return parseOrgSettings(mockJobs.orgSettings());
+      const row: unknown = throwIfError(await supabase.from('orgs').select('settings').eq('id', orgId).single());
+      return parseOrgSettings(z.object({ settings: z.unknown() }).parse(row).settings);
+    },
     staleTime: 60_000,
   });
 }

@@ -7,11 +7,14 @@ export const ORG_SETTINGS_DEFAULTS = {
   report_generator: null as string | null,
   /** Two-factor for org owners and admins (SPEC §10.3 [confirm]). */
   require_2fa_for_admins: true,
+  /** "Read" / "Read all" on received bids (the server's AI reads them). Off until Jesse decides how the app gets Claude. */
+  ai_bid_reading: false,
 };
 
 const orgSettingsSchema = z.object({
   report_generator: z.string().min(1).max(100).nullable().catch(ORG_SETTINGS_DEFAULTS.report_generator),
   require_2fa_for_admins: z.boolean().catch(ORG_SETTINGS_DEFAULTS.require_2fa_for_admins),
+  ai_bid_reading: z.boolean().catch(ORG_SETTINGS_DEFAULTS.ai_bid_reading),
 });
 type OrgSettings = z.infer<typeof orgSettingsSchema>;
 

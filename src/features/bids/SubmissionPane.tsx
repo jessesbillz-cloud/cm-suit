@@ -15,7 +15,7 @@ import {
 import type { SubmissionRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
 import { FunctionError } from '../../data/functions';
-import { useFolders, usePeopleDisplay, useProject } from '../../data/queries';
+import { useFolders, useOrgSettings, usePeopleDisplay, useProject } from '../../data/queries';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { ReadingPane } from '../../ui/ReadingPane';
@@ -45,6 +45,7 @@ function Extraction({ projectId, orgId, submission }: ExtractionProps) {
   const extraction = useBidExtraction(projectId, submissionId);
   const access = usePricingAccess(projectId);
   const extract = useExtractBid();
+  const ai = useOrgSettings(orgId);
   const confirm = useConfirmExtraction();
   const toast = useToast();
 
@@ -55,6 +56,7 @@ function Extraction({ projectId, orgId, submission }: ExtractionProps) {
   if (x === null) {
     // Findings are aal2-only like money: a pricing role that signed in with the email code alone sees nothing yet.
     if (access.data === 'two_factor') return <StepUp />;
+    if (ai.data?.ai_bid_reading !== true) return <EmptyState title="Not read yet." />;
     return (
       <div className="flex flex-col gap-2">
         <Button

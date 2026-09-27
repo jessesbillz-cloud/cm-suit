@@ -17,6 +17,7 @@ export const qk = {
   profile: ['profile'] as const,
   capability: (projectId: string, cap: string) => ['capability', projectId, cap] as const,
   orgAdmin: (orgId: string) => ['is_org_admin', orgId] as const,
+  orgSettings: (orgId: string) => ['org_settings', orgId] as const,
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
   bids: (projectId: string) => ['bids', projectId] as const,
   bidsPart: (projectId: string, part: string, id = '') => ['bids', projectId, part, id] as const,

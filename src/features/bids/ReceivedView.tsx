@@ -15,7 +15,7 @@ import {
 } from '../../data/bids.queries';
 import type { SubmissionRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
-import { useFolders, usePeopleDisplay } from '../../data/queries';
+import { useFolders, useOrgSettings, usePeopleDisplay } from '../../data/queries';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
@@ -63,6 +63,8 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
 
   const canAdd = pricing.data === 'yes' && intake.ready;
   const canRead = findings.data === 'yes';
+  const aiSettings = useOrgSettings(orgId);
+  const aiOn = aiSettings.data?.ai_bid_reading === true;
   const twoFactor = pricing.data === 'two_factor' || findings.data === 'two_factor';
 
   const code = (id: string) => packages.data?.find((p) => p.id === id)?.code ?? '';
@@ -89,7 +91,7 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
   const actions = (
     <>
       {readAll.progress ? <span className="text-sm text-ink-2" data-testid="bids-read-progress">{progressText(readAll.progress)}</span> : null}
-      {canRead ? (
+      {canRead && aiOn ? (
         <Button
           size="sm"
           icon={ScanText}

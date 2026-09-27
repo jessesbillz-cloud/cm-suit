@@ -131,3 +131,8 @@ export async function isOrgAdmin(orgId: string): Promise<boolean> {
   await delay();
   return allOrgs().some((o) => o.org_id === orgId);
 }
+
+/** Mock companies have bid reading on, so the e2e flows can use Read / Read all. */
+export function orgSettings(): Record<string, unknown> {
+  return { ai_bid_reading: true };
+}
