@@ -1,8 +1,10 @@
-// "/" has no home screen (SPEC §7.2): it opens the person's default tool on their most recent job.
+// "/" has no home screen (SPEC §7.2): it opens the person's default tool on their most recent job, or the setup flow
+// when they have no jobs yet.
 import { Navigate } from '@tanstack/react-router';
 import { useMyProjects, useUserLayout } from '../data/queries';
-import { Card } from '../ui/Card';
-import { EmptyState, ErrorState, LoadingState } from '../ui/States';
+import { SetupFlow } from '../features/setup/SetupFlow';
+import { toolIsOn } from '../lib/jobs';
+import { ErrorState, LoadingState } from '../ui/States';
 
 export function HomeRedirect() {
   const layout = useUserLayout();
@@ -13,21 +15,14 @@ export function HomeRedirect() {
   if (projects.isError) return <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />;
 
   const list = projects.data;
-  if (list.length === 0) {
-    return (
-      <div className="mx-auto max-w-md p-6">
-        <Card>
-          <EmptyState
-            title="You are not on any jobs yet."
-            hint="When someone invites you, the job shows up here. Open the link in your invite email."
-          />
-        </Card>
-      </div>
-    );
-  }
+  // No jobs yet: set up the company, then add the first job (SPEC §5.1).
+  if (list.length === 0) return <SetupFlow />;
 
-  const { recent_project_ids: recent, main_default: tool } = layout.data.choices;
-  const projectId = recent.find((id) => list.some((p) => p.project_id === id)) ?? list[0]?.project_id;
-  if (!projectId) return <Navigate to="/all/board" replace />;
-  return <Navigate to="/p/$projectId/$tool" params={{ projectId, tool }} replace />;
+  const { recent_project_ids: recent, main_default } = layout.data.choices;
+  const recentId = recent.find((id) => list.some((p) => p.project_id === id));
+  const project = list.find((p) => p.project_id === recentId) ?? list[0];
+  if (!project) return <Navigate to="/all/board" replace />;
+  // My default tool, unless this job has it switched off.
+  const tool = toolIsOn(main_default, project.modules) ? main_default : 'board';
+  return <Navigate to="/p/$projectId/$tool" params={{ projectId: project.project_id, tool }} replace />;
 }

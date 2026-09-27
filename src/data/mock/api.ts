@@ -8,11 +8,9 @@ import type {
   FolderRow,
   InviteInput,
   InviteResult,
-  MyProject,
   Person,
   ProfilePatch,
   ProfileRow,
-  ProjectRow,
   RoleRow,
   TaskRow,
 } from '../types';
@@ -21,7 +19,6 @@ import {
   MOCK_FILES,
   MOCK_FOLDERS,
   MOCK_PEOPLE,
-  MOCK_PROJECTS,
   MOCK_ROLES,
   MOCK_TASKS,
   mockProfile,
@@ -29,29 +26,6 @@ import {
 } from './fixtures';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
-
-export async function projects(): Promise<MyProject[]> {
-  await delay();
-  return MOCK_PROJECTS;
-}
-
-export async function project(projectId: string): Promise<ProjectRow> {
-  await delay();
-  const p = MOCK_PROJECTS.find((x) => x.project_id === projectId);
-  if (!p) throw new Error('That job no longer exists.');
-  return {
-    id: p.project_id,
-    org_id: 'org-sample',
-    name: p.name,
-    number: p.number,
-    address: null,
-    timezone: p.timezone,
-    stage: p.stage,
-    modules: p.modules,
-    settings: {},
-    version: 1,
-  };
-}
 
 export async function board(projectId: string | null, before: string | null): Promise<BoardLine[]> {
   await delay();

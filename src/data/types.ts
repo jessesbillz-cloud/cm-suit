@@ -44,8 +44,41 @@ export type ProfilePatch = Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'c
 
 export type ProjectRow = Pick<
   Tables<'projects'>,
-  'id' | 'org_id' | 'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'settings' | 'version'
+  | 'id'
+  | 'org_id'
+  | 'name'
+  | 'number'
+  | 'address'
+  | 'timezone'
+  | 'stage'
+  | 'modules'
+  | 'settings'
+  | 'version'
+  | 'job_type'
+  | 'prevailing_wage'
+  | 'bid_due_at'
+  | 'bid_sealed'
 >;
+
+/** The job fields a person edits in Settings (the column grants in migration 0013 allow exactly these and a few more). */
+export type ProjectPatch = Partial<
+  Pick<ProjectRow, 'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'job_type' | 'prevailing_wage' | 'bid_due_at' | 'bid_sealed'>
+>;
+
+export type MyOrg = Fns['my_orgs']['Returns'][number];
+
+export type OrgPatch = Partial<Pick<MyOrg, 'name' | 'kind'>>;
+
+export interface NewJobInput {
+  orgId: string;
+  name: string;
+  stage: string;
+  number: string;
+  address: string;
+  bidDueAt: string | null;
+  prevailingWage: boolean;
+  jobType: string;
+}
 
 export type RoleRow = Pick<Tables<'roles'>, 'name' | 'description'>;
 

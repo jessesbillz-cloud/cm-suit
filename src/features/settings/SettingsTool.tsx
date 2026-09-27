@@ -1,4 +1,4 @@
-// Settings: my profile and my layout choices, and signing out. Nothing else lives here in Phase 0.
+// Settings: the job (for people who run it), my company (if I run it), my profile, my layout, and signing out.
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,10 +6,12 @@ import { signOut, useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { CompanySettings } from './CompanySettings';
+import { JobSettings } from './JobSettings';
 import { LayoutForm } from './LayoutForm';
 import { ProfileForm } from './ProfileForm';
 
-export function SettingsTool() {
+export function SettingsTool({ projectId }: { projectId: string | null }) {
   const user = useUser();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -17,6 +19,8 @@ export function SettingsTool() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
+      {projectId ? <JobSettings projectId={projectId} /> : null}
+      <CompanySettings />
       <ProfileForm />
       <LayoutForm />
       <Card title="This device">

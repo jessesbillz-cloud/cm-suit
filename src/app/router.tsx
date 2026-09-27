@@ -3,6 +3,7 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { AccessLink } from '../features/auth/AccessLink';
 import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
+import { NewJobPage } from '../features/setup/NewJobPage';
 import { EmptyState } from '../ui/States';
 import { AllBoardRoute, ProjectToolRoute } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
@@ -41,6 +42,7 @@ const rootRoute = createRootRoute({ component: RootLayout, notFoundComponent: No
 
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomeRedirect });
 const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signin', component: SignIn });
+const newJobRoute = createRoute({ getParentRoute: () => rootRoute, path: '/new-job', component: NewJobPage });
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/a/$linkId',
@@ -69,6 +71,7 @@ const allBoardItemRoute = createRoute({ getParentRoute: () => allBoardRoute, pat
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
+  newJobRoute,
   accessRoute,
   shareRoute,
   toolRoute.addChildren([toolItemRoute]),

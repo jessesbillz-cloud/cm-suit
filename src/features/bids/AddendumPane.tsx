@@ -13,7 +13,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { FileLine } from './FileLine';
 import { IssueButton } from './IssueButton';
-import { SaveState } from './SaveState';
+import { SaveState } from '../../ui/SaveState';
 
 const INPUT = 'rounded-md border border-line px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
 const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';

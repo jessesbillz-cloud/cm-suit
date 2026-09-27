@@ -42,11 +42,17 @@ export function Frame({ model, folderId }: FrameProps) {
   return (
     <div className="flex h-screen flex-col bg-page">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-card px-2">
-        <JobPicker projects={model.projects} recentIds={choices.recent_project_ids} currentId={loc.projectId} onPick={model.pickJob} />
+        <JobPicker
+          projects={model.projects}
+          recentIds={choices.recent_project_ids}
+          currentId={loc.projectId}
+          onPick={model.pickJob}
+          onNewJob={model.newJob}
+        />
       </header>
       <div className="flex min-h-0 flex-1">
         <Rail
-          items={choices.rail_items}
+          items={model.railItems}
           current={loc.tool}
           collapsed={choices.collapsed.rail}
           onSelect={model.selectTool}

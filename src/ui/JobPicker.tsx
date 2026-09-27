@@ -1,7 +1,7 @@
-// The job picker (SPEC §7.2): always top-left. Recent jobs first, then type-to-find, "All my jobs" last.
+// The job picker (SPEC §7.2): always top-left. Recent jobs first, then type-to-find, "All my jobs", and "New job".
 // It only reports the pick; the frame keeps the current tool when switching (2 taps: open, pick).
 import { useMemo, useState } from 'react';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
 import { Icon } from './Icon';
 
@@ -11,6 +11,8 @@ interface JobPickerProps {
   /** null = "All my jobs". */
   currentId: string | null;
   onPick: (projectId: string | null) => void;
+  /** Opens the setup flow for a new job. */
+  onNewJob: () => void;
 }
 
 interface Option {
@@ -34,7 +36,7 @@ function detailOf(p: MyProject): string {
   return [p.number, p.org_name].filter((s) => s).join(' · ');
 }
 
-export function JobPicker({ projects, recentIds, currentId, onPick }: JobPickerProps) {
+export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: JobPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -133,6 +135,18 @@ export function JobPicker({ projects, recentIds, currentId, onPick }: JobPickerP
               ))}
               {options.length === 0 ? <li className="px-3 py-3 text-sm text-ink-2">No job matches.</li> : null}
             </ul>
+            <button
+              type="button"
+              data-testid="job-picker-new"
+              className="flex w-full items-center gap-2 border-t border-line px-3 py-2.5 text-left text-sm font-medium text-accent hover:bg-page"
+              onClick={() => {
+                close();
+                onNewJob();
+              }}
+            >
+              <Icon icon={Plus} size={16} />
+              New job
+            </button>
           </div>
         </>
       ) : null}

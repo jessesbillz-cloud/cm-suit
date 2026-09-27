@@ -1,0 +1,79 @@
+// Settings > Company: my company's name and type, saved as I go. Shown only for companies I run (is_org_admin).
+import { useState } from 'react';
+import { messageOf } from '../../data/errors';
+import { useSaveOrg } from '../../data/jobs.mutations';
+import { useMyOrgs, useOrgAdmin } from '../../data/queries';
+import type { MyOrg, OrgPatch } from '../../data/types';
+import { ORG_KINDS } from '../../lib/jobs';
+import { Card } from '../../ui/Card';
+import { SelectField, TextField } from '../../ui/Fields';
+import { SaveState } from '../../ui/SaveState';
+import { ErrorState } from '../../ui/States';
+
+function CompanyFields({ org }: { org: MyOrg }) {
+  const save = useSaveOrg(org.org_id);
+  const [name, setName] = useState(org.name);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  function commit(patch: OrgPatch) {
+    if (patch.name !== undefined && patch.name === '') {
+      setProblem('Name is empty.');
+      return;
+    }
+    setProblem(null);
+    save.mutate(patch, {
+      onError: (e) => {
+        setProblem(messageOf(e));
+      },
+    });
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <TextField
+        label="Company name"
+        value={name}
+        onChange={setName}
+        onBlur={() => {
+          if (name.trim() !== org.name) commit({ name: name.trim() });
+        }}
+      />
+      <SelectField
+        label="Type"
+        value={org.kind}
+        options={ORG_KINDS}
+        onChange={(kind) => {
+          commit({ kind });
+        }}
+      />
+      <div className="sm:col-span-2">
+        <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
+      </div>
+    </div>
+  );
+}
+
+function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
+  const admin = useOrgAdmin(org.org_id);
+  if (admin.isError) return <ErrorState error={admin.error} onRetry={() => void admin.refetch()} />;
+  if (admin.data !== true) return null;
+  return (
+    <Card title={titled ? org.name : 'Company'}>
+      <CompanyFields key={org.org_id} org={org} />
+    </Card>
+  );
+}
+
+export function CompanySettings() {
+  const orgs = useMyOrgs();
+  if (orgs.isPending) return null;
+  if (orgs.isError) return <ErrorState error={orgs.error} onRetry={() => void orgs.refetch()} />;
+  // One company (the usual case) is just "Company"; with several, each card carries its name.
+  return (
+    <>
+      {orgs.data.map((o) => (
+        <CompanyCard key={o.org_id} org={o} titled={orgs.data.length > 1} />
+      ))}
+    </>
+  );
+}

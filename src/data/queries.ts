@@ -8,32 +8,48 @@ import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mock from './mock/api';
+import * as mockJobs from './mock/jobs';
 import * as mockBids from './mock/bids';
 import { isMock } from './mock';
-import type { ActivityRow, BoardLine, FileRow, FolderRow, Person, ProfileRow, ProjectRow, TaskRow } from './types';
+import type { ActivityRow, BoardLine, FileRow, FolderRow, MyOrg, Person, ProfileRow, ProjectRow, TaskRow } from './types';
 
 const BOARD_PAGE = 50;
 
 export function useMyProjects() {
   return useQuery({
     queryKey: qk.myProjects,
-    queryFn: async () => (isMock() ? mock.projects() : throwIfError(await supabase.rpc('my_projects'))),
+    queryFn: async () => (isMock() ? mockJobs.projects() : throwIfError(await supabase.rpc('my_projects'))),
   });
 }
 
-type ProjectWithSettings = ProjectRow & { parsedSettings: ProjectSettings };
+export const PROJECT_COLS =
+  'id, org_id, name, number, address, timezone, stage, modules, settings, version, job_type, prevailing_wage, bid_due_at, bid_sealed';
+
+export type ProjectWithSettings = ProjectRow & { parsedSettings: ProjectSettings };
+
+export function withSettings(row: ProjectRow): ProjectWithSettings {
+  return { ...row, parsedSettings: parseProjectSettings(row.settings) };
+}
+
+/** The companies I belong to, with my role in each (my_orgs). */
+export function useMyOrgs() {
+  return useQuery({
+    queryKey: qk.myOrgs,
+    queryFn: async (): Promise<MyOrg[]> => (isMock() ? mockJobs.orgs() : throwIfError(await supabase.rpc('my_orgs'))),
+  });
+}
 
 async function fetchProject(projectId: string): Promise<ProjectWithSettings> {
   const row: ProjectRow = isMock()
-    ? await mock.project(projectId)
+    ? await mockJobs.project(projectId)
     : throwIfError(
         await supabase
           .from('projects')
-          .select('id, org_id, name, number, address, timezone, stage, modules, settings, version')
+          .select(PROJECT_COLS)
           .eq('id', projectId)
           .single(),
       );
-  return { ...row, parsedSettings: parseProjectSettings(row.settings) };
+  return withSettings(row);
 }
 
 export function useProject(projectId: string | null) {
@@ -215,6 +231,15 @@ export function useCapability(projectId: string | null, cap: string) {
       ? async () =>
           isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }))
       : skipToken,
+    staleTime: 60_000,
+  });
+}
+
+/** Can I edit this company? Asks is_org_admin, the same rule the orgs update policy uses. */
+export function useOrgAdmin(orgId: string) {
+  return useQuery({
+    queryKey: qk.orgAdmin(orgId),
+    queryFn: async () => (isMock() ? mockJobs.isOrgAdmin(orgId) : throwIfError(await supabase.rpc('is_org_admin', { p_org_id: orgId }))),
     staleTime: 60_000,
   });
 }

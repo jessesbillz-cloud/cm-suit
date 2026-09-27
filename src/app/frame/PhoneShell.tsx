@@ -19,7 +19,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
   const { loc, choices } = model;
   if (!choices) return null;
 
-  const tabs: Tool[] = [...choices.rail_items.slice(0, MAX_TABS), 'settings'];
+  const tabs: Tool[] = [...model.railItems.slice(0, MAX_TABS), 'settings'];
 
   if (loc.itemId !== null) {
     return (
@@ -33,7 +33,15 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
 
   return (
     <PanelScreen
-      top={<JobPicker projects={model.projects} recentIds={choices.recent_project_ids} currentId={loc.projectId} onPick={model.pickJob} />}
+      top={
+        <JobPicker
+          projects={model.projects}
+          recentIds={choices.recent_project_ids}
+          currentId={loc.projectId}
+          onPick={model.pickJob}
+          onNewJob={model.newJob}
+        />
+      }
       bottom={<PanelTabBar tools={tabs} current={loc.tool} onSelect={model.selectTool} />}
     >
       <main data-testid="main-area" data-tool={loc.tool} className="p-3">

@@ -2690,6 +2690,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_org: { Args: { p_kind: string; p_name: string }; Returns: string }
+      create_project: {
+        Args: {
+          p_address?: string
+          p_bid_due_at?: string
+          p_job_type?: string
+          p_name: string
+          p_number?: string
+          p_org_id: string
+          p_prevailing_wage?: boolean
+          p_stage: string
+        }
+        Returns: string
+      }
       create_task: {
         Args: {
           p_assignee: string
@@ -2817,6 +2831,16 @@ export type Database = {
       }
       mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
+      my_orgs: {
+        Args: never
+        Returns: {
+          kind: string
+          name: string
+          org_id: string
+          org_role: string
+          version: number
+        }[]
+      }
       my_projects: {
         Args: never
         Returns: {

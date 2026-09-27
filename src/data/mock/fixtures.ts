@@ -1,7 +1,15 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
-import type { ActivityRow, BoardLine, FileRow, FolderRow, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
+import type { ActivityRow, BoardLine, FileRow, FolderRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 
 const TZ = 'America/Los_Angeles';
+
+/** The mock user with no company and no jobs yet: the first-run screens. */
+export const NEWCOMER_ID = 'mock-user-newcomer';
+
+export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builders', kind: 'gc', org_role: 'owner', version: 1 }];
+
+/** What projects.modules defaults to for a new job. */
+export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
 export const MOCK_PROJECTS: MyProject[] = [
   {
@@ -12,7 +20,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: [],
+    modules: MOCK_DEFAULT_MODULES,
   },
   {
     project_id: 'job-b',
@@ -22,7 +30,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: [],
+    modules: MOCK_DEFAULT_MODULES,
   },
 ];
 

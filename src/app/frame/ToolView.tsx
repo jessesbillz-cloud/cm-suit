@@ -1,5 +1,7 @@
 // What fills the main area for each tool: board, files, bids, people and settings (calendar arrives in Phase 2).
+// A tool the job has switched off (projects.modules) shows a one-line note instead.
 import { useNavigate } from '@tanstack/react-router';
+import { toolIsOn } from '../../lib/jobs';
 import type { Tool } from '../../lib/layout';
 import { Board } from '../../features/board/Board';
 import { BidsTool } from '../../features/bids/BidsTool';
@@ -8,6 +10,7 @@ import { PeopleTool } from '../../features/people/PeopleTool';
 import { SettingsTool } from '../../features/settings/SettingsTool';
 import { Card } from '../../ui/Card';
 import { EmptyState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import type { FrameModel } from './useFrameModel';
 
 interface ToolViewProps {
@@ -25,9 +28,19 @@ function NeedsJob({ what }: { what: string }) {
   );
 }
 
+function ToolOff({ tool }: { tool: Tool }) {
+  return (
+    <Card>
+      <EmptyState title={`${TOOL_META[tool].label} is off for this job.`} hint="Turn it on in Settings." />
+    </Card>
+  );
+}
+
 export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
   const navigate = useNavigate();
   const { projectId, itemId } = model.loc;
+  const job = model.projects.find((p) => p.project_id === projectId);
+  if (job && !toolIsOn(tool, job.modules)) return <ToolOff tool={tool} />;
 
   switch (tool) {
     case 'board':
@@ -68,7 +81,7 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
       if (projectId === null) return <NeedsJob what="people" />;
       return <PeopleTool projectId={projectId} />;
     case 'settings':
-      return <SettingsTool />;
+      return <SettingsTool projectId={projectId} />;
     case 'calendar':
       return (
         <Card title="Calendar">

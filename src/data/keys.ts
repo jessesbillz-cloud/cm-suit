@@ -1,6 +1,7 @@
 // TanStack Query keys: one table so invalidation is never guessed.
 export const qk = {
   myProjects: ['my_projects'] as const,
+  myOrgs: ['my_orgs'] as const,
   project: (projectId: string) => ['project', projectId] as const,
   board: (projectId: string | null) => ['board', projectId ?? 'all'] as const,
   activity: (id: string) => ['activity', id] as const,
@@ -15,6 +16,7 @@ export const qk = {
   roles: ['roles'] as const,
   profile: ['profile'] as const,
   capability: (projectId: string, cap: string) => ['capability', projectId, cap] as const,
+  orgAdmin: (orgId: string) => ['is_org_admin', orgId] as const,
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
   bids: (projectId: string) => ['bids', projectId] as const,
   bidsPart: (projectId: string, part: string, id = '') => ['bids', projectId, part, id] as const,

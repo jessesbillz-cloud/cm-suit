@@ -5,7 +5,7 @@ import { useBidPackages } from '../../data/bids.queries';
 import type { PackageRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
-import { SaveState } from './SaveState';
+import { SaveState } from '../../ui/SaveState';
 
 const INPUT = 'rounded-md border border-line px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
 const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';

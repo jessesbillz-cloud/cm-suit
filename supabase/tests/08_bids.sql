@@ -203,8 +203,9 @@ select is_empty($$ select extraction_id from public.bid_extraction_pricing $$, '
 select pg_temp.login('a0000000-0000-0000-0000-000000000001', 'aal2');
 select is_empty($$ select id from public.bid_submissions $$, 'sealed: project_admin (aal2) sees 0 submissions');
 
--- Bid time passes.
+-- Bid time passes (a system write: no signed-in person, so the seal guard does not apply).
 reset role;
+select pg_temp.login_service();
 update public.projects set bid_due_at = now() - interval '1 minute' where id = 'c0000000-0000-0000-0000-00000000000a';
 set local role authenticated;
 

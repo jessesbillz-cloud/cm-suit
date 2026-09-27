@@ -5,7 +5,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMyProjects, useUserLayout } from '../../data/queries';
 import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
-import { pushRecent, type LayoutChoices, type Tool } from '../../lib/layout';
+import { railForJob } from '../../lib/jobs';
+import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { useToast } from '../../ui/Toast';
 
 export interface FrameLocation {
@@ -25,6 +26,9 @@ export function useFrameModel(loc: FrameLocation) {
 
   const choices: LayoutChoices | undefined = layoutQuery.data?.choices;
   const projects = projectsQuery.data ?? [];
+  const current = projects.find((p) => p.project_id === loc.projectId);
+  /** My rail picks, minus the modules this job has switched off. */
+  const railItems: RailTool[] = choices ? railForJob(choices.rail_items, current?.modules ?? null) : [];
 
   function save(patch: Partial<LayoutChoices>) {
     saveLayout.mutate(patch, {
@@ -52,6 +56,10 @@ export function useFrameModel(loc: FrameLocation) {
   function pickJob(projectId: string | null) {
     if (projectId !== null && choices) save({ recent_project_ids: pushRecent(choices.recent_project_ids, projectId) });
     go(projectId, loc.tool);
+  }
+
+  function newJob() {
+    void navigate({ to: '/new-job' });
   }
 
   function selectTool(tool: Tool) {
@@ -93,10 +101,12 @@ export function useFrameModel(loc: FrameLocation) {
     projectsQuery,
     choices,
     projects,
+    railItems,
     rightFull,
     setRightFull,
     save,
     pickJob,
+    newJob,
     selectTool,
     openItem,
     closeItem,

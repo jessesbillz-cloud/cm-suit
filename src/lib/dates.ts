@@ -28,3 +28,15 @@ export function endOfDayInZone(day: string, tz: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error(`Not a calendar day: ${day}`);
   return fromZonedTime(`${day}T23:59:59`, tz).toISOString();
 }
+
+/** A UTC instant as the value of a datetime-local input, in the given zone (e.g. the job's bid due time). */
+export function toZonedInput(date: string, tz: string): string {
+  return formatInZone(date, tz, "yyyy-MM-dd'T'HH:mm");
+}
+
+/** A datetime-local input value, read in the given zone, as a UTC ISO string. Empty input = null. */
+export function fromZonedInput(local: string, tz: string): string | null {
+  if (local === '') return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) throw new Error(`Not a date and time: ${local}`);
+  return fromZonedTime(`${local}:00`, tz).toISOString();
+}
