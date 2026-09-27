@@ -43,18 +43,6 @@ jobs:
         with: { version: latest }
       - run: supabase start
       - run: supabase db reset
-      - name: Stale generated types fail the build
-        # The committed types come from the hosted generator, which adds an __InternalSupabase block (PostgREST
-        # version); the local CLI may not. Everything else must match.
-        run: |
-          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
-          normalize() {
-            awk '/^  \/\/ (Allows to automatically|instead of createClient)/ { next }
-                 /^  __InternalSupabase: \{/ { skip = 1; next }
-                 skip { if ($0 ~ /^  \}/) skip = 0; next }
-                 { print }' "$1"
-          }
-          diff <(normalize src/data/database.types.ts) <(normalize "$RUNNER_TEMP/local.types.ts")
       - run: supabase test db
       - name: Edge functions for the probes
         # Dummy values: the functions refuse to run without their secrets (CLAUDE.md rule 4). Nothing is sent anywhere.
@@ -82,6 +70,23 @@ jobs:
           export PROBE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
           export PROBE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
           npm run test:security
+      - name: Stale generated types fail the build
+        # The committed types come from the hosted generator, which adds an __InternalSupabase block (PostgREST
+        # version); the local CLI may not. Everything else must match.
+        run: |
+          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
+          normalize() {
+            awk '/^  \/\/ (Allows to automatically|instead of createClient)/ { next }
+                 /^  __InternalSupabase: \{/ { skip = 1; next }
+                 skip { if ($0 ~ /^  \}/) skip = 0; next }
+                 { print }' "$1"
+          }
+          if ! diff <(normalize src/data/database.types.ts) <(normalize "$RUNNER_TEMP/local.types.ts") > "$RUNNER_TEMP/types.diff"; then
+            # The first lines as an annotation, so the reason shows without opening the log.
+            echo "::error title=Stale generated types::$(head -c 3000 "$RUNNER_TEMP/types.diff" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            cat "$RUNNER_TEMP/types.diff"
+            exit 1
+          fi
       - name: Functions log (on failure)
         if: failure()
         run: cat "$RUNNER_TEMP/functions.log" || true
