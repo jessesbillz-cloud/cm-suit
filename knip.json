@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/main.tsx",
+    "tests/security/*.ts",
+    "tests/e2e/**/*.ts",
+    "scripts/*.mjs",
+    "scripts/eslint-rules/*.mjs",
+    "worker/src/index.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "worker/src/**/*.ts", "scripts/**/*.mjs", "tests/**/*.ts"],
+  "ignore": ["src/data/database.types.ts", "supabase/functions/**"],
+  "ignoreDependencies": ["supabase", "autoprefixer", "postcss", "tailwindcss"],
+  "ignoreBinaries": ["supabase", "deno"]
+}

@@ -1,0 +1,23 @@
+name: Acceptance run
+# Runs a phase's real-job checks against staging using the private fixtures bucket (SPEC §9.3).
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Phase to run (e.g. 1)
+        required: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npx tsx scripts/acceptance-run.ts --phase "${{ github.event.inputs.phase }}"
+        env:
+          PROBE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          PROBE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - uses: actions/upload-artifact@v4
+        with: { name: acceptance-report, path: scratch/acceptance-report.md }

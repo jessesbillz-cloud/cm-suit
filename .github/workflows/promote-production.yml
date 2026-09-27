@@ -1,0 +1,64 @@
+name: Promote to production
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type PROMOTE to deploy main to production
+        required: true
+
+concurrency: deploy-production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.inputs.confirm == 'PROMOTE' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Migrations
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      - name: Functions
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      - name: Worker (Fly)
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --config worker/fly.toml --remote-only
+        env: { FLY_API_TOKEN: "${{ secrets.FLY_API_TOKEN }}" }
+      - name: App (Cloudflare Pages)
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          VITE_APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name="${{ vars.CF_PAGES_PROJECT }}" --branch=production
+      - name: Anon probe against staging
+        run: npx tsx tests/security/anon-probe.ts
+        env:
+          PROBE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          PROBE_ANON_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      - name: Smoke e2e against staging
+        run: npx playwright install --with-deps chromium && npx playwright test tests/e2e/smoke.spec.ts --project=desktop
+        env: { E2E_BASE_URL: "${{ vars.APP_ORIGIN }}" }
+      - name: Security advisor must show zero ERRORs
+        run: node scripts/advisor-gate.mjs
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
