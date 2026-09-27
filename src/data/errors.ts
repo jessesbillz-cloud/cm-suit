@@ -37,9 +37,9 @@ export function toDataError(e: PgLikeError): DataError {
 }
 
 /** Returns data or throws. For queries that must return a row or a list. */
-export function throwIfError<T>(res: { data: T | null; error: PgLikeError | null }): T {
+export function throwIfError<T>(res: { data: T | null; error: PgLikeError | null }): NonNullable<T> {
   if (res.error) throw toDataError(res.error);
-  if (res.data === null) throw new DataError('That item no longer exists.', 'PGRST116', null);
+  if (res.data === null || res.data === undefined) throw new DataError('That item no longer exists.', 'PGRST116', null);
   return res.data;
 }
 

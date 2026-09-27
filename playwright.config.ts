@@ -12,7 +12,7 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'phone', use: { ...devices['iPhone 14'] } },
   ],
-  webServer: process.env['E2E_BASE_URL']
-    ? undefined
-    : { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: true },
+  ...(process.env['E2E_BASE_URL']
+    ? {}
+    : { webServer: { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: true } }),
 });
