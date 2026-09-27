@@ -73,8 +73,8 @@ jobs:
       - name: Stale generated types fail the build
         if: ${{ !cancelled() }}
         # The committed types come from the hosted generator (formatted, with an __InternalSupabase block); the CLI's
-        # local output is unformatted and a newer generator (NonNullable<Json> for NOT NULL json, (T)[] arrays). Compare
-        # token by token, ignoring quotes, commas, semicolons, pipes, parentheses and layout.
+        # local output is unformatted and from a newer generator (NonNullable<Json>, (T)[], Record<PropertyKey, never>
+        # args, never for generated columns). Compare token by token with those mapped, ignoring quotes and layout.
         run: |
           supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
           tokens() {
@@ -82,12 +82,15 @@ jobs:
                  /^  __InternalSupabase: \{/ { skip = 1; next }
                  skip { if ($0 ~ /^  \}/) skip = 0; next }
                  { print }' "$1" \
-              | sed 's/NonNullable<Json>/Json/g' | tr -d '"|()' | tr ',;' '  ' | sed 's/[][{}<>]/ & /g' \
+              | sed -e 's/NonNullable<Json>/Json/g' -e 's/Record<PropertyKey, never>/never/g' -e 's/?: unknown/?: never/g' \
+              | tr -d "\"'|()" | tr ',;' '  ' | sed 's/[][{}<>]/ & /g' \
               | tr -s ' \t\r\n' '\n' | sed '/^$/d'
           }
           if ! diff -U 8 <(tokens src/data/database.types.ts) <(tokens "$RUNNER_TEMP/local.types.ts") > "$RUNNER_TEMP/types.diff"; then
             # The first lines as an annotation, so the reason shows without opening the log.
-            echo "::error title=Stale generated types (run npm run gen:types or regenerate from staging)::$(head -c 3000 "$RUNNER_TEMP/types.diff" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            summary=$(grep -E '^[-+][^-+]' "$RUNNER_TEMP/types.diff" | sort | uniq -c | sort -rn | head -40)
+            echo "::error title=Stale generated types (differing tokens, count)::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Stale generated types (first lines)::$(head -c 2500 "$RUNNER_TEMP/types.diff" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
             cat "$RUNNER_TEMP/types.diff"
             exit 1
           fi
