@@ -1175,7 +1175,7 @@ export type Database = {
           request_token_hash: string | null
           settings: Json
           stage: string
-          timezone: string | null
+          timezone: string
           updated_at: string
           version: number
         }
@@ -1199,7 +1199,7 @@ export type Database = {
           request_token_hash?: string | null
           settings?: Json
           stage?: string
-          timezone?: string | null
+          timezone?: string
           updated_at?: string
           version?: number
         }
@@ -1223,7 +1223,7 @@ export type Database = {
           request_token_hash?: string | null
           settings?: Json
           stage?: string
-          timezone?: string | null
+          timezone?: string
           updated_at?: string
           version?: number
         }
