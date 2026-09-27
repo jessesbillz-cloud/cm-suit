@@ -30,4 +30,10 @@ export const qk = {
   /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
   subs: (orgId: string) => ['subs', orgId] as const,
   subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
+  /** Calendar lines (SPEC §7.6): every range and every opened line sit under this prefix; one refresh after any write. */
+  calendar: ['calendar'] as const,
+  calendarRange: (projectId: string | null, from: string, to: string) => ['calendar', 'range', projectId ?? 'all', from, to] as const,
+  calendarLine: (id: string) => ['calendar', 'line', id] as const,
+  /** When my calendar feed link was made (never the token itself). */
+  calendarFeed: ['calendar_feed'] as const,
 };

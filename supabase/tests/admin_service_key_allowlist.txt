@@ -30,3 +30,6 @@ email-events
 inbound-email
 # Cron: queue_health() is not granted to users.
 queue-health
+# Public endpoint §6.4 #7: calendar apps have no session; the secret feed token is the gate and calendar_feed_lines()
+# is service-only.
+calendar-feed

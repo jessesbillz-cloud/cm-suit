@@ -4,6 +4,7 @@ import { useSaveLayout } from '../../data/mutations';
 import { useUserLayout } from '../../data/queries';
 import { messageOf } from '../../data/errors';
 import { CALENDAR_TYPES, DOCKED_PANELS, NOTIFICATION_KINDS, RAIL_TOOLS, type LayoutChoices, type RailTool } from '../../lib/layout';
+import { kindLabel } from '../../lib/calendarKinds';
 import { humanize } from '../../lib/format';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
@@ -126,7 +127,7 @@ export function LayoutForm() {
             legend="Calendar shows"
             options={CALENDAR_TYPES}
             selected={c.calendar_types}
-            labelOf={humanize}
+            labelOf={kindLabel}
             onChange={(next) => {
               set({ calendar_types: next });
             }}
