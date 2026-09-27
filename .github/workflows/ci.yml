@@ -72,20 +72,20 @@ jobs:
           npm run test:security
       - name: Stale generated types fail the build
         if: ${{ !cancelled() }}
-        # The committed types come from the hosted generator, which adds an __InternalSupabase block (PostgREST
-        # version); the local CLI may not. Everything else must match.
+        # The committed types come from the hosted generator (formatted, with an __InternalSupabase block); the CLI's
+        # local output is unformatted. Compare token by token: quotes, commas, semicolons, pipes and layout ignored.
         run: |
           supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
-          normalize() {
+          tokens() {
             awk '/^  \/\/ (Allows to automatically|instead of createClient)/ { next }
                  /^  __InternalSupabase: \{/ { skip = 1; next }
                  skip { if ($0 ~ /^  \}/) skip = 0; next }
-                 { print }' "$1"
+                 { print }' "$1" \
+              | tr -d '"|' | tr ',;' '  ' | sed 's/[][{}()<>]/ & /g' | tr -s ' \t\r\n' '\n' | sed '/^$/d'
           }
-          if ! diff <(normalize src/data/database.types.ts) <(normalize "$RUNNER_TEMP/local.types.ts") > "$RUNNER_TEMP/types.diff"; then
+          if ! diff -U 8 <(tokens src/data/database.types.ts) <(tokens "$RUNNER_TEMP/local.types.ts") > "$RUNNER_TEMP/types.diff"; then
             # The first lines as an annotation, so the reason shows without opening the log.
-            echo "::error title=Stale generated types::$(head -c 3000 "$RUNNER_TEMP/types.diff" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
-            echo "::error title=Local types (supabase $(supabase --version))::$(head -c 1500 "$RUNNER_TEMP/local.types.ts" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            echo "::error title=Stale generated types (run npm run gen:types or regenerate from staging)::$(head -c 3000 "$RUNNER_TEMP/types.diff" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
             cat "$RUNNER_TEMP/types.diff"
             exit 1
           fi
