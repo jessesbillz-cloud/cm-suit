@@ -73,7 +73,8 @@ jobs:
       - name: Stale generated types fail the build
         if: ${{ !cancelled() }}
         # The committed types come from the hosted generator (formatted, with an __InternalSupabase block); the CLI's
-        # local output is unformatted. Compare token by token: quotes, commas, semicolons, pipes and layout ignored.
+        # local output is unformatted and a newer generator (NonNullable<Json> for NOT NULL json, (T)[] arrays). Compare
+        # token by token, ignoring quotes, commas, semicolons, pipes, parentheses and layout.
         run: |
           supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
           tokens() {
@@ -81,7 +82,8 @@ jobs:
                  /^  __InternalSupabase: \{/ { skip = 1; next }
                  skip { if ($0 ~ /^  \}/) skip = 0; next }
                  { print }' "$1" \
-              | tr -d '"|' | tr ',;' '  ' | sed 's/[][{}()<>]/ & /g' | tr -s ' \t\r\n' '\n' | sed '/^$/d'
+              | sed 's/NonNullable<Json>/Json/g' | tr -d '"|()' | tr ',;' '  ' | sed 's/[][{}<>]/ & /g' \
+              | tr -s ' \t\r\n' '\n' | sed '/^$/d'
           }
           if ! diff -U 8 <(tokens src/data/database.types.ts) <(tokens "$RUNNER_TEMP/local.types.ts") > "$RUNNER_TEMP/types.diff"; then
             # The first lines as an annotation, so the reason shows without opening the log.
