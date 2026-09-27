@@ -1,4 +1,4 @@
-// The 6-digit email code step, shared by sign-in, access links and share links. No passwords anywhere.
+// The email code step (6-10 digits, whatever Auth is set to), shared by sign-in, access links and share links. No passwords anywhere.
 import { useState } from 'react';
 import { sendCode, verifyCode } from '../../data/auth';
 import { messageOf } from '../../data/errors';
@@ -21,8 +21,8 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
 
   function submit() {
     const digits = code.replace(/\D/g, '');
-    if (digits.length !== 6) {
-      setProblem('Enter the 6-digit code from the email.');
+    if (digits.length < 6 || digits.length > 10) {
+      setProblem('Enter the code from the email.');
       return;
     }
     setBusy(true);
@@ -46,7 +46,7 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
       }}
     >
       <p className="text-sm text-ink-2">
-        We emailed a 6-digit code to <span className="font-medium text-ink">{emailLabel}</span>.
+        We emailed a code to <span className="font-medium text-ink">{emailLabel}</span>.
       </p>
       <label className="flex flex-col gap-1 text-sm font-medium text-ink">
         Code
