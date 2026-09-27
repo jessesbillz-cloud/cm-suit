@@ -45,7 +45,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** Sends the 6-digit code email (Supabase Auth OTP through Postmark SMTP). Creates the auth user if new. */
+/** Sends the code email (Supabase Auth OTP through Postmark SMTP). Creates the auth user if new. */
 export async function sendCode(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizeEmail(email),

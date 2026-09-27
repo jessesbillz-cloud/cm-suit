@@ -1,4 +1,4 @@
-// Sign in with an email code (SPEC §10.3). Email, "Send code", then the 6-digit code. No passwords.
+// Sign in with an email code (SPEC §10.3). Email, "Send code", then the code. No passwords.
 import { useState } from 'react';
 import { z } from 'zod';
 import { sendCode } from '../../data/auth';
@@ -89,7 +89,7 @@ export function SignIn({ onSignedIn }: SignInProps) {
         <Button type="submit" variant="primary" loading={busy}>
           Send code
         </Button>
-        <p className="text-xs text-ink-2">We email you a 6-digit code. There is no password.</p>
+        <p className="text-xs text-ink-2">We email you a code. There is no password.</p>
       </form>
     </PublicPage>
   );

@@ -89,7 +89,7 @@ export function AccessLink() {
       ) : (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-ink-2">
-            You were invited to this job. To open it, we will email a 6-digit code to{' '}
+            You were invited to this job. To open it, we will email a code to{' '}
             <span className="font-medium text-ink">{data.email_masked}</span>.
           </p>
           {problem ? (
