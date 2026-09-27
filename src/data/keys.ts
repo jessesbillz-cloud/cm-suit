@@ -20,4 +20,7 @@ export const qk = {
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
   bids: (projectId: string) => ['bids', projectId] as const,
   bidsPart: (projectId: string, part: string, id = '') => ['bids', projectId, part, id] as const,
+  /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
+  subs: (orgId: string) => ['subs', orgId] as const,
+  subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
 };

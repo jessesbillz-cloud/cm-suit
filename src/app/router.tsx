@@ -14,7 +14,7 @@ interface ToolSearch {
   folder?: string;
   /** "Open in new window": render the item alone. */
   window?: '1';
-  /** Bids: the sub-view (coverage, packages, questions, addenda, received). */
+  /** Bids: the sub-view (coverage, packages, subs, questions, addenda, received). */
   view?: string;
 }
 

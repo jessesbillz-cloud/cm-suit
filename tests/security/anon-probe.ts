@@ -68,12 +68,17 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['create_org', { p_name: 'probe', p_kind: 'gc' }],
   ['create_project', { p_org_id: U, p_name: 'probe', p_stage: 'bidding' }],
   ['my_orgs', {}],
+  // Sub directory (0018)
+  ['can_manage_subs', { p_org_id: U }],
+  ['merge_sub_contacts', { p_existing: [], p_incoming: [] }],
+  ['import_subs', { p_org_id: U, p_rows: [] }],
+  ['record_cslb_check', { p_sub_id: U, p_status: 'active', p_version: 1 }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
   'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health',
-  'invite-bidders', 'issue-addendum', 'extract-bid',
+  'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
