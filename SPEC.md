@@ -134,9 +134,9 @@ These are also in `CLAUDE.md`.
 | Queue | `pgmq` in a **non-exposed schema**, reached only through wrapper RPCs (§8.9) | Never expose `pgmq_public` |
 | Worker | One container on **Fly.io** (Node/TS + ClamAV + LibreOffice headless + poppler/pdf tools) | Heavy work: scanning, text extraction, sheet split, thumbnails, legal PDF rendering, DOCX→PDF, workbook recalc, zips, stamping, nightly storage copy |
 | Hosting | **Cloudflare Pages** | `public/_headers` for the CSP and security headers |
-| Email out | **Postmark**, transactional stream, fully authenticated domain (SPF/DKIM/DMARC) | Bid invites, addenda, Q&A and receipts all go **transactional**, because recipients must never be able to unsubscribe from those |
-| Auth email | Supabase Auth **custom SMTP through Postmark** | Supabase's built-in mailer only sends to team members |
-| Email in | Postmark Inbound on `in.<appdomain>` | |
+| Email out | **Resend** (transactional sends only, no broadcasts), fully authenticated domain (SPF/DKIM/DMARC) | Bid invites, addenda, Q&A and receipts all go **transactional**, because recipients must never be able to unsubscribe from those |
+| Auth email | Supabase Auth **custom SMTP through Resend** | Supabase's built-in mailer only sends to team members |
+| Email in | Resend Inbound on `in.<appdomain>` | |
 | Push | Web Push (VAPID) from an edge function | |
 | AI | Anthropic API, Claude, through one module (§8.7) **[provisional until §16 Q1]** | MDR's multi-vendor wrapper is not carried over |
 | Errors | Sentry (front end + functions) | Users see a short error ID |
@@ -153,8 +153,8 @@ These are also in `CLAUDE.md`.
 **Model defaults** live in env, not code: `AI_MODEL_HEAVY=claude-sonnet-5` (extraction, drafting) and `AI_MODEL_FAST=claude-haiku-4-5-20251001` (sorting, classification). Before first use, confirm the IDs against Anthropic's current model list.
 
 **Email domain timing:**
-- Until the name and domain are decided (§16 Q2), Phase 0 sends email only through Postmark's test mode. No real outside email goes out.
-- The domain, Postmark sender approval and DNS records (SPF/DKIM/DMARC plus inbound MX) must be in place **at least 2–4 weeks before the first live bid**, so the new sending domain has time to warm up.
+- Until the name and domain are decided (§16 Q2), Phase 0 runs with `EMAIL_TEST_MODE=true` (nothing is handed to Resend). No real outside email goes out.
+- The domain, Resend domain verification and DNS records (SPF/DKIM/DMARC plus inbound MX) must be in place **at least 2–4 weeks before the first live bid**, so the new sending domain has time to warm up.
 - `<appdomain>` below means that future domain.
 
 ---
@@ -335,7 +335,7 @@ Fable writes the DDL. This section fixes the entities, the key columns and the a
   - scoped to one recipient.
 - **`transmittals`:**
   - `project_id`, `number`, `from_user`, `to_emails[]`, `to_members[]`, `file_ids[]`, `message`, `sent_at`;
-  - `delivery_status`, `first_opened_at`, `postmark_message_id`.
+  - `delivery_status`, `first_opened_at`, `provider_message_id`.
 
 ---
 
@@ -387,7 +387,7 @@ Each one has:
 
 1. **`access` (permanent link + email code), the entry point for every invited outside person** (bidders, subs, architects, owner reps, inspectors' offices).
    - Links in emails point to `/<app>/a/<link-id>`. That link **never expires by itself.**
-   - Opening it asks for an **email one-time code**, sent through Supabase Auth (`signInWithOtp`, delivered by Postmark SMTP) to the invited address.
+   - Opening it asks for an **email one-time code**, sent through Supabase Auth (`signInWithOtp`, delivered by Resend SMTP) to the invited address.
    - Once signed in, the device stays signed in, so the next visit needs no code.
    - Access ends when the membership is revoked, or when `access_ends_at` passes (e.g. bidders close automatically at bid time + grace **[confirm]**).
    - **Why not magic links:** magic links are single-use and short-lived, and corporate email scanners pre-click and burn them.
@@ -397,13 +397,13 @@ Each one has:
    - a first-time visitor verifies their email by code;
    - afterwards they're a `sub` member scoped to requests;
    - the project admin can revoke them.
-5. **`inbound-email` (Postmark Inbound webhook):** Basic Auth credentials in the webhook URL **plus** a secret header. De-duplicated on `MessageID`.
-6. **`postmark-events` (delivery, bounce and spam webhook):** same auth. De-duplicated on the event's `MessageID` + `RecordType`.
+5. **`inbound-email` (Resend Inbound `email.received` webhook):** Svix signature (HMAC-SHA256 over id, timestamp and raw body, `RESEND_WEBHOOK_SECRET`) with a 5-minute timestamp window. De-duplicated on the Resend `email_id`.
+6. **`email-events` (delivery, bounce, complaint and open webhook):** same auth. De-duplicated on the webhook's `svix-id`.
 7. **`calendar-feed` (per-user secret token, rotatable).**
 
 Everything else requires a signed-in user.
 
-**A "known sender" on inbound email** also requires Postmark's SPF/DKIM results to pass. A spoofed `From` address is never trusted.
+**A "known sender" on inbound email** also requires SPF and DKIM (aligned with the From domain) to pass. A spoofed `From` address is never trusted.
 
 ### 6.5 Storage
 - **All buckets are private.**
@@ -614,7 +614,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
 ### 8.4 Email out
 - **Recipients always come from the database** (members, contacts, requester), never from request bodies. Templates escape all user text.
 - **Transactional stream only in v1:** invites, addenda, Q&A, receipts, results, transmittals, digests. There's no marketing or broadcast use.
-- **Delivery status** comes from `postmark-events` and is shown on the send or transmittal record within minutes.
+- **Delivery status** comes from `email-events` and is shown on the send or transmittal record within minutes.
 - **Deliberately few emails.** The live calendar and the board are the channel. (MDR lesson: silent confirmations, one results email, one weekly digest.)
 - **Fallback on every send screen:** "Open in my mail app" (mailto with the recipients and the permanent link) and "Copy recipients."
 - **Allowlist sheet:** a generated PDF for a recipient's IT department, listing the exact sending domain, DKIM and return-path to allow at their gateway.
@@ -700,7 +700,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
 - **Production:** Jesse runs the **"Promote to production"** workflow, which repeats the same steps against production. Nobody deploys from a laptop.
 
 ### 9.2 Secrets
-- GitHub Actions secrets: staging and production Supabase keys, Postmark tokens, Anthropic key, VAPID keys, CRON_SECRET, webhook credentials, R2 keys.
+- GitHub Actions secrets: staging and production Supabase keys, Resend API key and webhook secret, Anthropic key, VAPID keys, CRON_SECRET, webhook credentials, R2 keys.
 - Never in the repo; `.env.example` lists the names only.
 
 ### 9.3 Real-job acceptance runs
@@ -714,8 +714,8 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
 
 **Scope** (only what Phase 1 needs, done properly):
 1. **Setup first:**
-   - the `FUTURE_NAME` placeholder constant, and Postmark in test mode until the domain exists (§16 Q2);
-   - Postmark account, sender approval, DNS (SPF/DKIM/DMARC/MX);
+   - the `FUTURE_NAME` placeholder constant, and email in test mode until the domain exists (§16 Q2);
+   - Resend account, domain verification, DNS (SPF/DKIM/DMARC/MX);
    - staging and production Supabase projects;
    - Cloudflare Pages;
    - Fly.io worker app;
@@ -723,7 +723,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
    - Sentry.
 2. **Repo and gates:** tooling, hygiene gates, CI/CD (§4, §9).
 3. **Auth:**
-   - email one-time codes through Postmark SMTP;
+   - email one-time codes through Resend SMTP;
    - permanent access links (§6.4);
    - **two-factor (TOTP) required** for org owners and admins and for anyone holding a pricing capability **[confirm]**;
    - invite and revoke flows (in the service-key allowlist);
@@ -742,7 +742,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
 
    (Sheet splitting, the viewer, zips and My shelf come in Phase 2.)
 7. **Worker skeleton:** queue consumer, retries, dead jobs, nightly R2 copy, LibreOffice and PDF rendering available.
-8. **Email:** transactional out, `postmark-events`, the mail-app fallback, the allowlist-sheet PDF. **Email in:** receiving, storing and quarantining; sorting comes in Phase 1.
+8. **Email:** transactional out, `email-events`, the mail-app fallback, the allowlist-sheet PDF. **Email in:** receiving, storing and quarantining; sorting comes in Phase 1.
 9. **UX:** tokens, frame, rail, job picker, collapsible panes, open-in-new-window, board, the `LogTable` and `ReadingPane` components, the phone shell.
 10. **Security gates:** anon probe, advisor gate, Sentry.
 

@@ -56,8 +56,8 @@ const RPCS: [string, Record<string, unknown>][] = [
 const AUTHED_FUNCTIONS = ['download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health'];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
-const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'postmark-events'];
-const WEBHOOKS = ['inbound-email', 'postmark-events'];
+const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events'];
+const WEBHOOKS = ['inbound-email', 'email-events'];
 
 async function probeTables(): Promise<void> {
   for (const t of PUBLIC_TABLES) {
@@ -140,7 +140,8 @@ async function probeFunctions(): Promise<void> {
   }
   for (const name of WEBHOOKS) {
     await report.guard('function', `${name}: no webhook secret`, async () => {
-      const res = await callFunction(name, JSON.stringify({ MessageID: randomUUID(), RecordType: 'Delivery' }));
+      // Well-formed Resend event with no Svix signature headers.
+      const res = await callFunction(name, JSON.stringify({ type: 'email.delivered', data: { email_id: randomUUID(), to: [] } }));
       report.check('function', `${name}: no webhook secret -> 401`, res.status === 401, `status ${res.status}`);
     });
   }

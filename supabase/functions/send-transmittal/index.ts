@@ -138,7 +138,7 @@ Deno.serve(handle(async (req) => {
     sent_at: new Date().toISOString(),
     share_link_ids: links.map((l) => l.id),
     delivery_status: anySent ? 'sent' : 'failed',
-    postmark_message_id: firstMessageId,
+    provider_message_id: firstMessageId,
   }).eq('id', t.id);
   if (updError) throw new HttpError(500, `transmittal update: ${updError.message}`);
 

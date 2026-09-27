@@ -351,6 +351,30 @@ export type Database = {
           },
         ]
       }
+      email_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          id: number
+          payload: Json
+          received_at: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          id?: never
+          payload: Json
+          received_at?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          id?: never
+          payload?: Json
+          received_at?: string
+        }
+        Relationships: []
+      }
       email_inbound: {
         Row: {
           attachment_file_ids: string[]
@@ -453,8 +477,8 @@ export type Database = {
           id: string
           kind: string
           org_id: string | null
-          postmark_message_id: string | null
           project_id: string | null
+          provider_message_id: string | null
           status: string
           status_at: string | null
           subject: string
@@ -472,8 +496,8 @@ export type Database = {
           id?: string
           kind: string
           org_id?: string | null
-          postmark_message_id?: string | null
           project_id?: string | null
+          provider_message_id?: string | null
           status?: string
           status_at?: string | null
           subject: string
@@ -491,8 +515,8 @@ export type Database = {
           id?: string
           kind?: string
           org_id?: string | null
-          postmark_message_id?: string | null
           project_id?: string | null
+          provider_message_id?: string | null
           status?: string
           status_at?: string | null
           subject?: string
@@ -967,30 +991,6 @@ export type Database = {
           entity_type?: string
           owner_column?: string
           table_name?: string
-        }
-        Relationships: []
-      }
-      postmark_events: {
-        Row: {
-          id: number
-          message_id: string
-          payload: Json
-          received_at: string
-          record_type: string
-        }
-        Insert: {
-          id?: never
-          message_id: string
-          payload: Json
-          received_at?: string
-          record_type: string
-        }
-        Update: {
-          id?: never
-          message_id?: string
-          payload?: Json
-          received_at?: string
-          record_type?: string
         }
         Relationships: []
       }
@@ -1516,8 +1516,8 @@ export type Database = {
           message: string
           number: number
           org_id: string
-          postmark_message_id: string | null
           project_id: string
+          provider_message_id: string | null
           sent_at: string | null
           share_link_ids: string[]
           subject: string
@@ -1538,8 +1538,8 @@ export type Database = {
           message?: string
           number: number
           org_id: string
-          postmark_message_id?: string | null
           project_id: string
+          provider_message_id?: string | null
           sent_at?: string | null
           share_link_ids?: string[]
           subject?: string
@@ -1560,8 +1560,8 @@ export type Database = {
           message?: string
           number?: number
           org_id?: string
-          postmark_message_id?: string | null
           project_id?: string
+          provider_message_id?: string | null
           sent_at?: string | null
           share_link_ids?: string[]
           subject?: string
@@ -1769,8 +1769,8 @@ export type Database = {
           message: string
           number: number
           org_id: string
-          postmark_message_id: string | null
           project_id: string
+          provider_message_id: string | null
           sent_at: string | null
           share_link_ids: string[]
           subject: string

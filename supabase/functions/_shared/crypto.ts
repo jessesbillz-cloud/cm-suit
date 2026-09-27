@@ -28,12 +28,22 @@ function toBase64Url(bytes: Uint8Array): string {
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** HMAC-SHA256 of `message` (UTF-8) keyed by raw `keyBytes`, as standard base64 (Svix webhook signatures). */
+export async function hmacSha256Base64(keyBytes: Uint8Array, message: string): Promise<string> {
+  // Copy into a fresh ArrayBuffer-backed view (WebCrypto's BufferSource type).
+  const key = await crypto.subtle.importKey('raw', new Uint8Array(keyBytes), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(message)));
+  let s = '';
+  for (const b of sig) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
 /** Random URL-safe token. 32 bytes → 43 characters. */
 export function randomToken(bytes = 32): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
 
-/** Decodes standard base64 (Postmark attachment content). Throws on invalid input. */
+/** Decodes standard base64 (webhook signing secrets, JWT segments). Throws on invalid input. */
 export function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64.replace(/\s+/g, ''));
   const out = new Uint8Array(bin.length);

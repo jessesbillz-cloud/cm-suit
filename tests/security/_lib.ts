@@ -96,7 +96,7 @@ export const PUBLIC_TABLES = [
   'user_layout', 'owner_lookup', 'project_counters', 'author_counters', 'audit_events', 'login_sync_state', 'activity',
   'activity_recipients', 'read_marks', 'tasks', 'folders', 'folder_access', 'files', 'file_pages', 'downloads',
   'share_links', 'transmittals', 'job_kinds', 'dead_jobs', 'worker_heartbeat', 'rate_limits', 'access_links',
-  'email_outbound', 'email_suppressions', 'postmark_events', 'email_inbound', 'push_subscriptions', 'ai_calls',
+  'email_outbound', 'email_suppressions', 'email_events', 'email_inbound', 'push_subscriptions', 'ai_calls',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

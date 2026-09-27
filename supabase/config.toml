@@ -42,14 +42,14 @@ max_frequency = "1m0s"
 otp_length = 6
 otp_expiry = 900
 
-# Custom SMTP (Postmark) delivers the Auth email codes. Configured per environment (dashboard / CI env), not locally:
+# Custom SMTP (Resend) delivers the Auth email codes. Configured per environment (dashboard / CI env), not locally:
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.postmarkapp.com"
-# port = 587
-# user = "env(POSTMARK_SMTP_USER)"
-# pass = "env(POSTMARK_SMTP_PASS)"
-# admin_email = "env(POSTMARK_FROM)"
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_API_KEY)"
+# admin_email = "env(EMAIL_FROM)"
 # sender_name = "env(BRAND_NAME)"
 
 [auth.mfa]
@@ -78,7 +78,7 @@ verify_jwt = false
 [functions.share]
 verify_jwt = false
 
-[functions.postmark-events]
+[functions.email-events]
 verify_jwt = false
 
 [functions.inbound-email]

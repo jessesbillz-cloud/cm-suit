@@ -1,5 +1,5 @@
 // Invite a person (members.manage). The edge function creates the member and a permanent access link and emails it.
-// When the email can't go (Postmark test mode, a bounce), the link is shown with copy and mail-app fallbacks.
+// When the email can't go (email test mode, a bounce), the link is shown with copy and mail-app fallbacks.
 import { useState } from 'react';
 import { z } from 'zod';
 import { Copy, Mail, UserPlus } from 'lucide-react';

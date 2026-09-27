@@ -14,9 +14,9 @@ send-transmittal
 access
 # Public endpoint §6.4 #2: share recipients aren't members, so this function is the access check.
 share
-# Webhook §6.4 #6: Postmark delivery / bounce / spam / open events.
-postmark-events
-# Webhook §6.4 #5: Postmark inbound mail, stored and quarantined.
+# Webhook §6.4 #6: Resend delivery / bounce / complaint / open events.
+email-events
+# Webhook §6.4 #5: Resend inbound mail, stored and quarantined.
 inbound-email
 # Cron: queue_health() is not granted to users.
 queue-health

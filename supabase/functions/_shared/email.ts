@@ -1,4 +1,4 @@
-// Transactional email out through Postmark (SPEC §8.4). Transactional stream only.
+// Transactional email out through Resend (SPEC §8.4). Transactional mail only; nothing here is marketing or broadcast.
 //
 // RECIPIENTS ALWAYS COME FROM THE DATABASE. Callers pass `toEmail` read back from a row they looked up themselves
 // (project_members.invite_email, a transmittal's stored to_emails, share_links.recipient_email) — never a value taken
@@ -9,7 +9,7 @@ import { HttpError } from './http.ts';
 import { BRAND_NAME, env, envOptional } from './env.ts';
 import { type Db, dbError, must } from './db.ts';
 
-const POSTMARK_URL = 'https://api.postmarkapp.com/email';
+const RESEND_URL = 'https://api.resend.com/emails';
 
 export interface EmailInput {
   kind: string;
@@ -35,10 +35,17 @@ export interface SendResult {
   error: string | null;
 }
 
-interface PostmarkReply {
-  ErrorCode?: number;
-  Message?: string;
-  MessageID?: string;
+/** Resend: 200 `{ id }` on success; errors are `{ statusCode, name, message }`. */
+interface ResendReply {
+  id?: string;
+  statusCode?: number;
+  name?: string;
+  message?: string;
+}
+
+interface ResendTag {
+  name: string;
+  value: string;
 }
 
 /** HTML-escapes user-provided text for templates. */
@@ -61,7 +68,19 @@ export function maskEmail(address: string): string {
 
 function senderHeader(): string {
   const name = BRAND_NAME().replace(/["\\\r\n]/g, '');
-  return `"${name}" <${env('POSTMARK_FROM')}>`;
+  return `"${name}" <${env('EMAIL_FROM')}>`;
+}
+
+/** Resend tag names and values allow only ASCII letters, digits, '_' and '-' (max 256). */
+function tagValue(s: string): string {
+  return s.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 256) || 'none';
+}
+
+function tags(m: EmailInput): ResendTag[] {
+  const out: ResendTag[] = [{ name: 'kind', value: tagValue(m.tag ?? m.kind) }];
+  if (m.entityType) out.push({ name: 'entity_type', value: tagValue(m.entityType) });
+  if (m.entityId) out.push({ name: 'entity_id', value: tagValue(m.entityId) });
+  return out;
 }
 
 async function finish(service: Db, id: string, patch: Record<string, unknown>): Promise<void> {
@@ -69,23 +88,20 @@ async function finish(service: Db, id: string, patch: Record<string, unknown>): 
   if (error) throw dbError(error, 'email_outbound update');
 }
 
-async function postmarkSend(token: string, m: EmailInput, to: string): Promise<{ messageId: string | null; error: string | null }> {
+async function resendSend(apiKey: string, from: string, m: EmailInput, to: string): Promise<{ messageId: string | null; error: string | null }> {
   let res: Response;
   try {
-    res = await fetch(POSTMARK_URL, {
+    res = await fetch(RESEND_URL, {
       method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json', 'x-postmark-server-token': token },
+      headers: { accept: 'application/json', 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        From: senderHeader(),
-        To: to,
-        Subject: oneLine(m.subject),
-        HtmlBody: m.html,
-        TextBody: m.text,
-        ReplyTo: m.replyTo ?? undefined,
-        Tag: m.tag ?? m.kind,
-        MessageStream: 'outbound',
-        TrackOpens: true,
-        Metadata: { kind: m.kind, entity_type: m.entityType ?? '', entity_id: m.entityId ?? '' },
+        from,
+        to: [to],
+        subject: oneLine(m.subject),
+        html: m.html,
+        text: m.text,
+        reply_to: m.replyTo ?? undefined,
+        tags: tags(m),
       }),
       signal: AbortSignal.timeout(15_000),
     });
@@ -93,28 +109,33 @@ async function postmarkSend(token: string, m: EmailInput, to: string): Promise<{
     return { messageId: null, error: `network: ${e instanceof Error ? e.message : String(e)}` };
   }
   const raw = await res.text();
-  let reply: PostmarkReply = {};
+  let reply: ResendReply = {};
   try {
-    reply = JSON.parse(raw) as PostmarkReply;
+    reply = JSON.parse(raw) as ResendReply;
   } catch (e) {
-    return { messageId: null, error: `postmark ${res.status}: unreadable reply (${e instanceof Error ? e.message : String(e)}) ${raw.slice(0, 200)}` };
+    return { messageId: null, error: `resend ${res.status}: unreadable reply (${e instanceof Error ? e.message : String(e)}) ${raw.slice(0, 200)}` };
   }
-  if (!res.ok || reply.ErrorCode !== 0) {
-    return { messageId: null, error: `postmark ${res.status} code ${reply.ErrorCode ?? '?'}: ${reply.Message ?? raw.slice(0, 200)}` };
+  if (!res.ok || !reply.id) {
+    return { messageId: null, error: `resend ${res.status} ${reply.name ?? '?'}: ${reply.message ?? raw.slice(0, 200)}` };
   }
-  return { messageId: reply.MessageID ?? null, error: null };
+  return { messageId: reply.id, error: null };
 }
 
 /**
- * Records an email_outbound row, sends it, and records the outcome. A Postmark failure does not throw: it is recorded
+ * Records an email_outbound row, sends it, and records the outcome. A Resend failure does not throw: it is recorded
  * as status 'failed' and returned, so the caller can show it on the send record and offer the mail-app fallback.
  * Database errors do throw.
+ *
+ * EMAIL_TEST_MODE=true: nothing is sent (Resend has no delivering-nothing test key); the row is recorded as
+ * 'test_mode' so every screen behaves as if it had gone.
  */
 export async function sendEmail(service: Db, m: EmailInput): Promise<SendResult> {
   const to = m.toEmail.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) throw new HttpError(400, 'Recipient address is not valid');
-  const testMode = envOptional('POSTMARK_TEST_MODE') === 'true';
-  const token = testMode ? 'POSTMARK_API_TEST' : env('POSTMARK_SERVER_TOKEN');
+  const testMode = envOptional('EMAIL_TEST_MODE') === 'true';
+  // Read (and refuse on a missing secret) before anything is recorded. EMAIL_FROM is required in test mode too.
+  const apiKey = testMode ? null : env('RESEND_API_KEY');
+  const from = senderHeader();
 
   const suppressed = must(
     await service.from('email_suppressions').select('reason').eq('email', to).maybeSingle(),
@@ -139,18 +160,18 @@ export async function sendEmail(service: Db, m: EmailInput): Promise<SendResult>
 
   if (suppressed) return { outboundId: row.id, status: 'suppressed', messageId: null, error: `suppressed: ${suppressed.reason}` };
 
-  const sent = await postmarkSend(token, m, to);
+  if (apiKey === null) {
+    await finish(service, row.id, { status: 'test_mode' });
+    return { outboundId: row.id, status: 'test_mode', messageId: null, error: null };
+  }
+
+  const sent = await resendSend(apiKey, from, m, to);
   if (sent.error) {
     console.error(`[email] send failed (${row.id}): ${sent.error}`);
     await finish(service, row.id, { status: 'failed', error: sent.error.slice(0, 2000) });
     return { outboundId: row.id, status: 'failed', messageId: null, error: sent.error };
   }
-  if (testMode) {
-    // The test token never delivers; its MessageID is not a real message, so it is not stored (the column is unique).
-    await finish(service, row.id, { status: 'test_mode' });
-    return { outboundId: row.id, status: 'test_mode', messageId: null, error: null };
-  }
-  await finish(service, row.id, { status: 'sent', postmark_message_id: sent.messageId });
+  await finish(service, row.id, { status: 'sent', provider_message_id: sent.messageId });
   return { outboundId: row.id, status: 'sent', messageId: sent.messageId, error: null };
 }
 

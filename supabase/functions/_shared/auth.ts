@@ -2,7 +2,7 @@
 import { HttpError } from './http.ts';
 import { env } from './env.ts';
 import { type Db, type User, rpc, userClient } from './db.ts';
-import { base64UrlToText, safeEqual } from './crypto.ts';
+import { base64ToBytes, base64UrlToText, hmacSha256Base64, safeEqual } from './crypto.ts';
 
 export interface Authed {
   user: User;
@@ -74,41 +74,50 @@ export async function requireCron(req: Request): Promise<void> {
   if (!got || !(await safeEqual(got, expected))) throw new HttpError(401, 'Invalid cron secret');
 }
 
-function basicCredentials(req: Request): { user: string; pass: string } | null {
-  const m = /^Basic\s+(\S+)\s*$/i.exec(req.headers.get('authorization') ?? '');
-  if (!m) return null;
-  let decoded: string;
-  try {
-    decoded = atob(m[1]);
-  } catch (e) {
-    console.warn('webhook: undecodable Basic credentials', e instanceof Error ? e.message : String(e));
-    return null;
-  }
-  const i = decoded.indexOf(':');
-  return i < 0 ? null : { user: decoded.slice(0, i), pass: decoded.slice(i + 1) };
+export type WebhookProvider = 'resend';
+
+export interface WebhookMeta {
+  /** The sender's unique id for this delivery (Svix `svix-id`); the same across retries, so it is the dedupe key. */
+  eventId: string;
 }
 
-export type WebhookProvider = 'postmark';
+const WEBHOOK_TOLERANCE_SEC = 5 * 60;
+
+/** Decodes `whsec_<base64>` (the prefix is optional) to the HMAC key bytes. A bad secret refuses the request. */
+function svixKey(secret: string): Uint8Array {
+  try {
+    const key = base64ToBytes(secret.startsWith('whsec_') ? secret.slice('whsec_'.length) : secret);
+    if (key.length === 0) throw new Error('empty key');
+    return key;
+  } catch (e) {
+    throw new HttpError(500, `Server misconfigured: RESEND_WEBHOOK_SECRET is not valid base64 (${e instanceof Error ? e.message : String(e)})`);
+  }
+}
 
 /**
- * Webhooks (SPEC §6.4 #5, #6): Basic Auth credentials embedded in the webhook URL (https://user:pass@host/...), which
- * the sender turns into an Authorization: Basic header, PLUS a secret header. All comparisons run; none short-circuit.
+ * Webhooks (SPEC §6.4 #5, #6). Resend signs every webhook with Svix: HMAC-SHA256 over
+ * `${svix-id}.${svix-timestamp}.${rawBody}`, keyed by RESEND_WEBHOOK_SECRET, sent as space-separated `v1,<base64>`
+ * entries in `svix-signature`. The timestamp must be within 5 minutes either way (replay window).
+ *
+ * `rawBody` must be the exact bytes received, read ONCE by the caller (readBody) and parsed only after this passes.
+ * Every candidate signature is compared in constant time; none short-circuit.
  */
-export async function requireWebhook(req: Request, provider: WebhookProvider): Promise<void> {
+export async function requireWebhook(req: Request, provider: WebhookProvider, rawBody: string): Promise<WebhookMeta> {
   switch (provider) {
-    case 'postmark': {
-      const user = env('POSTMARK_INBOUND_USER');
-      const pass = env('POSTMARK_INBOUND_PASS');
-      const secret = env('POSTMARK_WEBHOOK_SECRET');
-      const creds = basicCredentials(req);
-      const header = req.headers.get('x-webhook-secret') ?? '';
-      const [u, p, s] = await Promise.all([
-        safeEqual(creds?.user ?? '', user),
-        safeEqual(creds?.pass ?? '', pass),
-        safeEqual(header, secret),
-      ]);
-      if (!creds || !header || !(u && p && s)) throw new HttpError(401, 'Invalid webhook credentials');
-      return;
+    case 'resend': {
+      const key = svixKey(env('RESEND_WEBHOOK_SECRET'));
+      const id = req.headers.get('svix-id') ?? '';
+      const ts = req.headers.get('svix-timestamp') ?? '';
+      const header = req.headers.get('svix-signature') ?? '';
+      if (!id || id.length > 200 || !/^\d{1,12}$/.test(ts) || !header) throw new HttpError(401, 'Invalid webhook signature');
+      const age = Math.floor(Date.now() / 1000) - Number(ts);
+      if (Math.abs(age) > WEBHOOK_TOLERANCE_SEC) throw new HttpError(401, 'Webhook timestamp outside tolerance');
+
+      const expected = await hmacSha256Base64(key, `${id}.${ts}.${rawBody}`);
+      const candidates = header.split(' ').filter((p) => p.startsWith('v1,')).map((p) => p.slice(3)).slice(0, 10);
+      const matches = await Promise.all(candidates.map((c) => safeEqual(c, expected)));
+      if (!matches.includes(true)) throw new HttpError(401, 'Invalid webhook signature');
+      return { eventId: id };
     }
   }
 }
