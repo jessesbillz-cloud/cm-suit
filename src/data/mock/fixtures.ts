@@ -11,6 +11,9 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 /** What projects.modules defaults to for a new job. */
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
+/** A job under construction also has the field tools (migration 0021 adds them when the stage is construction). */
+const MOCK_BUILDING_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections'];
+
 export const MOCK_PROJECTS: MyProject[] = [
   {
     project_id: 'job-a',
@@ -20,7 +23,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_BUILDING_MODULES,
   },
   {
     project_id: 'job-b',
@@ -30,7 +33,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_BUILDING_MODULES,
   },
 ];
 
@@ -108,6 +111,8 @@ export const MOCK_TASKS: TaskRow[] = [
 export const MOCK_PEOPLE: Person[] = [
   { user_id: 'mock-user-pm', member_id: 'member-1', full_name: 'Sample PM', company: 'Sample Builders', role: 'pm', status: 'active', access_ends_at: null },
   { user_id: 'mock-someone', member_id: 'member-2', full_name: 'Sample Reviewer', company: 'Sample Design', role: 'architect', status: 'active', access_ends_at: null },
+  { user_id: 'mock-user-inspector', member_id: 'member-3', full_name: 'Sample Inspector', company: 'Sample Inspection', role: 'inspector', status: 'active', access_ends_at: null },
+  { user_id: 'mock-user-sub', member_id: 'member-4', full_name: 'Sample Sub', company: 'Sample Drywall', role: 'sub', status: 'active', access_ends_at: null },
 ];
 
 export const MOCK_ROLES: RoleRow[] = [

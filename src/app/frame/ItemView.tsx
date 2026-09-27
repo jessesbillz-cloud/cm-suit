@@ -2,9 +2,11 @@
 import type { Tool } from '../../lib/layout';
 import { BidsItem } from '../../features/bids/BidsItem';
 import { BoardItem } from '../../features/board/BoardItem';
+import { CorrectionItem } from '../../features/corrections/CorrectionItem';
 import { FileItem } from '../../features/files/FileItem';
 import { EmptyState } from '../../ui/States';
 import type { FrameModel } from './useFrameModel';
+import { useIsPhone } from './useIsPhone';
 
 interface ItemViewProps {
   model: FrameModel;
@@ -15,6 +17,7 @@ interface ItemViewProps {
 }
 
 export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
+  const isPhone = useIsPhone();
   const openWindow = standalone
     ? undefined
     : () => {
@@ -36,6 +39,11 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   }
   if (tool === 'files') return <FileItem key={itemId} fileId={itemId} onOpenWindow={openWindow} />;
   if (tool === 'bids' && model.loc.projectId !== null) return <BidsItem projectId={model.loc.projectId} itemId={itemId} />;
+  if (tool === 'corrections' && model.loc.projectId !== null) {
+    return (
+      <CorrectionItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} standalone={standalone} onOpenWindow={openWindow} />
+    );
+  }
   return <EmptyState title="There is nothing to open here." />;
 }
 
@@ -44,5 +52,6 @@ export function itemTitle(tool: Tool): string {
   if (tool === 'files') return 'File';
   if (tool === 'board') return 'Board item';
   if (tool === 'bids') return 'Bids';
+  if (tool === 'corrections') return 'Corrections';
   return 'Item';
 }

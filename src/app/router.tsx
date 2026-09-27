@@ -18,6 +18,9 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
+  /** Logs: the sort ("column.asc|desc") and the search box, shared by the list and the reading pane's arrow keys. */
+  sort?: string;
+  q?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -29,7 +32,16 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const win = s['window'] === '1' || s['window'] === 1;
-  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(pkg ? { pkg } : {}), ...(win ? { window: '1' as const } : {}) };
+  const sort = str(s['sort']);
+  const q = str(s['q']);
+  return {
+    ...(folder ? { folder } : {}),
+    ...(view ? { view } : {}),
+    ...(pkg ? { pkg } : {}),
+    ...(win ? { window: '1' as const } : {}),
+    ...(sort ? { sort } : {}),
+    ...(q ? { q } : {}),
+  };
 }
 
 function parseAccessSearch(s: Record<string, unknown>): { t?: string } {

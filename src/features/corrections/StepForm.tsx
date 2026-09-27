@@ -1,0 +1,89 @@
+// One step on an item: mark ready (GC or sub) or the inspector's decision, with a note and up to 6 photos.
+// Undo in the toast afterwards, never "are you sure?".
+import { useState } from 'react';
+import { useCorrectionStep } from '../../data/corrections.mutations';
+import { STEP_PHOTO_LIMIT, type CorrectionRow, type CorrectionStep } from '../../data/corrections.types';
+import { messageOf } from '../../data/errors';
+import { Button } from '../../ui/Button';
+import { STEP_LABELS, stepDone } from './model';
+import { PhotoPicker } from './PhotoPicker';
+import { usePhotoUploads } from './usePhotoUploads';
+import { useUndoOffer } from './useUndoOffer';
+
+interface StepFormProps {
+  row: CorrectionRow;
+  step: CorrectionStep;
+  isPhone: boolean;
+  onDone: () => void;
+}
+
+const AREA = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
+
+export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
+  const move = useCorrectionStep();
+  const offerUndo = useUndoOffer(row.project_id, row.id);
+  const photos = usePhotoUploads(row.project_id, STEP_PHOTO_LIMIT);
+  const [note, setNote] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+
+  function confirm() {
+    setProblem(null);
+    move.mutate(
+      { row, status: step, note: note.trim(), photoIds: photos.ids },
+      {
+        onSuccess: (saved) => {
+          offerUndo(saved, stepDone(step, saved.number));
+          onDone();
+        },
+        onError: (e) => {
+          setProblem(messageOf(e));
+        },
+      },
+    );
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-3 rounded-card border border-line p-3"
+      data-testid="cn-step-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        confirm();
+      }}
+    >
+      <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+        Note
+        <textarea
+          rows={3}
+          autoFocus={!isPhone}
+          className={AREA}
+          value={note}
+          data-testid="cn-step-note"
+          onChange={(e) => {
+            setNote(e.target.value);
+          }}
+        />
+      </label>
+      <PhotoPicker uploads={photos} isPhone={isPhone} />
+      {problem ? (
+        <p role="alert" className="text-sm text-danger">
+          {problem}
+        </p>
+      ) : null}
+      <div className="flex justify-end gap-2">
+        <Button variant="quiet" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={move.isPending}
+          disabled={photos.busy || photos.failed}
+          data-testid="cn-step-confirm"
+        >
+          {STEP_LABELS[step]}
+        </Button>
+      </div>
+    </form>
+  );
+}

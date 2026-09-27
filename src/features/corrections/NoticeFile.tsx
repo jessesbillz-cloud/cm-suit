@@ -1,0 +1,81 @@
+// The formal notice as a file on the item: attach one (the one uploader, into Photos/Corrections), or remove it.
+import { useRef, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { useCorrectionFileUpload } from '../../data/corrections.mutations';
+import { usePhotoFiles } from '../../data/corrections.queries';
+import { messageOf } from '../../data/errors';
+import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
+
+interface NoticeFileProps {
+  projectId: string;
+  fileId: string | null;
+  onChange: (fileId: string | null) => void;
+}
+
+export function NoticeFile({ projectId, fileId, onChange }: NoticeFileProps) {
+  const upload = useCorrectionFileUpload();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const file = usePhotoFiles(projectId, fileId === null ? [] : [fileId]);
+  const name = file.data?.[0]?.original_name ?? 'Notice file';
+
+  function attach(picked: File) {
+    setBusy(true);
+    setProblem(null);
+    void upload(projectId, picked, new AbortController().signal)
+      .then(onChange, (e: unknown) => {
+        setProblem(`Not attached: ${messageOf(e)}`);
+      })
+      .finally(() => {
+        setBusy(false);
+      });
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {fileId !== null ? (
+        <div className="flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm">
+          <Icon icon={Paperclip} size={16} className="text-ink-3" />
+          <span className="min-w-0 flex-1 break-words">{name}</span>
+          <button
+            type="button"
+            aria-label="Remove notice file"
+            className="text-ink-2 hover:text-ink"
+            onClick={() => {
+              onChange(null);
+            }}
+          >
+            <Icon icon={X} size={16} />
+          </button>
+        </div>
+      ) : (
+        <div>
+          <Button
+            size="sm"
+            icon={Paperclip}
+            loading={busy}
+            onClick={() => {
+              input.current?.click();
+            }}
+          >
+            Attach notice
+          </Button>
+        </div>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept="application/pdf,image/*"
+        hidden
+        onChange={(e) => {
+          const picked = e.target.files?.[0];
+          e.target.value = '';
+          if (picked) attach(picked);
+        }}
+      />
+      {problem ? <p className="text-sm text-danger">{problem}</p> : null}
+    </div>
+  );
+}

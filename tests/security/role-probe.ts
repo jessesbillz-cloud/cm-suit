@@ -39,6 +39,9 @@ const MATRIX: Record<string, readonly Role[]> = {
   'rfi.answer': ['architect'],
   'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator'],
   'members.manage': ['project_admin'],
+  'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer'],
+  'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector'],
+  'corrections.mark_ready': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
 };
 
 interface ProbeUser {
