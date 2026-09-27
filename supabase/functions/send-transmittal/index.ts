@@ -13,7 +13,7 @@ import { type Db, must, rpc, serviceClient } from '../_shared/db.ts';
 import { requireCapability, requireUser } from '../_shared/auth.ts';
 import { email, parseJson, uuid, z } from '../_shared/validate.ts';
 import { sendEmail, type SendStatus, transmittalEmail } from '../_shared/email.ts';
-import { BRAND_NAME, env } from '../_shared/env.ts';
+import { BRAND_NAME, appUrl } from '../_shared/env.ts';
 
 const Body = z.object({
   project_id: uuid,
@@ -110,7 +110,7 @@ Deno.serve(handle(async (req) => {
   ) as { name: string };
 
   const service = serviceClient();
-  const origin = env('APP_ORIGIN');
+  const origin = appUrl();
   const brand = BRAND_NAME();
   const nameOf = new Map(files.map((f) => [f.id, f.original_name]));
   const deliveries: Delivery[] = [];

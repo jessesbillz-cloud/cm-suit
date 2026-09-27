@@ -11,7 +11,7 @@ import { requireCapability, requireUser } from '../_shared/auth.ts';
 import { email, parseJson, uuid, z } from '../_shared/validate.ts';
 import { audit } from '../_shared/audit.ts';
 import { inviteEmail, sendEmail } from '../_shared/email.ts';
-import { BRAND_NAME, env } from '../_shared/env.ts';
+import { BRAND_NAME, appUrl } from '../_shared/env.ts';
 import { randomToken, sha256Hex } from '../_shared/crypto.ts';
 
 const Body = z.object({
@@ -126,7 +126,7 @@ Deno.serve(handle(async (req) => {
   const member = await upsertMember(service, body, project.org_id, user.id);
   await addScopes(service, member.id, body.scopes, user.id);
   const link = await freshLink(service, member.id, user.id);
-  const linkUrl = `${env('APP_ORIGIN')}/a/${link.id}?t=${link.token}`;
+  const linkUrl = `${appUrl()}/a/${link.id}?t=${link.token}`;
 
   // Recipient = the membership row's invite_email as stored, not the request body.
   const brand = BRAND_NAME();
