@@ -15,6 +15,8 @@ import {
   type AddendumRow,
   type InviteBiddersInput,
   type InviteBiddersResult,
+  type LevelingPatch,
+  type LevelingSaved,
   type PackageRow,
   type QuestionRow,
 } from './bids.types';
@@ -213,6 +215,32 @@ export function useExtractBid() {
     mutationFn: (v: { projectId: string; submissionId: string }) =>
       callFunction('extract-bid', { submission_id: v.submissionId }, z.object({ extraction_id: z.string() }).passthrough()),
     onSuccess: (_r, v) => refresh(v.projectId),
+  });
+}
+
+interface LevelingWrite {
+  projectId: string;
+  submissionId: string;
+  /** The leveling row's version as the board showed it; null (no row yet) is sent as 0. */
+  version: number | null;
+  patch: LevelingPatch;
+}
+
+/**
+ * One leveling decision (SPEC §11.6): not comparable, duplicate, backup, move to a package, note. The database
+ * makes or updates the bid_leveling row with a version check and returns it; the caller's Undo sends the inverse
+ * with the returned version.
+ */
+export function useSetLeveling() {
+  const refresh = useRefreshBids();
+  return useMutation({
+    mutationFn: async (v: LevelingWrite): Promise<LevelingSaved> => {
+      if (isMock()) notInMock();
+      return throwIfError(
+        await supabase.rpc('set_bid_leveling', { p_submission_id: v.submissionId, p_version: v.version ?? 0, p_patch: v.patch }),
+      );
+    },
+    onSettled: (_r, _e, v) => refresh(v.projectId),
   });
 }
 

@@ -1,5 +1,5 @@
 // Time (SPEC §8.8, CLAUDE.md rule 14): store UTC, compute "today" and display dates in the PROJECT time zone.
-import { parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 /**
@@ -21,6 +21,12 @@ export function formatInZone(date: Date | string, tz: string, pattern: string): 
   const d = typeof date === 'string' ? parseISO(date) : date;
   if (Number.isNaN(d.getTime())) throw new Error(`Not a date: ${String(date)}`);
   return formatInTimeZone(d, tz, pattern);
+}
+
+/** A calendar day from the database (yyyy-MM-dd, e.g. a bid date) shown as written: no instant, so no zone shift. */
+export function formatDay(day: string, pattern: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error(`Not a calendar day: ${day}`);
+  return format(parseISO(day), pattern);
 }
 
 /** The last second of a calendar day (yyyy-MM-dd) in the given zone, as a UTC ISO string. */

@@ -5,6 +5,7 @@ import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mockBids from './mock/bids';
+import * as mockLeveling from './mock/leveling';
 import { isMock } from './mock';
 import { useMyProjects } from './queries';
 import {
@@ -106,11 +107,11 @@ export function useAddendumAcks(projectId: string) {
   });
 }
 
-/** The sealed-bid gate: false until bid time when the job is sealed. */
+/** The sealed-bid gate: false until bid time when the job is sealed. The mock jobs are open (leveling renders). */
 export function useBidsOpen(projectId: string) {
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'open'),
-    queryFn: async () => (isMock() ? false : throwIfError(await supabase.rpc('bids_open', { p_project_id: projectId }))),
+    queryFn: async () => (isMock() ? true : throwIfError(await supabase.rpc('bids_open', { p_project_id: projectId }))),
     staleTime: 60_000,
   });
 }
@@ -121,15 +122,17 @@ export function useBidSubmissions(projectId: string, open: boolean) {
     queryKey: qk.bidsPart(projectId, 'submissions'),
     queryFn: open
       ? async (): Promise<SubmissionRow[]> =>
-          throwIfError(
-            await supabase
-              .from('bid_submissions')
-              .select('id, package_id, member_id, file_id, receipt_number, received_at, is_late, version_no')
-              .eq('project_id', projectId)
-              .is('superseded_by', null)
-              .is('deleted_at', null)
-              .order('received_at', { ascending: false }),
-          )
+          isMock()
+            ? mockLeveling.submissions(projectId)
+            : throwIfError(
+                await supabase
+                  .from('bid_submissions')
+                  .select('id, package_id, member_id, file_id, receipt_number, received_at, is_late, version_no')
+                  .eq('project_id', projectId)
+                  .is('superseded_by', null)
+                  .is('deleted_at', null)
+                  .order('received_at', { ascending: false }),
+              )
       : skipToken,
   });
 }

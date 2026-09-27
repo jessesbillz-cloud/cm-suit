@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { StatusKey } from '../../lib/status';
 import type { InviteRecipient } from '../../data/bids.types';
 
-export const BIDS_VIEWS = ['coverage', 'packages', 'questions', 'addenda', 'received'] as const;
+export const BIDS_VIEWS = ['coverage', 'packages', 'questions', 'addenda', 'received', 'leveling', 'summary'] as const;
 export type BidsView = (typeof BIDS_VIEWS)[number];
 
 export const VIEW_LABELS: Record<BidsView, string> = {
@@ -13,7 +13,12 @@ export const VIEW_LABELS: Record<BidsView, string> = {
   questions: 'Questions',
   addenda: 'Addenda',
   received: 'Received',
+  leveling: 'Leveling',
+  summary: 'Summary',
 };
+
+/** Sub-views that open the submissions: hidden while the job is sealed and bid time has not come (SPEC §11.4). */
+export const SEALED_VIEWS: readonly BidsView[] = ['received', 'leveling', 'summary'];
 
 export function parseView(v: string | undefined): BidsView {
   return BIDS_VIEWS.find((x) => x === v) ?? 'coverage';

@@ -65,6 +65,67 @@ export interface PricingView {
 export type PricingAccess = 'yes' | 'two_factor' | 'no';
 
 // ---------------------------------------------------------------------------
+// Leveling (SPEC §11.6): bid_leveling_board / bid_flags rows. RETURNS TABLE columns come back untyped for
+// nullability, so both are parsed here. Money columns are null for anyone without bids.view_pricing.
+// ---------------------------------------------------------------------------
+const LEVELING_STATES = ['current', 'not_comparable', 'superseded', 'duplicate', 'backup'] as const;
+export type LevelingState = (typeof LEVELING_STATES)[number];
+
+export const levelingRowSchema = z.object({
+  submission_id: z.string(),
+  package_id: z.string(),
+  package_code: z.string(),
+  original_package_id: z.string(),
+  bidder: z.string(),
+  bidder_key: z.string(),
+  bid_date: z.string(),
+  received_at: z.string(),
+  receipt_number: z.number(),
+  is_late: z.boolean(),
+  document_kind: z.string().nullable(),
+  prevailing_wage: z.string().nullable(),
+  validity_days: z.number().nullable(),
+  valid_until: z.string().nullable(),
+  exclusions: z.array(z.string()),
+  project_match: z.string().nullable(),
+  extraction_status: z.string().nullable(),
+  state: z.enum(LEVELING_STATES),
+  replaced_by: z.string().nullable(),
+  comparable: z.boolean(),
+  is_duplicate: z.boolean(),
+  is_backup: z.boolean(),
+  notes: z.string(),
+  /** null until a leveling row exists; set_bid_leveling takes 0 for that. */
+  leveling_version: z.number().nullable(),
+  file_id: z.string(),
+  base_amount: z.number().nullable(),
+  base_evidence: z.string().nullable(),
+  base_page: z.number().nullable(),
+  pw_adder_amount: z.number().nullable(),
+});
+export type LevelingRow = z.infer<typeof levelingRowSchema>;
+
+export const flagRowSchema = z.object({
+  package_id: z.string(),
+  /** null = a package-level flag (single bid, no bids). */
+  submission_id: z.string().nullable(),
+  kind: z.string(),
+  detail: z.string(),
+});
+export type FlagRow = z.infer<typeof flagRowSchema>;
+
+/** What set_bid_leveling accepts (a type, not an interface, so it passes as Json). null package = back to its own. */
+export type LevelingPatch = {
+  comparable?: boolean;
+  is_duplicate?: boolean;
+  is_backup?: boolean;
+  reassigned_package_id?: string | null;
+  notes?: string;
+};
+
+export type LevelingSaved = Tables<'bid_leveling'>;
+
+// ---------------------------------------------------------------------------
 // bidder_page(p_project_id) JSON
 // ---------------------------------------------------------------------------
 const submissionSchema = z.object({

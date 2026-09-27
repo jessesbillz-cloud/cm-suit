@@ -14,8 +14,10 @@ interface ToolSearch {
   folder?: string;
   /** "Open in new window": render the item alone. */
   window?: '1';
-  /** Bids: the sub-view (coverage, packages, questions, addenda, received). */
+  /** Bids: the sub-view (coverage, packages, questions, addenda, received, leveling, summary). */
   view?: string;
+  /** Bids leveling: the package whose grid is showing. */
+  pkg?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -25,8 +27,9 @@ function str(v: unknown): string | undefined {
 function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const folder = str(s['folder']);
   const view = str(s['view']);
+  const pkg = str(s['pkg']);
   const win = s['window'] === '1' || s['window'] === 1;
-  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(win ? { window: '1' as const } : {}) };
+  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(pkg ? { pkg } : {}), ...(win ? { window: '1' as const } : {}) };
 }
 
 function parseAccessSearch(s: Record<string, unknown>): { t?: string } {

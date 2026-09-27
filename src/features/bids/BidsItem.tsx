@@ -1,6 +1,7 @@
 // The right column for the bids tool: what opens depends on the sub-view (from the URL) and the row id.
 import { AddendumPane } from './AddendumPane';
 import { InviteBiddersForm } from './InviteBiddersForm';
+import { LevelingPane } from './LevelingPane';
 import { INVITE_ITEM } from './model';
 import { PackageForm } from './PackageForm';
 import { PackageInvites } from './PackageInvites';
@@ -27,5 +28,10 @@ export function BidsItem({ projectId, itemId }: BidsItemProps) {
       return <AddendumPane key={itemId} projectId={projectId} addendumId={itemId} />;
     case 'received':
       return <SubmissionPane key={itemId} projectId={projectId} submissionId={itemId} />;
+    case 'leveling':
+      return <LevelingPane key={itemId} projectId={projectId} submissionId={itemId} />;
+    case 'summary':
+      // Summary rows open the leveling grid for that package; nothing opens on the right.
+      return null;
   }
 }
