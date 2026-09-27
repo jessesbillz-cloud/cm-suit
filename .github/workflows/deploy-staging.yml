@@ -1,7 +1,9 @@
 name: Deploy staging
+# Manual only. Written for the SPEC's original hosts (Fly for the worker, Cloudflare Pages for the app), which Jesse
+# doesn't use: the app deploys from deploy-pages.yml, and migrations and functions go to staging from the session.
+# Run it by hand once its hosts are settled (docs/decisions.md).
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency: deploy-staging
 

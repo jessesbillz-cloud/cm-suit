@@ -25,7 +25,11 @@ jobs:
       - name: Deno lint + check (edge functions)
         uses: denoland/setup-deno@v2
         with: { deno-version: v2.x }
-      - run: deno lint supabase/functions && deno check supabase/functions/**/index.ts
+      # The functions' own config and Deno's package cache: the repo's package.json + node_modules (from npm ci) would
+      # otherwise put Deno in node_modules mode, where the pinned npm: versions of the functions are not found.
+      - run: |
+          deno lint --config supabase/functions/deno.json supabase/functions
+          deno check --config supabase/functions/deno.json --node-modules-dir=none supabase/functions/*/index.ts
 
   database:
     name: migrations from zero + pgTAP + probes
@@ -40,15 +44,47 @@ jobs:
       - run: supabase start
       - run: supabase db reset
       - name: Stale generated types fail the build
+        # The committed types come from the hosted generator, which adds an __InternalSupabase block (PostgREST
+        # version); the local CLI may not. Everything else must match.
         run: |
-          npm run gen:types
-          git diff --exit-code -I 'PostgrestVersion' src/data/database.types.ts
+          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/local.types.ts"
+          normalize() {
+            awk '/^  \/\/ (Allows to automatically|instead of createClient)/ { next }
+                 /^  __InternalSupabase: \{/ { skip = 1; next }
+                 skip { if ($0 ~ /^  \}/) skip = 0; next }
+                 { print }' "$1"
+          }
+          diff <(normalize src/data/database.types.ts) <(normalize "$RUNNER_TEMP/local.types.ts")
       - run: supabase test db
+      - name: Edge functions for the probes
+        # Dummy values: the functions refuse to run without their secrets (CLAUDE.md rule 4). Nothing is sent anywhere.
+        run: |
+          cat > supabase/functions/.env <<'ENV'
+          APP_ORIGIN=http://localhost:5173
+          CRON_SECRET=ci-cron-secret
+          EMAIL_FROM=ci@example.test
+          EMAIL_TEST_MODE=true
+          RESEND_API_KEY=re_ci_dummy
+          RESEND_WEBHOOK_SECRET=whsec_Y2ktZHVtbXktc2VjcmV0LWNpLWR1bW15LXNlY3JldA==
+          ANTHROPIC_API_KEY=ci-dummy
+          ENV
+          supabase functions serve --env-file supabase/functions/.env > "$RUNNER_TEMP/functions.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:54321/functions/v1/access || true)
+            case "$code" in 400|401|429) echo "functions up ($code)"; exit 0 ;; esac
+            sleep 3
+          done
+          cat "$RUNNER_TEMP/functions.log"; exit 1
       - name: Probes against local stack
         run: |
           eval "$(supabase status -o env | sed 's/^/export /')"
-          export PROBE_SUPABASE_URL="$API_URL" PROBE_ANON_KEY="$ANON_KEY" PROBE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+          export PROBE_SUPABASE_URL="$API_URL"
+          export PROBE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          export PROBE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
           npm run test:security
+      - name: Functions log (on failure)
+        if: failure()
+        run: cat "$RUNNER_TEMP/functions.log" || true
 
   e2e:
     name: Playwright (tap budgets)

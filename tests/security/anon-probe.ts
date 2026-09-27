@@ -50,6 +50,24 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['queue_health', {}],
   ['consume_rate_limit', { p_key: 'probe', p_capacity: 1, p_refill_per_sec: 1 }],
   ['resolve_access_link', { p_link_id: U, p_token_hash: 'x' }],
+  ['sync_detected_timezone', { p_zone: 'America/Los_Angeles' }],
+  // Bids (0011-0012)
+  ['my_bidder_member_id', { p_project_id: U }],
+  ['bids_open', { p_project_id: U }],
+  ['set_bid_intent', { p_invite_id: U, p_intent: 'declined' }],
+  ['mark_invite_opened', { p_project_id: U }],
+  ['submit_bid', { p_package_id: U, p_file_id: U }],
+  ['ask_bid_question', { p_project_id: U, p_package_id: U, p_question: 'probe' }],
+  ['answer_bid_question', { p_question_id: U, p_question_text: 'probe', p_answer: 'probe' }],
+  ['create_addendum', { p_project_id: U, p_title: 'probe', p_body: 'probe' }],
+  ['issue_addendum', { p_addendum_id: U, p_content_hash: 'x' }],
+  ['acknowledge_addendum', { p_addendum_id: U }],
+  ['bidder_page', { p_project_id: U }],
+  ['bid_coverage', { p_project_id: U }],
+  // Company and job setup (0013-0014)
+  ['create_org', { p_name: 'probe', p_kind: 'gc' }],
+  ['create_project', { p_org_id: U, p_name: 'probe', p_stage: 'bidding' }],
+  ['my_orgs', {}],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
