@@ -9,6 +9,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { flagChip, indexFlags, lowBid } from './leveling';
 import { LevelingGrid } from './LevelingGrid';
 import { PackagePicker } from './PackagePicker';
+import { StepUp } from '../auth/StepUp';
 
 interface LevelingViewProps {
   projectId: string;
@@ -65,7 +66,11 @@ function Loaded({ projectId, packages, rows, flags, selectedId, onOpen, packageI
       </Card>
       <Card padded={false} className="min-w-0 flex-1" title={title}>
         {access.isError ? <ErrorState error={access.error} onRetry={() => void access.refetch()} /> : null}
-        {access.data === 'two_factor' ? <p className="px-4 pt-3 text-sm text-ink-2">Two-factor required for pricing</p> : null}
+        {access.data === 'two_factor' ? (
+          <div className="px-4 pt-3">
+            <StepUp />
+          </div>
+        ) : null}
         {mine.length === 0 ? (
           <EmptyState title="No bids in this package." />
         ) : (

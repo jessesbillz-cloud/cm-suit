@@ -28,6 +28,7 @@ import { BidList } from './BidList';
 import { IntakePicks } from './IntakePicks';
 import { bidderName, isUnread, readChip } from './model';
 import { useIntake } from './useIntake';
+import { StepUp } from '../auth/StepUp';
 
 interface ReceivedViewProps {
   projectId: string;
@@ -134,7 +135,11 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
 
   return (
     <Card actions={actions} padded={false}>
-      {twoFactor ? <p className="px-4 py-2 text-sm text-ink-2">Two-factor required for pricing</p> : null}
+      {twoFactor ? (
+        <div className="px-4 pt-3">
+          <StepUp />
+        </div>
+      ) : null}
       <div
         data-testid="bids-drop"
         className={`min-h-40 ${dragging ? 'bg-accent-soft outline-dashed outline-2 -outline-offset-4 outline-accent' : ''}`}

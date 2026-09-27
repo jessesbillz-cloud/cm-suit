@@ -8,6 +8,7 @@ import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { flagChip, formatPct, pwLabel, SPREAD_WARN, sumOfLows, summarize, type PackageSummary } from './leveling';
+import { StepUp } from '../auth/StepUp';
 
 interface SummaryViewProps {
   projectId: string;
@@ -133,7 +134,11 @@ export function SummaryView({ projectId, onOpenPackage }: SummaryViewProps) {
       {flags.isError ? <ErrorState error={flags.error} onRetry={() => void flags.refetch()} /> : null}
       {access.isError ? <ErrorState error={access.error} onRetry={() => void access.refetch()} /> : null}
       {packages.data?.length === 0 ? <EmptyState title="No packages yet." /> : null}
-      {access.data === 'two_factor' ? <p className="px-4 pt-3 text-sm text-ink-2">Two-factor required for pricing</p> : null}
+      {access.data === 'two_factor' ? (
+        <div className="px-4 pt-3">
+          <StepUp />
+        </div>
+      ) : null}
       {packages.data && packages.data.length > 0 && board.data && flags.data ? (
         <SummaryTable summaries={summarize(packages.data, board.data, flags.data)} access={access.data} onOpenPackage={onOpenPackage} />
       ) : null}
