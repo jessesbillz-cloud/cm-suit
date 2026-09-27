@@ -1,4 +1,4 @@
-// Settings: the job (for people who run it), my company (if I run it), my profile, my layout, and signing out.
+// Settings: the job (for people who run it), my company (if I run it), my profile, two-step login, my layout, and signing out.
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { CompanySettings } from './CompanySettings';
 import { JobSettings } from './JobSettings';
 import { LayoutForm } from './LayoutForm';
 import { ProfileForm } from './ProfileForm';
+import { TwoStepCard } from './TwoStepCard';
 
 export function SettingsTool({ projectId }: { projectId: string | null }) {
   const user = useUser();
@@ -22,6 +23,7 @@ export function SettingsTool({ projectId }: { projectId: string | null }) {
       {projectId ? <JobSettings projectId={projectId} /> : null}
       <CompanySettings />
       <ProfileForm />
+      <TwoStepCard />
       <LayoutForm />
       <Card title="This device">
         <div className="flex flex-wrap items-center gap-3">

@@ -148,7 +148,7 @@ export function useBidExtraction(projectId: string, submissionId: string) {
 }
 
 async function fetchPricingAccess(projectId: string, role: string): Promise<PricingAccess> {
-  if (isMock()) return 'no';
+  if (isMock()) return mockBids.pricingAccess();
   const can = throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: 'bids.view_pricing' }));
   if (can) return 'yes';
   // Not granted: is it the role, or only the missing second factor? role_permissions is data, not code.
@@ -170,6 +170,7 @@ export function usePricingAccess(projectId: string) {
 }
 
 async function fetchPricing(extractionId: string): Promise<PricingView | null> {
+  if (isMock()) return null;
   const raw: unknown = throwIfErrorMaybe(
     await supabase
       .from('bid_extraction_pricing')

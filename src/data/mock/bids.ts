@@ -1,8 +1,9 @@
 // Tiny synthetic bid fixtures for the e2e mock: two packages on Sample Job A, one issued addendum, one answer.
 // The mock bidder is localStorage['e2e-mock-user'] = 'bidder'; every other mock user manages bids.
 import { DataError } from '../errors';
-import type { AckRow, AddendumRow, BidderPage, CoverageRow, InviteRow, PackageRow, QuestionRow } from '../bids.types';
+import type { AckRow, AddendumRow, BidderPage, CoverageRow, InviteRow, PackageRow, PricingAccess, QuestionRow } from '../bids.types';
 import { mockUser } from './index';
+import * as mockMfa from './mfa';
 import { delay, readMock, writeMock } from './store';
 
 const TZ = 'America/Los_Angeles';
@@ -15,6 +16,12 @@ function isBidder(): boolean {
 export async function capability(cap: string): Promise<boolean> {
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
+}
+
+/** Money in the mock needs the mock two-step login (mock/mfa), like the real aal2 gate. */
+export async function pricingAccess(): Promise<PricingAccess> {
+  await delay();
+  return mockMfa.pricingAccess(isBidder());
 }
 
 const PACKAGES: PackageRow[] = [

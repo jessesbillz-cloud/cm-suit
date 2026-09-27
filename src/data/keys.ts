@@ -20,4 +20,8 @@ export const qk = {
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
   bids: (projectId: string) => ['bids', projectId] as const,
   bidsPart: (projectId: string, part: string, id = '') => ['bids', projectId, part, id] as const,
+  /** Two-step login: the session's level and the verified authenticator. */
+  mfa: ['mfa'] as const,
+  /** Prefixes of everything RLS answers differently at aal2 (capabilities, bids and pricing access, bid files). */
+  aal2Dependent: [['capability'], ['bids'], ['folders'], ['files'], ['file'], ['folder_can_write']] as const,
 };

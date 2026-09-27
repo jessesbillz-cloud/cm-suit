@@ -12,6 +12,13 @@ interface MockBidderState {
   questions: BidderPage['my_questions'];
 }
 
+/** The mock authenticator: one factor at most, verified or not, and the session's level. */
+interface MockMfa {
+  factorId: string | null;
+  verified: boolean;
+  level: 'aal1' | 'aal2';
+}
+
 const KEY = 'e2e-mock-state';
 
 interface MockState {
@@ -26,6 +33,7 @@ interface MockState {
   /** Companies and jobs made in this test, and edits to the fixture ones (by id). */
   orgs: MyOrg[];
   projects: ProjectRow[];
+  mfa: MockMfa;
 }
 
 const EMPTY: MockState = {
@@ -39,6 +47,7 @@ const EMPTY: MockState = {
   bidder: { acks: {}, intents: {}, submissions: [], questions: [] },
   orgs: [],
   projects: [],
+  mfa: { factorId: null, verified: false, level: 'aal1' },
 };
 
 export function readMock(): MockState {

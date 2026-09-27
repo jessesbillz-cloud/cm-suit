@@ -2,7 +2,7 @@
 // The AI only drafts; a person confirms (CLAUDE.md rule 12).
 import { Check, ScanText } from 'lucide-react';
 import { useConfirmExtraction, useExtractBid } from '../../data/bids.mutations';
-import { useBidExtraction, useBidPackages, useBidSubmissions } from '../../data/bids.queries';
+import { useBidExtraction, useBidPackages, useBidSubmissions, usePricingAccess } from '../../data/bids.queries';
 import type { SubmissionRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
 import { FunctionError } from '../../data/functions';
@@ -13,6 +13,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { StepUp } from '../auth/StepUp';
 import { FileLine } from './FileLine';
 import { Findings } from './Findings';
 import { bidderName } from './model';
@@ -25,14 +26,18 @@ function extractMessage(e: unknown): string {
 
 function Extraction({ projectId, submissionId }: { projectId: string; submissionId: string }) {
   const extraction = useBidExtraction(projectId, submissionId);
+  const access = usePricingAccess(projectId);
   const extract = useExtractBid();
   const confirm = useConfirmExtraction();
   const toast = useToast();
 
-  if (extraction.isPending) return <LoadingState label="Loading findings" />;
+  if (extraction.isPending || access.isPending) return <LoadingState label="Loading findings" />;
   if (extraction.isError) return <ErrorState error={extraction.error} onRetry={() => void extraction.refetch()} />;
+  if (access.isError) return <ErrorState error={access.error} onRetry={() => void access.refetch()} />;
   const x = extraction.data;
   if (x === null) {
+    // Findings are aal2-only like money: a pricing role that signed in with the email code alone sees nothing yet.
+    if (access.data === 'two_factor') return <StepUp />;
     return (
       <div className="flex flex-col gap-2">
         <Button

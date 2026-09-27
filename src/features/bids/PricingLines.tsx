@@ -1,8 +1,9 @@
 // Money from a bid (SPEC §11.6): base amount with its evidence and page, then alternates. Only for pricing roles:
-// RLS returns nothing otherwise, and an aal1 session gets one line saying two-factor is required.
+// RLS returns nothing otherwise, and an aal1 session gets the step-up prompt in place of the money.
 import { useBidPricing, usePricingAccess } from '../../data/bids.queries';
 import { formatMoney } from '../../lib/format';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { StepUp } from '../auth/StepUp';
 
 interface PricingLinesProps {
   projectId: string;
@@ -24,7 +25,7 @@ export function PricingLines({ projectId, extractionId }: PricingLinesProps) {
   const pricing = useBidPricing(projectId, extractionId, access.data === 'yes');
 
   if (access.isError) return <ErrorState error={access.error} onRetry={() => void access.refetch()} />;
-  if (access.data === 'two_factor') return <p className="text-sm text-ink-2">Two-factor required for pricing</p>;
+  if (access.data === 'two_factor') return <StepUp />;
   if (access.data !== 'yes') return null;
   if (pricing.isPending) return <LoadingState label="Loading pricing" />;
   if (pricing.isError) return <ErrorState error={pricing.error} onRetry={() => void pricing.refetch()} />;
