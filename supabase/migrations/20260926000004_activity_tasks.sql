@@ -54,7 +54,7 @@ set search_path = public, pg_temp
 as $$
 declare new_id uuid; oid uuid; is_service boolean;
 begin
-  is_service := current_setting('request.jwt.claim.role', true) = 'service_role';
+  is_service := public.is_service_role();
   if not is_service and not public.is_member(p_project_id) then
     raise exception 'not a member' using errcode = '42501';
   end if;
@@ -66,8 +66,11 @@ begin
   values (oid, p_project_id, p_kind, p_entity_type, p_entity_id, p_summary, auth.uid(), p_audience_capability, auth.uid())
   returning id into new_id;
   if p_recipient_user_ids is not null then
+    -- Recipients must be members of the project: nobody can message an arbitrary user id.
     insert into public.activity_recipients (activity_id, user_id)
-    select new_id, unnest(p_recipient_user_ids) on conflict do nothing;
+    select new_id, u from unnest(p_recipient_user_ids) u
+    where exists (select 1 from public.project_members pm where pm.project_id = p_project_id and pm.user_id = u and pm.status = 'active')
+    on conflict do nothing;
   end if;
   return new_id;
 end;
@@ -132,8 +135,11 @@ set search_path = public, pg_temp
 as $$
 declare new_id uuid; oid uuid;
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' and not public.is_member(p_project_id) then
+  if not public.is_service_role() and not public.is_member(p_project_id) then
     raise exception 'not a member' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.project_members pm where pm.project_id = p_project_id and pm.user_id = p_assignee and pm.status = 'active') then
+    raise exception 'assignee is not an active member of the project';
   end if;
   select org_id into oid from public.projects where id = p_project_id;
   insert into public.tasks (org_id, project_id, assignee_user_id, kind, title, entity_type, entity_id, due_at, requires_signature, payload, created_by)
@@ -143,6 +149,41 @@ begin
 end;
 $$;
 revoke execute on function public.create_task(uuid, uuid, text, text, text, uuid, timestamptz, boolean, jsonb) from public, anon;
+
+-- complete_task / reopen_task: server clock, version check, assignee only.
+create or replace function public.complete_task(p_task_id uuid, p_version int)
+returns public.tasks
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare t public.tasks;
+begin
+  update public.tasks set done_at = now(), done_by = auth.uid()
+   where id = p_task_id and assignee_user_id = auth.uid() and deleted_at is null and version = p_version and done_at is null
+   returning * into t;
+  if t is null then raise exception 'version_conflict or not yours' using errcode = '40001'; end if;
+  return t;
+end;
+$$;
+revoke execute on function public.complete_task(uuid, int) from public, anon;
+
+create or replace function public.reopen_task(p_task_id uuid, p_version int)
+returns public.tasks
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare t public.tasks;
+begin
+  update public.tasks set done_at = null, done_by = null
+   where id = p_task_id and assignee_user_id = auth.uid() and deleted_at is null and version = p_version and done_at is not null
+   returning * into t;
+  if t is null then raise exception 'version_conflict or not yours' using errcode = '40001'; end if;
+  return t;
+end;
+$$;
+revoke execute on function public.reopen_task(uuid, int) from public, anon;
 
 -- Board feed: activity across the caller's projects (or one), newest first, with unread flag.
 create or replace function public.board_feed(p_project_id uuid default null, p_before timestamptz default null, p_limit int default 50)

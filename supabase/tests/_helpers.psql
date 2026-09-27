@@ -1,0 +1,86 @@
+-- Shared helpers for the pgTAP files, pulled in with `\ir _helpers.psql` right after `select plan(N);`.
+-- Not a test file: pg_prove only runs *.sql / *.pg. Everything here lives in pg_temp and dies with the transaction.
+
+-- Creates an auth user. In CI (real GoTrue schema) it fills the columns Supabase expects; on a bare local shim
+-- (id, email, raw_user_meta_data only) it inserts just those. The profile row comes from the on_auth_user_created trigger.
+create function pg_temp.mk_user(p_id uuid, p_email text, p_name text default '')
+returns uuid
+language plpgsql
+as $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'auth' and table_name = 'users' and column_name = 'instance_id') then
+    execute 'insert into auth.users (id, email, raw_user_meta_data, aud, role, instance_id, email_confirmed_at, created_at, updated_at)
+             values ($1, $2, $3, ''authenticated'', ''authenticated'', ''00000000-0000-0000-0000-000000000000'', now(), now(), now())'
+      using p_id, p_email, jsonb_build_object('full_name', p_name);
+  else
+    insert into auth.users (id, email, raw_user_meta_data) values (p_id, p_email, jsonb_build_object('full_name', p_name));
+  end if;
+  return p_id;
+end;
+$$;
+
+-- Acts as a signed-in user for the rest of the transaction (pair with `set local role authenticated`).
+-- Sets both the JSON claims GUC (what PostgREST on PG14+ sets) and the legacy per-claim GUCs.
+create function pg_temp.login(p_uid uuid, p_aal text default 'aal1')
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claim.sub', coalesce(p_uid::text, ''), true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', p_aal, 'aud', 'authenticated')::text, true);
+end;
+$$;
+
+-- Acts as the service role (pair with `set local role service_role`).
+create function pg_temp.login_service()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+end;
+$$;
+
+-- has_capability() evaluated as a given user and assurance level. Leaves that user logged in.
+create function pg_temp.cap_as(p_uid uuid, p_project uuid, p_cap text, p_aal text default 'aal1')
+returns boolean
+language plpgsql
+as $$
+begin
+  perform pg_temp.login(p_uid, p_aal);
+  return public.has_capability(p_project, p_cap);
+end;
+$$;
+
+-- folder_can_read / folder_can_write evaluated as a given user.
+create function pg_temp.can_read_as(p_uid uuid, p_folder uuid, p_aal text default 'aal1')
+returns boolean
+language plpgsql
+as $$
+begin
+  perform pg_temp.login(p_uid, p_aal);
+  return public.folder_can_read(p_folder);
+end;
+$$;
+
+create function pg_temp.can_write_as(p_uid uuid, p_folder uuid, p_aal text default 'aal1')
+returns boolean
+language plpgsql
+as $$
+begin
+  perform pg_temp.login(p_uid, p_aal);
+  return public.folder_can_write(p_folder);
+end;
+$$;
+
+grant execute on function pg_temp.mk_user(uuid, text, text) to public;
+grant execute on function pg_temp.login(uuid, text) to public;
+grant execute on function pg_temp.login_service() to public;
+grant execute on function pg_temp.cap_as(uuid, uuid, text, text) to public;
+grant execute on function pg_temp.can_read_as(uuid, uuid, text) to public;
+grant execute on function pg_temp.can_write_as(uuid, uuid, text) to public;

@@ -153,7 +153,7 @@ create table public.user_layout (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version int not null default 1,
-  rail_items text[] not null default '{board,files,calendar}',
+  rail_items text[] not null default '{board,files,calendar,people}',
   main_default text not null default 'board',
   docked_panel text not null default 'board',
   collapsed jsonb not null default '{"rail": false, "right": false}'::jsonb,
@@ -395,14 +395,14 @@ revoke execute on function public.accept_invites() from public, anon;
 -- people_display(project_id): name + company only, for people the caller may see.
 -- ---------------------------------------------------------------------------
 create or replace function public.people_display(p_project_id uuid)
-returns table (user_id uuid, member_id uuid, full_name text, company text, role text)
+returns table (user_id uuid, member_id uuid, full_name text, company text, role text, status text, access_ends_at timestamptz)
 language sql
 stable
 security definer
 set search_path = public, pg_temp
 as $$
   select pm.user_id, pm.id, coalesce(nullif(p.full_name, ''), split_part(pm.invite_email, '@', 1)),
-         coalesce(o.name, p.company, ''), pm.role
+         coalesce(o.name, p.company, ''), pm.role, pm.status, pm.access_ends_at
   from public.project_members pm
   left join public.profiles p on p.user_id = pm.user_id
   left join public.orgs o on o.id = pm.member_org_id

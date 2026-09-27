@@ -1,0 +1,102 @@
+# Supabase CLI v2 configuration. Every edge function is listed here (CLAUDE.md rule 4).
+# verify_jwt = true is a second layer; requireUser() in _shared/auth.ts is the real gate.
+# verify_jwt = false ONLY for the public endpoints of SPEC §6.4.
+
+project_id = "cm-suite"
+
+[api]
+enabled = true
+port = 54321
+# Only public is exposed. Never add pgmq, pgmq_public or queue here (SPEC §6.1).
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[storage]
+enabled = true
+# Multi-GB plan sets (SPEC §6.5). Uploads use TUS resumable uploads.
+file_size_limit = "5GiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Outside recipients sign in by email code without an existing account.
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = true
+secure_password_change = true
+max_frequency = "1m0s"
+otp_length = 6
+otp_expiry = 900
+
+# Custom SMTP (Postmark) delivers the Auth email codes. Configured per environment (dashboard / CI env), not locally:
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.postmarkapp.com"
+# port = 587
+# user = "env(POSTMARK_SMTP_USER)"
+# pass = "env(POSTMARK_SMTP_PASS)"
+# admin_email = "env(POSTMARK_FROM)"
+# sender_name = "env(BRAND_NAME)"
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.sms]
+enable_signup = false
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+deno_version = 2
+
+# --- Public endpoints (SPEC §6.4): no platform JWT check; each function gates itself. ---
+[functions.access]
+verify_jwt = false
+
+[functions.share]
+verify_jwt = false
+
+[functions.postmark-events]
+verify_jwt = false
+
+[functions.inbound-email]
+verify_jwt = false
+
+# --- Signed-in users ---
+[functions.download]
+verify_jwt = true
+
+[functions.invite-member]
+verify_jwt = true
+
+[functions.revoke-member]
+verify_jwt = true
+
+[functions.send-transmittal]
+verify_jwt = true
+
+# --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
+[functions.queue-health]
+verify_jwt = true

@@ -1,0 +1,70 @@
+// A file opened in the right column (or its own window): what it is, its scan state, Download, Open in new window.
+// The page-by-page viewer (pdf.js) arrives in Phase 2 (SPEC §12).
+import { useFile } from '../../data/queries';
+import { useUser } from '../../data/auth';
+import { formatInZone } from '../../lib/dates';
+import { formatBytes } from '../../lib/format';
+import { ReadingPane } from '../../ui/ReadingPane';
+import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
+import { useProjectZones } from '../board/zones';
+import { scanChip } from './scanStatus';
+import { useDownload } from './useDownload';
+
+interface FileItemProps {
+  fileId: string;
+  onOpenWindow?: (() => void) | undefined;
+}
+
+function scanNotice(scan: string, mine: boolean): string | null {
+  if (scan === 'pending') {
+    return mine
+      ? 'Scanning for viruses. Until the scan finishes, only you can download it.'
+      : 'Scanning for viruses. It can be downloaded when the scan finishes.';
+  }
+  if (scan === 'infected') return 'The virus scan found a problem. Downloads are blocked and the project admin has been told.';
+  if (scan === 'too_large_to_scan') return 'This file is too large for the virus scanner. It was not marked clean.';
+  return null;
+}
+
+export function FileItem({ fileId, onOpenWindow }: FileItemProps) {
+  const file = useFile(fileId);
+  const user = useUser();
+  const zoneOf = useProjectZones();
+  const download = useDownload();
+
+  if (file.isPending) return <LoadingState />;
+  if (file.isError) return <ErrorState error={file.error} onRetry={() => void file.refetch()} />;
+  if (file.data === null) return <EmptyState title="This file is no longer here, or you no longer have access." />;
+
+  const f = file.data;
+  const chip = scanChip(f.scan_status, f.upload_complete);
+  const notice = scanNotice(f.scan_status, f.created_by === user.id);
+  const canDownload = f.upload_complete && f.scan_status !== 'infected';
+
+  return (
+    <ReadingPane
+      title={f.original_name}
+      meta={`${formatBytes(f.size)} · added ${formatInZone(f.created_at, zoneOf(f.project_id), 'MMM d, yyyy h:mm a')}`}
+      onOpenWindow={onOpenWindow}
+      onDownload={
+        canDownload
+          ? () => {
+              download.start(f.id, f.size);
+            }
+          : undefined
+      }
+      downloading={download.pendingId === f.id}
+    >
+      <div className="flex flex-col gap-3">
+        <div>
+          <StatusChip status={chip.status} label={chip.label} />
+        </div>
+        {notice ? (
+          <p className={f.scan_status === 'infected' ? 'text-danger' : 'text-ink-2'}>{notice}</p>
+        ) : null}
+        <p className="text-ink-2">Page-by-page viewing arrives with the drawings viewer. Download opens the original file.</p>
+      </div>
+    </ReadingPane>
+  );
+}

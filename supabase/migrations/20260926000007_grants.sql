@@ -30,6 +30,8 @@ grant execute on function public.is_owner_of(text, uuid) to authenticated;
 grant execute on function public.is_org_admin(uuid) to authenticated;
 grant execute on function public.role_is_walled(text) to authenticated;
 grant execute on function public.session_aal() to authenticated;
+grant execute on function public.jwt_role() to authenticated;
+grant execute on function public.is_service_role() to authenticated;
 grant execute on function public.accept_invites() to authenticated;
 grant execute on function public.people_display(uuid) to authenticated;
 grant execute on function public.my_projects() to authenticated;
@@ -46,6 +48,9 @@ grant execute on function public.folder_can_write(uuid) to authenticated;
 grant execute on function public.folder_effective_id(uuid) to authenticated;
 grant execute on function public.file_storage_path(uuid, uuid, uuid, text) to authenticated;
 grant execute on function public.authorize_download(uuid, text) to authenticated;
+grant execute on function public.register_file(uuid, text, text, bigint) to authenticated;
+grant execute on function public.complete_task(uuid, int) to authenticated;
+grant execute on function public.reopen_task(uuid, int) to authenticated;
 grant execute on function public.create_transmittal(uuid, text[], uuid[], uuid[], text, text) to authenticated;
 grant execute on function public.enqueue_job(text, jsonb, uuid, text, timestamptz) to authenticated;
 
@@ -62,5 +67,18 @@ grant select on public.role_permissions, public.roles, public.job_kinds, public.
 grant insert, update on public.email_inbound to service_role;
 grant usage on all sequences in schema public to authenticated;
 
+-- Supabase's default privileges give authenticated DELETE/TRUNCATE on every table; RLS never governs TRUNCATE.
+revoke delete, truncate, references, trigger on all tables in schema public from authenticated;
+grant delete on public.folder_access, public.member_scopes, public.read_marks, public.user_layout, public.push_subscriptions to authenticated;
+
+-- Column-level UPDATE where a WITH CHECK can't tell which columns changed.
+revoke update on public.files from authenticated;
+grant update (upload_complete, deleted_at) on public.files to authenticated;
+revoke update on public.share_links from authenticated;
+grant update (revoked_at) on public.share_links to authenticated;
+revoke update on public.tasks from authenticated;
+grant update (done_at, done_by) on public.tasks to authenticated;
+
 alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke delete, truncate, references, trigger on tables from authenticated;
 alter default privileges in schema public revoke all on functions from anon, public;

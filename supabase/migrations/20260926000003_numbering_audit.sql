@@ -20,7 +20,7 @@ set search_path = public, pg_temp
 as $$
 declare v int;
 begin
-  if not public.is_member(p_project_id) and current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_member(p_project_id) and not public.is_service_role() then
     raise exception 'not a member' using errcode = '42501';
   end if;
   insert into public.project_counters (project_id, kind) values (p_project_id, p_kind)

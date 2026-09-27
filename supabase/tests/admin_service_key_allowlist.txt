@@ -1,0 +1,22 @@
+# Edge function folders allowed to use the service-role key (SPEC §6.3; checked by scripts/hygiene.mjs).
+# One folder name per line. `#` lines are comments. _shared/db.ts is exempt; other _shared modules take the client
+# as a parameter and never create one.
+
+# Admin: creates access links (no user insert policy) and sends the invite email. requireCapability('members.manage') first.
+invite-member
+# Admin: sets status = 'revoked' (trigger revokes links). requireCapability('members.manage') first.
+revoke-member
+# Signs the download URL only (users have no storage SELECT policy); authorize_download() runs as the user first.
+download
+# Sends mail (email_outbound) and marks the transmittal sent (no user update policy); create_transmittal() runs as the user first.
+send-transmittal
+# Public endpoint §6.4 #1: resolves access links and rate-limits.
+access
+# Public endpoint §6.4 #2: share recipients aren't members, so this function is the access check.
+share
+# Webhook §6.4 #6: Postmark delivery / bounce / spam / open events.
+postmark-events
+# Webhook §6.4 #5: Postmark inbound mail, stored and quarantined.
+inbound-email
+# Cron: queue_health() is not granted to users.
+queue-health

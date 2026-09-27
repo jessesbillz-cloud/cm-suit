@@ -1,9 +1,36 @@
 -- 0001 Foundation: extensions, common triggers, roles and capabilities.
 -- Every table created in this repo gets RLS in the migration that creates it (CLAUDE.md rule 1).
 
-create extension if not exists pgcrypto;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 create extension if not exists pg_cron;
 create extension if not exists pgmq;
+
+
+-- ---------------------------------------------------------------------------
+-- Who is calling? PostgREST sets request.jwt.claims (JSON). The legacy request.jwt.claim.role is empty on
+-- current Supabase, so every service-role check goes through these two helpers and nowhere else.
+-- Inside SECURITY DEFINER functions current_user is the owner, so session_user is used to spot pg_cron/psql.
+-- ---------------------------------------------------------------------------
+create or replace function public.jwt_role()
+returns text
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
+                  nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role');
+$$;
+
+create or replace function public.is_service_role()
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select public.jwt_role() = 'service_role'
+      or (public.jwt_role() is null and session_user not in ('authenticator', 'anon', 'authenticated'));
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Common column behavior: updated_at + version bump on every update.
@@ -47,8 +74,7 @@ language plpgsql
 set search_path = public, pg_temp
 as $$
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role'
-     and current_user <> 'postgres' then
+  if not public.is_service_role() then
     raise exception 'hard deletes are not allowed; set deleted_at instead' using errcode = '42501';
   end if;
   return old;

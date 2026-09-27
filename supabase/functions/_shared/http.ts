@@ -61,3 +61,19 @@ export function handle(fn: (req: Request) => Promise<Response>): (req: Request) 
     }
   };
 }
+
+/**
+ * Public endpoints (SPEC §6.4) and webhooks: exactly handle(), but CORS allows any origin (SPEC §6.3).
+ */
+export function handlePublic(fn: (req: Request) => Promise<Response>): (req: Request) => Promise<Response> {
+  const inner = handle(fn);
+  return async (req) => {
+    const res = await inner(req);
+    for (const [k, v] of Object.entries(corsHeaders(req, true))) res.headers.set(k, v);
+    return res;
+  };
+}
+
+/** 401 for the `share` endpoint: the recipient must sign in with an email code first (SPEC §6.4 #2). */
+export const needsCode = (req: Request, emailMasked: string, reason: 'signed_out' | 'other_account') =>
+  json(401, { error: 'unauthorized', message: 'Enter the code sent to your email', needs_code: true, email_masked: emailMasked, reason }, req);

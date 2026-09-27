@@ -1,0 +1,11 @@
+# BuildKit reads <Dockerfile>.dockerignore for this Dockerfile. The context is the repo root.
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+scratch
+tests
+docs
+playwright-report
+test-results

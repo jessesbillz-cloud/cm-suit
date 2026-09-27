@@ -1,0 +1,125 @@
+// Email one-time codes only (SPEC §10.3): no passwords, no magic links (scanners burn them, SPEC §6.4).
+import { createContext, useContext } from 'react';
+import type { AuthError } from '@supabase/supabase-js';
+import type { QueryClient } from '@tanstack/react-query';
+import { supabase } from './client';
+import { DataError, throwIfErrorMaybe } from './errors';
+import { clearMockUser, isMock } from './mock';
+import type { AppUser } from './types';
+
+export interface SessionState {
+  status: 'loading' | 'signed_out' | 'signed_in';
+  user: AppUser | null;
+  /** accept_invites() failed after sign-in; shown as a banner, never hidden. */
+  inviteError: string | null;
+}
+
+export const SessionContext = createContext<SessionState | null>(null);
+
+export function useSession(): SessionState {
+  const s = useContext(SessionContext);
+  if (!s) throw new Error('useSession must be used inside <SessionProvider>');
+  return s;
+}
+
+/** The signed-in user; throws when called on a screen that should not render signed out. */
+export function useUser(): AppUser {
+  const { user } = useSession();
+  if (!user) throw new Error('This screen needs a signed-in user.');
+  return user;
+}
+
+function authMessage(e: AuthError): DataError {
+  const code = e.code ?? null;
+  if (e.status === 429 || code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit') {
+    return new DataError('Too many codes requested. Wait a minute, then try again.', code, e.message);
+  }
+  if (code === 'otp_expired' || code === 'invalid_otp' || e.status === 403) {
+    return new DataError('That code is wrong or has expired. Use the newest email, or send a new code.', code, e.message);
+  }
+  return new DataError(e.message, code, e.message);
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** Sends the 6-digit code email (Supabase Auth OTP through Postmark SMTP). Creates the auth user if new. */
+export async function sendCode(email: string): Promise<void> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email: normalizeEmail(email),
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw authMessage(error);
+}
+
+export async function verifyCode(email: string, code: string): Promise<void> {
+  const { error } = await supabase.auth.verifyOtp({ email: normalizeEmail(email), token: code.trim(), type: 'email' });
+  if (error) throw authMessage(error);
+}
+
+/** Binds pending invites for the signed-in email. Safe to repeat. Returns how many were accepted. */
+export async function acceptInvites(): Promise<number> {
+  if (isMock()) return 0;
+  return throwIfErrorMaybe(await supabase.rpc('accept_invites')) ?? 0;
+}
+
+async function clearIndexedDb(): Promise<void> {
+  if (!('databases' in indexedDB)) return;
+  const dbs = await indexedDB.databases();
+  await Promise.all(
+    dbs.map(
+      (db) =>
+        new Promise<void>((resolve, reject) => {
+          if (!db.name) {
+            resolve();
+            return;
+          }
+          const req = indexedDB.deleteDatabase(db.name);
+          req.onsuccess = () => {
+            resolve();
+          };
+          // Another tab holding the database open: the delete completes when it closes. Don't wait for it.
+          req.onblocked = () => {
+            resolve();
+          };
+          req.onerror = () => {
+            reject(req.error ?? new Error(`Could not clear ${db.name}`));
+          };
+        }),
+    ),
+  );
+}
+
+async function clearCacheStorage(): Promise<void> {
+  if (!('caches' in window)) return;
+  const keys = await caches.keys();
+  await Promise.all(keys.map((k) => caches.delete(k)));
+}
+
+function clearAppLocalStorage(): void {
+  const doomed: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const k = window.localStorage.key(i);
+    if (k && (k.startsWith('app:') || k.startsWith('tus::'))) doomed.push(k);
+  }
+  for (const k of doomed) window.localStorage.removeItem(k);
+}
+
+/**
+ * Sign out, then clear everything user-scoped on this device (SPEC §6.6): the query cache, IndexedDB (offline
+ * queue), Cache Storage, and localStorage keys prefixed `app:` (plus resumable-upload URLs under `tus::`).
+ * supabase-js removes its own session key.
+ */
+export async function signOut(queryClient: QueryClient): Promise<void> {
+  if (isMock()) {
+    clearMockUser();
+    window.sessionStorage.clear();
+  } else {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw authMessage(error);
+  }
+  queryClient.clear();
+  await Promise.all([clearIndexedDb(), clearCacheStorage()]);
+  clearAppLocalStorage();
+}

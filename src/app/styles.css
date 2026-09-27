@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Inter when the system has it, otherwise the system UI font. Nothing loads from a CDN (SPEC §6.6). */
+@layer base {
+  html {
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-page text-ink antialiased;
+  }
+}

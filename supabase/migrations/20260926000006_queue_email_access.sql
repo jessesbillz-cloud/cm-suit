@@ -69,7 +69,7 @@ declare jk public.job_kinds; jid uuid; is_service boolean; mid bigint; key text;
 begin
   select * into jk from public.job_kinds where kind = p_kind;
   if jk is null then raise exception 'unknown job kind %', p_kind; end if;
-  is_service := current_setting('request.jwt.claim.role', true) = 'service_role';
+  is_service := public.is_service_role();
   if not is_service then
     if p_project_id is null then raise exception 'project required' using errcode = '42501'; end if;
     if jk.required_capability is null then
@@ -78,7 +78,7 @@ begin
       raise exception 'forbidden' using errcode = '42501';
     end if;
   end if;
-  key := coalesce(p_idempotency_key, encode(digest(p_kind || ':' || coalesce(p_project_id::text, '') || ':' || p_payload::text, 'sha256'), 'hex'));
+  key := coalesce(p_idempotency_key, encode(extensions.digest(p_kind || ':' || coalesce(p_project_id::text, '') || ':' || p_payload::text, 'sha256'), 'hex'));
   insert into queue.jobs_index (project_id, kind, idempotency_key, payload, hold_until, created_by)
   values (p_project_id, p_kind, key, p_payload, p_hold_until, auth.uid())
   on conflict (kind, idempotency_key) do nothing
@@ -116,6 +116,9 @@ $$;
 revoke execute on function public.release_held_jobs() from public, anon, authenticated;
 select cron.schedule('release-held-jobs', '* * * * *', $$select public.release_held_jobs()$$);
 
+-- Nightly storage copy to R2 (SPEC §6.5). pg_cron runs as postgres, which is_service_role() accepts.
+select cron.schedule('nightly-r2-copy', '0 9 * * *', $$select public.enqueue_job('r2_copy', '{}'::jsonb, null, 'r2_copy:' || current_date)$$);
+
 -- Worker-side RPCs: service role only.
 create or replace function public.worker_read_jobs(p_limit int default 5)
 returns table (job_id uuid, msg_id bigint, kind text, project_id uuid, payload jsonb, attempts int)
@@ -123,9 +126,10 @@ language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+#variable_conflict use_column
 declare m record; j queue.jobs_index;
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_service_role() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   for m in select * from pgmq.read('jobs', 60, p_limit) loop
@@ -148,7 +152,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_service_role() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   perform pgmq.delete('jobs', p_msg_id);
@@ -166,10 +170,11 @@ set search_path = public, pg_temp
 as $$
 declare j queue.jobs_index; jk public.job_kinds; admin uuid;
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_service_role() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   select * into j from queue.jobs_index where id = p_job_id;
+  if j is null then raise exception 'job % not found', p_job_id using errcode = 'P0002'; end if;
   select * into jk from public.job_kinds where kind = j.kind;
   if j.attempts >= jk.max_attempts then
     perform pgmq.delete('jobs', p_msg_id);
@@ -247,7 +252,7 @@ set search_path = public, pg_temp
 as $$
 declare r public.rate_limits; now_ts timestamptz := clock_timestamp(); t double precision;
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_service_role() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   insert into public.rate_limits (key, tokens, updated_at) values (p_key, p_capacity, now_ts)
@@ -293,7 +298,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
-  if current_setting('request.jwt.claim.role', true) is distinct from 'service_role' then
+  if not public.is_service_role() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   return query

@@ -18,7 +18,7 @@ create table public.folders (
     check (kind in ('general', 'plans', 'specs', 'reports', 'bids_received', 'inbound', 'photos', 'transmittals', 'system')),
   proprietary boolean not null default false,
   view_only boolean not null default false,
-  unique (project_id, parent_id, name)
+  unique nulls not distinct (project_id, parent_id, name)
 );
 alter table public.folders enable row level security;
 create trigger touch before update on public.folders for each row execute function public.tg_touch_row();
@@ -74,9 +74,11 @@ declare pid uuid; eff uuid;
 begin
   select project_id into pid from public.folders where id = p_folder_id and deleted_at is null;
   if pid is null or not public.is_member(pid) then return false; end if;
-  if public.has_capability(pid, 'files.manage') then return true; end if;
   eff := public.folder_effective_id(p_folder_id);
-  if eff is null then return public.has_capability(pid, 'files.read_project'); end if;
+  -- An explicit access list (own or inherited) is authoritative; files.manage is only the default for unlisted folders.
+  if eff is null then
+    return public.has_capability(pid, 'files.manage') or public.has_capability(pid, 'files.read_project');
+  end if;
   return exists (
     select 1 from public.folder_access fa
     where fa.folder_id = eff and fa.can_read
@@ -97,9 +99,11 @@ declare pid uuid; eff uuid;
 begin
   select project_id into pid from public.folders where id = p_folder_id and deleted_at is null;
   if pid is null or not public.is_member(pid) then return false; end if;
-  if public.has_capability(pid, 'files.manage') then return true; end if;
   eff := public.folder_effective_id(p_folder_id);
-  if eff is null then return public.has_capability(pid, 'files.write_project'); end if;
+  -- An explicit access list (own or inherited) is authoritative; files.manage is only the default for unlisted folders.
+  if eff is null then
+    return public.has_capability(pid, 'files.manage') or public.has_capability(pid, 'files.write_project');
+  end if;
   return exists (
     select 1 from public.folder_access fa
     where fa.folder_id = eff and fa.can_write
@@ -121,9 +125,12 @@ create policy "folders: managers update" on public.folders for update to authent
 
 create policy "folder_access: readable with folder" on public.folder_access for select to authenticated
   using (public.folder_can_read(folder_id));
+-- Nobody edits the access list of a folder they can't write (else files.manage could re-grant itself).
 create policy "folder_access: managers write" on public.folder_access for all to authenticated
-  using (exists (select 1 from public.folders f where f.id = folder_access.folder_id and public.has_capability(f.project_id, 'files.manage')))
-  with check (exists (select 1 from public.folders f where f.id = folder_access.folder_id and public.has_capability(f.project_id, 'files.manage')));
+  using (exists (select 1 from public.folders f where f.id = folder_access.folder_id
+                 and public.has_capability(f.project_id, 'files.manage') and public.folder_can_write(f.id)))
+  with check (exists (select 1 from public.folders f where f.id = folder_access.folder_id
+                      and public.has_capability(f.project_id, 'files.manage') and public.folder_can_write(f.id)));
 
 -- ---------------------------------------------------------------------------
 -- files
@@ -168,11 +175,14 @@ language sql
 immutable
 set search_path = public, pg_temp
 as $$
-  select 'project/' || p_project_id || '/' || p_folder_id || '/' || p_file_id || '/' || regexp_replace(p_name, '[/\\]', '_', 'g');
+  -- Storage keys: keep ASCII letters, digits, dot, dash, underscore, space; everything else becomes '_'. The original name is kept on the row.
+  select 'project/' || p_project_id || '/' || p_folder_id || '/' || p_file_id || '/'
+         || left(regexp_replace(p_name, '[^A-Za-z0-9._ -]', '_', 'g'), 200);
 $$;
 
+-- Uploader access ends with membership.
 create policy "files: readable" on public.files for select to authenticated
-  using (deleted_at is null and (created_by = auth.uid() or public.folder_can_read(folder_id)));
+  using (deleted_at is null and ((created_by = auth.uid() and public.is_member(project_id)) or public.folder_can_read(folder_id)));
 -- Users register the file row (before the TUS upload) only into folders they can write.
 create policy "files: writers create" on public.files for insert to authenticated
   with check (
@@ -183,15 +193,33 @@ create policy "files: writers create" on public.files for insert to authenticate
     and org_id = (select org_id from public.projects where id = project_id)
     and folder_id in (select id from public.folders where project_id = files.project_id)
   );
--- Uploader marks upload_complete / soft-deletes own file; managers can soft-delete any. Scan/text fields are worker-only.
+-- register_file: the one way a file row is created (the DB owns the id and the path).
+create or replace function public.register_file(p_folder_id uuid, p_original_name text, p_mime text default null, p_size bigint default 0)
+returns public.files
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare fo public.folders; new_id uuid := gen_random_uuid(); f public.files;
+begin
+  select * into fo from public.folders where id = p_folder_id and deleted_at is null;
+  if fo is null then raise exception 'not_found' using errcode = 'P0002'; end if;
+  if not public.folder_can_write(p_folder_id) then raise exception 'forbidden' using errcode = '42501'; end if;
+  if p_original_name is null or length(p_original_name) not between 1 and 400 then raise exception 'bad file name'; end if;
+  insert into public.files (id, org_id, project_id, folder_id, storage_path, original_name, mime, size, created_by)
+  values (new_id, fo.org_id, fo.project_id, fo.id, public.file_storage_path(fo.project_id, fo.id, new_id, p_original_name),
+          p_original_name, coalesce(nullif(p_mime, ''), 'application/octet-stream'), greatest(coalesce(p_size, 0), 0), auth.uid())
+  returning * into f;
+  return f;
+end;
+$$;
+revoke execute on function public.register_file(uuid, text, text, bigint) from public, anon;
+
+-- Uploader marks upload_complete / soft-deletes own file; managers can soft-delete any.
+-- Column-level grants (0007) limit authenticated UPDATE to upload_complete and deleted_at; everything else is worker-only.
 create policy "files: uploader or manager update" on public.files for update to authenticated
-  using (deleted_at is null and (created_by = auth.uid() or public.has_capability(project_id, 'files.manage')))
-  with check (
-    (created_by = auth.uid() or public.has_capability(project_id, 'files.manage'))
-    and scan_status = (select f.scan_status from public.files f where f.id = files.id)
-    and text_status = (select f.text_status from public.files f where f.id = files.id)
-    and sha256 is not distinct from (select f.sha256 from public.files f where f.id = files.id)
-  );
+  using (deleted_at is null and ((created_by = auth.uid() and public.is_member(project_id)) or public.has_capability(project_id, 'files.manage')))
+  with check ((created_by = auth.uid() and public.is_member(project_id)) or public.has_capability(project_id, 'files.manage'));
 
 create table public.file_pages (
   id uuid primary key default gen_random_uuid(),
@@ -210,7 +238,7 @@ create index file_pages_tsv on public.file_pages using gin (tsv);
 create index file_pages_project on public.file_pages (project_id);
 create policy "file_pages: readable with file" on public.file_pages for select to authenticated
   using (exists (select 1 from public.files f where f.id = file_pages.file_id and f.deleted_at is null
-                 and (f.created_by = auth.uid() or public.folder_can_read(f.folder_id))));
+                 and ((f.created_by = auth.uid() and public.is_member(f.project_id)) or public.folder_can_read(f.folder_id))));
 -- Written only by the worker (service role).
 
 create table public.downloads (
@@ -226,7 +254,8 @@ create table public.downloads (
 alter table public.downloads enable row level security;
 create index downloads_file on public.downloads (file_id, at desc);
 create policy "downloads: managers read" on public.downloads for select to authenticated
-  using (public.has_capability(project_id, 'files.manage'));
+  using (public.has_capability(project_id, 'files.manage')
+         and exists (select 1 from public.files f where f.id = downloads.file_id and public.folder_can_read(f.folder_id)));
 -- Written only by the download RPC below.
 
 -- One RPC records a download and returns what the edge function needs to sign a URL.
@@ -241,7 +270,7 @@ declare f public.files; fo public.folders; hdrs jsonb;
 begin
   select * into f from public.files where id = p_file_id and deleted_at is null;
   if f is null then raise exception 'not_found' using errcode = 'P0002'; end if;
-  if not (f.created_by = auth.uid() or public.folder_can_read(f.folder_id)) then
+  if not ((f.created_by = auth.uid() and public.is_member(f.project_id)) or public.folder_can_read(f.folder_id)) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   select * into fo from public.folders where id = f.folder_id;
@@ -286,7 +315,7 @@ create policy "share_links: creator or manager read" on public.share_links for s
 create policy "share_links: senders create" on public.share_links for insert to authenticated
   with check (created_by = auth.uid() and public.has_capability(project_id, 'transmittals.send')
               and ((target_type = 'file' and exists (select 1 from public.files f where f.id = target_id and f.project_id = share_links.project_id and public.folder_can_read(f.folder_id)))
-                   or (target_type = 'folder' and public.folder_can_read(target_id))));
+                   or (target_type = 'folder' and exists (select 1 from public.folders fo where fo.id = target_id and fo.project_id = share_links.project_id) and public.folder_can_read(target_id))));
 create policy "share_links: creator or manager revoke" on public.share_links for update to authenticated
   using (created_by = auth.uid() or public.has_capability(project_id, 'files.manage'))
   with check (created_by = auth.uid() or public.has_capability(project_id, 'files.manage'));
@@ -348,7 +377,7 @@ begin
   select org_id into oid from public.projects where id = p_project_id;
   insert into public.transmittals (org_id, project_id, number, from_user, to_emails, to_members, file_ids, subject, message, created_by)
   values (oid, p_project_id, public.next_number(p_project_id, 'transmittal'), auth.uid(),
-          (select array_agg(lower(e)) from unnest(p_to_emails) e), p_to_members, p_file_ids, p_subject, p_message, auth.uid())
+          coalesce((select array_agg(lower(e)) from unnest(p_to_emails) e), '{}'::text[]), p_to_members, p_file_ids, p_subject, p_message, auth.uid())
   returning * into t;
   return t;
 end;
