@@ -1,5 +1,5 @@
 begin;
-select plan(28);
+select plan(36);
 -- SPEC §5.1: a person starts a company and a job from the app. create_org / create_project run with the caller's
 -- rights (RLS is the gate), make the caller owner / project_admin, and a repeat returns the first row. People edit
 -- only a job's and a company's own fields. Sealed bids: the seal and bid time are locked once a bid is in.
@@ -119,6 +119,45 @@ select lives_ok($$ update public.projects set bid_sealed = false where id = 'c00
   'sealed: with no bids in, the seal can be turned off');
 select lives_ok($$ update public.projects set name = 'Sealed Job Renamed' where id = 'c0000000-0000-0000-0000-000000000021' $$,
   'sealed: other fields stay editable');
+
+-- The service role (a system write, no signed-in person) can still lift the seal, e.g. a data fix.
+reset role;
+select pg_temp.login_service();
+set local role service_role;
+select lives_ok($$ update public.projects set bid_sealed = false where id = 'c0000000-0000-0000-0000-000000000021' $$,
+  'sealed: a system write can still lift the seal');
+reset role;
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Membership rows: nobody attaches themselves to another company's job (make a company, then claim to be its admin).
+-- ---------------------------------------------------------------------------------------------------------------
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000000022');
+insert into ids values ('attacker_org', public.create_org('Attacker Co', 'gc'));
+select throws_ok($$ insert into public.project_members (org_id, project_id, user_id, invite_email, role, status, created_by)
+                   values (pg_temp.id('attacker_org'), pg_temp.id('job'), auth.uid(), 'probe+outsider@example.test',
+                           'project_admin', 'active', auth.uid()) $$,
+  '23503', null, 'project_members: a membership row for my own company cannot point at another company''s job');
+select ok(not public.is_member(pg_temp.id('job')), 'project_members: the outsider is still not on the job');
+reset role;
+select throws_ok($$ insert into public.project_members (org_id, project_id, user_id, invite_email, role, status, created_by)
+                   values (pg_temp.id('attacker_org'), pg_temp.id('job'), 'a0000000-0000-0000-0000-000000000022',
+                           'probe+outsider@example.test', 'viewer', 'active', 'a0000000-0000-0000-0000-000000000022') $$,
+  '23503', null, 'project_members: org_id must be the job''s company, for every writer');
+
+-- A project_admin who does not run the company edits the job through project.manage, not the company.
+select pg_temp.mk_user('a0000000-0000-0000-0000-000000000023', 'probe+jobadmin@example.test', 'Job Admin');
+insert into public.project_members (org_id, project_id, user_id, invite_email, role, status, created_by)
+values (pg_temp.id('org'), pg_temp.id('job'), 'a0000000-0000-0000-0000-000000000023', 'probe+jobadmin@example.test',
+        'project_admin', 'active', 'a0000000-0000-0000-0000-000000000021');
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000000023');
+select ok(not public.is_org_admin(pg_temp.id('org')), 'job admin: does not run the company');
+select lives_ok($$ update public.projects set number = 'J-1B' where id = pg_temp.id('job') $$,
+  'job admin: edits the job through project.manage');
+select is((select number from public.projects where id = pg_temp.id('job')), 'J-1B', 'job admin: the edit landed');
+update public.orgs set name = 'Not Mine' where id = pg_temp.id('org');
+select is((select name from public.orgs where id = pg_temp.id('org')), 'Founder Builders Inc', 'job admin: cannot rename the company');
 
 select * from finish();
 rollback;

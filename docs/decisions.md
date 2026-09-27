@@ -15,3 +15,6 @@ Short entries, newest first. One line on what, one on why.
 - **2026-09-27 — People may set only a job's and a company's own columns (column grants).** `org_id`, `created_by`, intake/inbound addresses and tokens are written by triggers, RPCs or the service role only.
 - **2026-09-27 — Sealed bids are locked once a bid is in.** A signed-in person can't lift the seal or pull bid time earlier until bid time; otherwise the seal would be one checkbox away from peeking.
 - **2026-09-27 — Job modules gate the rail: Bids, Files, Calendar.** Board, People and Settings are always on. New jobs start with all three; jobs with none were given all three.
+- **2026-09-27 — A membership row's company must be its job's company (composite foreign key, migration 0015).** The member policies trust `is_org_admin(org_id)`; without the key, anyone could make a company and write themselves into another company's job. Found by an independent review of 0013.
+- **2026-09-27 — `submit_bid` holds the job row while recording a bid.** Lifting a seal waits for an in-flight bid, and the seal guard then sees it.
+
