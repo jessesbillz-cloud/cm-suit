@@ -833,13 +833,15 @@ export type Database = {
           file_id: string
           id: string
           is_late: boolean
-          member_id: string
+          member_id: string | null
           org_id: string
           package_id: string
           project_id: string
           receipt_number: number
           received_at: string
+          received_by: string | null
           source: string
+          sub_id: string | null
           superseded_by: string | null
           updated_at: string
           version: number
@@ -852,13 +854,15 @@ export type Database = {
           file_id: string
           id?: string
           is_late?: boolean
-          member_id: string
+          member_id?: string | null
           org_id: string
           package_id: string
           project_id: string
           receipt_number: number
           received_at?: string
+          received_by?: string | null
           source?: string
+          sub_id?: string | null
           superseded_by?: string | null
           updated_at?: string
           version?: number
@@ -871,13 +875,15 @@ export type Database = {
           file_id?: string
           id?: string
           is_late?: boolean
-          member_id?: string
+          member_id?: string | null
           org_id?: string
           package_id?: string
           project_id?: string
           receipt_number?: number
           received_at?: string
+          received_by?: string | null
           source?: string
+          sub_id?: string | null
           superseded_by?: string | null
           updated_at?: string
           version?: number
@@ -917,6 +923,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_sub_id_fkey"
+            columns: ["sub_id"]
+            isOneToOne: false
+            referencedRelation: "subs"
             referencedColumns: ["id"]
           },
           {
@@ -2922,6 +2935,13 @@ export type Database = {
           worker_stale: boolean
         }[]
       }
+      record_received_bid: {
+        Args: { p_file_id: string; p_package_id: string; p_sub_id?: string }
+        Returns: {
+          receipt_number: number
+          submission_id: string
+        }[]
+      }
       register_file: {
         Args: {
           p_folder_id: string
@@ -3029,6 +3049,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_submission_sub: {
+        Args: { p_sub_id: string; p_submission_id: string }
+        Returns: undefined
+      }
       submit_bid: {
         Args: { p_file_id: string; p_package_id: string }
         Returns: {
@@ -3038,13 +3062,15 @@ export type Database = {
           file_id: string
           id: string
           is_late: boolean
-          member_id: string
+          member_id: string | null
           org_id: string
           package_id: string
           project_id: string
           receipt_number: number
           received_at: string
+          received_by: string | null
           source: string
+          sub_id: string | null
           superseded_by: string | null
           updated_at: string
           version: number

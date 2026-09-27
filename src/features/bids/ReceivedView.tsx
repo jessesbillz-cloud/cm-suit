@@ -21,7 +21,8 @@ export function ReceivedView({ projectId, tz, selectedId, onOpen }: ReceivedView
   const people = usePeopleDisplay(projectId);
 
   const code = (id: string) => packages.data?.find((p) => p.id === id)?.code ?? '';
-  const company = (memberId: string) => bidderName(people.data?.find((x) => x.member_id === memberId));
+  const company = (memberId: string | null) =>
+    memberId === null ? 'Recorded by office' : bidderName(people.data?.find((x) => x.member_id === memberId));
 
   return (
     <Card padded={false}>
