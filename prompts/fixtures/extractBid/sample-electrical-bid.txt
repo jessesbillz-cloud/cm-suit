@@ -1,0 +1,30 @@
+--- page 1 ---
+BRIGHT CIRCUIT ELECTRIC CO.
+77 Placeholder Avenue, Suite 5, Exampleville, CA 90001
+License 0000002 (fixture)
+
+QUOTATION
+
+Quote Date: 04/10/2031
+Job: Fixture Project 200 - Library Annex Renovation, 900 Demo Road, Exampleville, CA
+Scope: Division 26 Electrical
+
+Base Quote ........................................ $96,480.00
+
+Our quotation is based on open shop wages. Prevailing wage rates may be provided for an additional
+$8,750.00 if required.
+
+Inclusions: new panelboard LP-2, branch circuits and devices per E-series drawings, LED lighting fixtures
+as scheduled, temporary power during construction.
+Exclusions: fire alarm, low voltage and data cabling, trenching and backfill, utility company fees, permits.
+
+--- page 2 ---
+Additive / Deductive items:
+Add for occupancy sensors in all classrooms: $3,200.00
+Deduct if owner furnishes light fixtures: $21,000.00
+
+Note: Material pricing subject to escalation after 30 days due to market conditions.
+Payment: progress billing monthly, 10% retention.
+
+Thank you for the opportunity. Please call with any questions.
+Bright Circuit Electric Co. (fixture)

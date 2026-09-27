@@ -248,3 +248,83 @@ ${p.message ? `${p.message}\n\n` : ''}${p.links.map((l) => `${l.name}\n${l.url}`
 ${p.brand}`;
   return { subject, html, text };
 }
+
+export interface BidInvitePackage {
+  code: string;
+  name: string;
+}
+
+/** Invitation to bid (SPEC §11.3). Short on purpose; the ITB document itself is a later step. */
+export function bidInviteEmail(p: {
+  brand: string;
+  projectName: string;
+  packages: BidInvitePackage[];
+  /** Already formatted in the project's time zone, or null when no bid time is set yet. */
+  bidDueLabel: string | null;
+  linkUrl: string;
+}): Rendered {
+  const subject = oneLine(`Invitation to bid: ${p.projectName}`);
+  const list = p.packages.map((k) => `${k.code} ${k.name}`);
+  const due = p.bidDueLabel ? `Bids due ${p.bidDueLabel}.` : 'Bid time to be announced.';
+  const html = layout(p.brand, `
+<h1 style="font-size:20px;margin:0 0 12px">Invitation to bid</h1>
+<p style="margin:0 0 4px"><strong>${esc(p.projectName)}</strong></p>
+<ul style="padding-left:18px;margin:8px 0">${list.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+<p>${esc(due)}</p>
+<p>Open the link for documents, questions and to submit your bid. We'll email you a 6-digit code the first time. The link keeps working.</p>
+${button(p.linkUrl, 'Open bid page')}
+<p style="font-size:13px;color:#6b7280;word-break:break-all">${esc(p.linkUrl)}</p>`);
+  const text = `Invitation to bid: ${p.projectName}
+
+${list.join('\n')}
+
+${due}
+
+Open the link for documents, questions and to submit your bid. We'll email you a 6-digit code the first time. The link keeps working.
+
+${p.linkUrl}
+
+${p.brand}`;
+  return { subject, html, text };
+}
+
+/** Addendum issued (SPEC §11.5). Bidders acknowledge on their bid page. */
+export function addendumEmail(p: { brand: string; projectName: string; number: number; title: string; linkUrl: string }): Rendered {
+  const subject = oneLine(`${p.projectName} - Addendum ${p.number}: ${p.title}`);
+  const html = layout(p.brand, `
+<h1 style="font-size:20px;margin:0 0 4px">Addendum ${p.number}</h1>
+<p style="margin:0 0 16px;color:#6b7280">${esc(p.projectName)}</p>
+<p><strong>${esc(p.title)}</strong></p>
+<p>Review it and acknowledge it on your bid page.</p>
+${button(p.linkUrl, 'Open bid page')}
+<p style="font-size:13px;color:#6b7280">Signed out? Open the link from your invitation email instead.</p>`);
+  const text = `Addendum ${p.number} - ${p.projectName}
+
+${p.title}
+
+Review it and acknowledge it on your bid page:
+${p.linkUrl}
+
+Signed out? Open the link from your invitation email instead.
+
+${p.brand}`;
+  return { subject, html, text };
+}
+
+/** Resend's default rate limit is 2 requests per second per team; bulk sends start at least this far apart. */
+const BULK_GAP_MS = 550;
+
+/**
+ * Runs `send` for each item in order, spacing the starts so a batch doesn't trip Resend's rate limit (a 429 would be
+ * recorded as a failed send). No spacing in EMAIL_TEST_MODE, where nothing reaches Resend.
+ */
+export async function sendEach<T>(items: readonly T[], send: (item: T) => Promise<void>): Promise<void> {
+  const gap = envOptional('EMAIL_TEST_MODE') === 'true' ? 0 : BULK_GAP_MS;
+  let lastStart = 0;
+  for (const item of items) {
+    const wait = lastStart + gap - Date.now();
+    if (wait > 0) await new Promise<void>((resolve) => setTimeout(resolve, wait));
+    lastStart = Date.now();
+    await send(item);
+  }
+}

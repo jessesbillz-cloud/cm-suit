@@ -18,3 +18,10 @@ export function humanize(key: string): string {
   const words = key.replace(/[._]+/g, ' ').trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+const MONEY = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+/** Dollars as printed on a bid. Only pricing views call this (money lives in pricing tables, CLAUDE.md rule 3). */
+export function formatMoney(n: number): string {
+  return MONEY.format(n);
+}

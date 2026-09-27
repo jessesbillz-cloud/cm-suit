@@ -21,6 +21,9 @@ export const notFound = (req: Request, message = 'Not found') => json(404, { err
 export const conflict = (req: Request, message: string) => json(409, { error: 'conflict', message }, req);
 export const tooMany = (req: Request, retryAfterSec: number) =>
   json(429, { error: 'too_many_requests', retry_after: retryAfterSec }, req, { 'retry-after': String(retryAfterSec) });
+/** A refusal the client acts on by its machine-readable `error` code (e.g. 403 reauth_required, 409 text_not_ready). */
+export const refuse = (req: Request, status: 400 | 403 | 404 | 409, code: string, message: string) =>
+  json(status, { error: code, message }, req);
 export const serverError = (req: Request, errId: string) =>
   json(500, { error: 'server_error', message: `Something went wrong. Error ID ${errId}`, error_id: errId }, req);
 

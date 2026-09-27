@@ -53,7 +53,10 @@ const RPCS: [string, Record<string, unknown>][] = [
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
-const AUTHED_FUNCTIONS = ['download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health'];
+const AUTHED_FUNCTIONS = [
+  'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health',
+  'invite-bidders', 'issue-addendum', 'extract-bid',
+];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
 const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events'];

@@ -72,9 +72,14 @@ export function useFrameModel(loc: FrameLocation) {
     void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool, itemId } });
   }
 
+  /** Closing keeps the tool's search (e.g. the Files folder or the Bids sub-view), so the main area stays put. */
   function closeItem() {
     setRightFull(false);
-    go(loc.projectId, loc.tool);
+    if (loc.projectId === null) {
+      go(null, loc.tool);
+      return;
+    }
+    void navigate({ to: '/p/$projectId/$tool', params: { projectId: loc.projectId, tool: loc.tool }, search: true });
   }
 
   function itemWindowHref(tool: Tool, itemId: string, projectId: string | null = loc.projectId): string {

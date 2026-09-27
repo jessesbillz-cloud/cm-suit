@@ -10,6 +10,15 @@ revoke-member
 download
 # Sends mail (email_outbound) and marks the transmittal sent (no user update policy); create_transmittal() runs as the user first.
 send-transmittal
+# Admin: creates bidder members, scopes, access links, bid_invites and sub_history (no user insert policies) and sends
+# the invitations. requireCapability('bids.manage') first.
+invite-bidders
+# Reads bidder addresses (hidden from the caller by design) and sends the addendum email; issue_addendum() runs as the
+# user first, after requireCapability('bids.manage') and the signing re-confirmation.
+issue-addendum
+# Writes the extraction draft (bid_extractions / bid_extraction_pricing) and ai_calls (no user insert policies);
+# the submission, file text and requireCapability('bids.view_ai_findings') are all read as the user first.
+extract-bid
 # Public endpoint §6.4 #1: resolves access links and rate-limits.
 access
 # Public endpoint §6.4 #2: share recipients aren't members, so this function is the access check.

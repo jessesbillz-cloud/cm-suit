@@ -9,7 +9,10 @@ type FunctionName =
   | 'download'
   | 'invite-member'
   | 'revoke-member'
-  | 'send-transmittal';
+  | 'send-transmittal'
+  | 'invite-bidders'
+  | 'issue-addendum'
+  | 'extract-bid';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

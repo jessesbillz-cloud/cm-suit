@@ -1,5 +1,6 @@
 // An opened item: in the right column (desktop), full screen (phone), or alone in its own window (?window=1).
 import type { Tool } from '../../lib/layout';
+import { BidsItem } from '../../features/bids/BidsItem';
 import { BoardItem } from '../../features/board/BoardItem';
 import { FileItem } from '../../features/files/FileItem';
 import { EmptyState } from '../../ui/States';
@@ -34,6 +35,7 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
     );
   }
   if (tool === 'files') return <FileItem key={itemId} fileId={itemId} onOpenWindow={openWindow} />;
+  if (tool === 'bids' && model.loc.projectId !== null) return <BidsItem projectId={model.loc.projectId} itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
 }
 
@@ -41,5 +43,6 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
 export function itemTitle(tool: Tool): string {
   if (tool === 'files') return 'File';
   if (tool === 'board') return 'Board item';
+  if (tool === 'bids') return 'Bids';
   return 'Item';
 }

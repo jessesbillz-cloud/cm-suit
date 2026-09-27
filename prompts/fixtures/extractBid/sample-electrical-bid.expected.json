@@ -1,0 +1,48 @@
+{
+  "_context": {
+    "project": { "name": "Fixture Project 100 - Building C Modernization", "number": null, "address": "123 Sample Way, Anytown, CA" },
+    "package": { "code": "26A", "name": "Electrical" },
+    "note": "The quote names a different project, so project_match is mismatch."
+  },
+  "findings": {
+    "bidder_name": "Bright Circuit Electric Co.",
+    "bid_date": "2031-04-10",
+    "document_kind": "quote",
+    "prevailing_wage": "adder",
+    "prevailing_wage_evidence": { "quote": "Our quotation is based on open shop wages. Prevailing wage rates may be provided for an additional", "page": 1 },
+    "validity_days": null,
+    "scope_summary": "Division 26 electrical: new panelboard, branch circuits and devices, LED lighting fixtures and temporary power.",
+    "inclusions": [
+      "New panelboard LP-2",
+      "Branch circuits and devices per E-series drawings",
+      "LED lighting fixtures as scheduled",
+      "Temporary power during construction"
+    ],
+    "exclusions": [
+      "Fire alarm",
+      "Low voltage and data cabling",
+      "Trenching and backfill",
+      "Utility company fees",
+      "Permits"
+    ],
+    "notable_terms": [
+      "Material pricing subject to escalation after 30 days due to market conditions",
+      "Progress billing monthly, 10% retention",
+      "Based on open shop wages"
+    ],
+    "project_match": "mismatch",
+    "confidence": 0.85
+  },
+  "pricing": {
+    "base_amount": 96480,
+    "base_evidence": { "quote": "Base Quote ........................................ $96,480.00", "page": 1 },
+    "alternates": [],
+    "unit_prices": [],
+    "adds_deducts": [
+      { "label": "Occupancy sensors in all classrooms", "kind": "add", "amount": 3200, "evidence": { "quote": "Add for occupancy sensors in all classrooms: $3,200.00", "page": 2 } },
+      { "label": "Owner furnishes light fixtures", "kind": "deduct", "amount": 21000, "evidence": { "quote": "Deduct if owner furnishes light fixtures: $21,000.00", "page": 2 } }
+    ],
+    "pw_adder_amount": 8750,
+    "pw_adder_evidence": { "quote": "Prevailing wage rates may be provided for an additional\n$8,750.00 if required.", "page": 1 }
+  }
+}

@@ -4,7 +4,9 @@
 //   - localStorage 'e2e-mock-user' set before load  -> the app starts signed in as that mock user (absent -> signed out);
 //   - the mock user belongs to at least two jobs, and each job has at least one visible file;
 //   - test ids: job-picker (button), job-picker-option-<n> (menu items, n from 0), rail-files, rail-board,
-//     file-row-download (one per file row), main-area (with data-tool = the current tool).
+//     file-row-download (one per file row), main-area (with data-tool = the current tool);
+//   - 'bidder' as the mock user -> a bidder on job-a: /p/job-a/bids shows the bidder page with addendum 1 issued and
+//     not yet acknowledged; test ids addendum-ack-<number> (the button) and addendum-acked-<number> (after).
 // Opening a tool before a measured task is setup, not part of the budget. Every click on the page is counted.
 import process from 'node:process';
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -13,6 +15,17 @@ const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 
 interface ClickWindow {
   __tapCount: number;
+}
+
+/** Signs in as a mock user and counts every click on the page (capture phase, so stopped events still count). */
+async function installTapCounter(page: Page, user: string): Promise<void> {
+  await page.addInitScript((who: string) => {
+    window.localStorage.setItem('e2e-mock-user', who);
+    (window as unknown as ClickWindow).__tapCount = 0;
+    document.addEventListener('click', () => {
+      (window as unknown as ClickWindow).__tapCount += 1;
+    }, true);
+  }, user);
 }
 
 async function resetTaps(page: Page): Promise<void> {
@@ -34,14 +47,7 @@ test.describe('tap budgets (SPEC §7.9)', () => {
 
   test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Rail budgets are desktop; the phone shell gets its own budgets.');
-    await page.addInitScript(() => {
-      window.localStorage.setItem('e2e-mock-user', 'pm');
-      (window as unknown as ClickWindow).__tapCount = 0;
-      // Capture phase so a handler that stops propagation still gets counted.
-      document.addEventListener('click', () => {
-        (window as unknown as ClickWindow).__tapCount += 1;
-      }, true);
-    });
+    await installTapCounter(page, 'pm');
     await page.goto('/');
     await expect(page.getByTestId('main-area')).toBeVisible();
   });
@@ -89,4 +95,27 @@ test.describe('tap budgets (SPEC §7.9)', () => {
       expect(await taps(page)).toBe(2);
     });
   }
+});
+
+test.describe('tap budgets, bidder (SPEC §7.9)', () => {
+  test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
+
+  test.beforeEach(async ({ page }) => {
+    await installTapCounter(page, 'bidder');
+  });
+
+  test('acknowledge an addendum (bidder) = 1 click from the bid page', async ({ page }) => {
+    await page.goto('/p/job-a/bids'); // setup: the bid page itself
+    const ack = page.getByTestId('addendum-ack-1');
+    await expect(ack).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(ack, counter);
+
+    await expect(page.getByTestId('addendum-acked-1')).toBeVisible();
+    await expect(ack).toHaveCount(0);
+    expect(counter.n).toBe(1);
+    expect(await taps(page)).toBe(1);
+  });
 });

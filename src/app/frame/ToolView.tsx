@@ -1,7 +1,8 @@
-// What fills the main area for each tool. Phase 0 ships board, files, people and settings.
+// What fills the main area for each tool: board, files, bids, people and settings (calendar arrives in Phase 2).
 import { useNavigate } from '@tanstack/react-router';
 import type { Tool } from '../../lib/layout';
 import { Board } from '../../features/board/Board';
+import { BidsTool } from '../../features/bids/BidsTool';
 import { FilesTool } from '../../features/files/FilesTool';
 import { PeopleTool } from '../../features/people/PeopleTool';
 import { SettingsTool } from '../../features/settings/SettingsTool';
@@ -60,6 +61,9 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
           }}
         />
       );
+    case 'bids':
+      if (projectId === null) return <NeedsJob what="bids" />;
+      return <BidsTool projectId={projectId} itemId={itemId} />;
     case 'people':
       if (projectId === null) return <NeedsJob what="people" />;
       return <PeopleTool projectId={projectId} />;

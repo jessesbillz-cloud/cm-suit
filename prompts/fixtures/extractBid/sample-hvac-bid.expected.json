@@ -1,0 +1,44 @@
+{
+  "_context": {
+    "project": { "name": "Fixture Project 100 - Building C Modernization", "number": null, "address": "123 Sample Way, Anytown, CA" },
+    "package": { "code": "23A", "name": "HVAC" }
+  },
+  "findings": {
+    "bidder_name": "Northline Mechanical, Inc.",
+    "bid_date": "2031-03-03",
+    "document_kind": "proposal",
+    "prevailing_wage": "included",
+    "prevailing_wage_evidence": { "quote": "Price includes prevailing wages per DIR requirements and certified payroll.", "page": 1 },
+    "validity_days": 45,
+    "scope_summary": "HVAC work for package 23A per plans and specifications and Addendum No. 1, including four rooftop units, ductwork, controls and test and balance.",
+    "inclusions": [
+      "Four (4) rooftop packaged units with curbs and adapters",
+      "Supply, return and exhaust ductwork with insulation",
+      "Controls per sequence of operations, one (1) year warranty",
+      "Test, adjust and balance by independent agency"
+    ],
+    "exclusions": [
+      "Roofing patch and flashing at new curbs",
+      "Line voltage power wiring and disconnects",
+      "Condensate piping beyond 10 feet from unit",
+      "Bonds (available upon request)"
+    ],
+    "notable_terms": ["Payment net 30 days", "Retention not to exceed 5%", "Acknowledges Addendum No. 1"],
+    "project_match": "match",
+    "confidence": 0.9
+  },
+  "pricing": {
+    "base_amount": 184250,
+    "base_evidence": { "quote": "BASE BID: One Hundred Eighty-Four Thousand Two Hundred Fifty Dollars ($184,250.00)", "page": 1 },
+    "alternates": [
+      { "label": "Alternate No. 1 - Upgrade to high-efficiency economizers (add)", "amount": 12600, "evidence": { "quote": "Alternate No. 1 - Upgrade to high-efficiency economizers: ADD $12,600.00", "page": 2 } },
+      { "label": "Alternate No. 2 - Delete controls front-end graphics (deduct)", "amount": 4100, "evidence": { "quote": "Alternate No. 2 - Delete controls front-end graphics: DEDUCT $4,100.00", "page": 2 } }
+    ],
+    "unit_prices": [
+      { "item": "Additional supply diffuser, installed", "unit": "each", "unit_price": 385, "evidence": { "quote": "Additional supply diffuser, installed: $385.00 each", "page": 2 } }
+    ],
+    "adds_deducts": [],
+    "pw_adder_amount": null,
+    "pw_adder_evidence": null
+  }
+}

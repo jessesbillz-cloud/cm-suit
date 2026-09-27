@@ -1,7 +1,16 @@
 // Mock-only persistence. Lives in sessionStorage (not module state) so a Playwright page keeps its changes
 // across route changes and reloads within one test, and nothing leaks between tests.
 import type { LayoutChoices } from '../../lib/layout';
+import type { BidderPage, BidderSubmission } from '../bids.types';
 import type { FileRow, FolderRow, ProfileRow } from '../types';
+
+/** What the mock bidder changed on their page. */
+interface MockBidderState {
+  acks: Record<string, string>;
+  intents: Record<string, string>;
+  submissions: (BidderSubmission & { package_id: string })[];
+  questions: BidderPage['my_questions'];
+}
 
 const KEY = 'e2e-mock-state';
 
@@ -13,6 +22,7 @@ interface MockState {
   files: FileRow[];
   profile: ProfileRow | null;
   revoked: string[];
+  bidder: MockBidderState;
 }
 
 const EMPTY: MockState = {
@@ -23,6 +33,7 @@ const EMPTY: MockState = {
   files: [],
   profile: null,
   revoked: [],
+  bidder: { acks: {}, intents: {}, submissions: [], questions: [] },
 };
 
 export function readMock(): MockState {

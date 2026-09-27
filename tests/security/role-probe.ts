@@ -1,7 +1,8 @@
 /// <reference types="node" />
 // Role probe (SPEC §6.8). Seeds two projects with one user per SPEC §5.2 role (plus a second bidder, a project-B admin,
 // an expired member and a revoked member) using the service role, then signs in as each user and checks: the capability
-// matrix, cross-project isolation, access_ends_at, revocation, the bidder wall, pricing-only bid files, and aal2.
+// matrix, cross-project isolation, access_ends_at, revocation, the bidder wall (members, people, files, invites,
+// submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, and aal2.
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY, PROBE_SERVICE_ROLE_KEY. Exits non-zero on any failure. Cleans up even on failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
@@ -47,12 +48,20 @@ interface ProbeUser {
 }
 interface Seed {
   users: Map<UserKey, ProbeUser>;
+  orgA: string;
   projA: string;
   projB: string;
   bidsFolder: string;
-  bidFile1: string;
-  bidFile2: string;
+  pkg: string;
   bidder2Activity: string;
+}
+type Bidder = 'bidder' | 'bidder2';
+const BIDDERS: readonly Bidder[] = ['bidder', 'bidder2'];
+/** What each bidder created through the RPCs (as itself, not the service role). */
+interface Bid {
+  file: string;
+  submission: string;
+  question: string;
 }
 
 type Res = { data: unknown; error: { message: string } | null };
@@ -69,6 +78,24 @@ function user(seed: Seed, key: UserKey): ProbeUser {
   const u = seed.users.get(key);
   if (!u) throw new Error(`user ${key} was not seeded`);
   return u;
+}
+function clientOf(clients: Map<UserKey, Client>, key: UserKey): Client {
+  const c = clients.get(key);
+  if (!c) throw new Error(`no client for ${key}`);
+  return c;
+}
+function bidOf(bids: Map<Bidder, Bid>, key: Bidder): Bid {
+  const b = bids.get(key);
+  if (!b) throw new Error(`no bid for ${key}`);
+  return b;
+}
+async function rpcRow(c: Client, fn: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const row = must(await c.rpc(fn, args), fn)[0];
+  if (!row) throw new Error(`${fn} returned nothing`);
+  return row;
+}
+async function idsIn(c: Client, table: string, col: string, projectId: string): Promise<unknown[]> {
+  return must(await c.from(table).select(col).eq('project_id', projectId), `${table} select`).map((r) => r[col]);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -121,9 +148,11 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
   ]).select('id, created_by'), 'insert orgs');
   const orgA = str(orgs.find((o) => o['created_by'] === adminA), 'id');
   const orgB = str(orgs.find((o) => o['created_by'] === adminB), 'id');
-  // Creators become project_admin and default folders appear (triggers).
+  s.orgA = orgA;
+  // Creators become project_admin and default folders appear (triggers). Project A is sealed, due tomorrow.
+  const due = new Date(Date.now() + 86_400_000).toISOString();
   const projects = must(await service.from('projects').insert([
-    { org_id: orgA, name: `Probe A ${RUN}`, created_by: adminA },
+    { org_id: orgA, name: `Probe A ${RUN}`, created_by: adminA, bid_due_at: due, bid_sealed: true },
     { org_id: orgB, name: `Probe B ${RUN}`, created_by: adminB },
   ]).select('id, org_id'), 'insert projects');
   s.projA = str(projects.find((p) => p['org_id'] === orgA), 'id');
@@ -143,22 +172,26 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
       created_by: adminA,
     });
   }
-  must(await service.from('project_members').insert(members), 'insert members');
+  const inserted = must(await service.from('project_members').insert(members).select('id, user_id'), 'insert members');
+
+  // One package; both bidders are scoped to it and invited (as invite-bidders would, with the service role).
+  s.pkg = str(must(await service.from('bid_packages').insert({
+    org_id: orgA, project_id: s.projA, code: '23A', name: `Probe package ${RUN}`, created_by: user(s, 'estimator').id,
+  }).select('id'), 'insert package')[0], 'id');
+  const bidderMembers = BIDDERS.map((k) => str(inserted.find((m) => m['user_id'] === user(s, k).id), 'id'));
+  must(await service.from('member_scopes').insert(bidderMembers.map((m) => ({ project_member_id: m, scope_type: 'bid_package', scope_id: s.pkg }))), 'insert scopes');
+  must(await service.from('bid_invites').insert(bidderMembers.map((m) => ({
+    org_id: orgA, project_id: s.projA, package_id: s.pkg, member_id: m, created_by: user(s, 'estimator').id,
+  }))), 'insert invites');
 
   s.bidsFolder = str(must(await service.from('folders').select('id').eq('project_id', s.projA).eq('kind', 'bids_received'), 'bids folder')[0], 'id');
   const bFolder = str(must(await service.from('folders').select('id').eq('project_id', s.projB).eq('kind', 'plans'), 'B folder')[0], 'id');
-  s.bidFile1 = randomUUID();
-  s.bidFile2 = randomUUID();
   const bFile = randomUUID();
   const file = (id: string, org: string, proj: string, folder: string, by: string, name: string) => ({
     id, org_id: org, project_id: proj, folder_id: folder, original_name: name, created_by: by, scan_status: 'clean',
     storage_path: `project/${proj}/${folder}/${id}/${name}`,
   });
-  must(await service.from('files').insert([
-    file(s.bidFile1, orgA, s.projA, s.bidsFolder, user(s, 'bidder').id, 'bid-1.pdf'),
-    file(s.bidFile2, orgA, s.projA, s.bidsFolder, user(s, 'bidder2').id, 'bid-2.pdf'),
-    file(bFile, orgB, s.projB, bFolder, adminB, 'b-only.pdf'),
-  ]), 'insert files');
+  must(await service.from('files').insert(file(bFile, orgB, s.projB, bFolder, adminB, 'b-only.pdf')), 'insert files');
 
   const acts = must(await service.from('activity').insert([
     { org_id: orgA, project_id: s.projA, kind: 'probe', summary: 'For bidder 2 only' },
@@ -167,6 +200,28 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
   s.bidder2Activity = str(acts.find((a) => a['project_id'] === s.projA), 'id');
   must(await service.from('activity_recipients').insert({ activity_id: s.bidder2Activity, user_id: user(s, 'bidder2').id }), 'insert recipient');
   return s;
+}
+
+// Each bidder registers its file and submits through the RPCs with its own session (no storage upload needed);
+// the extraction drafts with money are written the way the worker writes them (service role).
+async function seedBids(s: Seed, clients: Map<UserKey, Client>): Promise<Map<Bidder, Bid>> {
+  const bids = new Map<Bidder, Bid>();
+  for (const key of BIDDERS) {
+    const c = clientOf(clients, key);
+    const file = str(await rpcRow(c, 'register_file', {
+      p_folder_id: s.bidsFolder, p_original_name: `bid-${key}.pdf`, p_mime: 'application/pdf', p_size: 100,
+    }), 'id');
+    const submission = str(await rpcRow(c, 'submit_bid', { p_package_id: s.pkg, p_file_id: file }), 'id');
+    const question = str(await rpcRow(c, 'ask_bid_question', { p_project_id: s.projA, p_package_id: s.pkg, p_question: `Probe question ${key}` }), 'id');
+    bids.set(key, { file, submission, question });
+  }
+  const ex = must(await service.from('bid_extractions').insert(
+    [...bids.values()].map((b) => ({ org_id: s.orgA, project_id: s.projA, submission_id: b.submission })),
+  ).select('id'), 'insert extractions');
+  must(await service.from('bid_extraction_pricing').insert(
+    ex.map((e, i) => ({ extraction_id: str(e, 'id'), project_id: s.projA, base_amount: 100_000 + i })),
+  ), 'insert pricing');
+  return bids;
 }
 
 async function signIn(u: ProbeUser): Promise<Client> {
@@ -236,16 +291,14 @@ async function checkLockedOut(s: Seed, c: Client, who: string): Promise<void> {
   });
 }
 
-async function checkBidderWall(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
-  const b1 = user(s, 'bidder');
-  const b2 = user(s, 'bidder2');
-  const pairs: [UserKey, ProbeUser, ProbeUser, string, string][] = [
-    ['bidder', b1, b2, s.bidFile1, s.bidFile2],
-    ['bidder2', b2, b1, s.bidFile2, s.bidFile1],
-  ];
-  for (const [key, me, other, mine, theirs] of pairs) {
-    const c = clients.get(key);
-    if (!c) throw new Error(`no client for ${key}`);
+async function checkBidderWall(s: Seed, clients: Map<UserKey, Client>, bids: Map<Bidder, Bid>): Promise<void> {
+  for (const key of BIDDERS) {
+    const otherKey: Bidder = key === 'bidder' ? 'bidder2' : 'bidder';
+    const me = user(s, key);
+    const other = user(s, otherKey);
+    const mine = bidOf(bids, key);
+    const theirs = bidOf(bids, otherKey);
+    const c = clientOf(clients, key);
     await report.guard('bidder wall', key, async () => {
       const members = must(await c.from('project_members').select('user_id').eq('project_id', s.projA), 'members');
       report.check('bidder wall', `${key}: project_members = own row only`,
@@ -254,33 +307,74 @@ async function checkBidderWall(s: Seed, clients: Map<UserKey, Client>): Promise<
       report.check('bidder wall', `${key}: people_display = self only`,
         people.length === 1 && people[0]?.['user_id'] === me.id, `${people.length} rows`);
       report.check('bidder wall', `${key}: other bidder absent from people_display`, !people.some((p) => p['user_id'] === other.id));
-      const files = must(await c.from('files').select('id').eq('folder_id', s.bidsFolder), 'files');
+      const files = must(await c.from('files').select('id').eq('folder_id', s.bidsFolder), 'files').map((f) => f['id']);
       report.check('bidder wall', `${key}: Bids received shows only own file`,
-        files.length === 1 && files[0]?.['id'] === mine && !files.some((f) => f['id'] === theirs), `${files.length} rows`);
+        files.length === 1 && files[0] === mine.file && !files.includes(theirs.file), `${files.length} rows`);
       const profiles = await count(c, 'profiles', 'user_id', other.id);
       report.check('bidder wall', `${key}: other bidder's profile hidden`, profiles === 0, `${profiles} rows`);
+      const subs = await idsIn(c, 'bid_submissions', 'id', s.projA);
+      report.check('bidder wall', `${key}: own submission visible`, subs.includes(mine.submission), `${subs.length} rows`);
+      report.check('bidder wall', `${key}: other bidder's submission hidden`, !subs.includes(theirs.submission), `${subs.length} rows`);
+      const qs = await idsIn(c, 'bid_questions', 'id', s.projA);
+      report.check('bidder wall', `${key}: bid_questions = own only`, qs.length === 1 && qs[0] === mine.question, `${qs.length} rows`);
+      const invites = await idsIn(c, 'bid_invites', 'id', s.projA);
+      report.check('bidder wall', `${key}: bid_invites = own only`, invites.length === 1, `${invites.length} rows`);
+      const priced = (await idsIn(c, 'bid_extraction_pricing', 'extraction_id', s.projA)).length
+        + (await idsIn(c, 'bid_extractions', 'id', s.projA)).length;
+      report.check('bidder wall', `${key}: no extraction or pricing rows (even its own)`, priced === 0, `${priced} rows`);
+
+      const page = await c.rpc('bidder_page', { p_project_id: s.projA });
+      if (page.error) throw new Error(`bidder_page: ${page.error.message}`);
+      const data = page.data as { packages?: { submissions?: { id?: unknown }[] }[] } | null;
+      const pageSubs = (data?.packages ?? []).flatMap((p) => p.submissions ?? []).map((x) => x.id);
+      report.check('bidder wall', `${key}: bidder_page submissions = own only`,
+        pageSubs.length === 1 && pageSubs[0] === mine.submission, `${pageSubs.length} submissions`);
+      const text = JSON.stringify(page.data);
+      const leaks = [theirs.submission, theirs.file, theirs.question, other.id, other.email].filter((v) => text.includes(v));
+      report.check('bidder wall', `${key}: bidder_page never mentions the other bidder`, leaks.length === 0, leaks.join(', '));
     });
   }
   await report.guard('bidder wall', 'activity', async () => {
-    const c = clients.get('bidder');
-    if (!c) throw new Error('no client for bidder');
-    const n = await count(c, 'activity', 'id', s.bidder2Activity);
+    const n = await count(clientOf(clients, 'bidder'), 'activity', 'id', s.bidder2Activity);
     report.check('bidder wall', 'bidder: activity addressed to bidder2 hidden', n === 0, `${n} rows`);
   });
   await report.guard('bidder wall', 'estimator', async () => {
-    const c = clients.get('estimator');
-    if (!c) throw new Error('no client for estimator');
+    const c = clientOf(clients, 'estimator');
     const rows = must(await c.from('project_members').select('user_id').eq('project_id', s.projA).eq('role', 'bidder'), 'members');
-    const ids = rows.map((r) => r['user_id']);
-    report.check('bidder wall', 'estimator (bids.manage) sees both bidders', ids.includes(b1.id) && ids.includes(b2.id), `${ids.length} rows`);
+    const got = rows.map((r) => r['user_id']);
+    report.check('bidder wall', 'estimator (bids.manage) sees both bidders',
+      got.includes(user(s, 'bidder').id) && got.includes(user(s, 'bidder2').id), `${got.length} rows`);
+    const qs = await idsIn(c, 'bid_questions', 'id', s.projA);
+    report.check('bidder wall', 'estimator (bids.manage) sees both questions',
+      BIDDERS.every((k) => qs.includes(bidOf(bids, k).question)), `${qs.length} rows`);
   });
   await report.guard('bidder wall', 'pm', async () => {
-    const c = clients.get('pm');
-    if (!c) throw new Error('no client for pm');
+    const c = clientOf(clients, 'pm');
     const n = must(await c.from('project_members').select('id').eq('project_id', s.projA).eq('role', 'bidder'), 'members').length;
     report.check('bidder wall', 'pm (members.view only) sees no bidders', n === 0, `${n} rows`);
+    const subs = (await idsIn(c, 'bid_submissions', 'id', s.projA)).length + (await idsIn(c, 'bid_questions', 'id', s.projA)).length;
+    report.check('bidder wall', 'pm (no bids.manage) sees no submissions or questions', subs === 0, `${subs} rows`);
   });
-  report.todo('bidder wall', 'prices, questions, submissions (bid tables)', 'Phase 1 adds bid_pricing / bid_questions; extend here');
+}
+
+// Sealed until bid time (SPEC §11.4): the project side opens nothing; unsealing opens submissions, never money at aal1.
+async function checkSealed(s: Seed, clients: Map<UserKey, Client>, bids: Map<Bidder, Bid>): Promise<void> {
+  const est = clientOf(clients, 'estimator');
+  const want = [...bids.values()].map((b) => b.submission);
+  const pricingRows = async (c: Client) => (await idsIn(c, 'bid_extraction_pricing', 'extraction_id', s.projA)).length;
+  let got = await idsIn(est, 'bid_submissions', 'id', s.projA);
+  report.check('sealed', 'estimator (aal1): 0 submissions while sealed', got.length === 0, `${got.length} rows`);
+  let n = await pricingRows(est);
+  report.check('money', 'estimator (aal1): no bid_extraction_pricing while sealed', n === 0, `${n} rows`);
+
+  must(await service.from('projects').update({ bid_sealed: false }).eq('id', s.projA), 'unseal project A');
+  got = await idsIn(est, 'bid_submissions', 'id', s.projA);
+  report.check('sealed', 'estimator (aal1): sees both submissions once unsealed',
+    got.length === want.length && want.every((id) => got.includes(id)), `${got.length} rows`);
+  for (const role of ['estimator', 'project_admin', 'pm'] as const) {
+    n = await pricingRows(clientOf(clients, role));
+    report.check('money', `${role} (aal1): no bid_extraction_pricing once unsealed`, n === 0, `${n} rows`);
+  }
 }
 
 async function checkPricing(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
@@ -304,7 +398,7 @@ async function checkPricing(s: Seed, clients: Map<UserKey, Client>): Promise<voi
       report.check('aal2', `${role}: bids.view_pricing denied without aal2`, !(await hasCap(c, s.projA, 'bids.view_pricing')));
     });
   }
-  report.todo('money', 'pricing tables (bid_pricing, bid_extraction_pricing, estimate_exports)', 'Phase 1 creates them; add aal2 TOTP sign-in');
+  report.todo('money', 'bid_extraction_pricing readable at aal2', 'positive check needs a TOTP (aal2) sign-in; covered in 08_bids.sql');
   report.todo('requests', 'requesters see only anonymized fields of others\' requests', 'Phase 3 (inspection requests)');
 }
 
@@ -335,18 +429,16 @@ async function main(): Promise<void> {
     const s = await seed(users, created);
     const clients = new Map<UserKey, Client>();
     for (const [key, u] of users) clients.set(key, await signIn(u));
-    const get = (k: UserKey): Client => {
-      const c = clients.get(k);
-      if (!c) throw new Error(`no client for ${k}`);
-      return c;
-    };
+    const get = (k: UserKey): Client => clientOf(clients, k);
     await report.guard('matrix', 'capability matrix', () => checkMatrix(s, clients));
     await checkIsolation(s, get('pm'), 'pm (A)');
     await checkIsolation(s, get('project_admin'), 'org A owner');
     await checkLockedOut(s, get('expired'), 'access_ends_at passed');
     await checkLockedOut(s, get('revoked'), 'revoked');
-    await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients));
+    const bids = await seedBids(s, clients);
+    await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients, bids));
     await report.guard('money', 'pricing', () => checkPricing(s, clients));
+    await report.guard('sealed', 'sealed bids', () => checkSealed(s, clients, bids));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {

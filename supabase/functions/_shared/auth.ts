@@ -53,18 +53,48 @@ export async function requireCapability(client: Db, projectId: string, cap: stri
  * `aal` claim from its payload, and check it belongs to the same user.
  */
 export function requireAal2(user: User, req: Request): void {
+  if (sessionClaims(user, req).aal !== 'aal2') throw new HttpError(403, 'aal2_required');
+}
+
+interface SessionClaims {
+  sub?: unknown;
+  aal?: unknown;
+  /** Supabase: [{ method: 'otp' | 'password' | 'totp' | …, timestamp: <unix seconds> }] — when THIS session authenticated. */
+  amr?: unknown;
+}
+
+/** Payload of the caller's JWT (already verified by requireUser/getUser); checked to belong to `user`. */
+function sessionClaims(user: User, req: Request): SessionClaims {
   const jwt = bearerToken(req);
   if (!jwt) throw new HttpError(401, 'Sign in required');
   const parts = jwt.split('.');
   if (parts.length !== 3) throw new HttpError(401, 'Malformed session token');
-  let claims: { sub?: unknown; aal?: unknown };
+  let claims: SessionClaims;
   try {
-    claims = JSON.parse(base64UrlToText(parts[1]));
+    claims = JSON.parse(base64UrlToText(parts[1])) as SessionClaims;
   } catch (e) {
     throw new HttpError(401, `Malformed session token: ${e instanceof Error ? e.message : String(e)}`);
   }
   if (claims.sub !== user.id) throw new HttpError(401, 'Session token does not match user');
-  if (claims.aal !== 'aal2') throw new HttpError(403, 'aal2_required');
+  return claims;
+}
+
+export const RECENT_SIGN_IN_MS = 5 * 60 * 1000;
+
+/**
+ * Signing re-confirmation, Phase 1 form (SPEC §6.9: "a fresh sign-in within 5 minutes also counts").
+ * True only when the account's last sign-in (live user record) is within 5 minutes AND, when the token carries `amr`,
+ * this very session authenticated within 5 minutes — so a fresh sign-in on another device doesn't vouch for this one.
+ */
+export function signedInRecently(user: User, req: Request, now = Date.now()): boolean {
+  const last = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : NaN;
+  if (!Number.isFinite(last) || now - last > RECENT_SIGN_IN_MS || last - now > 60_000) return false;
+  const amr = sessionClaims(user, req).amr;
+  if (!Array.isArray(amr)) return true;
+  return amr.some((m: unknown) => {
+    const ts = (m as { timestamp?: unknown } | null)?.timestamp;
+    return typeof ts === 'number' && now - ts * 1000 <= RECENT_SIGN_IN_MS;
+  });
 }
 
 /** Cron callers send `x-cron-secret: $CRON_SECRET`. A missing secret on the server refuses (env() throws). */

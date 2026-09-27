@@ -2,6 +2,7 @@
 // service-role key use outside the allowlist, and real-looking job data in fixtures.
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
+import { checkPrompts } from './check-prompts.mjs';
 
 const ROOT_ALLOW = new Set([
   'README.md', 'CLAUDE.md', 'SPEC.md', 'package.json', 'package-lock.json',
@@ -45,6 +46,9 @@ for (const f of files.filter((p) => p.startsWith('prompts/fixtures/'))) {
   const src = readFileSync(f, 'utf8');
   for (const t of TRIPWIRES) if (src.includes(t)) problems.push(`possible real job data in fixture ${f}: "${t}"`);
 }
+
+// Embedded prompt copies match prompts/<task>.md, and every task has synthetic fixtures.
+problems.push(...checkPrompts());
 
 if (problems.length) {
   console.error('Hygiene check failed:\n  ' + problems.join('\n  '));

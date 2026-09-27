@@ -4,11 +4,11 @@
 import { z } from 'zod';
 
 /** Every tool the frame can show in the main area. */
-const TOOLS = ['board', 'files', 'calendar', 'people', 'settings'] as const;
+const TOOLS = ['board', 'files', 'bids', 'calendar', 'people', 'settings'] as const;
 export type Tool = (typeof TOOLS)[number];
 
 /** Tools a person may put on the rail. Settings is pinned at the bottom of the rail, not a choice. */
-export const RAIL_TOOLS = ['board', 'files', 'calendar', 'people'] as const;
+export const RAIL_TOOLS = ['board', 'files', 'bids', 'calendar', 'people'] as const;
 export type RailTool = (typeof RAIL_TOOLS)[number];
 
 /** Panels that can sit docked in the right column. */
@@ -32,7 +32,7 @@ export const NOTIFICATION_KINDS = ['tasks', 'rfi_answers', 'impact_claims', 'ir_
 const RECENT_LIMIT = 8;
 
 export const LAYOUT_DEFAULTS = {
-  rail_items: ['board', 'files', 'calendar', 'people'] as RailTool[],
+  rail_items: ['board', 'files', 'bids', 'calendar', 'people'] as RailTool[],
   main_default: 'board' as RailTool,
   docked_panel: 'board' as DockedPanel,
   collapsed: { rail: false, right: false },

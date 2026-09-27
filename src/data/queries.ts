@@ -8,6 +8,7 @@ import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mock from './mock/api';
+import * as mockBids from './mock/bids';
 import { isMock } from './mock';
 import type { ActivityRow, BoardLine, FileRow, FolderRow, Person, ProfileRow, ProjectRow, TaskRow } from './types';
 
@@ -212,7 +213,7 @@ export function useCapability(projectId: string | null, cap: string) {
     queryKey: qk.capability(projectId ?? '', cap),
     queryFn: projectId
       ? async () =>
-          isMock() ? true : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }))
+          isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }))
       : skipToken,
     staleTime: 60_000,
   });
