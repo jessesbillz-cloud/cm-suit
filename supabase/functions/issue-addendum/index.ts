@@ -15,7 +15,7 @@ import { requireCapability, requireUser, signedInRecently } from '../_shared/aut
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { addendumEmail, sendEach, sendEmail } from '../_shared/email.ts';
 import { BRAND_NAME, appUrl } from '../_shared/env.ts';
-import { sha256Hex } from '../_shared/crypto.ts';
+import { contentHash } from '../_shared/crypto.ts';
 
 const Body = z.object({
   addendum_id: uuid,
@@ -40,19 +40,9 @@ type Addendum = {
 
 const ADDENDUM_COLS = 'id, org_id, project_id, number, title, body, file_ids, content_hash, signed_at, signed_by, issued_at, version';
 
-/** JSON with object keys sorted at every level: the same content always hashes the same. */
-function canonicalJson(v: unknown): string {
-  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
-  if (v && typeof v === 'object') {
-    const o = v as Record<string, unknown>;
-    return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`).join(',')}}`;
-  }
-  return JSON.stringify(v);
-}
-
 /** SPEC §6.9 content hash: sha256 hex of canonical {number, title, body, file_ids}. */
 function hashOf(a: Pick<Addendum, 'number' | 'title' | 'body' | 'file_ids'>): Promise<string> {
-  return sha256Hex(canonicalJson({ number: a.number, title: a.title, body: a.body, file_ids: a.file_ids ?? [] }));
+  return contentHash({ number: a.number, title: a.title, body: a.body, file_ids: a.file_ids ?? [] });
 }
 
 /** Every live bidder address on the project (invited or active, access not ended). Role from role_permissions. */
@@ -91,8 +81,8 @@ Deno.serve(handle(async (req) => {
     return refuse(req, 403, 'reauth_required', 'Sign in again to sign this addendum');
   }
 
-  const contentHash = await hashOf(draft);
-  const issued = await rpc<Addendum>(client, 'issue_addendum', { p_addendum_id: draft.id, p_content_hash: contentHash });
+  const hash = await hashOf(draft);
+  const issued = await rpc<Addendum>(client, 'issue_addendum', { p_addendum_id: draft.id, p_content_hash: hash });
   // A draft edit racing between our read and the RPC would bind the hash to stale content. issue_addendum doesn't take
   // an expected version, so check after the fact and fail loudly (logged with an error ID) rather than mail it out.
   if (issued.content_hash !== (await hashOf(issued))) {

@@ -1,8 +1,7 @@
 // render_pdf {kind, entity_type, entity_id, content_hash}: official (signed/legal) PDF renders (SPEC §8.2, §6.9).
-// Phase 0 stub. In Phase 3 this renders with the pure builders from the app's src/lib/pdf/ and binds the stored
-// PDF to content_hash (re-render when the saved content no longer matches).
-// TODO(Phase 3): import the builders and the ONE signature stamp (src/lib/pdf/stamp.ts) through a shared package.
-// Do not write a second stamp in the worker (CLAUDE.md rule 11).
+// Stub. No worker host runs today, so official PDFs are rendered by edge functions with the builders and the ONE
+// signature stamp in supabase/functions/_shared/pdf/ (docs/decisions.md). If the worker is hosted later it imports
+// those same files; do not write a second stamp here (CLAUDE.md rule 11).
 import { z } from 'zod';
 import type { QueueJob } from '../queue.js';
 

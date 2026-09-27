@@ -1,4 +1,4 @@
-// Small crypto helpers shared by auth, access links and inbound email. Web Crypto only.
+// Small crypto helpers shared by auth, access links, inbound email and signed records. Web Crypto only.
 
 const encoder = new TextEncoder();
 
@@ -6,9 +6,33 @@ async function digest(input: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(input)));
 }
 
+function hex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** SHA-256 as lowercase hex. Access-link tokens are stored this way (access_links.token_hash). */
 export async function sha256Hex(input: string): Promise<string> {
-  return Array.from(await digest(input), (b) => b.toString(16).padStart(2, '0')).join('');
+  return hex(await digest(input));
+}
+
+/** SHA-256 of raw bytes as lowercase hex (files.sha256). */
+export async function sha256HexBytes(bytes: Uint8Array): Promise<string> {
+  return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes))));
+}
+
+/** JSON with object keys sorted at every level: the same content always hashes the same. */
+export function canonicalJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v);
+}
+
+/** SPEC §6.9 content hash of a signed record: sha256 hex of its canonical JSON. The ONE way records are hashed. */
+export function contentHash(content: unknown): Promise<string> {
+  return sha256Hex(canonicalJson(content));
 }
 
 /**

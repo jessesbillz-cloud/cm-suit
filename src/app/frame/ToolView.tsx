@@ -1,11 +1,16 @@
-// What fills the main area for each tool: board, files, bids, people and settings (calendar arrives in Phase 2).
+// What fills the main area for each tool. Calendar and the board also work for "All my jobs"; the rest need a job.
 // A tool the job has switched off (projects.modules) shows a one-line note instead.
 import { useNavigate } from '@tanstack/react-router';
 import { toolIsOn } from '../../lib/jobs';
 import type { Tool } from '../../lib/layout';
 import { Board } from '../../features/board/Board';
 import { BidsTool } from '../../features/bids/BidsTool';
+import { CalendarTool } from '../../features/calendar/CalendarTool';
+import { CorrectionsTool } from '../../features/corrections/CorrectionsTool';
+import { DailiesTool } from '../../features/dailies/DailiesTool';
+import { DeliveriesTool } from '../../features/deliveries/DeliveriesTool';
 import { FilesTool } from '../../features/files/FilesTool';
+import { InspectionsTool } from '../../features/inspections/InspectionsTool';
 import { PeopleTool } from '../../features/people/PeopleTool';
 import { SettingsTool } from '../../features/settings/SettingsTool';
 import { Card } from '../../ui/Card';
@@ -83,10 +88,18 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'settings':
       return <SettingsTool projectId={projectId} />;
     case 'calendar':
-      return (
-        <Card title="Calendar">
-          <EmptyState title="The calendar arrives in Phase 2." hint="Inspections, deliveries and meetings will show here by week." />
-        </Card>
-      );
+      return <CalendarTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'dailies':
+      if (projectId === null) return <NeedsJob what="dailies" />;
+      return <DailiesTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'inspections':
+      if (projectId === null) return <NeedsJob what="inspections" />;
+      return <InspectionsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'deliveries':
+      if (projectId === null) return <NeedsJob what="deliveries" />;
+      return <DeliveriesTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'corrections':
+      if (projectId === null) return <NeedsJob what="corrections" />;
+      return <CorrectionsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
   }
 }

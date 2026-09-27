@@ -1,5 +1,17 @@
 // Tool names and icons: one table for the rail, the phone bar and the settings screen.
-import { CalendarDays, Folder, Gavel, MessagesSquare, Settings, Users, type LucideIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Folder,
+  Gavel,
+  ListChecks,
+  MessagesSquare,
+  NotebookPen,
+  Settings,
+  Truck,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Tool } from '../lib/layout';
 
 export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
@@ -7,6 +19,10 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   files: { label: 'Files', icon: Folder },
   bids: { label: 'Bids', icon: Gavel },
   calendar: { label: 'Calendar', icon: CalendarDays },
+  dailies: { label: 'Dailies', icon: NotebookPen },
+  inspections: { label: 'Inspections', icon: ClipboardCheck },
+  deliveries: { label: 'Deliveries', icon: Truck },
+  corrections: { label: 'Corrections', icon: ListChecks },
   people: { label: 'People', icon: Users },
   settings: { label: 'Settings', icon: Settings },
 };

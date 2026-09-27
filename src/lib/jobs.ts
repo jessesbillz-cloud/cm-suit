@@ -26,6 +26,10 @@ export const MODULES = [
   { value: 'bids', label: 'Bids' },
   { value: 'files', label: 'Files' },
   { value: 'calendar', label: 'Calendar' },
+  { value: 'dailies', label: 'Dailies' },
+  { value: 'inspections', label: 'Inspections' },
+  { value: 'deliveries', label: 'Deliveries' },
+  { value: 'corrections', label: 'Corrections' },
 ] as const satisfies readonly { value: RailTool; label: string }[];
 
 const MODULE_TOOLS: readonly string[] = MODULES.map((m) => m.value);

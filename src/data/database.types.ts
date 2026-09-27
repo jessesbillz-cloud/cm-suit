@@ -941,6 +941,80 @@ export type Database = {
           },
         ]
       }
+      calendar_entries: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          location: string | null
+          org_id: string
+          project_id: string
+          read_capability: string
+          source_id: string | null
+          source_type: string
+          starts_at: string
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+          version: number
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string | null
+          id?: string
+          kind: string
+          location?: string | null
+          org_id: string
+          project_id: string
+          read_capability?: string
+          source_id?: string | null
+          source_type?: string
+          starts_at: string
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          location?: string | null
+          org_id?: string
+          project_id?: string
+          read_capability?: string
+          source_id?: string | null
+          source_type?: string
+          starts_at?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_entries_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       dead_jobs: {
         Row: {
           attempts: number
@@ -2712,6 +2786,27 @@ export type Database = {
           summary: string
           unread: boolean
         }[]
+      }
+      calendar_mirror: {
+        Args: {
+          p_all_day?: boolean
+          p_ends_at?: string
+          p_kind: string
+          p_location?: string
+          p_project_id: string
+          p_read_capability?: string
+          p_source_id: string
+          p_source_type: string
+          p_starts_at: string
+          p_status?: string
+          p_title: string
+          p_visible_to?: string
+        }
+        Returns: string
+      }
+      calendar_unmirror: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: undefined
       }
       can_manage_subs: { Args: { p_org_id: string }; Returns: boolean }
       complete_task: {

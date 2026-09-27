@@ -52,7 +52,8 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
     - toast: `ui/Toast`
     - status colors: `lib/status`
     - filenames: `lib/buildFilename`
-    - PDF signature stamp: `lib/pdf/stamp`
+    - PDF signature stamp: `supabase/functions/_shared/pdf/stamp.ts`
+    - storing a server-made PDF: `_shared/generatedPdf.ts`; signing button: `features/auth/SignButton`; content hash: `_shared/crypto.ts contentHash`
 
     Don't write a second one.
 12. **AI.**
