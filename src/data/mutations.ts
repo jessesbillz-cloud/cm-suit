@@ -80,8 +80,10 @@ export function useMarkRead() {
 async function writeLayout(userId: string, choices: LayoutChoices, version: number | null): Promise<number> {
   if (isMock()) return mock.saveLayout(choices, version);
   if (version === null) {
-    const row = throwIfError(await supabase.from('user_layout').insert({ user_id: userId, ...choices }).select('version').single());
-    return row.version;
+    const row: unknown = throwIfError(
+      await supabase.from('user_layout').insert({ user_id: userId, ...choices }).select('version').single(),
+    );
+    return z.object({ version: z.number() }).parse(row).version;
   }
   const rows = throwIfError(
     await supabase.from('user_layout').update(choices).eq('user_id', userId).eq('version', version).select('version'),
@@ -121,7 +123,8 @@ export function useSaveLayout() {
 
 async function insertFolder(userId: string, projectId: string, parentId: string | null, name: string): Promise<FolderRow> {
   if (isMock()) return mock.createFolder(projectId, parentId, name);
-  const project = throwIfError(await supabase.from('projects').select('org_id').eq('id', projectId).single());
+  const projectRow: unknown = throwIfError(await supabase.from('projects').select('org_id').eq('id', projectId).single());
+  const project = z.object({ org_id: z.string() }).parse(projectRow);
   return throwIfError(
     await supabase
       .from('folders')

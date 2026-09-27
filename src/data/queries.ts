@@ -1,5 +1,6 @@
 // Read hooks. Every hook goes through throwIfError; the mock switch lives in isMock() only.
 import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { parseLayout, type LayoutChoices } from '../lib/layout';
 import { parseProjectSettings, type ProjectSettings } from '../lib/settings';
 import { useUser } from './auth';
@@ -78,10 +79,11 @@ export function useActivity(id: string | null) {
 
 async function fetchReadMark(projectId: string): Promise<string | null> {
   if (isMock()) return mock.readMark(projectId);
-  const row = throwIfErrorMaybe(
+  // Single-row results are parsed at the boundary: supabase-js types them loosely for .maybeSingle().
+  const row: unknown = throwIfErrorMaybe(
     await supabase.from('read_marks').select('last_seen_at').eq('project_id', projectId).maybeSingle(),
   );
-  return row?.last_seen_at ?? null;
+  return row === null ? null : z.object({ last_seen_at: z.string() }).parse(row).last_seen_at;
 }
 
 /** When I was last in this job's board (null = never). */
@@ -118,8 +120,9 @@ export interface LayoutState {
 
 async function fetchLayout(): Promise<LayoutState> {
   if (isMock()) return mock.layout();
-  const row = throwIfErrorMaybe(await supabase.from('user_layout').select('*').maybeSingle());
-  return { choices: parseLayout(row), version: row?.version ?? null };
+  const row: unknown = throwIfErrorMaybe(await supabase.from('user_layout').select('*').maybeSingle());
+  const version = row === null ? null : z.object({ version: z.number() }).parse(row).version;
+  return { choices: parseLayout(row), version };
 }
 
 export function useUserLayout() {

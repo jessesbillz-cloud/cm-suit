@@ -2,7 +2,7 @@
 // Shared plumbing for the security probes (SPEC §6.8): env, clients, a check recorder that prints a table,
 // and the object lists derived from supabase/migrations. Update the lists in the same PR as the migration.
 import process from 'node:process';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export function requireEnv(name: string): string {
   const v = process.env[name];
@@ -10,10 +10,13 @@ export function requireEnv(name: string): string {
   return v;
 }
 
-export type Client = ReturnType<typeof createClient>;
+// The probes poke every table and RPC on purpose, so the client is deliberately untyped.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Client = SupabaseClient<any, any, any, any, any>;
 
 export function makeClient(url: string, key: string): Client {
-  return createClient(url, key, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createClient<any, any, any>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 }
