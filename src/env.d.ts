@@ -13,3 +13,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Injected by vite.config.ts from BASE_PATH ('/' by default). */
+declare const __BASE_PATH__: string;

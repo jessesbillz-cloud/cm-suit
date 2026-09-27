@@ -3,7 +3,11 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
+// BASE_PATH lets the same build live under a sub-path (GitHub Pages staging: /cm-suit/). Default '/'.
+const base = process.env['BASE_PATH'] ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -15,4 +19,5 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   server: { port: 5173 },
   build: { sourcemap: true },
+  define: { __BASE_PATH__: JSON.stringify(base) },
 });

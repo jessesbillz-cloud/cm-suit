@@ -72,7 +72,7 @@ const routeTree = rootRoute.addChildren([
   allBoardRoute.addChildren([allBoardItemRoute]),
 ]);
 
-export const router = createRouter({ routeTree, defaultPreload: false });
+export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });
 
 declare module '@tanstack/react-router' {
   interface Register {

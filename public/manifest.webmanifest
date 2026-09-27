@@ -2,12 +2,12 @@
   "name": "FUTURE_NAME",
   "short_name": "FUTURE_NAME",
   "description": "Construction management: board, files, reports and logs.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#F7F8FA",
   "theme_color": "#F7F8FA",
   "icons": [
-    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
