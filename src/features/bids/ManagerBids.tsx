@@ -43,7 +43,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
       {view === 'packages' ? <PackagesView {...common} orgId={project.data.org_id} /> : null}
       {view === 'questions' ? <QuestionsView {...common} tz={tz} /> : null}
       {view === 'addenda' ? <AddendaView {...common} /> : null}
-      {view === 'received' ? <ReceivedView {...common} tz={tz} /> : null}
+      {view === 'received' ? <ReceivedView {...common} orgId={project.data.org_id} tz={tz} /> : null}
     </div>
   );
 }

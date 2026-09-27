@@ -1,9 +1,25 @@
 // Tiny synthetic bid fixtures for the e2e mock: two packages on Sample Job A, one issued addendum, one answer.
 // The mock bidder is localStorage['e2e-mock-user'] = 'bidder'; every other mock user manages bids.
 import { DataError } from '../errors';
-import type { AckRow, AddendumRow, BidderPage, CoverageRow, InviteRow, PackageRow, QuestionRow } from '../bids.types';
+import type {
+  AckRow,
+  AddendumRow,
+  BidderPage,
+  CoverageRow,
+  ExtractionRow,
+  ExtractionSummary,
+  InviteRow,
+  PackageRow,
+  PricingAccess,
+  QuestionRow,
+  ReadBidResult,
+  ReceivedFile,
+  SubmissionRow,
+  SubName,
+} from '../bids.types';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
+import * as api from './api';
 
 const TZ = 'America/Los_Angeles';
 
@@ -15,6 +31,11 @@ function isBidder(): boolean {
 export async function capability(cap: string): Promise<boolean> {
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
+}
+
+/** The aal2-gated capabilities (pricing, findings): managers have them, the bidder does not. */
+export async function access(cap: string): Promise<PricingAccess> {
+  return (await capability(cap)) ? 'yes' : 'no';
 }
 
 const PACKAGES: PackageRow[] = [
@@ -143,6 +164,117 @@ export async function ask(question: string): Promise<void> {
     const q = { id: `myq-${String(n)}`, number: n, question, status: 'open', created_at: new Date().toISOString() };
     return { ...m, bidder: { ...m.bidder, questions: [...m.bidder.questions, q] } };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Office intake (SPEC §11.6): received bids, reading them, the sub directory
+// ---------------------------------------------------------------------------
+const SUBS: SubName[] = [
+  { id: 'sub-1', company: 'Sample Drywall Co' },
+  { id: 'sub-2', company: 'Sample Concrete Inc' },
+];
+
+export async function subNames(): Promise<SubName[]> {
+  await delay();
+  return SUBS;
+}
+
+export async function submissions(projectId: string): Promise<SubmissionRow[]> {
+  await delay();
+  return readMock().received.submissions.filter((s) => s.project_id === projectId).reverse();
+}
+
+export async function extractions(projectId: string): Promise<ExtractionSummary[]> {
+  await delay();
+  return readMock()
+    .received.extractions.filter((x) => x.project_id === projectId)
+    .map((x) => ({ id: x.id, submission_id: x.submission_id, status: x.status, bidder_name: x.bidder_name }));
+}
+
+export async function extraction(submissionId: string): Promise<ExtractionRow | null> {
+  await delay();
+  return readMock().received.extractions.find((e) => e.submission_id === submissionId) ?? null;
+}
+
+export async function receivedFiles(folderId: string): Promise<ReceivedFile[]> {
+  return (await api.files(folderId)).map((f) => ({
+    id: f.id,
+    original_name: f.original_name,
+    size: f.size,
+    text_status: 'pending',
+    upload_complete: f.upload_complete,
+  }));
+}
+
+/** record_received_bid: the same file gets the same receipt. */
+export async function recordReceived(fileId: string, packageId: string): Promise<{ submissionId: string; receipt: number }> {
+  await delay();
+  const file = await api.file(fileId);
+  if (!file) throw new DataError('That item no longer exists.', 'P0002', 'mock: file not found');
+  const done = readMock().received.submissions.find((s) => s.file_id === fileId);
+  if (done) return { submissionId: done.id, receipt: done.receipt_number };
+  const next = readMock().received.submissions.length + 1;
+  const row = {
+    id: `recv-${String(next)}`,
+    project_id: file.project_id,
+    package_id: packageId,
+    member_id: null,
+    sub_id: null,
+    file_id: fileId,
+    receipt_number: next,
+    received_at: new Date().toISOString(),
+    is_late: false,
+    version_no: 1,
+  };
+  writeMock((m) => ({ ...m, received: { ...m.received, submissions: [...m.received.submissions, row] } }));
+  return { submissionId: row.id, receipt: next };
+}
+
+export async function setSub(submissionId: string, subId: string): Promise<void> {
+  await delay();
+  writeMock((m) => ({
+    ...m,
+    received: { ...m.received, submissions: m.received.submissions.map((s) => (s.id === submissionId ? { ...s, sub_id: subId } : s)) },
+  }));
+}
+
+/** The bidder a synthetic file name stands for: its longest word group ("09_Sample Drywall_2026.pdf" -> "Sample Drywall"). */
+function bidderFromName(name: string): string | null {
+  const parts = name.replace(/\.[^.]+$/, '').split(/[_-]/).map((p) => p.trim()).filter((p) => /[a-z]/i.test(p));
+  return parts.sort((a, b) => b.length - a.length)[0] ?? null;
+}
+
+/** extract-bid in the mock: a draft whose bidder comes from the file name, so the sub link can be exercised. */
+export async function extract(submissionId: string): Promise<ReadBidResult> {
+  await delay();
+  const sub = readMock().received.submissions.find((s) => s.id === submissionId);
+  if (!sub) throw new DataError('That item no longer exists.', 'P0002', 'mock: submission not found');
+  const file = await api.file(sub.file_id);
+  const existing = readMock().received.extractions.find((x) => x.submission_id === submissionId);
+  const row = {
+    id: existing?.id ?? `ext-${submissionId}`,
+    project_id: sub.project_id,
+    submission_id: submissionId,
+    status: 'draft',
+    bidder_name: bidderFromName(file?.original_name ?? ''),
+    bid_date: null,
+    document_kind: 'proposal',
+    prevailing_wage: 'not_stated',
+    prevailing_wage_evidence: null,
+    validity_days: null,
+    scope_summary: 'Synthetic e2e findings.',
+    inclusions: [],
+    exclusions: [],
+    notable_terms: [],
+    project_match: 'unclear',
+    confidence: 0.5,
+    version: 1,
+  };
+  writeMock((m) => ({
+    ...m,
+    received: { ...m.received, extractions: [...m.received.extractions.filter((x) => x.submission_id !== submissionId), row] },
+  }));
+  return { extraction_id: row.id, findings: { bidder_name: row.bidder_name } };
 }
 
 /** Manager writes are not simulated: the mock covers the screens and the tap budgets, not every edit. */

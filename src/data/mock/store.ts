@@ -1,7 +1,7 @@
 // Mock-only persistence. Lives in sessionStorage (not module state) so a Playwright page keeps its changes
 // across route changes and reloads within one test, and nothing leaks between tests.
 import type { LayoutChoices } from '../../lib/layout';
-import type { BidderPage, BidderSubmission } from '../bids.types';
+import type { BidderPage, BidderSubmission, ExtractionRow, SubmissionRow } from '../bids.types';
 import type { FileRow, FolderRow, MyOrg, ProfileRow, ProjectRow } from '../types';
 
 /** What the mock bidder changed on their page. */
@@ -10,6 +10,12 @@ interface MockBidderState {
   intents: Record<string, string>;
   submissions: (BidderSubmission & { package_id: string })[];
   questions: BidderPage['my_questions'];
+}
+
+/** Bids the mock office recorded (SPEC §11.6 intake) and what reading them produced. */
+interface MockReceivedState {
+  submissions: (SubmissionRow & { project_id: string })[];
+  extractions: (ExtractionRow & { project_id: string })[];
 }
 
 const KEY = 'e2e-mock-state';
@@ -23,6 +29,7 @@ interface MockState {
   profile: ProfileRow | null;
   revoked: string[];
   bidder: MockBidderState;
+  received: MockReceivedState;
   /** Companies and jobs made in this test, and edits to the fixture ones (by id). */
   orgs: MyOrg[];
   projects: ProjectRow[];
@@ -37,6 +44,7 @@ const EMPTY: MockState = {
   profile: null,
   revoked: [],
   bidder: { acks: {}, intents: {}, submissions: [], questions: [] },
+  received: { submissions: [], extractions: [] },
   orgs: [],
   projects: [],
 };

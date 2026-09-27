@@ -16,13 +16,21 @@ export interface UploadItem {
   loaded: number;
   status: 'queued' | 'uploading' | 'done' | 'failed' | 'cancelled';
   error: string | null;
+  /** What the after-upload step reported (e.g. "Received #12"); null when there was none. */
+  note: string | null;
   projectId: string;
   folderId: string;
 }
 
+/**
+ * Runs once the file is stored, before the item counts as done (e.g. record it as a received bid). Its failure fails
+ * the item, and Retry runs the upload (resumed) and the step again. Returns the note to show on the line.
+ */
+export type AfterUpload = (fileId: string, file: File) => Promise<string | null>;
+
 interface UploadQueueValue {
   items: UploadItem[];
-  enqueue: (files: File[], projectId: string, folderId: string) => void;
+  enqueue: (files: File[], projectId: string, folderId: string, afterUpload?: AfterUpload) => void;
   cancel: (key: number) => void;
   retry: (key: number) => void;
   clearFinished: () => void;
@@ -39,6 +47,7 @@ export function useUploadQueue(): UploadQueueValue {
 export function UploadQueueProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const files = useRef(new Map<number, File>());
+  const afterUploads = useRef(new Map<number, AfterUpload>());
   const controllers = useRef(new Map<number, AbortController>());
   const nextKey = useRef(1);
   // Keys already handed to the uploader, so a re-render (or StrictMode's double effect) never starts one twice.
@@ -70,9 +79,12 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
           patch(item.key, { loaded });
         },
       })
-        .then(async () => {
-          patch(item.key, { status: 'done', loaded: item.size });
+        .then(async ({ fileId }) => {
+          const after = afterUploads.current.get(item.key);
+          const note = after ? await after(fileId, file) : null;
+          patch(item.key, { status: 'done', loaded: item.size, note });
           files.current.delete(item.key);
+          afterUploads.current.delete(item.key);
           await qc.invalidateQueries({ queryKey: qk.files(item.folderId) });
         })
         .catch((e: unknown) => {
@@ -99,12 +111,13 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
     }
   }, [items, start, user]);
 
-  const enqueue = useCallback((picked: File[], projectId: string, folderId: string) => {
+  const enqueue = useCallback((picked: File[], projectId: string, folderId: string, afterUpload?: AfterUpload) => {
     const added = picked.map((file): UploadItem => {
       const key = nextKey.current;
       nextKey.current += 1;
       files.current.set(key, file);
-      return { key, name: file.name, size: file.size, loaded: 0, status: 'queued', error: null, projectId, folderId };
+      if (afterUpload) afterUploads.current.set(key, afterUpload);
+      return { key, name: file.name, size: file.size, loaded: 0, status: 'queued', error: null, note: null, projectId, folderId };
     });
     setItems((list) => [...list, ...added]);
   }, []);

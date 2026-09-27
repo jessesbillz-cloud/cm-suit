@@ -20,4 +20,6 @@ export const qk = {
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
   bids: (projectId: string) => ['bids', projectId] as const,
   bidsPart: (projectId: string, part: string, id = '') => ['bids', projectId, part, id] as const,
+  /** Every id of one part (e.g. the received files of any folder), for a narrower refresh than qk.bids. */
+  bidsPartAll: (projectId: string, part: string) => ['bids', projectId, part] as const,
 };

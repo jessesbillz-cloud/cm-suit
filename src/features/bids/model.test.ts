@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { nextPackageCode, parseRecipients, parseView } from './model';
+import { isUnread, nextPackageCode, parseRecipients, parseView, readChip } from './model';
+
+describe('readChip / isUnread', () => {
+  it('follows the findings first, then the file text', () => {
+    expect(readChip({ status: 'confirmed' }, 'done').label).toBe('Confirmed');
+    expect(readChip({ status: 'draft' }, 'none').label).toBe('Read');
+    expect(readChip(undefined, 'none').label).toBe("Can't read");
+    expect(readChip(undefined, 'failed').label).toBe("Can't read");
+    expect(readChip(undefined, 'pending').label).toBe('Not read');
+    expect(readChip(undefined, undefined).label).toBe('Not read');
+  });
+  it('reads only what has no findings and might have text', () => {
+    expect(isUnread(undefined, 'pending')).toBe(true);
+    expect(isUnread(undefined, undefined)).toBe(true);
+    expect(isUnread(undefined, 'none')).toBe(false);
+    expect(isUnread({ status: 'draft' }, 'done')).toBe(false);
+  });
+});
 
 describe('nextPackageCode', () => {
   it('starts at 01A', () => {

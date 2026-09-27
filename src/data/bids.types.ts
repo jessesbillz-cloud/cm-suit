@@ -22,8 +22,23 @@ export type AckRow = Pick<Tables<'addendum_acks'>, 'addendum_id' | 'member_id'>;
 
 export type SubmissionRow = Pick<
   Tables<'bid_submissions'>,
-  'id' | 'package_id' | 'member_id' | 'file_id' | 'receipt_number' | 'received_at' | 'is_late' | 'version_no'
+  'id' | 'package_id' | 'member_id' | 'sub_id' | 'file_id' | 'receipt_number' | 'received_at' | 'is_late' | 'version_no'
 >;
+
+/** The list view's slice of every extraction on a job: enough for the bidder name and the read chip. */
+export type ExtractionSummary = Pick<Tables<'bid_extractions'>, 'id' | 'submission_id' | 'status' | 'bidder_name'>;
+
+/** A directory sub as the intake needs it: the company name to match a read bid against. */
+export type SubName = Pick<Tables<'subs'>, 'id' | 'company'>;
+
+/** A file in "Bids received": the row's name, the intake's duplicate check (name + size) and the read chip. */
+export type ReceivedFile = Pick<Tables<'files'>, 'id' | 'original_name' | 'size' | 'text_status' | 'upload_complete'>;
+
+/** What extract-bid answers; only the parts the app acts on (linking the sub) are pinned. */
+export const readBidResultSchema = z
+  .object({ extraction_id: z.string(), findings: z.object({ bidder_name: z.string().nullable() }).passthrough() })
+  .passthrough();
+export type ReadBidResult = z.infer<typeof readBidResultSchema>;
 
 export type ExtractionRow = Pick<
   Tables<'bid_extractions'>,
