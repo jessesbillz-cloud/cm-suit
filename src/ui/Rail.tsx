@@ -1,4 +1,4 @@
-// The rail (SPEC §7.2): fixed width, the icons of the tools this person turned on, Settings pinned at the bottom.
+// The rail (SPEC §7.2): fixed width, the tools this person turned on (icon + name), Settings pinned at the bottom.
 // It collapses to a thin strip; nobody drags or resizes it.
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import type { RailTool, Tool } from '../lib/layout';
@@ -25,17 +25,16 @@ function RailButton({ tool, active, onSelect }: RailButtonProps) {
     <button
       type="button"
       data-testid={`rail-${tool}`}
-      title={meta.label}
-      aria-label={meta.label}
       aria-current={active ? 'page' : undefined}
-      className={`flex h-10 w-10 items-center justify-center rounded-md ${
+      className={`flex h-16 w-24 flex-col items-center justify-center gap-1 rounded-md ${
         active ? 'bg-accent-soft text-accent' : 'text-ink-2 hover:bg-page hover:text-ink'
       }`}
       onClick={() => {
         onSelect(tool);
       }}
     >
-      <Icon icon={meta.icon} size={20} />
+      <Icon icon={meta.icon} size={26} />
+      <span className="text-sm font-medium">{meta.label}</span>
     </button>
   );
 }
