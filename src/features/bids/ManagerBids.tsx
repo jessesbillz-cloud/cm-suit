@@ -10,6 +10,7 @@ import { PackagesView } from './PackagesView';
 import { QuestionsView } from './QuestionsView';
 import { ReceivedView } from './ReceivedView';
 import { Segmented } from './Segmented';
+import { SubsView } from './SubsView';
 import { SummaryView } from './SummaryView';
 import { useBidsNav } from './useBidsNav';
 
@@ -42,6 +43,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
       {open.isError ? <ErrorState error={open.error} onRetry={() => void open.refetch()} /> : null}
       {view === 'coverage' ? <CoverageView {...common} /> : null}
       {view === 'packages' ? <PackagesView {...common} orgId={project.data.org_id} /> : null}
+      {view === 'subs' ? <SubsView {...common} orgId={project.data.org_id} /> : null}
       {view === 'questions' ? <QuestionsView {...common} tz={tz} /> : null}
       {view === 'addenda' ? <AddendaView {...common} /> : null}
       {view === 'received' ? <ReceivedView {...common} orgId={project.data.org_id} tz={tz} /> : null}

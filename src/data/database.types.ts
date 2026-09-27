@@ -2247,6 +2247,8 @@ export type Database = {
       }
       subs: {
         Row: {
+          certifications: string | null
+          city: string | null
           company: string
           contacts: Json
           created_at: string
@@ -2256,15 +2258,20 @@ export type Database = {
           cslb_status: string | null
           deleted_at: string | null
           dir_number: string | null
+          extra: Json
           id: string
+          license_classes: string | null
           notes: string
           org_id: string
           region: string | null
           trades: string[]
           updated_at: string
           version: number
+          zip: string | null
         }
         Insert: {
+          certifications?: string | null
+          city?: string | null
           company: string
           contacts?: Json
           created_at?: string
@@ -2274,15 +2281,20 @@ export type Database = {
           cslb_status?: string | null
           deleted_at?: string | null
           dir_number?: string | null
+          extra?: Json
           id?: string
+          license_classes?: string | null
           notes?: string
           org_id: string
           region?: string | null
           trades?: string[]
           updated_at?: string
           version?: number
+          zip?: string | null
         }
         Update: {
+          certifications?: string | null
+          city?: string | null
           company?: string
           contacts?: Json
           created_at?: string
@@ -2292,13 +2304,16 @@ export type Database = {
           cslb_status?: string | null
           deleted_at?: string | null
           dir_number?: string | null
+          extra?: Json
           id?: string
+          license_classes?: string | null
           notes?: string
           org_id?: string
           region?: string | null
           trades?: string[]
           updated_at?: string
           version?: number
+          zip?: string | null
         }
         Relationships: [
           {
@@ -2698,6 +2713,7 @@ export type Database = {
           unread: boolean
         }[]
       }
+      can_manage_subs: { Args: { p_org_id: string }; Returns: boolean }
       complete_task: {
         Args: { p_task_id: string; p_version: number }
         Returns: {
@@ -2864,6 +2880,14 @@ export type Database = {
         Args: { p_project_id: string; p_scope_id: string; p_scope_type: string }
         Returns: boolean
       }
+      import_subs: {
+        Args: { p_org_id: string; p_rows: Json }
+        Returns: {
+          added: number
+          unchanged: number
+          updated: number
+        }[]
+      }
       is_member: { Args: { p_project_id: string }; Returns: boolean }
       is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_owner_of: {
@@ -2908,6 +2932,10 @@ export type Database = {
         Returns: undefined
       }
       mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
+      merge_sub_contacts: {
+        Args: { p_existing: Json; p_incoming: Json }
+        Returns: Json
+      }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
       my_orgs: {
         Args: never
@@ -2977,6 +3005,38 @@ export type Database = {
           worker_last_seen: string
           worker_stale: boolean
         }[]
+      }
+      record_cslb_check: {
+        Args: { p_status: string; p_sub_id: string; p_version: number }
+        Returns: {
+          certifications: string | null
+          city: string | null
+          company: string
+          contacts: Json
+          created_at: string
+          created_by: string | null
+          cslb_checked_at: string | null
+          cslb_number: string | null
+          cslb_status: string | null
+          deleted_at: string | null
+          dir_number: string | null
+          extra: Json
+          id: string
+          license_classes: string | null
+          notes: string
+          org_id: string
+          region: string | null
+          trades: string[]
+          updated_at: string
+          version: number
+          zip: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_received_bid: {
         Args: { p_file_id: string; p_package_id: string; p_sub_id?: string }

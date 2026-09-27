@@ -4,12 +4,13 @@ import { z } from 'zod';
 import type { StatusKey } from '../../lib/status';
 import type { InviteRecipient } from '../../data/bids.types';
 
-export const BIDS_VIEWS = ['coverage', 'packages', 'questions', 'addenda', 'received', 'leveling', 'summary'] as const;
+export const BIDS_VIEWS = ['coverage', 'packages', 'subs', 'received', 'leveling', 'summary', 'questions', 'addenda'] as const;
 export type BidsView = (typeof BIDS_VIEWS)[number];
 
 export const VIEW_LABELS: Record<BidsView, string> = {
   coverage: 'Coverage',
   packages: 'Packages',
+  subs: 'Subs',
   questions: 'Questions',
   addenda: 'Addenda',
   received: 'Received',
@@ -27,7 +28,10 @@ export function parseView(v: string | undefined): BidsView {
 /** The right-column item that holds the invite form (never a row id: rows are uuids). */
 export const INVITE_ITEM = 'invite';
 
-interface Chip {
+/** The right-column item that holds the "Add sub" form. */
+export const NEW_SUB_ITEM = 'new-sub';
+
+export interface Chip {
   status: StatusKey;
   label: string;
 }

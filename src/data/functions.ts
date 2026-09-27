@@ -12,7 +12,8 @@ type FunctionName =
   | 'send-transmittal'
   | 'invite-bidders'
   | 'issue-addendum'
-  | 'extract-bid';
+  | 'extract-bid'
+  | 'import-subs';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';
@@ -64,12 +65,19 @@ async function toFunctionError(err: unknown): Promise<FunctionError> {
 }
 
 /**
- * POSTs JSON to an edge function with the current session's bearer token (supabase-js adds it) and validates the
- * answer with `schema`, so a changed contract fails loudly here instead of deep in a screen.
+ * POSTs JSON (or a multipart form, for file uploads like import-subs) to an edge function with the current session's
+ * bearer token (supabase-js adds it) and validates the answer with `schema`, so a changed contract fails loudly here
+ * instead of deep in a screen.
  */
-export async function callFunction<T>(name: FunctionName, body: object, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
-  // Request shapes are plain JSON objects; supabase-js types the body as a string-keyed record.
-  const res = await supabase.functions.invoke<unknown>(name, { body: body as Record<string, unknown>, method: 'POST' });
+export async function callFunction<T>(
+  name: FunctionName,
+  body: object | FormData,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): Promise<T> {
+  // Request shapes are plain JSON objects; supabase-js types the body as a string-keyed record. A FormData goes as
+  // multipart (supabase-js leaves its content type to the browser).
+  const payload = body instanceof FormData ? body : (body as Record<string, unknown>);
+  const res = await supabase.functions.invoke<unknown>(name, { body: payload, method: 'POST' });
   const err: unknown = res.error;
   if (err) throw await toFunctionError(err);
   return schema.parse(res.data);

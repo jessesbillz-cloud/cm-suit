@@ -106,6 +106,9 @@ verify_jwt = true
 [functions.extract-bid]
 verify_jwt = true
 
+[functions.import-subs]
+verify_jwt = true
+
 # --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
 [functions.queue-health]
 verify_jwt = true

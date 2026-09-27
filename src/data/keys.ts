@@ -26,4 +26,7 @@ export const qk = {
   aal2Dependent: [['capability'], ['bids'], ['folders'], ['files'], ['file'], ['folder_can_write']] as const,
   /** Every id of one part (e.g. the received files of any folder), for a narrower refresh than qk.bids. */
   bidsPartAll: (projectId: string, part: string) => ['bids', projectId, part] as const,
+  /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
+  subs: (orgId: string) => ['subs', orgId] as const,
+  subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
 };
