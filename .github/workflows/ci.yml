@@ -71,6 +71,7 @@ jobs:
           export PROBE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
           npm run test:security
       - name: Stale generated types fail the build
+        if: ${{ !cancelled() }}
         # The committed types come from the hosted generator, which adds an __InternalSupabase block (PostgREST
         # version); the local CLI may not. Everything else must match.
         run: |

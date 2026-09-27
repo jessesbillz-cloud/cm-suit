@@ -70,9 +70,15 @@ export class Report {
     process.stdout.write(out);
   }
 
-  /** Prints the table and sets a non-zero exit code on any failure. */
+  /** Prints the table and sets a non-zero exit code on any failure. In GitHub Actions each failure is also an annotation. */
   finish(): void {
     this.print();
+    if (process.env['GITHUB_ACTIONS'] === 'true') {
+      for (const r of this.rows.filter((x) => x.status === 'FAIL')) {
+        const msg = `${r.area}: ${r.check} -- ${r.detail}`.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+        process.stdout.write(`::error title=${this.title.replace(/[:,\n]/g, ' ')}::${msg}\n`);
+      }
+    }
     if (this.failures > 0) process.exitCode = 1;
   }
 }
