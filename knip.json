@@ -2,21 +2,11 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "entry": [
-        "src/app/main.tsx",
-        "tests/security/*.ts",
-        "tests/e2e/**/*.ts",
-        "scripts/*.mjs",
-        "scripts/*.ts",
-        "scripts/eslint-rules/*.mjs"
-      ],
+      "entry": ["tests/security/*.ts", "tests/e2e/**/*.ts", "scripts/*.mjs", "scripts/*.ts", "scripts/eslint-rules/*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}", "tests/**/*.ts"],
-      "ignore": ["src/data/database.types.ts", "supabase/functions/**"],
-      "ignoreDependencies": ["supabase", "autoprefixer", "postcss", "tailwindcss", "tsx"],
-      "ignoreBinaries": ["supabase", "deno"]
+      "ignore": ["src/data/database.types.ts"]
     },
     "worker": {
-      "entry": ["src/index.ts"],
       "project": ["src/**/*.ts"]
     }
   }
