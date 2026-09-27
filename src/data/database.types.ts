@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       access_links: {
@@ -551,7 +556,7 @@ export type Database = {
           sheet_title?: string | null
           text?: string
           thumbnail_path?: string | null
-          tsv?: never
+          tsv?: unknown
         }
         Update: {
           file_id?: string
@@ -562,7 +567,7 @@ export type Database = {
           sheet_title?: string | null
           text?: string
           thumbnail_path?: string | null
-          tsv?: never
+          tsv?: unknown
         }
         Relationships: [
           {
@@ -1647,16 +1652,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_invites: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      accept_invites: { Args: never; Returns: number }
       assert_version: {
-        Args: {
-          p_expected: number
-          p_id: string
-          p_table: unknown
-        }
+        Args: { p_expected: number; p_id: string; p_table: unknown }
         Returns: undefined
       }
       audit: {
@@ -1673,10 +1671,7 @@ export type Database = {
         Returns: number
       }
       authorize_download: {
-        Args: {
-          p_file_id: string
-          p_variant?: string
-        }
+        Args: { p_file_id: string; p_variant?: string }
         Returns: {
           mime: string
           original_name: string
@@ -1684,11 +1679,7 @@ export type Database = {
         }[]
       }
       board_feed: {
-        Args: {
-          p_before?: string
-          p_limit?: number
-          p_project_id?: string
-        }
+        Args: { p_before?: string; p_limit?: number; p_project_id?: string }
         Returns: {
           actor_user_id: string
           created_at: string
@@ -1701,6 +1692,35 @@ export type Database = {
           summary: string
           unread: boolean
         }[]
+      }
+      complete_task: {
+        Args: { p_task_id: string; p_version: number }
+        Returns: {
+          assignee_user_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          done_at: string | null
+          done_by: string | null
+          due_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          kind: string
+          org_id: string
+          payload: Json
+          project_id: string
+          requires_signature: boolean
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       consume_rate_limit: {
         Args: {
@@ -1756,6 +1776,12 @@ export type Database = {
           updated_at: string
           version: number
         }
+        SetofOptions: {
+          from: "*"
+          to: "transmittals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       enqueue_job: {
         Args: {
@@ -1776,66 +1802,25 @@ export type Database = {
         }
         Returns: string
       }
-      folder_can_read: {
-        Args: {
-          p_folder_id: string
-        }
-        Returns: boolean
-      }
-      folder_can_write: {
-        Args: {
-          p_folder_id: string
-        }
-        Returns: boolean
-      }
-      folder_effective_id: {
-        Args: {
-          p_folder_id: string
-        }
-        Returns: string
-      }
+      folder_can_read: { Args: { p_folder_id: string }; Returns: boolean }
+      folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
+      folder_effective_id: { Args: { p_folder_id: string }; Returns: string }
       has_capability: {
-        Args: {
-          p_cap: string
-          p_project_id: string
-        }
+        Args: { p_cap: string; p_project_id: string }
         Returns: boolean
       }
       has_scope: {
-        Args: {
-          p_project_id: string
-          p_scope_id: string
-          p_scope_type: string
-        }
+        Args: { p_project_id: string; p_scope_id: string; p_scope_type: string }
         Returns: boolean
       }
-      is_member: {
-        Args: {
-          p_project_id: string
-        }
-        Returns: boolean
-      }
-      is_org_admin: {
-        Args: {
-          p_org_id: string
-        }
-        Returns: boolean
-      }
+      is_member: { Args: { p_project_id: string }; Returns: boolean }
+      is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_owner_of: {
-        Args: {
-          p_entity_id: string
-          p_entity_type: string
-        }
+        Args: { p_entity_id: string; p_entity_type: string }
         Returns: boolean
       }
-      is_service_role: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      jwt_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      is_service_role: { Args: never; Returns: boolean }
+      jwt_role: { Args: never; Returns: string }
       log_view: {
         Args: {
           p_entity_id: string
@@ -1845,7 +1830,7 @@ export type Database = {
         Returns: undefined
       }
       my_projects: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           modules: string[]
           name: string
@@ -1858,35 +1843,26 @@ export type Database = {
         }[]
       }
       next_author_number: {
-        Args: {
-          p_kind: string
-          p_project_id: string
-        }
+        Args: { p_kind: string; p_project_id: string }
         Returns: number
       }
       next_number: {
-        Args: {
-          p_kind: string
-          p_project_id: string
-        }
+        Args: { p_kind: string; p_project_id: string }
         Returns: number
       }
       peek_author_number: {
-        Args: {
-          p_kind: string
-          p_project_id: string
-        }
+        Args: { p_kind: string; p_project_id: string }
         Returns: number
       }
       people_display: {
-        Args: {
-          p_project_id: string
-        }
+        Args: { p_project_id: string }
         Returns: {
+          access_ends_at: string
           company: string
           full_name: string
           member_id: string
           role: string
+          status: string
           user_id: string
         }[]
       }
@@ -1903,7 +1879,7 @@ export type Database = {
         Returns: string
       }
       queue_health: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           dead: number
           queued: number
@@ -1912,15 +1888,76 @@ export type Database = {
           worker_stale: boolean
         }[]
       }
-      release_held_jobs: {
-        Args: Record<PropertyKey, never>
-        Returns: number
+      register_file: {
+        Args: {
+          p_folder_id: string
+          p_mime?: string
+          p_original_name: string
+          p_size?: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          folder_id: string
+          id: string
+          mime: string
+          org_id: string
+          original_name: string
+          page_count: number | null
+          project_id: string
+          scan_status: string
+          scanned_at: string | null
+          sha256: string | null
+          size: number
+          storage_path: string
+          superseded_by: string | null
+          text_status: string
+          updated_at: string
+          upload_complete: boolean
+          version: number
+          version_group_id: string
+          version_no: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "files"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      release_held_jobs: { Args: never; Returns: number }
+      reopen_task: {
+        Args: { p_task_id: string; p_version: number }
+        Returns: {
+          assignee_user_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          done_at: string | null
+          done_by: string | null
+          due_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          kind: string
+          org_id: string
+          payload: Json
+          project_id: string
+          requires_signature: boolean
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       resolve_access_link: {
-        Args: {
-          p_link_id: string
-          p_token_hash: string
-        }
+        Args: { p_link_id: string; p_token_hash: string }
         Returns: {
           invite_email: string
           project_id: string
@@ -1929,45 +1966,20 @@ export type Database = {
           status: string
         }[]
       }
-      role_is_walled: {
-        Args: {
-          p_role: string
-        }
-        Returns: boolean
-      }
-      session_aal: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      sync_login_audit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      role_is_walled: { Args: { p_role: string }; Returns: boolean }
+      session_aal: { Args: never; Returns: string }
+      sync_login_audit: { Args: never; Returns: number }
       worker_ack_job: {
-        Args: {
-          p_job_id: string
-          p_msg_id: number
-        }
+        Args: { p_job_id: string; p_msg_id: number }
         Returns: undefined
       }
       worker_fail_job: {
-        Args: {
-          p_error: string
-          p_job_id: string
-          p_msg_id: number
-        }
+        Args: { p_error: string; p_job_id: string; p_msg_id: number }
         Returns: string
       }
-      worker_heartbeat_ping: {
-        Args: {
-          p_version: string
-        }
-        Returns: undefined
-      }
+      worker_heartbeat_ping: { Args: { p_version: string }; Returns: undefined }
       worker_read_jobs: {
-        Args: {
-          p_limit?: number
-        }
+        Args: { p_limit?: number }
         Returns: {
           attempts: number
           job_id: string
@@ -1987,21 +1999,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -2019,14 +2035,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -2042,14 +2060,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -2065,14 +2085,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -2080,14 +2102,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
