@@ -1,9 +1,11 @@
-// New top-level folder, for people with files.manage (the database checks it again).
+// New top-level folder, for people with files.manage (the database checks it again). One question besides the name:
+// should search and the AI read what goes in it.
 import { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
-import { useCreateFolder } from '../../data/mutations';
+import { useCreateFolder } from '../../data/folders.mutations';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
+import { CheckField, TextField } from '../../ui/Fields';
 
 interface NewFolderFormProps {
   projectId: string;
@@ -13,7 +15,14 @@ interface NewFolderFormProps {
 export function NewFolderForm({ projectId, onCreated }: NewFolderFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [aiReads, setAiReads] = useState(true);
   const create = useCreateFolder();
+
+  const close = () => {
+    setOpen(false);
+    setName('');
+    setAiReads(true);
+  };
 
   if (!open) {
     return (
@@ -38,43 +47,24 @@ export function NewFolderForm({ projectId, onCreated }: NewFolderFormProps) {
         const trimmed = name.trim();
         if (trimmed === '') return;
         create.mutate(
-          { projectId, parentId: null, name: trimmed },
+          { projectId, parentId: null, name: trimmed, aiReads },
           {
             onSuccess: (folder) => {
-              setName('');
-              setOpen(false);
+              close();
               onCreated(folder.id);
             },
           },
         );
       }}
     >
-      <label className="text-xs font-medium text-ink-2" htmlFor="new-folder-name">
-        Folder name
-      </label>
-      <input
-        id="new-folder-name"
-        autoFocus
-        maxLength={200}
-        className="h-8 rounded-md border border-line px-2 text-sm outline-none focus:border-accent"
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-        }}
-      />
+      <TextField label="Folder name" value={name} onChange={setName} autoFocus maxLength={200} testId="new-folder-name" />
+      <CheckField label="Search and AI read this" checked={aiReads} onChange={setAiReads} testId="new-folder-ai-reads" />
       {create.isError ? <p className="text-xs text-danger">{messageOf(create.error)}</p> : null}
       <div className="flex gap-2">
         <Button size="sm" type="submit" variant="primary" loading={create.isPending}>
           Create
         </Button>
-        <Button
-          size="sm"
-          variant="quiet"
-          onClick={() => {
-            setOpen(false);
-            setName('');
-          }}
-        >
+        <Button size="sm" variant="quiet" onClick={close}>
           Cancel
         </Button>
       </div>

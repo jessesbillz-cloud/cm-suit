@@ -8,7 +8,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useProjectZones } from '../board/zones';
-import { scanChip } from './scanStatus';
+import { opensBeforeScan, scanChip } from './scanStatus';
 import { useDownload } from './useDownload';
 
 interface FileItemProps {
@@ -16,8 +16,8 @@ interface FileItemProps {
   onOpenWindow?: (() => void) | undefined;
 }
 
-function scanNotice(scan: string, mine: boolean): string | null {
-  if (scan === 'pending') {
+function scanNotice(scan: string, mine: boolean, photo: boolean): string | null {
+  if (scan === 'pending' && !photo) {
     return mine
       ? 'Scanning for viruses. Until the scan finishes, only you can download it.'
       : 'Scanning for viruses. It can be downloaded when the scan finishes.';
@@ -39,7 +39,7 @@ export function FileItem({ fileId, onOpenWindow }: FileItemProps) {
 
   const f = file.data;
   const chip = scanChip(f.scan_status, f.upload_complete);
-  const notice = scanNotice(f.scan_status, f.created_by === user.id);
+  const notice = scanNotice(f.scan_status, f.created_by === user.id, opensBeforeScan(f.mime, f.original_name));
   const canDownload = f.upload_complete && f.scan_status !== 'infected';
 
   return (

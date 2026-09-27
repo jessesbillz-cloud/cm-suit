@@ -23,7 +23,7 @@ export function useMyProjects() {
 }
 
 export const PROJECT_COLS =
-  'id, org_id, name, number, address, timezone, stage, modules, settings, version, job_type, prevailing_wage, bid_due_at, bid_sealed';
+  'id, org_id, name, number, address, timezone, stage, modules, settings, version, job_type, prevailing_wage, bid_due_at, bid_sealed, is_dsa';
 
 export type ProjectWithSettings = ProjectRow & { parsedSettings: ProjectSettings };
 
@@ -146,16 +146,21 @@ export function useUserLayout() {
   return useQuery({ queryKey: qk.layout, queryFn: fetchLayout, staleTime: Infinity });
 }
 
+export const FOLDER_COLS = 'id, project_id, parent_id, name, kind, view_only, proprietary, sort, ai_reads, version';
+
+async function countFiles(folderId: string): Promise<number> {
+  const res = await supabase.from('files').select('id', { count: 'exact', head: true }).eq('folder_id', folderId).is('deleted_at', null);
+  throwIfErrorMaybe(res);
+  return res.count ?? 0;
+}
+
 async function fetchFolders(projectId: string): Promise<FolderRow[]> {
   if (isMock()) return mock.folders(projectId);
-  return throwIfError(
-    await supabase
-      .from('folders')
-      .select('id, project_id, parent_id, name, kind, view_only, proprietary')
-      .eq('project_id', projectId)
-      .is('deleted_at', null)
-      .order('name'),
+  const rows = throwIfError(
+    await supabase.from('folders').select(FOLDER_COLS).eq('project_id', projectId).is('deleted_at', null).order('sort').order('name'),
   );
+  // Only "Emailed in" needs a count (the tree hides it while empty); a job has one at most.
+  return Promise.all(rows.map(async (f) => ({ ...f, file_count: f.kind === 'inbound' ? await countFiles(f.id) : null })));
 }
 
 export function useFolders(projectId: string | null) {

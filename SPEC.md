@@ -322,7 +322,8 @@ Fable writes the DDL. This section fixes the entities, the key columns and the a
   - Each task is handled **in place** on the board, with no trip to another page.
 
 ### 5.6 Files
-- **`folders(project_id, parent_id, name, kind, proprietary bool, view_only bool [confirm])`** and **`folder_access(folder_id, capability or user_id, can_read, can_write)`**.
+- **`folders(project_id, parent_id, name, kind, sort, ai_reads bool, proprietary bool, view_only bool [confirm])`** and **`folder_access(folder_id, capability or user_id, can_read, can_write)`**.
+  - A new job's folders come from `folder_templates` (company kind, DSA or not); `ai_reads` = search and the AI read the folder.
 - **`files`:**
   - `project_id`, `folder_id`, `storage_path`, `original_name`, `mime`, `size`, `sha256`;
   - `version_group_id`, `version_no`, `superseded_by`;
@@ -411,7 +412,7 @@ Everything else requires a signed-in user.
 - **Scanning** (worker, ClamAV):
   - limits set to the maximum supported, with `AlertExceedsMax` on;
   - an oversize file becomes `too_large_to_scan`, shown with a notice, **never marked clean**;
-  - **before the scan finishes:** only the uploader can download;
+  - **before the scan finishes:** only the uploader can download, except photos (image type and name), which the folder's readers can open;
   - **infected:** download blocked, and the project admin notified.
 - **Downloads:**
   - always a fresh signed URL (about 10 minutes) generated per click;
@@ -471,9 +472,9 @@ Both probes run in CI on every PR and after every staging deploy.
 
 ### 7.1 Look
 - **Surfaces:**
-  - Near-white page (`#F7F8FA`).
-  - White cards with a soft shadow (`0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.06)`) and an 8px radius.
-  - Inter font, gray secondary text, one accent color.
+  - Near-white page (`#F2F4F7`).
+  - White cards with a hairline edge and a two-step shadow (`shadow-card` in `tailwind.config.ts`), an 8px radius, and headers on a faint tint.
+  - IBM Plex Sans (self-hosted, `public/fonts`), gray secondary text, one accent color.
 - **Nothing comical:** no emojis, illustrations, mascots or celebration animations. Lucide line icons, only where they carry meaning.
 - **Status colors come only from `src/lib/status.ts`** (it generates CSS variables). They appear as status chips and calendar marks:
   - pending: yellow

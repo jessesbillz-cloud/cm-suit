@@ -14,7 +14,13 @@ export type TaskRow = Pick<
   'id' | 'project_id' | 'kind' | 'title' | 'entity_type' | 'entity_id' | 'due_at' | 'requires_signature' | 'version'
 >;
 
-export type FolderRow = Pick<Tables<'folders'>, 'id' | 'project_id' | 'parent_id' | 'name' | 'kind' | 'view_only' | 'proprietary'>;
+export type FolderRow = Pick<
+  Tables<'folders'>,
+  'id' | 'project_id' | 'parent_id' | 'name' | 'kind' | 'view_only' | 'proprietary' | 'sort' | 'ai_reads' | 'version'
+> & {
+  /** Emailed in (kind inbound) only: the files in it I can see, so the tree can hide it while empty. Null elsewhere. */
+  file_count: number | null;
+};
 
 export type FileRow = Pick<
   Tables<'files'>,
@@ -58,11 +64,15 @@ export type ProjectRow = Pick<
   | 'prevailing_wage'
   | 'bid_due_at'
   | 'bid_sealed'
+  | 'is_dsa'
 >;
 
 /** The job fields a person edits in Settings (the column grants in migration 0013 allow exactly these and a few more). */
 export type ProjectPatch = Partial<
-  Pick<ProjectRow, 'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'job_type' | 'prevailing_wage' | 'bid_due_at' | 'bid_sealed'>
+  Pick<
+    ProjectRow,
+    'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'job_type' | 'prevailing_wage' | 'bid_due_at' | 'bid_sealed' | 'is_dsa'
+  >
 >;
 
 export type MyOrg = Fns['my_orgs']['Returns'][number];
@@ -78,6 +88,7 @@ export interface NewJobInput {
   bidDueAt: string | null;
   prevailingWage: boolean;
   jobType: string;
+  isDsa: boolean;
 }
 
 export type RoleRow = Pick<Tables<'roles'>, 'name' | 'description'>;

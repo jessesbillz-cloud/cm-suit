@@ -2,13 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Inter when the system has it, otherwise the system UI font. Nothing loads from a CDN (SPEC §6.6). */
+/* IBM Plex Sans (SIL OFL 1.1, public/fonts/OFL.txt), self-hosted: nothing loads from a CDN (SPEC §6.6).
+   Latin-1 subset in the three weights the app uses; anything outside it falls back to the system UI font.
+   Root-relative URLs: Vite prefixes the app's base path (the staging build lives under a sub-path). */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-Regular-Latin1.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014,
+    U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-Medium-Latin1.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014,
+    U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-SemiBold-Latin1.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014,
+    U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+
 @layer base {
   html {
-    font-family: Inter, system-ui, sans-serif;
+    font-family: theme('fontFamily.sans');
     -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-page text-ink antialiased;
+  }
+  /* Every bordered text box gets the same defined edge and focus ring, including the ones features style themselves
+     (a transparent box inside a bordered container is left alone). :where() keeps this at zero specificity, so a
+     component's own classes still win. */
+  :where(
+      input:not([type='checkbox'], [type='radio'], [type='file'], [type='range'], [type='color'], .bg-transparent),
+      select:not(.bg-transparent),
+      textarea:not(.bg-transparent)
+    ) {
+    box-shadow: theme('boxShadow.control');
+  }
+  :where(
+      input:not([type='checkbox'], [type='radio'], [type='file'], [type='range'], [type='color'], .bg-transparent):focus,
+      select:not(.bg-transparent):focus,
+      textarea:not(.bg-transparent):focus
+    ) {
+    box-shadow: 0 0 0 3px theme(colors.accent.DEFAULT / 18%);
   }
 }

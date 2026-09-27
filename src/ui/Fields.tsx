@@ -1,7 +1,8 @@
 // Form fields with one look: short label above, 36px control, accent focus ring. Used by setup and settings forms.
 import type { HTMLInputTypeAttribute } from 'react';
 
-const CONTROL = 'h-9 rounded-md border border-line bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
+const CONTROL =
+  'h-9 rounded-md border border-line-strong bg-card px-2.5 text-sm font-normal text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
 const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
 
 interface TextFieldProps {
@@ -13,11 +14,13 @@ interface TextFieldProps {
   type?: HTMLInputTypeAttribute | undefined;
   autoFocus?: boolean | undefined;
   autoComplete?: string | undefined;
+  maxLength?: number | undefined;
   testId?: string | undefined;
   className?: string | undefined;
 }
 
-export function TextField({ label, value, onChange, onBlur, type = 'text', autoFocus, autoComplete, testId, className = '' }: TextFieldProps) {
+export function TextField(props: TextFieldProps) {
+  const { label, value, onChange, onBlur, type = 'text', autoFocus, autoComplete, maxLength, testId, className = '' } = props;
   return (
     <label className={`${LABEL} ${className}`}>
       {label}
@@ -27,6 +30,7 @@ export function TextField({ label, value, onChange, onBlur, type = 'text', autoF
         value={value}
         autoFocus={autoFocus}
         autoComplete={autoComplete ?? 'off'}
+        maxLength={maxLength}
         data-testid={testId}
         onBlur={onBlur}
         onChange={(e) => {
@@ -73,9 +77,10 @@ interface CheckFieldProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean | undefined;
+  testId?: string | undefined;
 }
 
-export function CheckField({ label, checked, onChange, disabled }: CheckFieldProps) {
+export function CheckField({ label, checked, onChange, disabled, testId }: CheckFieldProps) {
   return (
     <label className={`flex h-9 items-center gap-2 text-sm ${disabled === true ? 'text-ink-3' : 'text-ink'}`}>
       <input
@@ -83,6 +88,7 @@ export function CheckField({ label, checked, onChange, disabled }: CheckFieldPro
         className="h-4 w-4 accent-accent"
         checked={checked}
         disabled={disabled}
+        data-testid={testId}
         onChange={(e) => {
           onChange(e.target.checked);
         }}

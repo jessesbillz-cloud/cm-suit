@@ -1,15 +1,19 @@
 // Files (SPEC §8.1, Phase 0 core): folder tree, file rows with one-click download, drag-and-drop and button upload
-// through the single uploader with per-file progress, and folder create for files.manage.
+// through the single uploader with per-file progress, and folder create for files.manage. The tree lists folders by
+// sort then name (each job opens with what its kind of user uses most) and hides an empty "Emailed in".
 import { useState, type DragEvent } from 'react';
 import { useCanWriteFolder, useCapability, useFiles, useFolders } from '../../data/queries';
 import { useUploadQueue } from '../../data/UploadQueue';
 import { messageOf } from '../../data/errors';
+import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { collectDrop } from './collectDrop';
 import { FileRow } from './FileRow';
-import { FolderTree, defaultFolderId } from './FolderTree';
+import { FolderAiToggle } from './FolderAiToggle';
+import { defaultFolderId, visibleFolders } from './folderOrder';
+import { FolderTree } from './FolderTree';
 import { NewFolderForm } from './NewFolderForm';
 import { UploadButtons } from './UploadButtons';
 import { UploadList } from './UploadList';
@@ -27,14 +31,15 @@ interface FilesToolProps {
 
 interface FolderFilesProps {
   projectId: string;
-  folderId: string;
-  folderName: string;
+  folder: FolderRow;
+  canManage: boolean;
   selectedFileId: string | null;
   isPhone: boolean;
   onOpenFile: (fileId: string) => void;
 }
 
-function FolderFiles({ projectId, folderId, folderName, selectedFileId, isPhone, onOpenFile }: FolderFilesProps) {
+function FolderFiles({ projectId, folder, canManage, selectedFileId, isPhone, onOpenFile }: FolderFilesProps) {
+  const folderId = folder.id;
   const files = useFiles(folderId);
   const canWrite = useCanWriteFolder(folderId);
   const queue = useUploadQueue();
@@ -59,7 +64,16 @@ function FolderFiles({ projectId, folderId, folderName, selectedFileId, isPhone,
   };
 
   return (
-    <Card title={folderName} actions={writable ? <UploadButtons showCamera={isPhone} onFiles={enqueue} /> : null} padded={false}>
+    <Card
+      title={folder.name}
+      actions={
+        <>
+          <FolderAiToggle folder={folder} canManage={canManage} />
+          {writable ? <UploadButtons showCamera={isPhone} onFiles={enqueue} /> : null}
+        </>
+      }
+      padded={false}
+    >
       <div
         className={`min-h-40 ${dragging ? 'bg-accent-soft outline-dashed outline-2 -outline-offset-4 outline-accent' : ''}`}
         onDragOver={(e) => {
@@ -109,9 +123,10 @@ export function FilesTool({ projectId, folderId, selectedFileId, isPhone, onSele
   if (folders.isPending) return <LoadingState label="Loading folders" />;
   if (folders.isError) return <ErrorState error={folders.error} onRetry={() => void folders.refetch()} />;
 
-  const list = folders.data;
-  const current = list.find((f) => f.id === folderId) ?? list.find((f) => f.id === defaultFolderId(list));
-  const newFolder = canManage.data === true ? <NewFolderForm projectId={projectId} onCreated={onSelectFolder} /> : null;
+  const list = visibleFolders(folders.data);
+  const current = folders.data.find((f) => f.id === folderId) ?? list.find((f) => f.id === defaultFolderId(list));
+  const manager = canManage.data === true;
+  const newFolder = manager ? <NewFolderForm projectId={projectId} onCreated={onSelectFolder} /> : null;
 
   if (list.length === 0 || !current) {
     return (
@@ -133,8 +148,8 @@ export function FilesTool({ projectId, folderId, selectedFileId, isPhone, onSele
         <FolderFiles
           key={current.id}
           projectId={projectId}
-          folderId={current.id}
-          folderName={current.name}
+          folder={current}
+          canManage={manager}
           selectedFileId={selectedFileId}
           isPhone={isPhone}
           onOpenFile={onOpenFile}

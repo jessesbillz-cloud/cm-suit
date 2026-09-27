@@ -49,7 +49,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   return (
     <div
       role={isError ? 'alert' : 'status'}
-      className={`flex items-center gap-3 rounded-card px-4 py-2.5 text-sm shadow-card ${
+      className={`flex items-center gap-3 rounded-card px-4 py-2.5 text-sm shadow-pop ${
         isError ? 'bg-danger-soft text-danger' : 'bg-ink text-white'
       }`}
     >

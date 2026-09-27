@@ -14,3 +14,10 @@ export function scanChip(scan: string, uploadComplete: boolean): { status: Statu
       return { status: 'pending', label: 'Scanning' };
   }
 }
+
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+
+/** Photos open for everyone who can read the folder before the scan (authorize_download, migration 0027). */
+export function opensBeforeScan(mime: string, name: string): boolean {
+  return PHOTO_TYPES.includes(mime.toLowerCase()) && /\.(jpe?g|png|webp|heic|heif)$/i.test(name);
+}

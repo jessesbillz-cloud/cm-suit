@@ -103,6 +103,14 @@ function JobFields({ row }: { row: ProjectWithSettings }) {
           commit({ prevailing_wage });
         }}
       />
+      <CheckField
+        label="DSA job"
+        checked={row.is_dsa}
+        testId="job-dsa"
+        onChange={(is_dsa) => {
+          commit({ is_dsa });
+        }}
+      />
       {bidsOn ? (
         <>
           <TextField

@@ -77,6 +77,8 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['merge_sub_contacts', { p_existing: [], p_incoming: [] }],
   ['import_subs', { p_org_id: U, p_rows: [] }],
   ['record_cslb_check', { p_sub_id: U, p_status: 'active', p_version: 1 }],
+  // Folders by company kind (0027)
+  ['add_template_folders', { p_project_id: U, p_applies: ['both'], p_created_by: U }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

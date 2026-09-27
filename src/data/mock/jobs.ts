@@ -3,6 +3,7 @@
 import { conflictError } from '../errors';
 import type { MyOrg, MyProject, NewJobInput, OrgPatch, ProjectPatch, ProjectRow } from '../types';
 import { MOCK_DEFAULT_MODULES, MOCK_ORGS, MOCK_PROJECTS, mockProfile, NEWCOMER_ID } from './fixtures';
+import { missingDsaFolders, newJobFolders } from './folders';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
 
@@ -26,6 +27,7 @@ function fixtureRow(p: MyProject): ProjectRow {
     prevailing_wage: false,
     bid_due_at: null,
     bid_sealed: false,
+    is_dsa: false,
   };
 }
 
@@ -34,6 +36,10 @@ function projectRows(): ProjectRow[] {
   const saved = readMock().projects;
   const base = (isNewcomer() ? [] : MOCK_PROJECTS).map(fixtureRow).map((r) => saved.find((x) => x.id === r.id) ?? r);
   return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
+}
+
+function orgKindOf(orgId: string): string {
+  return allOrgs().find((o) => o.org_id === orgId)?.kind ?? 'other';
 }
 
 function allOrgs(): MyOrg[] {
@@ -103,8 +109,10 @@ export async function createProject(v: NewJobInput): Promise<string> {
     prevailing_wage: v.prevailingWage,
     bid_due_at: v.bidDueAt,
     bid_sealed: false,
+    is_dsa: v.isDsa,
   };
-  writeMock((m) => ({ ...m, projects: [...m.projects, row] }));
+  const folders = newJobFolders(row.id, orgKindOf(v.orgId), v.isDsa);
+  writeMock((m) => ({ ...m, projects: [...m.projects, row], folders: [...m.folders, ...folders] }));
   return row.id;
 }
 
@@ -113,7 +121,8 @@ export async function saveProject(projectId: string, patch: ProjectPatch, versio
   const current = projectRows().find((r) => r.id === projectId);
   if (!current || current.version !== version) throw conflictError();
   const next: ProjectRow = { ...current, ...patch, version: version + 1 };
-  writeMock((m) => ({ ...m, projects: [...m.projects.filter((r) => r.id !== projectId), next] }));
+  const added = next.is_dsa && !current.is_dsa ? missingDsaFolders(projectId, orgKindOf(current.org_id)) : [];
+  writeMock((m) => ({ ...m, projects: [...m.projects.filter((r) => r.id !== projectId), next], folders: [...m.folders, ...added] }));
   return next;
 }
 
