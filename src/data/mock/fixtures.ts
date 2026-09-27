@@ -102,8 +102,8 @@ export const MOCK_TASKS: TaskRow[] = [
 ];
 
 export const MOCK_PEOPLE: Person[] = [
-  { user_id: 'mock-user-pm', member_id: 'member-1', full_name: 'Sample PM', company: 'Sample Builders', role: 'pm' },
-  { user_id: 'mock-someone', member_id: 'member-2', full_name: 'Sample Reviewer', company: 'Sample Design', role: 'architect' },
+  { user_id: 'mock-user-pm', member_id: 'member-1', full_name: 'Sample PM', company: 'Sample Builders', role: 'pm', status: 'active', access_ends_at: null },
+  { user_id: 'mock-someone', member_id: 'member-2', full_name: 'Sample Reviewer', company: 'Sample Design', role: 'architect', status: 'active', access_ends_at: null },
 ];
 
 export const MOCK_ROLES: RoleRow[] = [

@@ -5,7 +5,9 @@ type Fns = Database['public']['Functions'];
 
 export type MyProject = Fns['my_projects']['Returns'][number];
 export type BoardLine = Fns['board_feed']['Returns'][number];
-export type Person = Fns['people_display']['Returns'][number];
+// The generator types RETURNS TABLE columns as non-null; these two are nullable in practice (invited, no end date).
+type PersonRaw = Fns['people_display']['Returns'][number];
+export type Person = Omit<PersonRaw, 'user_id' | 'access_ends_at'> & { user_id: string | null; access_ends_at: string | null };
 
 export type TaskRow = Pick<
   Tables<'tasks'>,

@@ -9,7 +9,7 @@ import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mock from './mock/api';
 import { isMock } from './mock';
-import type { ActivityRow, BoardLine, FileRow, FolderRow, ProfileRow, ProjectRow, TaskRow } from './types';
+import type { ActivityRow, BoardLine, FileRow, FolderRow, Person, ProfileRow, ProjectRow, TaskRow } from './types';
 
 const BOARD_PAGE = 50;
 
@@ -181,7 +181,8 @@ export function usePeopleDisplay(projectId: string | null) {
   return useQuery({
     queryKey: qk.people(projectId ?? ''),
     queryFn: projectId
-      ? async () => (isMock() ? mock.people() : throwIfError(await supabase.rpc('people_display', { p_project_id: projectId })))
+      ? async (): Promise<Person[]> =>
+          isMock() ? mock.people() : throwIfError(await supabase.rpc('people_display', { p_project_id: projectId }))
       : skipToken,
   });
 }
