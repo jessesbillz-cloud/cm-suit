@@ -2638,6 +2638,49 @@ export type Database = {
           submitted: number
         }[]
       }
+      bid_flags: {
+        Args: { p_project_id: string }
+        Returns: {
+          detail: string
+          kind: string
+          package_id: string
+          submission_id: string
+        }[]
+      }
+      bid_leveling_board: {
+        Args: { p_project_id: string }
+        Returns: {
+          base_amount: number
+          base_evidence: string
+          base_page: number
+          bid_date: string
+          bidder: string
+          bidder_key: string
+          comparable: boolean
+          document_kind: string
+          exclusions: string[]
+          extraction_status: string
+          file_id: string
+          is_backup: boolean
+          is_duplicate: boolean
+          is_late: boolean
+          leveling_version: number
+          notes: string
+          original_package_id: string
+          package_code: string
+          package_id: string
+          prevailing_wage: string
+          project_match: string
+          pw_adder_amount: number
+          receipt_number: number
+          received_at: string
+          replaced_by: string
+          state: string
+          submission_id: string
+          valid_until: string
+          validity_days: number
+        }[]
+      }
       bidder_page: { Args: { p_project_id: string }; Returns: Json }
       bids_open: { Args: { p_project_id: string }; Returns: boolean }
       board_feed: {
@@ -3045,6 +3088,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "bid_invites"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_bid_leveling: {
+        Args: { p_patch: Json; p_submission_id: string; p_version: number }
+        Returns: {
+          comparable: boolean
+          flags: Json
+          is_backup: boolean
+          is_duplicate: boolean
+          notes: string
+          project_id: string
+          reassigned_package_id: string | null
+          submission_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bid_leveling"
           isOneToOne: true
           isSetofReturn: false
         }

@@ -64,6 +64,10 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['acknowledge_addendum', { p_addendum_id: U }],
   ['bidder_page', { p_project_id: U }],
   ['bid_coverage', { p_project_id: U }],
+  // Leveling (0020)
+  ['bid_leveling_board', { p_project_id: U }],
+  ['bid_flags', { p_project_id: U }],
+  ['set_bid_leveling', { p_submission_id: U, p_version: 0, p_patch: { comparable: false } }],
   // Company and job setup (0013-0014)
   ['create_org', { p_name: 'probe', p_kind: 'gc' }],
   ['create_project', { p_org_id: U, p_name: 'probe', p_stage: 'bidding' }],

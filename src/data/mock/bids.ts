@@ -18,6 +18,7 @@ import type {
   SubName,
 } from '../bids.types';
 import { mockUser } from './index';
+import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
@@ -43,6 +44,9 @@ export async function access(cap: string): Promise<PricingAccess> {
 const PACKAGES: PackageRow[] = [
   { id: 'pkg-1', project_id: 'job-a', code: '03A', name: 'Sample concrete', scope_text: 'Footings and slabs per sample plans.', version: 1 },
   { id: 'pkg-2', project_id: 'job-a', code: '09A', name: 'Sample drywall', scope_text: 'Framing and board per sample plans.', version: 1 },
+  // Sample Job B carries the leveling fixtures (mock/leveling).
+  { id: 'pkg-b1', project_id: 'job-b', code: '03A', name: 'Sample concrete', scope_text: 'Footings and slabs per sample plans.', version: 1 },
+  { id: 'pkg-b2', project_id: 'job-b', code: '09A', name: 'Sample drywall', scope_text: 'Framing and board per sample plans.', version: 1 },
 ];
 
 export async function packages(projectId: string): Promise<PackageRow[]> {
@@ -182,8 +186,8 @@ export async function subNames(): Promise<SubName[]> {
 }
 
 export async function submissions(projectId: string): Promise<SubmissionRow[]> {
-  await delay();
-  return readMock().received.submissions.filter((s) => s.project_id === projectId).reverse();
+  const fixed = await mockLeveling.submissions(projectId);
+  return [...readMock().received.submissions.filter((s) => s.project_id === projectId).reverse(), ...fixed];
 }
 
 export async function extractions(projectId: string): Promise<ExtractionSummary[]> {

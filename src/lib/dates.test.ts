@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endOfDayInZone, formatInZone, fromZonedInput, todayInZone, toZonedInput } from './dates';
+import { endOfDayInZone, formatDay, formatInZone, fromZonedInput, todayInZone, toZonedInput } from './dates';
 
 const LA = 'America/Los_Angeles';
 
@@ -21,6 +21,11 @@ describe('dates', () => {
     // 2026-11-01: 08:30 UTC = 01:30 PDT, 09:30 UTC = 01:30 PST.
     expect(formatInZone('2026-11-01T08:30:00Z', LA, 'HH:mm zzz')).toBe('01:30 PDT');
     expect(formatInZone('2026-11-01T09:30:00Z', LA, 'HH:mm zzz')).toBe('01:30 PST');
+  });
+  it('shows a calendar day as written, whatever the zone', () => {
+    expect(formatDay('2026-10-28', 'M/d/yyyy')).toBe('10/28/2026');
+    expect(formatDay('2026-01-05', 'MMM d')).toBe('Jan 5');
+    expect(() => formatDay('2026-10-28T00:00:00Z', 'M/d')).toThrow();
   });
   it('reads a bid due time typed in the job zone and shows it back the same', () => {
     expect(fromZonedInput('2026-10-15T14:00', LA)).toBe('2026-10-15T21:00:00.000Z');

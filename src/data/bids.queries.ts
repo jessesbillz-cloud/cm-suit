@@ -109,7 +109,7 @@ export function useAddendumAcks(projectId: string) {
   });
 }
 
-/** The sealed-bid gate: false until bid time when the job is sealed. */
+/** The sealed-bid gate: false until bid time when the job is sealed. The mock jobs are open (leveling renders). */
 export function useBidsOpen(projectId: string) {
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'open'),

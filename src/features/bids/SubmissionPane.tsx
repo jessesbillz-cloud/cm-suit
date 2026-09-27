@@ -1,5 +1,6 @@
 // One received bid: receipt, the file (one click), Read -> findings to confirm, and money for pricing roles.
 // The AI only drafts; a person confirms (CLAUDE.md rule 12). Reading an office-recorded bid also links its sub.
+import type { ReactNode } from 'react';
 import { Check, ScanText } from 'lucide-react';
 import { useConfirmExtraction, useExtractBid } from '../../data/bids.mutations';
 import {
@@ -102,6 +103,10 @@ function Extraction({ projectId, orgId, submission }: ExtractionProps) {
 interface SubmissionPaneProps {
   projectId: string;
   submissionId: string;
+  /** The bidder as the leveling board names it (sub company, extracted name); else people_display decides. */
+  bidder?: string | undefined;
+  /** Leveling: the row actions, above the findings. */
+  actions?: ReactNode | undefined;
 }
 
 function meta(s: SubmissionRow, tz: string) {
@@ -116,7 +121,7 @@ function meta(s: SubmissionRow, tz: string) {
   );
 }
 
-export function SubmissionPane({ projectId, submissionId }: SubmissionPaneProps) {
+export function SubmissionPane({ projectId, submissionId, bidder, actions }: SubmissionPaneProps) {
   const subs = useBidSubmissions(projectId, true);
   const packages = useBidPackages(projectId);
   const people = usePeopleDisplay(projectId);
@@ -140,10 +145,11 @@ export function SubmissionPane({ projectId, submissionId }: SubmissionPaneProps)
         files.data?.find((f) => f.id === s.file_id)?.original_name ??
         'Received bid');
   return (
-    <ReadingPane number={code} title={title} meta={meta(s, project.data.timezone)}>
+    <ReadingPane number={code} title={bidder ?? title} meta={meta(s, project.data.timezone)}>
       <ul className="mb-4">
         <FileLine fileId={s.file_id} />
       </ul>
+      {actions ? <div className="mb-4">{actions}</div> : null}
       <Extraction projectId={projectId} orgId={project.data.org_id} submission={s} />
     </ReadingPane>
   );
