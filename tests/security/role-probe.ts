@@ -153,7 +153,8 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
   const due = new Date(Date.now() + 86_400_000).toISOString();
   const projects = must(await service.from('projects').insert([
     { org_id: orgA, name: `Probe A ${RUN}`, created_by: adminA, bid_due_at: due, bid_sealed: true },
-    { org_id: orgB, name: `Probe B ${RUN}`, created_by: adminB },
+    // Same keys as A: a bulk insert fills a missing key with null, not the column default.
+    { org_id: orgB, name: `Probe B ${RUN}`, created_by: adminB, bid_due_at: null, bid_sealed: false },
   ]).select('id, org_id'), 'insert projects');
   s.projA = str(projects.find((p) => p['org_id'] === orgA), 'id');
   s.projB = str(projects.find((p) => p['org_id'] === orgB), 'id');
