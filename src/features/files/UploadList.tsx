@@ -17,7 +17,7 @@ function statusText(item: UploadItem): string {
     case 'uploading':
       return `${formatBytes(item.loaded)} of ${formatBytes(item.size)}`;
     case 'done':
-      return 'Uploaded; scanning';
+      return item.note ?? 'Uploaded; scanning';
     case 'cancelled':
       return 'Cancelled';
     default:

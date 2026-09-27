@@ -16,8 +16,9 @@ invite-bidders
 # Reads bidder addresses (hidden from the caller by design) and sends the addendum email; issue_addendum() runs as the
 # user first, after requireCapability('bids.manage') and the signing re-confirmation.
 issue-addendum
-# Writes the extraction draft (bid_extractions / bid_extraction_pricing) and ai_calls (no user insert policies);
-# the submission, file text and requireCapability('bids.view_ai_findings') are all read as the user first.
+# Writes the extraction draft (bid_extractions / bid_extraction_pricing), ai_calls and, when the worker has not read
+# the file, its page text (file_pages, files.text_status) after downloading it (no user policies for any of these);
+# the submission, file and requireCapability('bids.view_ai_findings') are all read as the user first.
 extract-bid
 # Public endpoint §6.4 #1: resolves access links and rate-limits.
 access

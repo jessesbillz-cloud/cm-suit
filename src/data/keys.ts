@@ -24,4 +24,6 @@ export const qk = {
   mfa: ['mfa'] as const,
   /** Prefixes of everything RLS answers differently at aal2 (capabilities, bids and pricing access, bid files). */
   aal2Dependent: [['capability'], ['bids'], ['folders'], ['files'], ['file'], ['folder_can_write']] as const,
+  /** Every id of one part (e.g. the received files of any folder), for a narrower refresh than qk.bids. */
+  bidsPartAll: (projectId: string, part: string) => ['bids', projectId, part] as const,
 };

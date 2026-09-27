@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useUser } from './auth';
+import { readBid } from './bidIntake';
+import { fetchSubNames } from './bids.queries';
 import { supabase } from './client';
 import { conflictError, throwIfError } from './errors';
 import { callFunction } from './functions';
@@ -17,6 +19,7 @@ import {
   type InviteBiddersResult,
   type PackageRow,
   type QuestionRow,
+  type SubmissionRow,
 } from './bids.types';
 
 function useRefreshBids() {
@@ -207,12 +210,12 @@ export function useIssueAddendum() {
   });
 }
 
+/** Reads one bid (extract-bid) and links an office-recorded one to its directory sub when the name matches. */
 export function useExtractBid() {
   const refresh = useRefreshBids();
   return useMutation({
-    mutationFn: (v: { projectId: string; submissionId: string }) =>
-      callFunction('extract-bid', { submission_id: v.submissionId }, z.object({ extraction_id: z.string() }).passthrough()),
-    onSuccess: (_r, v) => refresh(v.projectId),
+    mutationFn: async (v: { projectId: string; orgId: string; submission: SubmissionRow }) => readBid(v.submission, await fetchSubNames(v.orgId)),
+    onSettled: (_r, _e, v) => refresh(v.projectId),
   });
 }
 

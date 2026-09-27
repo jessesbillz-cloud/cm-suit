@@ -1,12 +1,20 @@
-// One received bid: receipt, the file (one click), Extract -> findings to confirm, and money for pricing roles.
-// The AI only drafts; a person confirms (CLAUDE.md rule 12).
+// One received bid: receipt, the file (one click), Read -> findings to confirm, and money for pricing roles.
+// The AI only drafts; a person confirms (CLAUDE.md rule 12). Reading an office-recorded bid also links its sub.
 import { Check, ScanText } from 'lucide-react';
 import { useConfirmExtraction, useExtractBid } from '../../data/bids.mutations';
-import { useBidExtraction, useBidPackages, useBidSubmissions, usePricingAccess } from '../../data/bids.queries';
+import {
+  useBidExtraction,
+  useBidExtractions,
+  useBidPackages,
+  useBidSubmissions,
+  usePricingAccess,
+  useReceivedFiles,
+  useSubNames,
+} from '../../data/bids.queries';
 import type { SubmissionRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
 import { FunctionError } from '../../data/functions';
-import { usePeopleDisplay, useProject } from '../../data/queries';
+import { useFolders, usePeopleDisplay, useProject } from '../../data/queries';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { ReadingPane } from '../../ui/ReadingPane';
@@ -20,11 +28,19 @@ import { bidderName } from './model';
 import { PricingLines } from './PricingLines';
 
 function extractMessage(e: unknown): string {
+  if (e instanceof FunctionError && e.error === 'unreadable') return 'Open the file to read it.';
   if (e instanceof FunctionError && e.status === 409) return 'Text not ready. Try again in a minute.';
   return messageOf(e);
 }
 
-function Extraction({ projectId, submissionId }: { projectId: string; submissionId: string }) {
+interface ExtractionProps {
+  projectId: string;
+  orgId: string;
+  submission: SubmissionRow;
+}
+
+function Extraction({ projectId, orgId, submission }: ExtractionProps) {
+  const submissionId = submission.id;
   const extraction = useBidExtraction(projectId, submissionId);
   const access = usePricingAccess(projectId);
   const extract = useExtractBid();
@@ -45,10 +61,10 @@ function Extraction({ projectId, submissionId }: { projectId: string; submission
           loading={extract.isPending}
           data-testid="bid-extract"
           onClick={() => {
-            extract.mutate({ projectId, submissionId });
+            extract.mutate({ projectId, orgId, submission });
           }}
         >
-          Extract
+          Read
         </Button>
         {extract.isError ? <p className="text-sm text-danger">{extractMessage(extract.error)}</p> : null}
       </div>
@@ -105,6 +121,9 @@ export function SubmissionPane({ projectId, submissionId }: SubmissionPaneProps)
   const packages = useBidPackages(projectId);
   const people = usePeopleDisplay(projectId);
   const project = useProject(projectId);
+  const extractions = useBidExtractions(projectId, true);
+  const files = useReceivedFiles(projectId, useFolders(projectId).data?.find((f) => f.kind === 'bids_received')?.id ?? null);
+  const subNames = useSubNames(project.data?.org_id ?? null);
 
   if (subs.isPending || project.isPending) return <LoadingState label="Loading bid" />;
   if (subs.isError) return <ErrorState error={subs.error} onRetry={() => void subs.refetch()} />;
@@ -113,16 +132,19 @@ export function SubmissionPane({ projectId, submissionId }: SubmissionPaneProps)
   if (!s) return <EmptyState title="That bid is not here." />;
 
   const code = packages.data?.find((p) => p.id === s.package_id)?.code;
+  const title =
+    s.member_id !== null
+      ? bidderName(people.data?.find((p) => p.member_id === s.member_id))
+      : (subNames.data?.find((x) => x.id === s.sub_id)?.company ??
+        extractions.data?.find((x) => x.submission_id === s.id)?.bidder_name ??
+        files.data?.find((f) => f.id === s.file_id)?.original_name ??
+        'Received bid');
   return (
-    <ReadingPane
-      number={code}
-      title={bidderName(people.data?.find((p) => p.member_id === s.member_id))}
-      meta={meta(s, project.data.timezone)}
-    >
+    <ReadingPane number={code} title={title} meta={meta(s, project.data.timezone)}>
       <ul className="mb-4">
         <FileLine fileId={s.file_id} />
       </ul>
-      <Extraction projectId={projectId} submissionId={s.id} />
+      <Extraction projectId={projectId} orgId={project.data.org_id} submission={s} />
     </ReadingPane>
   );
 }

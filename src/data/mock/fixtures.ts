@@ -34,15 +34,11 @@ export const MOCK_PROJECTS: MyProject[] = [
   },
 ];
 
-export const MOCK_FOLDERS: FolderRow[] = MOCK_PROJECTS.map((p) => ({
-  id: `${p.project_id}-plans`,
-  project_id: p.project_id,
-  parent_id: null,
-  name: 'Plans',
-  kind: 'plans',
-  view_only: false,
-  proprietary: false,
-}));
+/** Every mock job has Plans and the "Bids received" folder the office intake uploads into. */
+export const MOCK_FOLDERS: FolderRow[] = MOCK_PROJECTS.flatMap((p) => [
+  { id: `${p.project_id}-plans`, project_id: p.project_id, parent_id: null, name: 'Plans', kind: 'plans', view_only: false, proprietary: false },
+  { id: `${p.project_id}-bids`, project_id: p.project_id, parent_id: null, name: 'Bids received', kind: 'bids_received', view_only: false, proprietary: false },
+]);
 
 export const MOCK_FILES: FileRow[] = MOCK_PROJECTS.map((p, i) => ({
   id: `${p.project_id}-file-1`,

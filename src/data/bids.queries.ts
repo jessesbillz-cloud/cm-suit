@@ -13,12 +13,15 @@ import {
   type AddendumRow,
   type CoverageRow,
   type ExtractionRow,
+  type ExtractionSummary,
   type InviteRow,
   type PackageRow,
   type PricingAccess,
   type PricingView,
   type QuestionRow,
+  type ReceivedFile,
   type SubmissionRow,
+  type SubName,
 } from './bids.types';
 
 export function useBidCoverage(projectId: string) {
@@ -110,7 +113,7 @@ export function useAddendumAcks(projectId: string) {
 export function useBidsOpen(projectId: string) {
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'open'),
-    queryFn: async () => (isMock() ? false : throwIfError(await supabase.rpc('bids_open', { p_project_id: projectId }))),
+    queryFn: async () => (isMock() ? true : throwIfError(await supabase.rpc('bids_open', { p_project_id: projectId }))),
     staleTime: 60_000,
   });
 }
@@ -121,16 +124,68 @@ export function useBidSubmissions(projectId: string, open: boolean) {
     queryKey: qk.bidsPart(projectId, 'submissions'),
     queryFn: open
       ? async (): Promise<SubmissionRow[]> =>
-          throwIfError(
-            await supabase
-              .from('bid_submissions')
-              .select('id, package_id, member_id, file_id, receipt_number, received_at, is_late, version_no')
-              .eq('project_id', projectId)
-              .is('superseded_by', null)
-              .is('deleted_at', null)
-              .order('received_at', { ascending: false }),
-          )
+          isMock()
+            ? mockBids.submissions(projectId)
+            : throwIfError(
+                await supabase
+                  .from('bid_submissions')
+                  .select('id, package_id, member_id, sub_id, file_id, receipt_number, received_at, is_late, version_no')
+                  .eq('project_id', projectId)
+                  .is('superseded_by', null)
+                  .is('deleted_at', null)
+                  .order('received_at', { ascending: false }),
+              )
       : skipToken,
+  });
+}
+
+/** Every extraction on the job, for the received list's names and read chips (RLS: findings readers at aal2). */
+export function useBidExtractions(projectId: string, open: boolean) {
+  return useQuery({
+    queryKey: qk.bidsPart(projectId, 'extractions'),
+    queryFn: open
+      ? async (): Promise<ExtractionSummary[]> =>
+          isMock()
+            ? mockBids.extractions(projectId)
+            : throwIfError(
+                await supabase.from('bid_extractions').select('id, submission_id, status, bidder_name').eq('project_id', projectId),
+              )
+      : skipToken,
+  });
+}
+
+/** The files in the job's "Bids received" folder (pricing roles at aal2; a bidder's own file through created_by). */
+export function useReceivedFiles(projectId: string, folderId: string | null) {
+  return useQuery({
+    queryKey: qk.bidsPart(projectId, 'received_files', folderId ?? ''),
+    queryFn:
+      folderId !== null
+        ? async (): Promise<ReceivedFile[]> =>
+            isMock()
+              ? mockBids.receivedFiles(folderId)
+              : throwIfError(
+                  await supabase
+                    .from('files')
+                    .select('id, original_name, size, text_status, upload_complete')
+                    .eq('folder_id', folderId)
+                    .is('deleted_at', null)
+                    .is('superseded_by', null),
+                )
+        : skipToken,
+  });
+}
+
+/** The org's sub directory, names only: what a read bid is matched against. */
+export async function fetchSubNames(orgId: string): Promise<SubName[]> {
+  if (isMock()) return mockBids.subNames();
+  return throwIfError(await supabase.from('subs').select('id, company').eq('org_id', orgId).is('deleted_at', null).order('company'));
+}
+
+export function useSubNames(orgId: string | null) {
+  return useQuery({
+    queryKey: ['subs', orgId ?? '', 'names'] as const,
+    queryFn: orgId !== null ? () => fetchSubNames(orgId) : skipToken,
+    staleTime: 60_000,
   });
 }
 
@@ -142,31 +197,41 @@ export function useBidExtraction(projectId: string, submissionId: string) {
     queryKey: qk.bidsPart(projectId, 'extraction', submissionId),
     queryFn: async (): Promise<ExtractionRow | null> =>
       isMock()
-        ? null
+        ? mockBids.extraction(submissionId)
         : throwIfErrorMaybe(await supabase.from('bid_extractions').select(EXTRACTION_COLS).eq('submission_id', submissionId).maybeSingle()),
   });
 }
 
-async function fetchPricingAccess(projectId: string, role: string): Promise<PricingAccess> {
-  if (isMock()) return mockBids.pricingAccess();
-  const can = throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: 'bids.view_pricing' }));
+/** yes / two_factor / no for one aal2-gated capability (bids.view_pricing, bids.view_ai_findings). */
+async function fetchAccess(projectId: string, role: string, cap: string): Promise<PricingAccess> {
+  if (isMock()) return mockBids.access(cap);
+  const can = throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }));
   if (can) return 'yes';
   // Not granted: is it the role, or only the missing second factor? role_permissions is data, not code.
   const row: unknown = throwIfErrorMaybe(
-    await supabase.from('role_permissions').select('requires_aal2').eq('role', role).eq('capability', 'bids.view_pricing').maybeSingle(),
+    await supabase.from('role_permissions').select('requires_aal2').eq('role', role).eq('capability', cap).maybeSingle(),
   );
   const parsed = z.object({ requires_aal2: z.boolean() }).nullable().parse(row);
   return parsed?.requires_aal2 === true ? 'two_factor' : 'no';
 }
 
-export function usePricingAccess(projectId: string) {
+function useAccess(projectId: string, cap: string) {
   const projects = useMyProjects();
   const role = projects.data?.find((p) => p.project_id === projectId)?.role;
   return useQuery({
-    queryKey: qk.bidsPart(projectId, 'pricing_access'),
-    queryFn: role !== undefined ? () => fetchPricingAccess(projectId, role) : skipToken,
+    queryKey: qk.bidsPart(projectId, 'access', cap),
+    queryFn: role !== undefined ? () => fetchAccess(projectId, role, cap) : skipToken,
     staleTime: 60_000,
   });
+}
+
+export function usePricingAccess(projectId: string) {
+  return useAccess(projectId, 'bids.view_pricing');
+}
+
+/** Reading bids (AI findings) is aal2-gated like pricing: same three answers, same one-liner when two_factor. */
+export function useFindingsAccess(projectId: string) {
+  return useAccess(projectId, 'bids.view_ai_findings');
 }
 
 async function fetchPricing(extractionId: string): Promise<PricingView | null> {

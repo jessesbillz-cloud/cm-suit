@@ -54,6 +54,18 @@ export function questionChip(status: string): Chip {
   return QUESTION_CHIPS[status] ?? { status: 'pending', label: status };
 }
 
+/** The read chip on a received row: findings drafted or confirmed, else whether the file's text could be read. */
+export function readChip(extraction: { status: string } | undefined, textStatus: string | undefined): Chip {
+  if (extraction) return extraction.status === 'confirmed' ? { status: 'confirmed', label: 'Confirmed' } : { status: 'assigned', label: 'Read' };
+  if (textStatus === 'none' || textStatus === 'failed') return { status: 'blocked', label: "Can't read" };
+  return { status: 'pending', label: 'Not read' };
+}
+
+/** Whether "Read all" should try this bid: no findings yet and the file is not known to be unreadable. */
+export function isUnread(extraction: { status: string } | undefined, textStatus: string | undefined): boolean {
+  return extraction === undefined && textStatus !== 'none' && textStatus !== 'failed';
+}
+
 export function firstLine(text: string): string {
   const line = text.split('\n').find((l) => l.trim() !== '');
   return line?.trim() ?? '';
