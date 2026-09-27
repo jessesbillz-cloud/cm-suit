@@ -17,4 +17,4 @@ Short entries, newest first. One line on what, one on why.
 - **2026-09-27 — Job modules gate the rail: Bids, Files, Calendar.** Board, People and Settings are always on. New jobs start with all three; jobs with none were given all three.
 - **2026-09-27 — A membership row's company must be its job's company (composite foreign key, migration 0015).** The member policies trust `is_org_admin(org_id)`; without the key, anyone could make a company and write themselves into another company's job. Found by an independent review of 0013.
 - **2026-09-27 — `submit_bid` holds the job row while recording a bid.** Lifting a seal waits for an in-flight bid, and the seal guard then sees it.
-
+- **2026-09-27 — Sign-in allowlist (migration 0016).** Jesse: only his two addresses sign in to staging. The list is data on staging (`signin_allowlist`); an empty list means no limit, so outside people work again once it's emptied or they're added. The sign-in email box no longer invites the browser's saved addresses.

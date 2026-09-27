@@ -35,6 +35,10 @@ function authMessage(e: AuthError): DataError {
   if (e.status === 429 || code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit') {
     return new DataError('Too many codes requested. Wait a minute, then try again.', code, e.message);
   }
+  // The sign-in allowlist (migration 0016) refuses the new account; Auth reports it as a database error.
+  if (e.message.includes('Database error saving new user')) {
+    return new DataError("This email can't sign in here.", code, e.message);
+  }
   if (code === 'otp_expired' || code === 'invalid_otp' || e.status === 403) {
     return new DataError('That code is wrong or has expired. Use the newest email, or send a new code.', code, e.message);
   }

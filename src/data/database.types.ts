@@ -2165,6 +2165,21 @@ export type Database = {
           },
         ]
       }
+      signin_allowlist: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       sub_history: {
         Row: {
           at: string

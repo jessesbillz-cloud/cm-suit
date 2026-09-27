@@ -86,7 +86,7 @@ export function SignIn({ onSignedIn }: SignInProps) {
         <input
           id="signin-email"
           type="email"
-          autoComplete="email"
+          autoComplete="off"
           autoFocus
           className="h-11 rounded-md border border-line px-3 text-base text-ink outline-none focus:border-accent"
           value={email}
