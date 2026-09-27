@@ -138,6 +138,121 @@ export type Database = {
           },
         ]
       }
+      addenda: {
+        Row: {
+          body: string
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_ids: string[]
+          id: string
+          issued_at: string | null
+          number: number
+          org_id: string
+          project_id: string
+          signed_at: string | null
+          signed_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          body?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_ids?: string[]
+          id?: string
+          issued_at?: string | null
+          number: number
+          org_id: string
+          project_id: string
+          signed_at?: string | null
+          signed_by?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          body?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_ids?: string[]
+          id?: string
+          issued_at?: string | null
+          number?: number
+          org_id?: string
+          project_id?: string
+          signed_at?: string | null
+          signed_by?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addenda_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addenda_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      addendum_acks: {
+        Row: {
+          acked_at: string
+          addendum_id: string
+          member_id: string
+          project_id: string
+        }
+        Insert: {
+          acked_at?: string
+          addendum_id: string
+          member_id: string
+          project_id: string
+        }
+        Update: {
+          acked_at?: string
+          addendum_id?: string
+          member_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addendum_acks_addendum_id_fkey"
+            columns: ["addendum_id"]
+            isOneToOne: false
+            referencedRelation: "addenda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addendum_acks_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addendum_acks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_calls: {
         Row: {
           at: string
@@ -261,6 +376,554 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_extraction_pricing: {
+        Row: {
+          adds_deducts: Json
+          alternates: Json
+          base_amount: number | null
+          base_evidence: string | null
+          base_page: number | null
+          extraction_id: string
+          project_id: string
+          pw_adder_amount: number | null
+          unit_prices: Json
+        }
+        Insert: {
+          adds_deducts?: Json
+          alternates?: Json
+          base_amount?: number | null
+          base_evidence?: string | null
+          base_page?: number | null
+          extraction_id: string
+          project_id: string
+          pw_adder_amount?: number | null
+          unit_prices?: Json
+        }
+        Update: {
+          adds_deducts?: Json
+          alternates?: Json
+          base_amount?: number | null
+          base_evidence?: string | null
+          base_page?: number | null
+          extraction_id?: string
+          project_id?: string
+          pw_adder_amount?: number | null
+          unit_prices?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_extraction_pricing_extraction_id_fkey"
+            columns: ["extraction_id"]
+            isOneToOne: true
+            referencedRelation: "bid_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_extraction_pricing_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_extractions: {
+        Row: {
+          bid_date: string | null
+          bidder_name: string | null
+          confidence: number | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          document_kind: string | null
+          exclusions: string[]
+          id: string
+          inclusions: string[]
+          model: string | null
+          notable_terms: string[]
+          org_id: string
+          prevailing_wage: string | null
+          prevailing_wage_evidence: string | null
+          project_id: string
+          project_match: string | null
+          scope_summary: string | null
+          status: string
+          submission_id: string
+          updated_at: string
+          validity_days: number | null
+          version: number
+        }
+        Insert: {
+          bid_date?: string | null
+          bidder_name?: string | null
+          confidence?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          document_kind?: string | null
+          exclusions?: string[]
+          id?: string
+          inclusions?: string[]
+          model?: string | null
+          notable_terms?: string[]
+          org_id: string
+          prevailing_wage?: string | null
+          prevailing_wage_evidence?: string | null
+          project_id: string
+          project_match?: string | null
+          scope_summary?: string | null
+          status?: string
+          submission_id: string
+          updated_at?: string
+          validity_days?: number | null
+          version?: number
+        }
+        Update: {
+          bid_date?: string | null
+          bidder_name?: string | null
+          confidence?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          document_kind?: string | null
+          exclusions?: string[]
+          id?: string
+          inclusions?: string[]
+          model?: string | null
+          notable_terms?: string[]
+          org_id?: string
+          prevailing_wage?: string | null
+          prevailing_wage_evidence?: string | null
+          project_id?: string
+          project_match?: string | null
+          scope_summary?: string | null
+          status?: string
+          submission_id?: string
+          updated_at?: string
+          validity_days?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_extractions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_extractions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_extractions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "bid_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decline_reason: string | null
+          deleted_at: string | null
+          id: string
+          member_id: string
+          opened_at: string | null
+          org_id: string
+          package_id: string
+          project_id: string
+          responded_at: string | null
+          sent_at: string
+          status: string
+          sub_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          deleted_at?: string | null
+          id?: string
+          member_id: string
+          opened_at?: string | null
+          org_id: string
+          package_id: string
+          project_id: string
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          sub_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          deleted_at?: string | null
+          id?: string
+          member_id?: string
+          opened_at?: string | null
+          org_id?: string
+          package_id?: string
+          project_id?: string
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          sub_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_invites_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_invites_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_invites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_invites_sub_id_fkey"
+            columns: ["sub_id"]
+            isOneToOne: false
+            referencedRelation: "subs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_leveling: {
+        Row: {
+          comparable: boolean
+          flags: Json
+          is_backup: boolean
+          is_duplicate: boolean
+          notes: string
+          project_id: string
+          reassigned_package_id: string | null
+          submission_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          comparable?: boolean
+          flags?: Json
+          is_backup?: boolean
+          is_duplicate?: boolean
+          notes?: string
+          project_id: string
+          reassigned_package_id?: string | null
+          submission_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          comparable?: boolean
+          flags?: Json
+          is_backup?: boolean
+          is_duplicate?: boolean
+          notes?: string
+          project_id?: string
+          reassigned_package_id?: string | null
+          submission_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_leveling_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_leveling_reassigned_package_id_fkey"
+            columns: ["reassigned_package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_leveling_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "bid_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_packages: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          project_id: string
+          scope_text: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          project_id: string
+          scope_text?: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          project_id?: string
+          scope_text?: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_packages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_questions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          member_id: string | null
+          number: number
+          org_id: string
+          package_id: string | null
+          project_id: string
+          question: string
+          source: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          member_id?: string | null
+          number: number
+          org_id: string
+          package_id?: string | null
+          project_id: string
+          question: string
+          source?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          member_id?: string | null
+          number?: number
+          org_id?: string
+          package_id?: string | null
+          project_id?: string
+          question?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_questions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_questions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_questions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_submissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string
+          id: string
+          is_late: boolean
+          member_id: string
+          org_id: string
+          package_id: string
+          project_id: string
+          receipt_number: number
+          received_at: string
+          source: string
+          superseded_by: string | null
+          updated_at: string
+          version: number
+          version_no: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id: string
+          id?: string
+          is_late?: boolean
+          member_id: string
+          org_id: string
+          package_id: string
+          project_id: string
+          receipt_number: number
+          received_at?: string
+          source?: string
+          superseded_by?: string | null
+          updated_at?: string
+          version?: number
+          version_no?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id?: string
+          id?: string
+          is_late?: boolean
+          member_id?: string
+          org_id?: string
+          package_id?: string
+          project_id?: string
+          receipt_number?: number
+          received_at?: string
+          source?: string
+          superseded_by?: string | null
+          updated_at?: string
+          version?: number
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_submissions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_submissions_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "bid_submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -1237,6 +1900,76 @@ export type Database = {
           },
         ]
       }
+      published_answers: {
+        Row: {
+          answer: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          number: number
+          org_id: string
+          package_id: string | null
+          project_id: string
+          published_at: string
+          question_text: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          number: number
+          org_id: string
+          package_id?: string | null
+          project_id: string
+          published_at?: string
+          question_text: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          number?: number
+          org_id?: string
+          package_id?: string | null
+          project_id?: string
+          published_at?: string
+          question_text?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "published_answers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "published_answers_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "published_answers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           created_at: string
@@ -1421,6 +2154,123 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_history: {
+        Row: {
+          at: string
+          details: Json
+          id: number
+          kind: string
+          org_id: string
+          project_id: string | null
+          sub_id: string
+        }
+        Insert: {
+          at?: string
+          details?: Json
+          id?: never
+          kind: string
+          org_id: string
+          project_id?: string | null
+          sub_id: string
+        }
+        Update: {
+          at?: string
+          details?: Json
+          id?: never
+          kind?: string
+          org_id?: string
+          project_id?: string | null
+          sub_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_history_sub_id_fkey"
+            columns: ["sub_id"]
+            isOneToOne: false
+            referencedRelation: "subs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subs: {
+        Row: {
+          company: string
+          contacts: Json
+          created_at: string
+          created_by: string | null
+          cslb_checked_at: string | null
+          cslb_number: string | null
+          cslb_status: string | null
+          deleted_at: string | null
+          dir_number: string | null
+          id: string
+          notes: string
+          org_id: string
+          region: string | null
+          trades: string[]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          company: string
+          contacts?: Json
+          created_at?: string
+          created_by?: string | null
+          cslb_checked_at?: string | null
+          cslb_number?: string | null
+          cslb_status?: string | null
+          deleted_at?: string | null
+          dir_number?: string | null
+          id?: string
+          notes?: string
+          org_id: string
+          region?: string | null
+          trades?: string[]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          company?: string
+          contacts?: Json
+          created_at?: string
+          created_by?: string | null
+          cslb_checked_at?: string | null
+          cslb_number?: string | null
+          cslb_status?: string | null
+          deleted_at?: string | null
+          dir_number?: string | null
+          id?: string
+          notes?: string
+          org_id?: string
+          region?: string | null
+          trades?: string[]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
             referencedColumns: ["id"]
           },
         ]
@@ -1656,6 +2506,64 @@ export type Database = {
     }
     Functions: {
       accept_invites: { Args: never; Returns: number }
+      acknowledge_addendum: {
+        Args: { p_addendum_id: string }
+        Returns: undefined
+      }
+      answer_bid_question: {
+        Args: {
+          p_answer: string
+          p_package_only?: boolean
+          p_question_id: string
+          p_question_text: string
+        }
+        Returns: {
+          answer: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          number: number
+          org_id: string
+          package_id: string | null
+          project_id: string
+          published_at: string
+          question_text: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "published_answers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ask_bid_question: {
+        Args: { p_package_id: string; p_project_id: string; p_question: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          member_id: string | null
+          number: number
+          org_id: string
+          package_id: string | null
+          project_id: string
+          question: string
+          source: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bid_questions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       assert_version: {
         Args: { p_expected: number; p_id: string; p_table: unknown }
         Returns: undefined
@@ -1681,6 +2589,22 @@ export type Database = {
           storage_path: string
         }[]
       }
+      bid_coverage: {
+        Args: { p_project_id: string }
+        Returns: {
+          code: string
+          declined: number
+          intends: number
+          invited: number
+          late: number
+          name: string
+          opened: number
+          package_id: string
+          submitted: number
+        }[]
+      }
+      bidder_page: { Args: { p_project_id: string }; Returns: Json }
+      bids_open: { Args: { p_project_id: string }; Returns: boolean }
       board_feed: {
         Args: { p_before?: string; p_limit?: number; p_project_id?: string }
         Returns: {
@@ -1733,6 +2657,38 @@ export type Database = {
           p_refill_per_sec: number
         }
         Returns: boolean
+      }
+      create_addendum: {
+        Args: {
+          p_body: string
+          p_file_ids?: string[]
+          p_project_id: string
+          p_title: string
+        }
+        Returns: {
+          body: string
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_ids: string[]
+          id: string
+          issued_at: string | null
+          number: number
+          org_id: string
+          project_id: string
+          signed_at: string | null
+          signed_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "addenda"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_task: {
         Args: {
@@ -1823,6 +2779,33 @@ export type Database = {
         Returns: boolean
       }
       is_service_role: { Args: never; Returns: boolean }
+      issue_addendum: {
+        Args: { p_addendum_id: string; p_content_hash: string }
+        Returns: {
+          body: string
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_ids: string[]
+          id: string
+          issued_at: string | null
+          number: number
+          org_id: string
+          project_id: string
+          signed_at: string | null
+          signed_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "addenda"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       jwt_role: { Args: never; Returns: string }
       log_view: {
         Args: {
@@ -1832,6 +2815,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
+      my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
       my_projects: {
         Args: never
         Returns: {
@@ -1971,6 +2956,61 @@ export type Database = {
       }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       session_aal: { Args: never; Returns: string }
+      set_bid_intent: {
+        Args: { p_intent: string; p_invite_id: string; p_reason?: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          decline_reason: string | null
+          deleted_at: string | null
+          id: string
+          member_id: string
+          opened_at: string | null
+          org_id: string
+          package_id: string
+          project_id: string
+          responded_at: string | null
+          sent_at: string
+          status: string
+          sub_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bid_invites"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_bid: {
+        Args: { p_file_id: string; p_package_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string
+          id: string
+          is_late: boolean
+          member_id: string
+          org_id: string
+          package_id: string
+          project_id: string
+          receipt_number: number
+          received_at: string
+          source: string
+          superseded_by: string | null
+          updated_at: string
+          version: number
+          version_no: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bid_submissions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
       worker_ack_job: {
