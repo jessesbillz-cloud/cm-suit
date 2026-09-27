@@ -181,7 +181,7 @@ async function updateProfile(userId: string, patch: ProfilePatch, version: numbe
       .update(patch)
       .eq('user_id', userId)
       .eq('version', version)
-      .select('user_id, email, full_name, phone, title, company, timezone, version'),
+      .select('user_id, email, full_name, phone, title, company, timezone, timezone_set_by_user, version'),
   );
   const row = rows[0];
   if (!row) throw conflictError();

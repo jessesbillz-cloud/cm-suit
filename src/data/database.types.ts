@@ -1004,6 +1004,7 @@ export type Database = {
           phone: string | null
           signature_path: string | null
           timezone: string
+          timezone_set_by_user: boolean
           title: string | null
           updated_at: string
           user_id: string
@@ -1018,6 +1019,7 @@ export type Database = {
           phone?: string | null
           signature_path?: string | null
           timezone?: string
+          timezone_set_by_user?: boolean
           title?: string | null
           updated_at?: string
           user_id: string
@@ -1032,6 +1034,7 @@ export type Database = {
           phone?: string | null
           signature_path?: string | null
           timezone?: string
+          timezone_set_by_user?: boolean
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -1172,7 +1175,7 @@ export type Database = {
           request_token_hash: string | null
           settings: Json
           stage: string
-          timezone: string
+          timezone: string | null
           updated_at: string
           version: number
         }
@@ -1196,7 +1199,7 @@ export type Database = {
           request_token_hash?: string | null
           settings?: Json
           stage?: string
-          timezone?: string
+          timezone?: string | null
           updated_at?: string
           version?: number
         }
@@ -1220,7 +1223,7 @@ export type Database = {
           request_token_hash?: string | null
           settings?: Json
           stage?: string
-          timezone?: string
+          timezone?: string | null
           updated_at?: string
           version?: number
         }
@@ -1968,6 +1971,7 @@ export type Database = {
       }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       session_aal: { Args: never; Returns: string }
+      sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
       worker_ack_job: {
         Args: { p_job_id: string; p_msg_id: number }

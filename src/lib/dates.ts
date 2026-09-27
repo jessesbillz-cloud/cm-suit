@@ -2,6 +2,15 @@
 import { parseISO } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
+/**
+ * The zone this device is in, from the browser. Nobody picks a time zone by hand: this seeds the person's profile,
+ * and a new job defaults to its creator's zone. Falls back to Pacific only if the browser reports nothing usable.
+ */
+export function detectZone(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return typeof tz === 'string' && tz.includes('/') ? tz : 'America/Los_Angeles';
+}
+
 /** Today's calendar date (yyyy-MM-dd) in the given IANA zone, e.g. the project's. */
 export function todayInZone(tz: string, now: Date = new Date()): string {
   return formatInTimeZone(now, tz, 'yyyy-MM-dd');

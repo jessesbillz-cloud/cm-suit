@@ -50,7 +50,14 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
     const v = parsed.data;
     save.mutate(
       {
-        patch: { full_name: v.full_name, title: v.title || null, company: v.company || null, phone: v.phone || null, timezone: v.timezone },
+        patch: {
+          full_name: v.full_name,
+          title: v.title || null,
+          company: v.company || null,
+          phone: v.phone || null,
+          timezone: v.timezone,
+          timezone_set_by_user: v.timezone !== profile.timezone || profile.timezone_set_by_user,
+        },
         version: profile.version,
       },
       {

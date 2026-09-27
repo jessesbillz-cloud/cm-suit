@@ -113,5 +113,5 @@ export const MOCK_ROLES: RoleRow[] = [
 ];
 
 export function mockProfile(userId: string, email: string): ProfileRow {
-  return { user_id: userId, email, full_name: 'Sample PM', phone: null, title: null, company: 'Sample Builders', timezone: TZ, version: 1 };
+  return { user_id: userId, email, full_name: 'Sample PM', phone: null, title: null, company: 'Sample Builders', timezone: TZ, timezone_set_by_user: false, version: 1 };
 }

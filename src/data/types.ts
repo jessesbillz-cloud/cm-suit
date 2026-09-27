@@ -35,10 +35,10 @@ export type ActivityRow = Pick<
 
 export type ProfileRow = Pick<
   Tables<'profiles'>,
-  'user_id' | 'email' | 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'version'
+  'user_id' | 'email' | 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user' | 'version'
 >;
 
-export type ProfilePatch = Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company' | 'timezone'>;
+export type ProfilePatch = Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user'>;
 
 export type ProjectRow = Pick<
   Tables<'projects'>,

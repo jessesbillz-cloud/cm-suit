@@ -3,7 +3,8 @@ import { createContext, useContext } from 'react';
 import type { AuthError } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
-import { DataError, throwIfErrorMaybe } from './errors';
+import { detectZone } from '../lib/dates';
+import { DataError, throwIfErrorMaybe, toDataError } from './errors';
 import { clearMockUser, isMock } from './mock';
 import type { AppUser } from './types';
 
@@ -61,7 +62,18 @@ export async function verifyCode(email: string, code: string): Promise<void> {
 /** Binds pending invites for the signed-in email. Safe to repeat. Returns how many were accepted. */
 export async function acceptInvites(): Promise<number> {
   if (isMock()) return 0;
-  return throwIfErrorMaybe(await supabase.rpc('accept_invites')) ?? 0;
+  const n = throwIfErrorMaybe(await supabase.rpc('accept_invites')) ?? 0;
+  await syncDetectedZone();
+  return n;
+}
+
+/**
+ * Time zone detection (CLAUDE.md rule 14): the browser's zone becomes the person's profile zone automatically.
+ * Runs after every sign-in; the RPC only changes the profile when it was never set by hand.
+ */
+async function syncDetectedZone(): Promise<void> {
+  const { error } = await supabase.rpc('sync_detected_timezone', { p_zone: detectZone() });
+  if (error) throw toDataError(error);
 }
 
 async function clearIndexedDb(): Promise<void> {

@@ -51,12 +51,24 @@ export default tseslint.config(
         'error',
         { name: 'fetch', message: 'Network calls live only in src/data/.' },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name=/^(toLocaleDateString|toLocaleTimeString|toLocaleString|toISOString|getTimezoneOffset)$/]",
+          message: 'Dates are stored UTC and shown in the project zone through src/lib/dates only (CLAUDE.md rule 14).',
+        },
+      ],
     },
   },
   {
     // The data layer and the probes are the only places allowed to talk to Supabase / fetch.
     files: ['src/data/**', 'tests/security/**', 'tests/e2e/**', 'scripts/**', 'worker/**'],
     rules: { 'local/no-supabase-outside-data': 'off', 'no-restricted-globals': 'off' },
+  },
+  {
+    // The one place raw Date methods are allowed; everything else formats through it.
+    files: ['src/lib/dates.ts', 'src/lib/dates.test.ts', 'src/data/**', 'worker/**', 'tests/**', 'scripts/**'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
   {
     files: ['worker/**', 'scripts/**', 'tests/**'],

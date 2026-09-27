@@ -69,7 +69,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
     - Every download is one click, with the original filename, through a fresh signed URL.
     - Emailed links are permanent share links that check access on every click.
     - Log every download.
-14. **Time.** Store UTC. Compute "today," reminders and report dates in the project's time zone.
+14. **Time.** Store UTC. Compute "today," reminders and report dates in the project's time zone. The browser's zone is detected and written to the profile (`sync_detected_timezone`); a new job takes its creator's zone. Nobody is asked to pick one, and no screen ever shows a raw UTC time: every display goes through `lib/dates` (lint bans `toLocale*` and `toISOString` outside it).
 15. **UI.**
     - White cards with soft shadows on a near-white page, one accent color.
     - Status chips and calendar marks use colors from `lib/status` only.

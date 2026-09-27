@@ -197,7 +197,7 @@ export function useRoles() {
 async function fetchProfile(): Promise<ProfileRow> {
   if (isMock()) return mock.profile();
   return throwIfError(
-    await supabase.from('profiles').select('user_id, email, full_name, phone, title, company, timezone, version').single(),
+    await supabase.from('profiles').select('user_id, email, full_name, phone, title, company, timezone, timezone_set_by_user, version').single(),
   );
 }
 
