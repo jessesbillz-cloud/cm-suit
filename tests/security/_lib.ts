@@ -113,6 +113,8 @@ export const PUBLIC_TABLES = [
   'folder_templates',
   // Corrections (0026)
   'corrections', 'correction_history',
+  // Bid forms (0034)
+  'bid_form_templates', 'bid_form_items',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

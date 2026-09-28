@@ -531,6 +531,155 @@ export type Database = {
           },
         ]
       }
+      bid_form_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          due_on: string | null
+          file_id: string | null
+          id: string
+          name: string
+          note: string
+          org_id: string
+          project_id: string
+          reference: string
+          required: boolean
+          sort: number
+          status: string
+          template_id: string | null
+          timing: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          due_on?: string | null
+          file_id?: string | null
+          id?: string
+          name: string
+          note?: string
+          org_id: string
+          project_id: string
+          reference?: string
+          required?: boolean
+          sort?: number
+          status?: string
+          template_id?: string | null
+          timing: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          due_on?: string | null
+          file_id?: string | null
+          id?: string
+          name?: string
+          note?: string
+          org_id?: string
+          project_id?: string
+          reference?: string
+          required?: boolean
+          sort?: number
+          status?: string
+          template_id?: string | null
+          timing?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_form_items_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_form_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_form_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_form_items_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "bid_form_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "bid_form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_form_templates: {
+        Row: {
+          created_at: string
+          id: string
+          if_dsa: boolean | null
+          if_job_types: string[] | null
+          if_prevailing_wage: boolean | null
+          name: string
+          org_id: string | null
+          reference: string
+          required: boolean
+          sort: number
+          timing: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          if_dsa?: boolean | null
+          if_job_types?: string[] | null
+          if_prevailing_wage?: boolean | null
+          name: string
+          org_id?: string | null
+          reference?: string
+          required?: boolean
+          sort?: number
+          timing: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          if_dsa?: boolean | null
+          if_job_types?: string[] | null
+          if_prevailing_wage?: boolean | null
+          name?: string
+          org_id?: string | null
+          reference?: string
+          required?: boolean
+          sort?: number
+          timing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_form_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bid_invites: {
         Row: {
           created_at: string
@@ -5804,6 +5953,7 @@ export type Database = {
         Args: { p_kind: string; p_project_id: string }
         Returns: number
       }
+      open_bid_forms: { Args: { p_project_id: string }; Returns: string }
       peek_author_number: {
         Args: { p_kind: string; p_project_id: string }
         Returns: number
