@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
+import { ALL_JOBS_TOOLS } from '../lib/jobs';
 import { Icon } from './Icon';
+import { TOOL_META } from './tools';
 
 interface JobPickerProps {
   projects: readonly MyProject[];
@@ -22,6 +24,8 @@ interface Option {
 }
 
 const ALL_JOBS_LABEL = 'All my jobs';
+/** "Board, Calendar, Bids": what "All my jobs" holds, from the one list of cross-job tools. */
+const ALL_JOBS_DETAIL = ALL_JOBS_TOOLS.map((t) => TOOL_META[t].label).join(', ');
 
 function orderJobs(projects: readonly MyProject[], recentIds: readonly string[]): MyProject[] {
   const rank = new Map(recentIds.map((id, i): [string, number] => [id, i]));
@@ -46,7 +50,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
     const jobs = orderJobs(projects, recentIds)
       .filter((p) => q === '' || `${p.name} ${detailOf(p)}`.toLowerCase().includes(q))
       .map((p) => ({ id: p.project_id, name: p.name, detail: detailOf(p) }));
-    const all: Option = { id: null, name: ALL_JOBS_LABEL, detail: 'Board and calendar across every job' };
+    const all: Option = { id: null, name: ALL_JOBS_LABEL, detail: ALL_JOBS_DETAIL };
     return q === '' || ALL_JOBS_LABEL.toLowerCase().includes(q) ? [...jobs, all] : jobs;
   }, [projects, recentIds, query]);
 

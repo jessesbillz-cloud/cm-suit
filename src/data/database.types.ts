@@ -3841,6 +3841,23 @@ export type Database = {
           validity_days: number
         }[]
       }
+      bid_pipeline: {
+        Args: never
+        Returns: {
+          bid_due_at: string
+          bids_in: number
+          invited: number
+          name: string
+          number: string
+          open_questions: number
+          org_name: string
+          packages: number
+          packages_covered: number
+          project_id: string
+          stage: string
+          timezone: string
+        }[]
+      }
       bidder_page: { Args: { p_project_id: string }; Returns: Json }
       bids_open: { Args: { p_project_id: string }; Returns: boolean }
       board_feed: {

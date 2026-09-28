@@ -53,4 +53,6 @@ export const qk = {
   /** Every corrections query of a job sits under this prefix: one invalidation after any corrections write. */
   corrections: (projectId: string) => ['corrections', projectId] as const,
   correctionsPart: (projectId: string, part: string, id = '') => ['corrections', projectId, part, id] as const,
+  /** The bids pipeline across all my jobs (counts only). */
+  bidPipeline: ['bid_pipeline'] as const,
 };

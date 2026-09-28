@@ -508,6 +508,23 @@ async function cleanup(users: Map<UserKey, ProbeUser> | null, projects: string[]
   }
 }
 
+// The bids pipeline across jobs (0032): only bids.manage sees the job, counts only (no money), even while sealed.
+const PIPELINE_KEYS = ['bid_due_at', 'bids_in', 'invited', 'name', 'number', 'open_questions', 'org_name', 'packages',
+  'packages_covered', 'project_id', 'stage', 'timezone'];
+async function checkPipeline(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
+  for (const key of [...ROLES, 'admin-b'] as const) {
+    const rows = must(await clientOf(clients, key).rpc('bid_pipeline'), `bid_pipeline as ${key}`);
+    const mine = rows.find((r) => r['project_id'] === s.projA);
+    const manages = key === 'project_admin' || key === 'estimator';
+    report.check('pipeline', `${key}: project A ${manages ? 'listed' : 'absent'}`, manages === (mine !== undefined), `${rows.length} rows`);
+    if (mine) {
+      report.check('pipeline', `${key}: counts only, no money columns`,
+        JSON.stringify(Object.keys(mine).sort()) === JSON.stringify(PIPELINE_KEYS), Object.keys(mine).join(', '));
+      report.check('pipeline', `${key}: sealed job still counts both bids`, mine['bids_in'] === 2, String(mine['bids_in']));
+    }
+  }
+}
+
 async function main(): Promise<void> {
   let users: Map<UserKey, ProbeUser> | null = null;
   const created = { projects: [] as string[] };
@@ -525,6 +542,7 @@ async function main(): Promise<void> {
     const bids = await seedBids(s, clients);
     await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients, bids));
     await report.guard('money', 'pricing', () => checkPricing(s, clients));
+    await report.guard('pipeline', 'bids pipeline', () => checkPipeline(s, clients));
     await report.guard('sealed', 'sealed bids', () => checkSealed(s, clients, bids));
     await report.guard('requests', 'inspection requests', () => checkRequests(s, clients));
     await report.guard('deliveries', 'deliveries', () => checkDeliveries(s, clients));

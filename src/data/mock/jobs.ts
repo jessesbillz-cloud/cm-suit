@@ -5,6 +5,7 @@ import type { MyOrg, MyProject, NewJobInput, OrgPatch, ProjectPatch, ProjectRow 
 import { MOCK_DEFAULT_MODULES, MOCK_ORGS, MOCK_PROJECTS, mockProfile, NEWCOMER_ID } from './fixtures';
 import { missingDsaFolders, newJobFolders } from './folders';
 import { mockUser } from './index';
+import { pipelineJobRows } from './pipelineJobs';
 import { delay, readMock, writeMock } from './store';
 
 function isNewcomer(): boolean {
@@ -34,7 +35,8 @@ function fixtureRow(p: MyProject): ProjectRow {
 /** Fixture rows (with this test's edits) plus the jobs made in this test. */
 function projectRows(): ProjectRow[] {
   const saved = readMock().projects;
-  const base = (isNewcomer() ? [] : MOCK_PROJECTS).map(fixtureRow).map((r) => saved.find((x) => x.id === r.id) ?? r);
+  const fixtures = isNewcomer() ? [] : [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows()];
+  const base = fixtures.map((r) => saved.find((x) => x.id === r.id) ?? r);
   return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
 }
 

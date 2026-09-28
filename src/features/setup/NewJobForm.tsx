@@ -14,18 +14,20 @@ interface NewJobFormProps {
   orgs: readonly MyOrg[];
   /** My time zone (the new job's zone). */
   zone: string;
+  /** A stage to start from instead of the company kind's default (e.g. "prospect" from the bids pipeline). */
+  initialStage?: string | undefined;
   onCreated: (projectId: string) => void;
   onCancel?: (() => void) | undefined;
 }
 
-export function NewJobForm({ orgs, zone, onCreated, onCancel }: NewJobFormProps) {
+export function NewJobForm({ orgs, zone, initialStage, onCreated, onCancel }: NewJobFormProps) {
   const create = useCreateJob();
   const first = orgs[0];
   const [orgId, setOrgId] = useState(first?.org_id ?? '');
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   const [address, setAddress] = useState('');
-  const [stage, setStage] = useState(defaultStage(first?.kind ?? ''));
+  const [stage, setStage] = useState(initialStage ?? defaultStage(first?.kind ?? ''));
   const [bidDue, setBidDue] = useState('');
   const [jobType, setJobType] = useState('');
   const [prevailingWage, setPrevailingWage] = useState(false);

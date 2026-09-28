@@ -5,16 +5,23 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMyProjects, useUserLayout } from '../../data/queries';
 import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
-import { railForJob } from '../../lib/jobs';
+import { allJobsTool, railForAllJobs, railForJob } from '../../lib/jobs';
 import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { useToast } from '../../ui/Toast';
 
 export interface FrameLocation {
-  /** null = all my jobs (board and calendar). */
+  /** null = "All my jobs": the tools that work across jobs (lib/jobs ALL_JOBS_TOOLS) and Settings. */
   projectId: string | null;
   tool: Tool;
   itemId: string | null;
 }
+
+const ALL_JOBS_PATH = {
+  board: '/all/board',
+  calendar: '/all/calendar',
+  bids: '/all/bids',
+  settings: '/all/settings',
+} as const;
 
 export function useFrameModel(loc: FrameLocation) {
   const navigate = useNavigate();
@@ -27,8 +34,12 @@ export function useFrameModel(loc: FrameLocation) {
   const choices: LayoutChoices | undefined = layoutQuery.data?.choices;
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.project_id === loc.projectId);
-  /** My rail picks, minus the modules this job has switched off. */
-  const railItems: RailTool[] = choices ? railForJob(choices.rail_items, current?.modules ?? null) : [];
+  /** My rail picks, minus the modules this job has switched off. On "All my jobs", only the cross-job tools. */
+  const railItems: RailTool[] = !choices
+    ? []
+    : loc.projectId === null
+      ? railForAllJobs(choices.rail_items, projects.map((p) => p.modules))
+      : railForJob(choices.rail_items, current?.modules ?? []);
 
   function save(patch: Partial<LayoutChoices>) {
     saveLayout.mutate(patch, {
@@ -38,21 +49,16 @@ export function useFrameModel(loc: FrameLocation) {
     });
   }
 
-  /** The job to use when a tool needs one and we are on "All my jobs": the most recent, else the first. */
-  function fallbackProjectId(): string | null {
-    const recent = choices?.recent_project_ids.find((id) => projects.some((p) => p.project_id === id));
-    return recent ?? projects[0]?.project_id ?? null;
-  }
-
+  /** On "All my jobs" a tool that needs a job lands on the board, never on some job picked for me. */
   function go(projectId: string | null, tool: Tool) {
     if (projectId === null) {
-      void navigate({ to: tool === 'calendar' ? '/all/calendar' : '/all/board' });
+      void navigate({ to: ALL_JOBS_PATH[allJobsTool(tool)] });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool } });
   }
 
-  /** Job picker: switching keeps the current tool (SPEC §7.2). "All my jobs" exists for the board and the calendar. */
+  /** Job picker: switching keeps the current tool (SPEC §7.2); "All my jobs" keeps it when it works across jobs. */
   function pickJob(projectId: string | null) {
     if (projectId !== null && choices) save({ recent_project_ids: pushRecent(choices.recent_project_ids, projectId) });
     go(projectId, loc.tool);
@@ -64,10 +70,6 @@ export function useFrameModel(loc: FrameLocation) {
 
   function selectTool(tool: Tool) {
     setRightFull(false);
-    if (loc.projectId === null && tool !== 'board' && tool !== 'calendar') {
-      go(fallbackProjectId(), tool);
-      return;
-    }
     go(loc.projectId, tool);
   }
 

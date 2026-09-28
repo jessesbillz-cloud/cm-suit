@@ -1,9 +1,10 @@
-// What fills the main area for each tool. Calendar and the board also work for "All my jobs"; the rest need a job.
-// A tool the job has switched off (projects.modules) shows a one-line note instead.
+// What fills the main area for each tool. The board, calendar and bids (the pipeline) also work for "All my jobs";
+// the rest need a job. A tool the job has switched off (projects.modules) shows a one-line note instead.
 import { useNavigate } from '@tanstack/react-router';
 import { toolIsOn } from '../../lib/jobs';
 import type { Tool } from '../../lib/layout';
 import { Board } from '../../features/board/Board';
+import { BidPipeline } from '../../features/bids/BidPipeline';
 import { BidsTool } from '../../features/bids/BidsTool';
 import { CalendarTool } from '../../features/calendar/CalendarTool';
 import { CorrectionsTool } from '../../features/corrections/CorrectionsTool';
@@ -80,7 +81,8 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
         />
       );
     case 'bids':
-      if (projectId === null) return <NeedsJob what="bids" />;
+      // "All my jobs": the pipeline of every job I bid; picking a row opens that job's Bids.
+      if (projectId === null) return <BidPipeline isPhone={isPhone} onOpenJob={model.pickJob} />;
       return <BidsTool projectId={projectId} itemId={itemId} />;
     case 'people':
       if (projectId === null) return <NeedsJob what="people" />;

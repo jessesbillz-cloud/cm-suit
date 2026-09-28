@@ -4,7 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { messageOf } from '../../data/errors';
 import { useSaveLayout } from '../../data/mutations';
 import { useMyOrgs, useProfile, useUserLayout } from '../../data/queries';
-import { pushRecent } from '../../lib/layout';
+import { pushRecent, type Tool } from '../../lib/layout';
 import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
@@ -13,9 +13,13 @@ import { NewJobForm } from './NewJobForm';
 
 interface SetupFlowProps {
   onCancel?: (() => void) | undefined;
+  /** Prefills the new job's stage (e.g. "prospect" from the bids pipeline). */
+  stage?: string | undefined;
+  /** The tool the new job opens in; my main default when not given. */
+  openTool?: Tool | undefined;
 }
 
-export function SetupFlow({ onCancel }: SetupFlowProps) {
+export function SetupFlow({ onCancel, stage, openTool }: SetupFlowProps) {
   const orgs = useMyOrgs();
   const profile = useProfile();
   const layout = useUserLayout();
@@ -39,7 +43,7 @@ export function SetupFlow({ onCancel }: SetupFlowProps) {
         },
       },
     );
-    void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: choices.main_default } });
+    void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: openTool ?? choices.main_default } });
   }
 
   return (
@@ -47,7 +51,7 @@ export function SetupFlow({ onCancel }: SetupFlowProps) {
       {orgs.data.length === 0 ? (
         <CompanyStep initialName={profile.data.company ?? ''} />
       ) : (
-        <NewJobForm orgs={orgs.data} zone={profile.data.timezone} onCreated={openJob} onCancel={onCancel} />
+        <NewJobForm orgs={orgs.data} zone={profile.data.timezone} initialStage={stage} onCreated={openJob} onCancel={onCancel} />
       )}
       {orgs.data.length > 0 ? null : onCancel ? (
         <Button variant="quiet" className="self-center" onClick={onCancel}>
