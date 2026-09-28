@@ -52,6 +52,10 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     await installTapCounter(page, 'pm');
     await page.goto('/');
     await expect(page.getByTestId('main-area')).toBeVisible();
+    // Setup: "/" opens All my jobs (Sep 28), whose rail has no job tools, so open the first job. Not counted.
+    await page.getByTestId('job-picker').click();
+    await page.getByTestId('job-picker-option-0').click();
+    await expect(page).toHaveURL(/\/p\/[^/]+\/board/);
   });
 
   test('download any visible file = 1 click', async ({ page }) => {

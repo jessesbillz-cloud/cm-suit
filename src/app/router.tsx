@@ -5,8 +5,10 @@ import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
 import { NewJobPage } from '../features/setup/NewJobPage';
 import { PublicDeliveries } from '../features/deliveries/PublicDeliveries';
+import { STAGES } from '../lib/jobs';
+import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
-import { AllBoardRoute, AllCalendarRoute, ProjectToolRoute } from './frame/FrameRoute';
+import { AllBidsRoute, AllBoardRoute, AllCalendarRoute, AllSettingsRoute, ProjectToolRoute } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
 import { RootLayout } from './RootLayout';
 
@@ -54,6 +56,23 @@ function parseAccessSearch(s: Record<string, unknown>): { t?: string } {
   return t ? { t } : {};
 }
 
+/** New job: a stage to prefill (e.g. "prospect" from the bids pipeline) and the tool the new job opens in. */
+function parseNewJobSearch(s: Record<string, unknown>): { stage?: string; tool?: Tool } {
+  const stage = str(s['stage']);
+  const tool = str(s['tool']);
+  return {
+    ...(stage && STAGES.some((x) => x.value === stage) ? { stage } : {}),
+    ...(tool && isTool(tool) ? { tool } : {}),
+  };
+}
+
+/** The bids pipeline across jobs: the sort ("column.asc|desc") and the stages shown ("prospect,bidding"). */
+function parsePipelineSearch(s: Record<string, unknown>): { sort?: string; stages?: string } {
+  const sort = str(s['sort']);
+  const stages = str(s['stages']);
+  return { ...(sort ? { sort } : {}), ...(stages ? { stages } : {}) };
+}
+
 function NotFound() {
   return <EmptyState title="That page does not exist." hint="Use the job picker or the rail to get where you were going." />;
 }
@@ -62,7 +81,7 @@ const rootRoute = createRootRoute({ component: RootLayout, notFoundComponent: No
 
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomeRedirect });
 const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signin', component: SignIn });
-const newJobRoute = createRoute({ getParentRoute: () => rootRoute, path: '/new-job', component: NewJobPage });
+const newJobRoute = createRoute({ getParentRoute: () => rootRoute, path: '/new-job', validateSearch: parseNewJobSearch, component: NewJobPage });
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/a/$linkId',
@@ -110,6 +129,14 @@ const deliveryLinkRoute = createRoute({
   component: PublicDeliveries,
 });
 
+const allBidsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/all/bids',
+  validateSearch: parsePipelineSearch,
+  component: AllBidsRoute,
+});
+const allSettingsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/all/settings', component: AllSettingsRoute });
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -120,6 +147,8 @@ const routeTree = rootRoute.addChildren([
   allBoardRoute.addChildren([allBoardItemRoute]),
   allCalendarRoute.addChildren([allCalendarItemRoute]),
   deliveryLinkRoute,
+  allBidsRoute,
+  allSettingsRoute,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

@@ -5,27 +5,27 @@ import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 
-/** Signs in as a mock user on the desktop layout (the phone shell has its own Files screens). */
-async function signIn(page: Page, who: string): Promise<void> {
+/** Signs in as a mock user on the desktop layout (the phone shell has its own Files screens). "/" is All my jobs. */
+async function signIn(page: Page, who: string, path = '/'): Promise<void> {
   test.skip(test.info().project.name !== 'desktop', 'Uses the desktop rail.');
   await page.addInitScript((w: string) => {
     window.localStorage.setItem('e2e-mock-user', w);
   }, who);
-  await page.goto('/');
+  await page.goto(path);
 }
 
 test.describe('files: folders by who uses them', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
   test('a GC job lists Plans first and Photos last; an empty Emailed in is hidden', async ({ page }) => {
-    await signIn(page, 'pm');
+    await signIn(page, 'pm', '/p/job-a/board');
     await page.getByTestId('rail-files').click();
     await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Bids received', 'Reports', 'Photos']);
     await expect(page.getByTestId('folder').first()).toHaveAttribute('aria-current', 'true');
   });
 
   test('a new folder asks whether search and the AI read it (on by default), and it can change later', async ({ page }) => {
-    await signIn(page, 'pm');
+    await signIn(page, 'pm', '/p/job-a/board');
     await page.getByTestId('rail-files').click();
     await page.getByRole('button', { name: 'New folder' }).click();
     await page.getByTestId('new-folder-name').fill('Sample submittals');
