@@ -117,6 +117,8 @@ export const PUBLIC_TABLES = [
   'csi_divisions', 'csi_sections',
   // Bid forms (0034)
   'bid_form_templates', 'bid_form_items',
+  // Company invites (0035)
+  'org_invites',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
