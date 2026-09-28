@@ -60,7 +60,7 @@ function dayDiff(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY);
 }
 
-export interface Due {
+interface Due {
   text: string;
   late: boolean;
 }
@@ -251,7 +251,7 @@ export function matches(row: RfiListRow, query: string): boolean {
   return [rfiLabel(row.number), row.title, row.originator_name].some((v) => v.toLowerCase().includes(q));
 }
 
-export interface LogView {
+interface LogView {
   filter: Filter;
   query: string;
   sort: Sort;
