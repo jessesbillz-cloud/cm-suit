@@ -1,44 +1,33 @@
-// Packages (SPEC §11.2): code, name, first line of scope. "Add package" adds one with the next free code and opens it.
+// Packages (SPEC §11.2): code, name, and the spec sections in one quiet line (else the first line of scope).
+// "Add package" opens a new one in the right column, starting from its CSI division.
 import { Plus } from 'lucide-react';
-import { useAddPackage } from '../../data/bids.mutations';
 import { useBidPackages } from '../../data/bids.queries';
-import { messageOf } from '../../data/errors';
+import { sectionsLine } from '../../lib/csi';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
-import { useToast } from '../../ui/Toast';
 import { BidList } from './BidList';
-import { firstLine, nextPackageCode } from './model';
+import { firstLine } from './model';
+import { NEW_PACKAGE_ITEM } from './packageDraft';
 
 interface PackagesViewProps {
   projectId: string;
-  orgId: string;
   selectedId: string | null;
   onOpen: (id: string) => void;
 }
 
-export function PackagesView({ projectId, orgId, selectedId, onOpen }: PackagesViewProps) {
+export function PackagesView({ projectId, selectedId, onOpen }: PackagesViewProps) {
   const packages = useBidPackages(projectId);
-  const add = useAddPackage();
-  const toast = useToast();
-
-  function addPackage() {
-    const code = nextPackageCode((packages.data ?? []).map((p) => p.code));
-    add.mutate(
-      { projectId, orgId, code, name: 'New package' },
-      {
-        onSuccess: (row) => {
-          onOpen(row.id);
-        },
-        onError: (e) => {
-          toast.show({ tone: 'error', message: `Not added: ${messageOf(e)}` });
-        },
-      },
-    );
-  }
 
   const action = (
-    <Button size="sm" icon={Plus} loading={add.isPending} disabled={!packages.isSuccess} onClick={addPackage}>
+    <Button
+      size="sm"
+      icon={Plus}
+      data-testid="package-add"
+      onClick={() => {
+        onOpen(NEW_PACKAGE_ITEM);
+      }}
+    >
       Add package
     </Button>
   );
@@ -53,7 +42,12 @@ export function PackagesView({ projectId, orgId, selectedId, onOpen }: PackagesV
           testId="package"
           selectedId={selectedId}
           onOpen={onOpen}
-          rows={packages.data.map((p) => ({ id: p.id, lead: p.code, title: p.name, sub: firstLine(p.scope_text) }))}
+          rows={packages.data.map((p) => ({
+            id: p.id,
+            lead: p.code,
+            title: p.name,
+            sub: p.spec_sections.length > 0 ? sectionsLine(p.spec_sections) : firstLine(p.scope_text),
+          }))}
         />
       ) : null}
     </Card>

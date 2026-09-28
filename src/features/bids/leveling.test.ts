@@ -37,9 +37,9 @@ function row(id: string, pkg: string, bidder: string, amount: number | null, sta
 }
 
 const PKGS: PackageRow[] = [
-  { id: '09A', project_id: 'j', code: '09A', name: 'Drywall', scope_text: '', version: 1 },
-  { id: '03A', project_id: 'j', code: '03A', name: 'Concrete', scope_text: '', version: 1 },
-  { id: '22A', project_id: 'j', code: '22A', name: 'Plumbing', scope_text: '', version: 1 },
+  { id: '09A', project_id: 'j', code: '09A', name: 'Drywall', scope_text: '', spec_sections: [], version: 1 },
+  { id: '03A', project_id: 'j', code: '03A', name: 'Concrete', scope_text: '', spec_sections: [], version: 1 },
+  { id: '22A', project_id: 'j', code: '22A', name: 'Plumbing', scope_text: '', spec_sections: [], version: 1 },
 ];
 
 describe('splitRows', () => {

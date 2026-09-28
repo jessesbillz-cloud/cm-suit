@@ -35,7 +35,7 @@ const SEEDS: PipelineSeed[] = [
     number: 'S-310',
     stage: 'bidding',
     dueIn: 3,
-    counts: { packages: 12, packages_covered: 7, bids_in: 15, invited: 40, open_questions: 3 },
+    counts: { packages: 33, packages_covered: 17, bids_in: 17, invited: 83, open_questions: 3 }, // = mock/packages + coverage
   },
   {
     id: 'job-p2',

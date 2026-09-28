@@ -113,6 +113,8 @@ export const PUBLIC_TABLES = [
   'folder_templates',
   // Corrections (0026)
   'corrections', 'correction_history',
+  // CSI reference (0033)
+  'csi_divisions', 'csi_sections',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

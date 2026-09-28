@@ -55,4 +55,6 @@ export const qk = {
   correctionsPart: (projectId: string, part: string, id = '') => ['corrections', projectId, part, id] as const,
   /** The bids pipeline across all my jobs (counts only). */
   bidPipeline: ['bid_pipeline'] as const,
+  /** The CSI MasterFormat reference (the same for every job). */
+  csi: ['csi'] as const,
 };
