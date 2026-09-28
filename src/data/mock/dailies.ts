@@ -8,6 +8,7 @@ import type { Json } from '../database.types';
 import type { DailyPhotoRow, DailyReportRow, DailySetupRow, EmailResult, SubmitResult } from '../dailies.types';
 import { DataError, conflictError } from '../errors';
 import * as api from './api';
+import { SEED_DAILY } from './boardSeeds';
 import { mockUser } from './index';
 import * as jobs from './jobs';
 import { delay } from './store';
@@ -24,7 +25,8 @@ interface MockDailies {
 }
 
 const KEY = 'e2e-mock-dailies';
-const EMPTY: MockDailies = { setups: [], reports: [], deleted: [], photos: [], next: {}, seq: 0 };
+// Sample Job B starts with someone else's submitted report #7 (a board line points at it).
+const EMPTY: MockDailies = { setups: [], reports: [SEED_DAILY], deleted: [], photos: [], next: { [SEED_DAILY.project_id]: 8 }, seq: 0 };
 
 function read(): MockDailies {
   const raw = window.sessionStorage.getItem(KEY);

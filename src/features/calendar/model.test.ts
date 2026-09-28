@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarLine } from '../../data/calendar.types';
-import { bucketByDay, lineDay, parseCalView, parseDay, rangeFor, rangeLabel, statusKey, step, visibleDays } from './model';
+import { bucketByDay, lineDay, parseCalView, parseDay, rangeFor, rangeLabel, statusKey, step, visibleDays, visibleLines } from './model';
 
 const LA = 'America/Los_Angeles';
 const NY = 'America/New_York';
@@ -137,5 +137,28 @@ describe('bucketing lines into job-local days', () => {
       visibleDays('week', '2026-09-30'),
     );
     expect(titles(m, '2026-09-30')).toEqual(['NY 8pm', 'LA 8pm']);
+  });
+});
+
+describe('which lines a person sees', () => {
+  const jobs = [
+    { project_id: 'job-a', modules: ['calendar'] },
+    { project_id: 'job-b', modules: ['files'] },
+  ];
+  const lines = [
+    line('A meeting', '2026-09-30T16:00:00Z'),
+    line('A pour', '2026-09-30T17:00:00Z', { kind: 'pours' }),
+    line('B meeting', '2026-09-30T18:00:00Z', { project_id: 'job-b' }),
+  ];
+  const ids = (ls: readonly CalendarLine[]) => ls.map((l) => l.id);
+
+  it('only the types they checked', () => {
+    const jobA = lines.filter((l) => l.project_id === 'job-a');
+    expect(ids(visibleLines(jobA, ['meetings'], jobs, 'job-a'))).toEqual(['A meeting']);
+    expect(ids(visibleLines(jobA, [], jobs, 'job-a'))).toEqual([]);
+  });
+
+  it('on All my jobs, only jobs with the calendar on', () => {
+    expect(ids(visibleLines(lines, ['meetings', 'pours'], jobs, null))).toEqual(['A meeting', 'A pour']);
   });
 });

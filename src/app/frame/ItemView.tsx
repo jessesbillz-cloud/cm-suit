@@ -37,7 +37,10 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
         onNavigate={(id) => {
           model.openItem('board', id);
         }}
-        onOpenWindow={openWindow}
+        // A phone has no windows; the footer keeps its room for Open and Download.
+        onOpenWindow={isPhone ? undefined : openWindow}
+        // Beside the board (desktop, normal width) its "Needs you" already has these tasks: never twice on one screen.
+        showTasks={standalone || isPhone || model.rightFull}
       />
     );
   }
@@ -60,7 +63,7 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
 /** The right column's title for an open item. */
 export function itemTitle(tool: Tool): string {
   if (tool === 'files') return 'File';
-  if (tool === 'board') return 'Board item';
+  if (tool === 'board') return 'From the board';
   if (tool === 'bids') return 'Bids';
   if (tool === 'calendar') return 'Calendar';
   if (tool === 'dailies') return 'Dailies';

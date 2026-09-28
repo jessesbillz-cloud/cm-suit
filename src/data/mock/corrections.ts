@@ -17,6 +17,7 @@ import {
   type UndoResult,
 } from '../corrections.types';
 import * as api from './api';
+import { SEED_CORRECTION } from './boardSeeds';
 import { mockUser } from './index';
 import { delay } from './store';
 
@@ -34,7 +35,8 @@ interface State {
 
 function read(): State {
   const raw = window.sessionStorage.getItem(KEY);
-  return raw === null ? { rows: [], history: [] } : (JSON.parse(raw) as State);
+  // Sample Job B starts with CN-004 (a board line points at it).
+  return raw === null ? { rows: [SEED_CORRECTION], history: [] } : (JSON.parse(raw) as State);
 }
 
 function write(update: (s: State) => State): void {

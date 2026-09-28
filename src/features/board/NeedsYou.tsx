@@ -1,15 +1,13 @@
-// "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (no "are you sure?").
+// "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (useTaskDone).
 import { Check } from 'lucide-react';
-import { useCompleteTask, useUndoTask } from '../../data/mutations';
 import { useMyProjects, useTasks } from '../../data/queries';
-import { messageOf } from '../../data/errors';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
-import { useToast } from '../../ui/Toast';
+import { useTaskDone } from './useTaskDone';
 import { useProjectZones } from './zones';
 
 interface NeedsYouProps {
@@ -58,35 +56,7 @@ export function NeedsYou({ projectId }: NeedsYouProps) {
   const tasks = useTasks(projectId);
   const projects = useMyProjects();
   const zoneOf = useProjectZones();
-  const complete = useCompleteTask();
-  const undo = useUndoTask();
-  const toast = useToast();
-
-  function done(task: TaskRow) {
-    complete.mutate(task, {
-      onSuccess: (version) => {
-        toast.show({
-          message: `Done: ${task.title}`,
-          action: {
-            label: 'Undo',
-            onClick: () => {
-              undo.mutate(
-                { id: task.id, version },
-                {
-                  onError: (e) => {
-                    toast.show({ tone: 'error', message: `Could not undo: ${messageOf(e)}` });
-                  },
-                },
-              );
-            },
-          },
-        });
-      },
-      onError: (e) => {
-        toast.show({ tone: 'error', message: `Not marked done: ${messageOf(e)}` });
-      },
-    });
-  }
+  const { done, busyId } = useTaskDone();
 
   const nameOf = (id: string) => (projectId === null ? (projects.data?.find((p) => p.project_id === id)?.name ?? null) : null);
 
@@ -103,7 +73,7 @@ export function NeedsYou({ projectId }: NeedsYouProps) {
               task={t}
               projectName={nameOf(t.project_id)}
               zone={zoneOf(t.project_id)}
-              busy={complete.isPending && complete.variables.id === t.id}
+              busy={busyId === t.id}
               onDone={done}
             />
           ))}

@@ -3,6 +3,7 @@
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarLine, CalendarRange } from '../../data/calendar.types';
 import { formatDay, formatInZone, startOfDayInZone } from '../../lib/dates';
+import { toolIsOn } from '../../lib/jobs';
 import { STATUS, type StatusKey } from '../../lib/status';
 
 export const CAL_VIEWS = ['week', 'day', 'month'] as const;
@@ -82,6 +83,23 @@ export function bucketByDay<L extends Sortable>(lines: readonly L[], days: reado
   for (const line of lines) out.get(lineDay(line))?.push(line);
   for (const list of out.values()) list.sort(byDayOrder);
   return out;
+}
+
+interface CalendarJob {
+  project_id: string;
+  modules: readonly string[];
+}
+
+/** The lines a person sees: the types they checked; on "All my jobs" (projectId null) only jobs with the calendar on. */
+export function visibleLines<L extends Pick<CalendarLine, 'kind' | 'project_id'>>(
+  lines: readonly L[],
+  types: readonly string[],
+  jobs: readonly CalendarJob[],
+  projectId: string | null,
+): L[] {
+  const on = new Set(types);
+  const calendarJobs = new Set(jobs.filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id));
+  return lines.filter((l) => on.has(l.kind) && (projectId !== null || calendarJobs.has(l.project_id)));
 }
 
 /** "All day" or the start time in the job's zone. */

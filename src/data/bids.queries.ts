@@ -18,6 +18,7 @@ import {
   type PackageRow,
   type PricingAccess,
   type PricingView,
+  type PublishedAnswerRow,
   type QuestionRow,
   type ReceivedFile,
   type SubmissionRow,
@@ -255,5 +256,23 @@ export function useBidPricing(projectId: string, extractionId: string | null, al
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'pricing', extractionId ?? ''),
     queryFn: allowed && extractionId !== null ? () => fetchPricing(extractionId) : skipToken,
+  });
+}
+
+/** One published answer (a board line points at it). null = gone, or not mine to see. */
+export function usePublishedAnswer(projectId: string, answerId: string) {
+  return useQuery({
+    queryKey: qk.bidsPart(projectId, 'answer', answerId),
+    queryFn: async (): Promise<PublishedAnswerRow | null> =>
+      isMock()
+        ? mockBids.publishedAnswer(answerId)
+        : throwIfErrorMaybe(
+            await supabase
+              .from('published_answers')
+              .select('id, project_id, number, question_text, answer, published_at')
+              .eq('id', answerId)
+              .is('deleted_at', null)
+              .maybeSingle(),
+          ),
   });
 }
