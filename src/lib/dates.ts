@@ -1,5 +1,5 @@
 // Time (SPEC §8.8, CLAUDE.md rule 14): store UTC, compute "today" and display dates in the PROJECT time zone.
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 /**
@@ -51,4 +51,11 @@ export function fromZonedInput(local: string, tz: string): string | null {
 export function startOfDayInZone(day: string, tz: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error(`Not a calendar day: ${day}`);
   return fromZonedTime(`${day}T00:00:00`, tz).toISOString();
+}
+
+/** Monday 00:00 of the week holding `now`, in the given zone (e.g. the project's), as a UTC ISO string. */
+export function weekStartInZone(tz: string, now: Date = new Date()): string {
+  const isoWeekday = Number(formatInTimeZone(now, tz, 'i')); // 1 = Monday ... 7 = Sunday
+  const monday = format(subDays(parseISO(todayInZone(tz, now)), isoWeekday - 1), 'yyyy-MM-dd');
+  return fromZonedTime(`${monday}T00:00:00`, tz).toISOString();
 }

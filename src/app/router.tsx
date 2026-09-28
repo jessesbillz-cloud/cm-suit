@@ -21,6 +21,9 @@ interface ToolSearch {
   pkg?: string;
   /** Calendar, inspections, deliveries: the day being looked at (yyyy-MM-dd, the job's calendar day); absent = today. */
   day?: string;
+  /** Logs: the sort ("column.asc|desc") and the search box, shared by the list and the reading pane's arrow keys. */
+  sort?: string;
+  q?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -33,12 +36,16 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const pkg = str(s['pkg']);
   const day = str(s['day']);
   const win = s['window'] === '1' || s['window'] === 1;
+  const sort = str(s['sort']);
+  const q = str(s['q']);
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
     ...(pkg ? { pkg } : {}),
     ...(win ? { window: '1' as const } : {}),
     ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
+    ...(sort ? { sort } : {}),
+    ...(q ? { q } : {}),
   };
 }
 

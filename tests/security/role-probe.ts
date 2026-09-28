@@ -44,6 +44,9 @@ const MATRIX: Record<string, readonly Role[]> = {
   'members.manage': ['project_admin'],
   'deliveries.view': ROLES.filter((r) => r !== 'bidder'),
   'deliveries.post': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
+  'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer'],
+  'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector'],
+  'corrections.mark_ready': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
 };
 
 interface ProbeUser {

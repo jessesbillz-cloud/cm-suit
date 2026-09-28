@@ -1130,6 +1130,65 @@ export type Database = {
           },
           {
             foreignKeyName: "daily_report_photos_project_id_org_id_fkey"
+      correction_history: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          correction_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string
+          org_id: string
+          photo_ids: string[]
+          prev_closed_at: string | null
+          project_id: string
+          seq: number
+          to_status: string | null
+          undoes: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          correction_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string
+          org_id: string
+          photo_ids?: string[]
+          prev_closed_at?: string | null
+          project_id: string
+          seq?: never
+          to_status?: string | null
+          undoes?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          correction_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string
+          org_id?: string
+          photo_ids?: string[]
+          prev_closed_at?: string | null
+          project_id?: string
+          seq?: never
+          to_status?: string | null
+          undoes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_history_correction_id_fkey"
+            columns: ["correction_id"]
+            isOneToOne: false
+            referencedRelation: "corrections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_history_project_id_org_id_fkey"
             columns: ["project_id", "org_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1140,6 +1199,10 @@ export type Database = {
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "daily_reports"
+            foreignKeyName: "correction_history_undoes_fkey"
+            columns: ["undoes"]
+            isOneToOne: false
+            referencedRelation: "correction_history"
             referencedColumns: ["id"]
           },
         ]
@@ -1168,6 +1231,27 @@ export type Database = {
           signed_version: number | null
           status: string
           submitted_at: string | null
+      corrections: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
           updated_at: string
           version: number
         }
@@ -1194,6 +1278,25 @@ export type Database = {
           signed_version?: number | null
           status?: string
           submitted_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          location?: string
+          notice_file_id?: string | null
+          notice_ref?: string
+          number: number
+          org_id: string
+          photo_ids?: string[]
+          project_id: string
+          request_key: string
+          spec_tags?: string[]
+          status?: string
+          status_changed_at?: string
+          title: string
+          trade?: string
           updated_at?: string
           version?: number
         }
@@ -1220,6 +1323,25 @@ export type Database = {
           signed_version?: number | null
           status?: string
           submitted_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          location?: string
+          notice_file_id?: string | null
+          notice_ref?: string
+          number?: number
+          org_id?: string
+          photo_ids?: string[]
+          project_id?: string
+          request_key?: string
+          spec_tags?: string[]
+          status?: string
+          status_changed_at?: string
+          title?: string
+          trade?: string
           updated_at?: string
           version?: number
         }
@@ -1227,6 +1349,8 @@ export type Database = {
           {
             foreignKeyName: "daily_reports_pdf_file_id_fkey"
             columns: ["pdf_file_id"]
+            foreignKeyName: "corrections_notice_file_id_fkey"
+            columns: ["notice_file_id"]
             isOneToOne: false
             referencedRelation: "files"
             referencedColumns: ["id"]
@@ -1280,6 +1404,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "daily_setups_project_id_org_id_fkey"
+            foreignKeyName: "corrections_project_id_org_id_fkey"
             columns: ["project_id", "org_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -3720,6 +3845,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      correction_files_ok: {
+        Args: { p_ids: string[]; p_images_only: boolean; p_project_id: string }
+        Returns: boolean
+      }
+      correction_label: { Args: { p_number: number }; Returns: string }
+      correction_photo_folder: { Args: { p_project_id: string }; Returns: string }
+      correction_reinspect_tasks: {
+        Args: {
+          p_correction: Database["public"]["Tables"]["corrections"]["Row"]
+        }
+        Returns: undefined
+      }
       create_addendum: {
         Args: {
           p_body: string
@@ -3759,6 +3896,48 @@ export type Database = {
           p_report_type: string
         }
         Returns: string
+      create_correction: {
+        Args: {
+          p_description?: string
+          p_location?: string
+          p_notice_file_id?: string
+          p_notice_ref?: string
+          p_photo_ids?: string[]
+          p_project_id: string
+          p_request_key: string
+          p_spec_tags?: string[]
+          p_title: string
+          p_trade?: string
+        }
+        Returns: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "corrections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_org: { Args: { p_kind: string; p_name: string }; Returns: string }
       create_project: {
@@ -5841,6 +6020,43 @@ export type Database = {
           p_start: number
         }
         Returns: number
+      set_correction_status: {
+        Args: {
+          p_id: string
+          p_note?: string
+          p_photo_ids?: string[]
+          p_status: string
+          p_version: number
+        }
+        Returns: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "corrections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }
@@ -5893,6 +6109,37 @@ export type Database = {
           p_version: number
         }
         Returns: number
+      undo_correction: {
+        Args: { p_id: string; p_version: number }
+        Returns: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "corrections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       worker_ack_job: {
         Args: { p_job_id: string; p_msg_id: number }

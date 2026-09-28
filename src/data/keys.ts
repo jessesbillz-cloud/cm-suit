@@ -50,4 +50,7 @@ export const qk = {
   /** The public delivery link's board (no session): its own prefix, never mixed with the signed-in cache. */
   deliveryLink: (projectId: string) => ['delivery_link', projectId] as const,
   deliveryLinkPart: (projectId: string, part: string, id = '') => ['delivery_link', projectId, part, id] as const,
+  /** Every corrections query of a job sits under this prefix: one invalidation after any corrections write. */
+  corrections: (projectId: string) => ['corrections', projectId] as const,
+  correctionsPart: (projectId: string, part: string, id = '') => ['corrections', projectId, part, id] as const,
 };
