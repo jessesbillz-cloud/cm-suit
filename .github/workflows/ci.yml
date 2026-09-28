@@ -19,7 +19,14 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run knip
+      - name: knip (unused files, exports, dependencies)
+        # The findings go into an annotation too, so they show without opening the log.
+        run: |
+          if ! npm run --silent knip > "$RUNNER_TEMP/knip.txt" 2>&1; then
+            cat "$RUNNER_TEMP/knip.txt"
+            echo "::error title=knip::$(head -c 3000 "$RUNNER_TEMP/knip.txt" | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')"
+            exit 1
+          fi
       - run: npm run hygiene
       - run: npm run test:unit
       - name: Deno lint + check (edge functions)

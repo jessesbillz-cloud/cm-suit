@@ -3944,10 +3944,8 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: string
       }
-      correction_reinspect_tasks: {
-        Args: {
-          p_correction: Database["public"]["Tables"]["corrections"]["Row"]
-        }
+      correction_reinspect_tasks_for: {
+        Args: { p_correction_id: string }
         Returns: undefined
       }
       create_addendum: {
@@ -4181,10 +4179,6 @@ export type Database = {
         }
         Returns: Json
       }
-      delivery_can_change: {
-        Args: { d: Database["public"]["Tables"]["deliveries"]["Row"] }
-        Returns: boolean
-      }
       delivery_clean: {
         Args: { p_max: number; p_text: string }
         Returns: string
@@ -4297,6 +4291,10 @@ export type Database = {
           active: boolean
           since: string
         }[]
+      }
+      delivery_may_change: {
+        Args: { p_created_by: string; p_project_id: string }
+        Returns: boolean
       }
       delivery_overlaps: {
         Args: {

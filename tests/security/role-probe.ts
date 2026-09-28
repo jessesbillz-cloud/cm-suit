@@ -449,7 +449,7 @@ async function checkDeliveries(s: Seed, clients: Map<UserKey, Client>): Promise<
   const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
   const post = async (key: UserKey, time: string) => {
     const res = await clientOf(clients, key).rpc('post_delivery', {
-      p_project_id: s.projA, p_company: `Probe Co ${RUN}`, p_date: day, p_duration: 60, p_description: `Probe ${key}`, p_time: time,
+      p_project_id: s.projA, p_company: `Probe Co ${RUN}`, p_date: day, p_duration: 60, p_description: `Load for ${key}`, p_time: time,
     });
     if (res.error) throw new Error(`post_delivery as ${key}: ${res.error.message}`);
     return String(res.data);
