@@ -18,7 +18,8 @@ type FunctionName =
   | 'submit-daily'
   | 'email-daily'
   | 'ir-pdf'
-  | 'ir-send';
+  | 'ir-send'
+  | 'delivery-board';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

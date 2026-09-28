@@ -108,6 +108,8 @@ export const PUBLIC_TABLES = [
   'calendar_entries', 'calendar_feed_tokens',
   'daily_setups', 'daily_reports', 'daily_report_photos', 'daily_author_folders',
   'inspection_requests', 'ir_events', 'ir_blocks', 'ir_special_kinds',
+  // Deliveries (0025)
+  'deliveries', 'delivery_companies', 'delivery_reviews', 'delivery_link_log',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

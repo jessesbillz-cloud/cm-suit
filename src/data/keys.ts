@@ -44,4 +44,10 @@ export const qk = {
   inspectionsPart: (projectId: string, part: string, id = '') => ['inspections', projectId, part, id] as const,
   /** The roles holding ir.decide (who can be a co-inspector), read from the capability matrix. */
   decideRoles: ['role_permissions', 'ir.decide'] as const,
+  /** Every deliveries query of a job sits under this prefix: one invalidation after any delivery write. */
+  deliveries: (projectId: string) => ['deliveries', projectId] as const,
+  deliveriesPart: (projectId: string, part: string, id = '') => ['deliveries', projectId, part, id] as const,
+  /** The public delivery link's board (no session): its own prefix, never mixed with the signed-in cache. */
+  deliveryLink: (projectId: string) => ['delivery_link', projectId] as const,
+  deliveryLinkPart: (projectId: string, part: string, id = '') => ['delivery_link', projectId, part, id] as const,
 };

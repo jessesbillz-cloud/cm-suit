@@ -4,6 +4,7 @@ import { BidsItem } from '../../features/bids/BidsItem';
 import { BoardItem } from '../../features/board/BoardItem';
 import { CalendarItem } from '../../features/calendar/CalendarItem';
 import { DailiesItem } from '../../features/dailies/DailiesItem';
+import { DeliveryItem } from '../../features/deliveries/DeliveryItem';
 import { FileItem } from '../../features/files/FileItem';
 import { InspectionsItem } from '../../features/inspections/InspectionsItem';
 import { EmptyState } from '../../ui/States';
@@ -44,6 +45,7 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   if (tool === 'inspections' && model.loc.projectId !== null) {
     return <InspectionsItem projectId={model.loc.projectId} itemId={itemId} onOpenWindow={openWindow} />;
   }
+  if (tool === 'deliveries' && model.loc.projectId !== null) return <DeliveryItem projectId={model.loc.projectId} itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
 }
 
@@ -55,5 +57,6 @@ export function itemTitle(tool: Tool): string {
   if (tool === 'calendar') return 'Calendar';
   if (tool === 'dailies') return 'Dailies';
   if (tool === 'inspections') return 'Inspection';
+  if (tool === 'deliveries') return 'Delivery';
   return 'Item';
 }

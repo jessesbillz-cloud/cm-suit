@@ -48,3 +48,6 @@ ir-pdf
 # send (ir_mark_sent, service-only); requireCapability('ir.decide'), the owner check and create_transmittal() run as
 # the user first.
 ir-send
+# Public endpoint §6.4 #3: the delivery link. The token is checked by service-role-only SQL (link_*), which returns
+# board fields only; rate-limited per IP and per token.
+delivery-board

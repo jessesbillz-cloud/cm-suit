@@ -1325,6 +1325,210 @@ export type Database = {
           },
         ]
       }
+      deliveries: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_name: string | null
+          delivery_date: string
+          description: string
+          duration_min: number
+          file_ids: string[]
+          id: string
+          number: number
+          org_id: string
+          posted_name: string
+          project_id: string
+          standby: boolean
+          starts_at: string | null
+          updated_at: string
+          version: number
+          via_link: boolean
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_name?: string | null
+          delivery_date: string
+          description: string
+          duration_min?: number
+          file_ids?: string[]
+          id?: string
+          number: number
+          org_id: string
+          posted_name: string
+          project_id: string
+          standby?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          version?: number
+          via_link?: boolean
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_name?: string | null
+          delivery_date?: string
+          description?: string
+          duration_min?: number
+          file_ids?: string[]
+          id?: string
+          number?: number
+          org_id?: string
+          posted_name?: string
+          project_id?: string
+          standby?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          version?: number
+          via_link?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_company_id_project_id_fkey"
+            columns: ["company_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_companies"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "deliveries_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      delivery_companies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          org_id: string
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_companies_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      delivery_link_log: {
+        Row: {
+          id: string
+          new_hash: string
+          old_hash: string | null
+          project_id: string
+          rotated_at: string
+          rotated_by: string
+          undone_at: string | null
+        }
+        Insert: {
+          id?: string
+          new_hash: string
+          old_hash?: string | null
+          project_id: string
+          rotated_at?: string
+          rotated_by: string
+          undone_at?: string | null
+        }
+        Update: {
+          id?: string
+          new_hash?: string
+          old_hash?: string | null
+          project_id?: string
+          rotated_at?: string
+          rotated_by?: string
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_link_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_reviews: {
+        Row: {
+          company: string
+          created_at: string
+          created_by: string
+          id: string
+          month: string
+          name: string
+          org_id: string
+          project_id: string
+        }
+        Insert: {
+          company?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          month: string
+          name: string
+          org_id: string
+          project_id: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          month?: string
+          name?: string
+          org_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_reviews_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       downloads: {
         Row: {
           at: string
@@ -3293,6 +3497,10 @@ export type Database = {
         Args: { p_expected: number; p_id: string; p_table: unknown }
         Returns: undefined
       }
+      attach_delivery_file: {
+        Args: { p_delivery_id: string; p_file_id: string }
+        Returns: undefined
+      }
       audit: {
         Args: {
           p_action: string
@@ -3682,12 +3890,120 @@ export type Database = {
           signed_version: number | null
           status: string
           submitted_at: string | null
+      delete_delivery: {
+        Args: { p_id: string; p_name: string; p_version: number }
+        Returns: undefined
+      }
+      delivery_board_fields: {
+        Args: { d: Database["public"]["Tables"]["deliveries"]["Row"]; p_company: string }
+        Returns: Json
+      }
+      delivery_can_change: {
+        Args: { d: Database["public"]["Tables"]["deliveries"]["Row"] }
+        Returns: boolean
+      }
+      delivery_clean: {
+        Args: { p_max: number; p_text: string }
+        Returns: string
+      }
+      delivery_company_id: {
+        Args: { p_name: string; p_org_id: string; p_project_id: string }
+        Returns: string
+      }
+      delivery_company_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          uses: number
+        }[]
+      }
+      delivery_company_options: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          uses: number
+        }[]
+      }
+      delivery_folder: { Args: { p_project_id: string }; Returns: string }
+      delivery_history: {
+        Args: { p_delivery_id: string }
+        Returns: {
+          action: string
+          actor_name: string
+          at: string
+          details: Json
+        }[]
+      }
+      delivery_insert: {
+        Args: {
+          p_company: string
+          p_date: string
+          p_description: string
+          p_duration: number
+          p_posted_name: string
+          p_project_id: string
+          p_time: string
+          p_via_link: boolean
+        }
+        Returns: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_name: string | null
+          delivery_date: string
+          description: string
+          duration_min: number
+          file_ids: string[]
+          id: string
+          number: number
+          org_id: string
+          posted_name: string
+          project_id: string
+          standby: boolean
+          starts_at: string | null
+          updated_at: string
+          version: number
+          via_link: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "deliveries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      delivery_link_project: {
+        Args: { p_project_id: string; p_token_hash: string }
+        Returns: {
+          address: string | null
+          bid_due_at: string | null
+          bid_sealed: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          delivery_token_hash: string | null
+          funding: string | null
+          id: string
+          inbound_address: string | null
+          job_type: string | null
+          modules: string[]
+          name: string
+          number: string | null
+          org_id: string
+          prevailing_wage: boolean
+          request_token_hash: string | null
+          settings: Json
+          stage: string
+          timezone: string
           updated_at: string
           version: number
         }
         SetofOptions: {
           from: "*"
           to: "daily_reports"
+          to: "projects"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3700,6 +4016,21 @@ export type Database = {
           p_version: number
         }
         Returns: undefined
+      delivery_link_state: {
+        Args: { p_project_id: string }
+        Returns: {
+          active: boolean
+          since: string
+        }[]
+      }
+      delivery_overlaps: {
+        Args: {
+          p_duration: number
+          p_exclude: string
+          p_project_id: string
+          p_starts_at: string
+        }
+        Returns: boolean
       }
       enqueue_job: {
         Args: {
@@ -5104,6 +5435,32 @@ export type Database = {
         }
       }
       jwt_role: { Args: never; Returns: string }
+      link_delivery_board: {
+        Args: {
+          p_from: string
+          p_project_id: string
+          p_to: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      link_delivery_receipt: {
+        Args: { p_delivery_id: string; p_project_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      link_post_delivery: {
+        Args: {
+          p_company: string
+          p_date: string
+          p_description: string
+          p_duration: number
+          p_name: string
+          p_project_id: string
+          p_time?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
       log_view: {
         Args: {
           p_entity_id: string
@@ -5174,6 +5531,17 @@ export type Database = {
           p_project_id: string
           p_recipient_user_ids?: string[]
           p_summary: string
+        }
+        Returns: string
+      }
+      post_delivery: {
+        Args: {
+          p_company: string
+          p_date: string
+          p_description: string
+          p_duration: number
+          p_project_id: string
+          p_time?: string
         }
         Returns: string
       }
@@ -5311,6 +5679,16 @@ export type Database = {
           status: string
         }[]
       }
+      restore_delivery: { Args: { p_id: string }; Returns: undefined }
+      review_delivery_month: {
+        Args: {
+          p_company: string
+          p_month: string
+          p_name: string
+          p_project_id: string
+        }
+        Returns: undefined
+      }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
       save_daily_content: {
@@ -5406,6 +5784,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
       session_aal: { Args: never; Returns: string }
       set_bid_intent: {
         Args: { p_intent: string; p_invite_id: string; p_reason?: string }
@@ -5499,6 +5878,22 @@ export type Database = {
       }
       sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
+      undo_delivery_link_rotation: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      update_delivery: {
+        Args: {
+          p_company: string
+          p_date: string
+          p_description: string
+          p_duration: number
+          p_id: string
+          p_time?: string
+          p_version: number
+        }
+        Returns: number
+      }
       worker_ack_job: {
         Args: { p_job_id: string; p_msg_id: number }
         Returns: undefined
