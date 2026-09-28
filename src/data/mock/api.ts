@@ -17,13 +17,13 @@ import type {
 import {
   MOCK_ACTIVITY,
   MOCK_FILES,
-  MOCK_FOLDERS,
   MOCK_PEOPLE,
   MOCK_ROLES,
   MOCK_TASKS,
   mockProfile,
   toBoardLine,
 } from './fixtures';
+import { MOCK_FOLDERS } from './folders';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
 
@@ -83,12 +83,23 @@ export async function saveLayout(choices: LayoutChoices, version: number | null)
   return next;
 }
 
-export async function folders(projectId: string): Promise<FolderRow[]> {
-  await delay();
-  return [...MOCK_FOLDERS, ...readMock().folders].filter((f) => f.project_id === projectId);
+/** Fixture folders (with this test's edits) plus the ones made in this test, in tree order, with their file counts. */
+function allFolders(): FolderRow[] {
+  const saved = readMock().folders;
+  const base = MOCK_FOLDERS.map((f) => saved.find((x) => x.id === f.id) ?? f);
+  return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
 }
 
-export async function createFolder(projectId: string, parentId: string | null, name: string): Promise<FolderRow> {
+export async function folders(projectId: string): Promise<FolderRow[]> {
+  await delay();
+  const files = allFiles();
+  return allFolders()
+    .filter((f) => f.project_id === projectId)
+    .map((f) => ({ ...f, file_count: f.kind === 'inbound' ? files.filter((x) => x.folder_id === f.id).length : null }))
+    .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
+}
+
+export async function createFolder(projectId: string, parentId: string | null, name: string, aiReads: boolean): Promise<FolderRow> {
   await delay();
   const s = readMock();
   const row: FolderRow = {
@@ -99,9 +110,22 @@ export async function createFolder(projectId: string, parentId: string | null, n
     kind: 'general',
     view_only: false,
     proprietary: false,
+    sort: 100,
+    ai_reads: aiReads,
+    version: 1,
+    file_count: null,
   };
   writeMock((m) => ({ ...m, folders: [...m.folders, row] }));
   return row;
+}
+
+export async function setFolderAiReads(folderId: string, aiReads: boolean, version: number): Promise<number> {
+  await delay();
+  const current = allFolders().find((f) => f.id === folderId);
+  if (!current || current.version !== version) throw conflictError();
+  const next: FolderRow = { ...current, ai_reads: aiReads, version: version + 1 };
+  writeMock((m) => ({ ...m, folders: [...m.folders.filter((f) => f.id !== folderId), next] }));
+  return next.version;
 }
 
 function allFiles(): FileRow[] {

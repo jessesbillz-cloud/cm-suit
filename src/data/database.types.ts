@@ -2106,8 +2106,45 @@ export type Database = {
           },
         ]
       }
+      folder_templates: {
+        Row: {
+          access_capability: string | null
+          ai_reads: boolean
+          applies_to: string
+          company_kind: string
+          created_at: string
+          folder_kind: string
+          id: string
+          name: string
+          sort: number
+        }
+        Insert: {
+          access_capability?: string | null
+          ai_reads?: boolean
+          applies_to?: string
+          company_kind: string
+          created_at?: string
+          folder_kind: string
+          id?: string
+          name: string
+          sort: number
+        }
+        Update: {
+          access_capability?: string | null
+          ai_reads?: boolean
+          applies_to?: string
+          company_kind?: string
+          created_at?: string
+          folder_kind?: string
+          id?: string
+          name?: string
+          sort?: number
+        }
+        Relationships: []
+      }
       folders: {
         Row: {
+          ai_reads: boolean
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -2118,11 +2155,13 @@ export type Database = {
           parent_id: string | null
           project_id: string
           proprietary: boolean
+          sort: number
           updated_at: string
           version: number
           view_only: boolean
         }
         Insert: {
+          ai_reads?: boolean
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -2133,11 +2172,13 @@ export type Database = {
           parent_id?: string | null
           project_id: string
           proprietary?: boolean
+          sort?: number
           updated_at?: string
           version?: number
           view_only?: boolean
         }
         Update: {
+          ai_reads?: boolean
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -2148,6 +2189,7 @@ export type Database = {
           parent_id?: string | null
           project_id?: string
           proprietary?: boolean
+          sort?: number
           updated_at?: string
           version?: number
           view_only?: boolean
@@ -2823,6 +2865,7 @@ export type Database = {
           funding: string | null
           id: string
           inbound_address: string | null
+          is_dsa: boolean
           job_type: string | null
           modules: string[]
           name: string
@@ -2847,6 +2890,7 @@ export type Database = {
           funding?: string | null
           id?: string
           inbound_address?: string | null
+          is_dsa?: boolean
           job_type?: string | null
           modules?: string[]
           name: string
@@ -2871,6 +2915,7 @@ export type Database = {
           funding?: string | null
           id?: string
           inbound_address?: string | null
+          is_dsa?: boolean
           job_type?: string | null
           modules?: string[]
           name?: string
@@ -3563,6 +3608,9 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      add_template_folders: {
+        Args: { p_applies: string[]; p_created_by: string; p_project_id: string }
+        Returns: undefined
       }
       answer_bid_question: {
         Args: {
@@ -3944,6 +3992,7 @@ export type Database = {
         Args: {
           p_address?: string
           p_bid_due_at?: string
+          p_is_dsa?: boolean
           p_job_type?: string
           p_name: string
           p_number?: string

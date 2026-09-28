@@ -1,22 +1,31 @@
 import type { Config } from 'tailwindcss';
 
 // Design tokens (SPEC §7.1). Status colors are NOT here; they come from src/lib/status.ts.
+// Near-white page, white cards with a hairline edge and a two-step shadow, card headers on a faint tint,
+// one accent color. The font is self-hosted IBM Plex Sans (public/fonts, @font-face in src/app/styles.css).
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        page: '#F7F8FA',
-        card: '#FFFFFF',
-        ink: { DEFAULT: '#111827', 2: '#6B7280', 3: '#9CA3AF' },
-        line: '#E5E7EB',
+        page: '#F2F4F7',
+        card: { DEFAULT: '#FFFFFF', head: '#F8F9FB' },
+        ink: { DEFAULT: '#111827', 2: '#586273', 3: '#98A1B0' },
+        line: { DEFAULT: '#E2E5EA', strong: '#CDD2DA' },
         accent: { DEFAULT: '#2563EB', hover: '#1D4ED8', soft: '#EFF6FF' },
         danger: { DEFAULT: '#DC2626', soft: '#FEF2F2' },
         impact: { row: '#FFF7E6' },
       },
-      boxShadow: { card: '0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.06)' },
+      boxShadow: {
+        // Hairline edge + contact shadow + soft lift.
+        card: '0 0 0 1px rgba(16,24,40,.07), 0 1px 2px rgba(16,24,40,.06), 0 4px 12px -2px rgba(16,24,40,.08)',
+        // Menus and toasts float higher.
+        pop: '0 0 0 1px rgba(16,24,40,.08), 0 4px 8px -2px rgba(16,24,40,.10), 0 16px 32px -6px rgba(16,24,40,.18)',
+        control: '0 1px 2px rgba(16,24,40,.06)',
+        primary: 'inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(16,24,40,.22)',
+      },
       borderRadius: { card: '8px' },
-      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      fontFamily: { sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'] },
       width: { rail: '112px', 'rail-open': '208px', right: '420px' },
     },
   },

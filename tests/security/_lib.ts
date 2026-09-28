@@ -110,6 +110,9 @@ export const PUBLIC_TABLES = [
   'inspection_requests', 'ir_events', 'ir_blocks', 'ir_special_kinds',
   // Deliveries (0025)
   'deliveries', 'delivery_companies', 'delivery_reviews', 'delivery_link_log',
+  'folder_templates',
+  // Corrections (0026)
+  'corrections', 'correction_history',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

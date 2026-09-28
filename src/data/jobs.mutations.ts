@@ -34,6 +34,7 @@ async function createJob(v: NewJobInput): Promise<string> {
       p_address: v.address,
       p_prevailing_wage: v.prevailingWage,
       p_job_type: v.jobType,
+      p_is_dsa: v.isDsa,
       ...(v.bidDueAt ? { p_bid_due_at: v.bidDueAt } : {}),
     }),
   );
@@ -67,10 +68,11 @@ export function useSaveProject(projectId: string) {
       if (!current) throw new Error('This job has not loaded yet.');
       return updateProject(projectId, patch, current.version);
     },
-    onSuccess: async (row) => {
+    onSuccess: async (row, patch) => {
       qc.setQueryData(qk.project(projectId), withSettings(row));
-      // Name, number, stage and modules show in the job picker and the rail.
+      // Name, number, stage and modules show in the job picker and the rail; turning DSA on adds its folders.
       await qc.invalidateQueries({ queryKey: qk.myProjects });
+      if (patch.is_dsa !== undefined) await qc.invalidateQueries({ queryKey: qk.folders(projectId) });
     },
   });
 }

@@ -13,10 +13,10 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'chi
 }
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-hover disabled:bg-accent/50',
-  secondary: 'bg-card text-ink border border-line hover:bg-page disabled:text-ink-3',
+  primary: 'bg-accent text-white shadow-primary hover:bg-accent-hover disabled:bg-accent/50 disabled:shadow-none',
+  secondary: 'bg-card text-ink border border-line-strong shadow-control hover:bg-page disabled:text-ink-3 disabled:shadow-none',
   quiet: 'bg-transparent text-ink-2 hover:bg-page hover:text-ink disabled:text-ink-3',
-  danger: 'bg-card text-danger border border-line hover:bg-danger-soft disabled:text-ink-3',
+  danger: 'bg-card text-danger border border-line-strong shadow-control hover:bg-danger-soft disabled:text-ink-3 disabled:shadow-none',
 };
 
 export function Button({
@@ -36,7 +36,7 @@ export function Button({
       type={type}
       disabled={disabled === true || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed ${pad} ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-[background-color,color,box-shadow] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed ${pad} ${VARIANTS[variant]} ${className}`}
       {...rest}
     >
       {loading ? <Icon icon={LoaderCircle} size={16} className="animate-spin" /> : icon ? <Icon icon={icon} size={16} /> : null}

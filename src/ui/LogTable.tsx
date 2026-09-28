@@ -92,7 +92,7 @@ export function LogTable({ rows, timeZone, onOpen, selectedId, label }: LogTable
       </label>
       <table className="w-full table-fixed border-collapse text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-xs text-ink-2">
+          <tr className="border-b border-line bg-card-head text-left text-xs text-ink-2">
             {COLUMNS.map((c) => {
               const active = sort.key === c.key;
               return (

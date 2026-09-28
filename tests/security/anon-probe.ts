@@ -159,6 +159,13 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['delivery_clean', { p_text: 'probe', p_max: 10 }],
   ['delivery_insert', { p_project_id: U, p_company: 'probe', p_date: '2026-10-01', p_time: '07:00', p_duration: 60, p_description: 'probe', p_posted_name: 'probe', p_via_link: true }],
   ['delivery_link_project', { p_project_id: U, p_token_hash: 'x' }],
+  // Folders by company kind (0027)
+  ['add_template_folders', { p_project_id: U, p_applies: ['both'], p_created_by: U }],
+  // Corrections (0026)
+  ['correction_photo_folder', { p_project_id: U }],
+  ['create_correction', { p_project_id: U, p_title: 'probe', p_request_key: 'probe' }],
+  ['set_correction_status', { p_id: U, p_version: 1, p_status: 'ready' }],
+  ['undo_correction', { p_id: U, p_version: 1 }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

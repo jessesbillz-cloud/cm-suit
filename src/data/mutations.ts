@@ -10,7 +10,7 @@ import { qk } from './keys';
 import * as mock from './mock/api';
 import { isMock } from './mock';
 import type { LayoutState } from './queries';
-import type { FolderRow, InviteInput, InviteResult, ProfilePatch, ProfileRow, TaskRow } from './types';
+import type { InviteInput, InviteResult, ProfilePatch, ProfileRow, TaskRow } from './types';
 
 async function setTaskDone(task: { id: string; version: number }, userId: string, done: boolean): Promise<number> {
   if (isMock()) return mock.setTaskDone(task.id, task.version, done);
@@ -118,29 +118,6 @@ export function useSaveLayout() {
       if (ctx?.before) qc.setQueryData(qk.layout, ctx.before);
       await qc.invalidateQueries({ queryKey: qk.layout });
     },
-  });
-}
-
-async function insertFolder(userId: string, projectId: string, parentId: string | null, name: string): Promise<FolderRow> {
-  if (isMock()) return mock.createFolder(projectId, parentId, name);
-  const projectRow: unknown = throwIfError(await supabase.from('projects').select('org_id').eq('id', projectId).single());
-  const project = z.object({ org_id: z.string() }).parse(projectRow);
-  return throwIfError(
-    await supabase
-      .from('folders')
-      .insert({ org_id: project.org_id, project_id: projectId, parent_id: parentId, name: name.trim(), created_by: userId })
-      .select('id, project_id, parent_id, name, kind, view_only, proprietary')
-      .single(),
-  );
-}
-
-export function useCreateFolder() {
-  const qc = useQueryClient();
-  const user = useUser();
-  return useMutation({
-    mutationFn: (v: { projectId: string; parentId: string | null; name: string }) =>
-      insertFolder(user.id, v.projectId, v.parentId, v.name),
-    onSuccess: (folder) => qc.invalidateQueries({ queryKey: qk.folders(folder.project_id) }),
   });
 }
 

@@ -84,7 +84,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
         <>
           {/* Backdrop: clicking outside closes the menu without a document listener. */}
           <div className="fixed inset-0 z-30" aria-hidden="true" onClick={close} />
-          <div className="absolute left-0 top-10 z-40 w-80 rounded-card bg-card shadow-card ring-1 ring-line">
+          <div className="absolute left-0 top-10 z-40 w-80 rounded-card bg-card shadow-pop">
             <div className="flex items-center gap-2 border-b border-line px-3">
               <Icon icon={Search} size={16} className="text-ink-3" />
               <input

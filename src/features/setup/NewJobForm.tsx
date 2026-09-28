@@ -29,6 +29,7 @@ export function NewJobForm({ orgs, zone, onCreated, onCancel }: NewJobFormProps)
   const [bidDue, setBidDue] = useState('');
   const [jobType, setJobType] = useState('');
   const [prevailingWage, setPrevailingWage] = useState(false);
+  const [isDsa, setIsDsa] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
   function submit() {
@@ -47,6 +48,7 @@ export function NewJobForm({ orgs, zone, onCreated, onCancel }: NewJobFormProps)
         bidDueAt: isBidStage(stage) ? fromZonedInput(bidDue, zone) : null,
         prevailingWage,
         jobType,
+        isDsa,
       },
       {
         onSuccess: onCreated,
@@ -82,6 +84,7 @@ export function NewJobForm({ orgs, zone, onCreated, onCancel }: NewJobFormProps)
         <TextField label="Job type" value={jobType} onChange={setJobType} />
         {isBidStage(stage) ? <TextField label="Bid due" type="datetime-local" value={bidDue} onChange={setBidDue} /> : null}
         <CheckField label="Prevailing wage" checked={prevailingWage} onChange={setPrevailingWage} />
+        <CheckField label="DSA job" checked={isDsa} onChange={setIsDsa} testId="setup-job-dsa" />
         <div className="flex items-center gap-3 sm:col-span-2">
           <Button type="submit" variant="primary" loading={create.isPending} data-testid="setup-job-create">
             Create job

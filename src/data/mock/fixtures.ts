@@ -1,5 +1,5 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
-import type { ActivityRow, BoardLine, FileRow, FolderRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
+import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 
 const TZ = 'America/Los_Angeles';
 
@@ -36,12 +36,6 @@ export const MOCK_PROJECTS: MyProject[] = [
     modules: MOCK_JOB_MODULES,
   },
 ];
-
-/** Every mock job has Plans and the "Bids received" folder the office intake uploads into. */
-export const MOCK_FOLDERS: FolderRow[] = MOCK_PROJECTS.flatMap((p) => [
-  { id: `${p.project_id}-plans`, project_id: p.project_id, parent_id: null, name: 'Plans', kind: 'plans', view_only: false, proprietary: false },
-  { id: `${p.project_id}-bids`, project_id: p.project_id, parent_id: null, name: 'Bids received', kind: 'bids_received', view_only: false, proprietary: false },
-]);
 
 export const MOCK_FILES: FileRow[] = MOCK_PROJECTS.map((p, i) => ({
   id: `${p.project_id}-file-1`,
