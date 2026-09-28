@@ -1038,6 +1038,167 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      correction_history: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          correction_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string
+          org_id: string
+          photo_ids: string[]
+          prev_closed_at: string | null
+          project_id: string
+          seq: number
+          to_status: string | null
+          undoes: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          correction_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string
+          org_id: string
+          photo_ids?: string[]
+          prev_closed_at?: string | null
+          project_id: string
+          seq?: never
+          to_status?: string | null
+          undoes?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          correction_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string
+          org_id?: string
+          photo_ids?: string[]
+          prev_closed_at?: string | null
+          project_id?: string
+          seq?: never
+          to_status?: string | null
+          undoes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_history_correction_id_fkey"
+            columns: ["correction_id"]
+            isOneToOne: false
+            referencedRelation: "corrections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_history_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "correction_history_undoes_fkey"
+            columns: ["undoes"]
+            isOneToOne: false
+            referencedRelation: "correction_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      corrections: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          location?: string
+          notice_file_id?: string | null
+          notice_ref?: string
+          number: number
+          org_id: string
+          photo_ids?: string[]
+          project_id: string
+          request_key: string
+          spec_tags?: string[]
+          status?: string
+          status_changed_at?: string
+          title: string
+          trade?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          location?: string
+          notice_file_id?: string | null
+          notice_ref?: string
+          number?: number
+          org_id?: string
+          photo_ids?: string[]
+          project_id?: string
+          request_key?: string
+          spec_tags?: string[]
+          status?: string
+          status_changed_at?: string
+          title?: string
+          trade?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corrections_notice_file_id_fkey"
+            columns: ["notice_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corrections_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       daily_author_folders: {
         Row: {
           author_id: string
@@ -1130,65 +1291,6 @@ export type Database = {
           },
           {
             foreignKeyName: "daily_report_photos_project_id_org_id_fkey"
-      correction_history: {
-        Row: {
-          action: string
-          actor_user_id: string | null
-          correction_id: string
-          created_at: string
-          from_status: string | null
-          id: string
-          note: string
-          org_id: string
-          photo_ids: string[]
-          prev_closed_at: string | null
-          project_id: string
-          seq: number
-          to_status: string | null
-          undoes: string | null
-        }
-        Insert: {
-          action: string
-          actor_user_id?: string | null
-          correction_id: string
-          created_at?: string
-          from_status?: string | null
-          id?: string
-          note?: string
-          org_id: string
-          photo_ids?: string[]
-          prev_closed_at?: string | null
-          project_id: string
-          seq?: never
-          to_status?: string | null
-          undoes?: string | null
-        }
-        Update: {
-          action?: string
-          actor_user_id?: string | null
-          correction_id?: string
-          created_at?: string
-          from_status?: string | null
-          id?: string
-          note?: string
-          org_id?: string
-          photo_ids?: string[]
-          prev_closed_at?: string | null
-          project_id?: string
-          seq?: never
-          to_status?: string | null
-          undoes?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "correction_history_correction_id_fkey"
-            columns: ["correction_id"]
-            isOneToOne: false
-            referencedRelation: "corrections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "correction_history_project_id_org_id_fkey"
             columns: ["project_id", "org_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1199,10 +1301,6 @@ export type Database = {
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "daily_reports"
-            foreignKeyName: "correction_history_undoes_fkey"
-            columns: ["undoes"]
-            isOneToOne: false
-            referencedRelation: "correction_history"
             referencedColumns: ["id"]
           },
         ]
@@ -1231,27 +1329,6 @@ export type Database = {
           signed_version: number | null
           status: string
           submitted_at: string | null
-      corrections: {
-        Row: {
-          closed_at: string | null
-          created_at: string
-          created_by: string
-          deleted_at: string | null
-          description: string
-          id: string
-          location: string
-          notice_file_id: string | null
-          notice_ref: string
-          number: number
-          org_id: string
-          photo_ids: string[]
-          project_id: string
-          request_key: string
-          spec_tags: string[]
-          status: string
-          status_changed_at: string
-          title: string
-          trade: string
           updated_at: string
           version: number
         }
@@ -1278,25 +1355,6 @@ export type Database = {
           signed_version?: number | null
           status?: string
           submitted_at?: string | null
-          closed_at?: string | null
-          created_at?: string
-          created_by: string
-          deleted_at?: string | null
-          description?: string
-          id?: string
-          location?: string
-          notice_file_id?: string | null
-          notice_ref?: string
-          number: number
-          org_id: string
-          photo_ids?: string[]
-          project_id: string
-          request_key: string
-          spec_tags?: string[]
-          status?: string
-          status_changed_at?: string
-          title: string
-          trade?: string
           updated_at?: string
           version?: number
         }
@@ -1323,25 +1381,6 @@ export type Database = {
           signed_version?: number | null
           status?: string
           submitted_at?: string | null
-          closed_at?: string | null
-          created_at?: string
-          created_by?: string
-          deleted_at?: string | null
-          description?: string
-          id?: string
-          location?: string
-          notice_file_id?: string | null
-          notice_ref?: string
-          number?: number
-          org_id?: string
-          photo_ids?: string[]
-          project_id?: string
-          request_key?: string
-          spec_tags?: string[]
-          status?: string
-          status_changed_at?: string
-          title?: string
-          trade?: string
           updated_at?: string
           version?: number
         }
@@ -1349,8 +1388,6 @@ export type Database = {
           {
             foreignKeyName: "daily_reports_pdf_file_id_fkey"
             columns: ["pdf_file_id"]
-            foreignKeyName: "corrections_notice_file_id_fkey"
-            columns: ["notice_file_id"]
             isOneToOne: false
             referencedRelation: "files"
             referencedColumns: ["id"]
@@ -1404,7 +1441,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "daily_setups_project_id_org_id_fkey"
-            foreignKeyName: "corrections_project_id_org_id_fkey"
             columns: ["project_id", "org_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -3608,8 +3644,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
       add_template_folders: {
-        Args: { p_applies: string[]; p_created_by: string; p_project_id: string }
+        Args: {
+          p_applies: string[]
+          p_created_by: string
+          p_project_id: string
+        }
         Returns: undefined
       }
       answer_bid_question: {
@@ -3695,6 +3736,14 @@ export type Database = {
           storage_path: string
         }[]
       }
+      authorize_ir_file: {
+        Args: { p_file_id: string; p_request_id: string }
+        Returns: {
+          mime: string
+          original_name: string
+          storage_path: string
+        }[]
+      }
       begin_daily_submit: {
         Args: {
           p_content_hash: string
@@ -3734,13 +3783,6 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      authorize_ir_file: {
-        Args: { p_file_id: string; p_request_id: string }
-        Returns: {
-          mime: string
-          original_name: string
-          storage_path: string
-        }[]
       }
       bid_coverage: {
         Args: { p_project_id: string }
@@ -3898,7 +3940,10 @@ export type Database = {
         Returns: boolean
       }
       correction_label: { Args: { p_number: number }; Returns: string }
-      correction_photo_folder: { Args: { p_project_id: string }; Returns: string }
+      correction_photo_folder: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
       correction_reinspect_tasks: {
         Args: {
           p_correction: Database["public"]["Tables"]["corrections"]["Row"]
@@ -3937,13 +3982,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_daily_report: {
-        Args: {
-          p_project_id: string
-          p_report_date: string
-          p_report_type: string
-        }
-        Returns: string
       create_correction: {
         Args: {
           p_description?: string
@@ -3986,6 +4024,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_daily_report: {
+        Args: {
+          p_project_id: string
+          p_report_date: string
+          p_report_type: string
+        }
+        Returns: string
       }
       create_org: { Args: { p_kind: string; p_name: string }; Returns: string }
       create_project: {
@@ -4055,11 +4101,7 @@ export type Database = {
         }
       }
       daily_author_folder: {
-        Args: {
-          p_author: string
-          p_kind: string
-          p_project_id: string
-        }
+        Args: { p_author: string; p_kind: string; p_project_id: string }
         Returns: string
       }
       daily_carryover: { Args: { p_prev: Json }; Returns: Json }
@@ -4073,17 +4115,11 @@ export type Database = {
         Returns: string
       }
       daily_is_scheduled: {
-        Args: {
-          p_day: string
-          p_settings: Json
-        }
+        Args: { p_day: string; p_settings: Json }
         Returns: boolean
       }
       daily_local_date: {
-        Args: {
-          p_at: string
-          p_tz: string
-        }
+        Args: { p_at: string; p_tz: string }
         Returns: string
       }
       daily_make_report: {
@@ -4118,12 +4154,31 @@ export type Database = {
           signed_version: number | null
           status: string
           submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      daily_photo_folder: { Args: { p_project_id: string }; Returns: string }
+      daily_reports_folder: { Args: { p_project_id: string }; Returns: string }
+      delete_daily_draft: {
+        Args: { p_report_id: string; p_version: number }
+        Returns: undefined
+      }
       delete_delivery: {
         Args: { p_id: string; p_name: string; p_version: number }
         Returns: undefined
       }
       delivery_board_fields: {
-        Args: { d: Database["public"]["Tables"]["deliveries"]["Row"]; p_company: string }
+        Args: {
+          d: Database["public"]["Tables"]["deliveries"]["Row"]
+          p_company: string
+        }
         Returns: Json
       }
       delivery_can_change: {
@@ -4215,6 +4270,7 @@ export type Database = {
           funding: string | null
           id: string
           inbound_address: string | null
+          is_dsa: boolean
           job_type: string | null
           modules: string[]
           name: string
@@ -4230,20 +4286,11 @@ export type Database = {
         }
         SetofOptions: {
           from: "*"
-          to: "daily_reports"
           to: "projects"
           isOneToOne: true
           isSetofReturn: false
         }
       }
-      daily_photo_folder: { Args: { p_project_id: string }; Returns: string }
-      daily_reports_folder: { Args: { p_project_id: string }; Returns: string }
-      delete_daily_draft: {
-        Args: {
-          p_report_id: string
-          p_version: number
-        }
-        Returns: undefined
       delivery_link_state: {
         Args: { p_project_id: string }
         Returns: {
@@ -4348,11 +4395,7 @@ export type Database = {
         }[]
       }
       ir_assign_helper: {
-        Args: {
-          p_helper_id?: string
-          p_request_id: string
-          p_version: number
-        }
+        Args: { p_helper_id?: string; p_request_id: string; p_version: number }
         Returns: {
           attachment_ids: string[]
           attendance: string | null
@@ -4478,11 +4521,7 @@ export type Database = {
         }
       }
       ir_calendar: {
-        Args: {
-          p_from: string
-          p_project_id: string
-          p_to: string
-        }
+        Args: { p_from: string; p_project_id: string; p_to: string }
         Returns: {
           attendance: string
           company: string
@@ -4569,11 +4608,7 @@ export type Database = {
         }
       }
       ir_confirm: {
-        Args: {
-          p_note?: string
-          p_request_id: string
-          p_version: number
-        }
+        Args: { p_note?: string; p_request_id: string; p_version: number }
         Returns: {
           attachment_ids: string[]
           attendance: string | null
@@ -4753,7 +4788,10 @@ export type Database = {
         }
       }
       ir_first_status: { Args: { p_project_id: string }; Returns: string }
-      ir_folder: { Args: { p_project_id: string; p_which: string }; Returns: string }
+      ir_folder: {
+        Args: { p_project_id: string; p_which: string }
+        Returns: string
+      }
       ir_for_update: {
         Args: { p_request_id: string; p_version: number }
         Returns: {
@@ -5009,7 +5047,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_member_decides: { Args: { p_member: string; p_project_id: string }; Returns: boolean }
+      ir_member_decides: {
+        Args: { p_member: string; p_project_id: string }
+        Returns: boolean
+      }
       ir_move: {
         Args: {
           p_duration_kind?: string
@@ -5077,7 +5118,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_owner_ok: { Args: { p_owner: string; p_project_id: string }; Returns: boolean }
+      ir_owner_ok: {
+        Args: { p_owner: string; p_project_id: string }
+        Returns: boolean
+      }
       ir_postpone: {
         Args: {
           p_note?: string
@@ -5216,11 +5260,7 @@ export type Database = {
         }
       }
       ir_set_attendance: {
-        Args: {
-          p_attendance?: string
-          p_request_id: string
-          p_version: number
-        }
+        Args: { p_attendance?: string; p_request_id: string; p_version: number }
         Returns: {
           attachment_ids: string[]
           attendance: string | null
@@ -5345,7 +5385,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_setting: { Args: { p_key: string; p_project_id: string }; Returns: boolean }
+      ir_setting: {
+        Args: { p_key: string; p_project_id: string }
+        Returns: boolean
+      }
       ir_sign: {
         Args: {
           p_content_hash: string
@@ -5411,11 +5454,7 @@ export type Database = {
         }
       }
       ir_status_key: {
-        Args: {
-          p_helper: string
-          p_result: string
-          p_status: string
-        }
+        Args: { p_helper: string; p_result: string; p_status: string }
         Returns: string
       }
       ir_submit: {
@@ -5492,21 +5531,24 @@ export type Database = {
       }
       ir_tell_inspector: {
         Args: {
-          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
           p_kind: string
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
           p_summary: string
         }
         Returns: undefined
       }
       ir_tell_requester: {
         Args: {
-          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
           p_kind: string
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
           p_summary: string
         }
         Returns: undefined
       }
-      ir_type_label: { Args: { p_kind: string; p_special: string }; Returns: string }
+      ir_type_label: {
+        Args: { p_kind: string; p_special: string }
+        Returns: string
+      }
       ir_unconfirm: {
         Args: { p_request_id: string; p_version: number }
         Returns: {
@@ -5567,7 +5609,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_when_label: { Args: { p_date: string; p_time: string }; Returns: string }
+      ir_when_label: {
+        Args: { p_date: string; p_time: string }
+        Returns: string
+      }
       ir_withdraw: {
         Args: { p_request_id: string; p_version: number }
         Returns: {
@@ -5673,7 +5718,11 @@ export type Database = {
         Returns: Json
       }
       link_delivery_receipt: {
-        Args: { p_delivery_id: string; p_project_id: string; p_token_hash: string }
+        Args: {
+          p_delivery_id: string
+          p_project_id: string
+          p_token_hash: string
+        }
         Returns: Json
       }
       link_post_delivery: {
@@ -5862,10 +5911,7 @@ export type Database = {
       }
       release_held_jobs: { Args: never; Returns: number }
       remove_daily_photo: {
-        Args: {
-          p_photo_id: string
-          p_version: number
-        }
+        Args: { p_photo_id: string; p_version: number }
         Returns: undefined
       }
       reopen_task: {
@@ -5919,12 +5965,9 @@ export type Database = {
       }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
+      rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
       save_daily_content: {
-        Args: {
-          p_content: Json
-          p_report_id: string
-          p_version: number
-        }
+        Args: { p_content: Json; p_report_id: string; p_version: number }
         Returns: {
           author_id: string
           content: Json
@@ -5959,11 +6002,7 @@ export type Database = {
         }
       }
       save_daily_photo: {
-        Args: {
-          p_caption: string
-          p_photo_id: string
-          p_version: number
-        }
+        Args: { p_caption: string; p_photo_id: string; p_version: number }
         Returns: {
           caption: string
           created_at: string
@@ -6012,7 +6051,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
       session_aal: { Args: never; Returns: string }
       set_bid_intent: {
         Args: { p_intent: string; p_invite_id: string; p_reason?: string }
@@ -6062,13 +6100,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      set_daily_start_number: {
-        Args: {
-          p_project_id: string
-          p_report_type: string
-          p_start: number
-        }
-        Returns: number
       set_correction_status: {
         Args: {
           p_id: string
@@ -6107,6 +6138,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_daily_start_number: {
+        Args: { p_project_id: string; p_report_type: string; p_start: number }
+        Returns: number
+      }
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }
         Returns: undefined
@@ -6143,21 +6178,6 @@ export type Database = {
       }
       sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
-      undo_delivery_link_rotation: {
-        Args: { p_project_id: string }
-        Returns: undefined
-      }
-      update_delivery: {
-        Args: {
-          p_company: string
-          p_date: string
-          p_description: string
-          p_duration: number
-          p_id: string
-          p_time?: string
-          p_version: number
-        }
-        Returns: number
       undo_correction: {
         Args: { p_id: string; p_version: number }
         Returns: {
@@ -6189,6 +6209,22 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      undo_delivery_link_rotation: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      update_delivery: {
+        Args: {
+          p_company: string
+          p_date: string
+          p_description: string
+          p_duration: number
+          p_id: string
+          p_time?: string
+          p_version: number
+        }
+        Returns: number
       }
       worker_ack_job: {
         Args: { p_job_id: string; p_msg_id: number }
