@@ -19,8 +19,6 @@ const orgSettingsSchema = z.object({
 type OrgSettings = z.infer<typeof orgSettingsSchema>;
 
 export const PROJECT_SETTINGS_DEFAULTS = {
-  /** Contract turnaround for RFIs, set once per project (SPEC §7.4). Shown only on impact-claimed rows. */
-  rfi_turnaround_days: 10,
   /** A PE can turn the ball-in-court column on for themselves; the project default is off (SPEC §7.4). */
   show_ball_in_court: false,
   /** Inspections: the GC approves a request before it reaches the inspector (SPEC §13.2). The database reads a missing key as off. */
@@ -30,7 +28,6 @@ export const PROJECT_SETTINGS_DEFAULTS = {
 };
 
 const projectSettingsSchema = z.object({
-  rfi_turnaround_days: z.number().int().min(1).max(365).catch(PROJECT_SETTINGS_DEFAULTS.rfi_turnaround_days),
   show_ball_in_court: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.show_ball_in_court),
   ir_gc_approval: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_gc_approval),
   ir_ofs_allowed: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_allowed),

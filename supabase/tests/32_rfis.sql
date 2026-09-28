@@ -1,5 +1,5 @@
 begin;
-select plan(189);
+select plan(190);
 -- RFIs (migration 0038): the module and rail, route settings, the RFIs folder, drafts (p_key repeats, versions),
 -- visibility per role (sub originator, inspector reviewer on the route, super reviewer later, PE issuer, architect from
 -- 'open', another sub only once answered), draft -> send -> forward -> send back -> send -> forward -> issue (numbers
@@ -134,9 +134,10 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000322');
 select lives_ok($$ insert into ids values ('F', public.rfi_folder('c0000000-0000-0000-0000-000000000321')) $$,
   'folder: made on first use');
 select is(public.rfi_folder('c0000000-0000-0000-0000-000000000321'), pg_temp.rid('F'), 'folder: the same one again');
+select pg_temp.login('a0000000-0000-0000-0000-000000000326');
 select results_eq($$ select capability, can_read, can_write from public.folder_access where folder_id = pg_temp.rid('F') order by 1 $$,
-  $$ values ('files.read_project'::text, true, false), ('rfi.answer', true, true), ('rfi.create_draft', true, true),
-            ('rfi.sign_issue', true, false) $$, 'folder: read and write by capability');
+  $$ values ('rfi.answer'::text, false, true), ('rfi.create_draft', false, true), ('rfi.sign_issue', true, false) $$,
+  'folder: PM / PE browse it; originators and the architect only add to it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000328');
 select throws_ok($$ select public.rfi_folder('c0000000-0000-0000-0000-000000000321') $$, '42501', null,
   'folder: a bidder cannot open it');
@@ -167,6 +168,9 @@ select throws_ok($$ select public.rfi_create('c0000000-0000-0000-0000-0000000003
 select throws_ok($$ select public.rfi_create('c0000000-0000-0000-0000-000000000321', '  ', 'Q') $$,
   '22023', 'Add a title.', 'draft: a title is needed');
 select is(pg_temp.events('A', 'created'), 1, 'history: created');
+select pg_temp.login('a0000000-0000-0000-0000-000000000323');
+select is((select count(*)::int from public.files where id = pg_temp.rid('P1')), 0,
+  'folder: another sub cannot see a draft photo in Files');
 select pg_temp.login('a0000000-0000-0000-0000-000000000327');
 select throws_ok($$ select public.rfi_create('c0000000-0000-0000-0000-000000000321', 'T', 'Q') $$, '42501', null,
   'draft: the architect cannot start one');

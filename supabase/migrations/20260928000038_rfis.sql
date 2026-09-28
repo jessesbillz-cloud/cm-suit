@@ -17,7 +17,9 @@
 --   * An impact claim is the originator's, within impact_days of the answer, and permanent (a trigger refuses any
 --     change); the GC may add a note. PM / PE are told on the board.
 --   * Files: a per-job "RFIs" folder (made on first use by rfi_folder, a reserved system name) holds photos, answer
---     files and the PDFs.
+--     files and the PDFs. Only PM / PE (rfi.sign_issue) browse it in Files; originators and the architect may add to
+--     it but not browse it, so a draft's photos stay with the RFI. Everyone else opens an RFI's files through the RFI
+--     (rfi_authorize_file checks the RFI itself).
 --   * The company logo for the PDF: orgs.logo_path, private bucket org-logos (path org/<org_id>/logo), set_org_logo().
 --   * Module 'rfis': on for construction / closeout jobs (existing ones too), on the rail after Inspections.
 
@@ -826,7 +828,7 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- The job's "RFIs" folder: photos, answer files and the PDFs. Made once, on first use.
--- Read: rfi.create_draft, rfi.sign_issue, rfi.answer, files.read_project. Write: rfi.create_draft, rfi.answer.
+-- Browse (read): rfi.sign_issue only. Add (write): rfi.create_draft, rfi.answer. Uploaders still see their own files.
 -- ---------------------------------------------------------------------------
 create or replace function public.rfi_folder(p_project_id uuid)
 returns uuid
@@ -856,10 +858,9 @@ begin
       raise exception 'A folder named "RFIs" is in the way. Rename it in Files.' using errcode = '23505';
     end if;
     insert into public.folder_access (folder_id, capability, can_read, can_write, created_by) values
-      (v_folder, 'rfi.create_draft', true, true, auth.uid()),
+      (v_folder, 'rfi.create_draft', false, true, auth.uid()),
       (v_folder, 'rfi.sign_issue', true, false, auth.uid()),
-      (v_folder, 'rfi.answer', true, true, auth.uid()),
-      (v_folder, 'files.read_project', true, false, auth.uid());
+      (v_folder, 'rfi.answer', false, true, auth.uid());
   elsif v_deleted is not null then
     update public.folders set deleted_at = null where id = v_folder;
   end if;

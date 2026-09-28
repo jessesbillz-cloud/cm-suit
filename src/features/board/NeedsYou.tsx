@@ -1,10 +1,13 @@
-// "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (useTaskDone). On top, the
-// RFIs someone else is sitting on (late, or not opened for days).
-import { Check } from 'lucide-react';
+// "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (useTaskDone). A task the
+// record itself closes (an RFI: it's done when the RFI moves on) has Open instead of Done. On top, the RFIs someone
+// else is sitting on (late, or not opened for days).
+import { ArrowRight, Check } from 'lucide-react';
+import { useOpenTarget } from '../../app/frame/useOpenTarget';
 import { useMyProjects, useTasks } from '../../data/queries';
 import { useRfiWaiting } from '../../data/rfis.queries';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
+import { entityTarget } from '../../lib/entityTarget';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -25,7 +28,12 @@ interface TaskLineProps {
   onDone: (task: TaskRow) => void;
 }
 
+/** Task kinds the record closes by itself when it moves on; pressing Done would only hide it. */
+const CLOSED_BY_RECORD = new Set(['rfi']);
+
 function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
+  const openTarget = useOpenTarget();
+  const target = CLOSED_BY_RECORD.has(task.kind) ? entityTarget(task.entity_type, task.entity_id) : null;
   return (
     <li className="flex items-start gap-3 px-4 py-3" data-testid="needs-you-task">
       <div className="min-w-0 flex-1">
@@ -36,7 +44,18 @@ function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
           {task.due_at ? <span>Due {formatInZone(task.due_at, zone, 'MMM d')}</span> : null}
         </p>
       </div>
-      {task.requires_signature ? (
+      {target ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={ArrowRight}
+          onClick={() => {
+            openTarget(task.project_id, target);
+          }}
+        >
+          Open
+        </Button>
+      ) : task.requires_signature ? (
         <StatusChip status="pending" label="Needs your signature" />
       ) : (
         <Button
