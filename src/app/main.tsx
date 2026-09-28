@@ -25,6 +25,20 @@ if (dsn) {
 
 document.title = FUTURE_NAME;
 
+// After a deploy, the service worker serves the old app for the first open, then the new one takes over. If that
+// happens right after opening (e.g. a link only the new app knows), reload once; never mid-work.
+function reloadOnFreshUpdate(): void {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+  navigator.serviceWorker.addEventListener(
+    'controllerchange',
+    () => {
+      if (performance.now() < 30_000) window.location.reload();
+    },
+    { once: true },
+  );
+}
+reloadOnFreshUpdate();
+
 // Status colors come only from lib/status (SPEC §7.1): injected once as CSS variables.
 const statusStyle = document.createElement('style');
 statusStyle.textContent = `:root{${statusCssVariables()}}`;
