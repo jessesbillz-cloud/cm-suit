@@ -2208,6 +2208,7 @@ export type Database = {
           original_name: string
           page_count: number | null
           project_id: string
+          scan_skipped_at: string | null
           scan_status: string
           scanned_at: string | null
           sha256: string | null
@@ -2232,6 +2233,7 @@ export type Database = {
           original_name: string
           page_count?: number | null
           project_id: string
+          scan_skipped_at?: string | null
           scan_status?: string
           scanned_at?: string | null
           sha256?: string | null
@@ -2256,6 +2258,7 @@ export type Database = {
           original_name?: string
           page_count?: number | null
           project_id?: string
+          scan_skipped_at?: string | null
           scan_status?: string
           scanned_at?: string | null
           sha256?: string | null
@@ -6202,6 +6205,7 @@ export type Database = {
           original_name: string
           page_count: number | null
           project_id: string
+          scan_skipped_at: string | null
           scan_status: string
           scanned_at: string | null
           sha256: string | null
