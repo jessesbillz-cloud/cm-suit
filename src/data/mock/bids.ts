@@ -1,4 +1,4 @@
-// Tiny synthetic bid fixtures for the e2e mock: two packages on Sample Job A, one issued addendum, one answer.
+// Tiny synthetic bid fixtures for the e2e mock: one issued addendum, one answer (packages: mock/packages).
 // The mock bidder is localStorage['e2e-mock-user'] = 'bidder'; every other mock user manages bids.
 import { DataError } from '../errors';
 import type {
@@ -22,6 +22,7 @@ import { mockUser } from './index';
 import * as mockCorrections from './corrections';
 import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
+import * as mockPackages from './packages';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
 
@@ -44,32 +45,25 @@ export async function access(cap: string): Promise<PricingAccess> {
   return mockMfa.pricingAccess(isBidder());
 }
 
-const PACKAGES: PackageRow[] = [
-  { id: 'pkg-1', project_id: 'job-a', code: '03A', name: 'Sample concrete', scope_text: 'Footings and slabs per sample plans.', version: 1 },
-  { id: 'pkg-2', project_id: 'job-a', code: '09A', name: 'Sample drywall', scope_text: 'Framing and board per sample plans.', version: 1 },
-  // Sample Job B carries the leveling fixtures (mock/leveling).
-  { id: 'pkg-b1', project_id: 'job-b', code: '03A', name: 'Sample concrete', scope_text: 'Footings and slabs per sample plans.', version: 1 },
-  { id: 'pkg-b2', project_id: 'job-b', code: '09A', name: 'Sample drywall', scope_text: 'Framing and board per sample plans.', version: 1 },
-];
+// Invited / bidding / declined / submitted / late / opened, in turn down a job's packages.
+const COVERAGE = [
+  [3, 1, 0, 1, 0, 2],
+  [2, 1, 1, 0, 0, 1],
+  [4, 2, 1, 1, 0, 3],
+  [1, 0, 1, 0, 0, 1],
+] as const;
 
 export async function packages(projectId: string): Promise<PackageRow[]> {
   await delay();
-  return PACKAGES.filter((p) => p.project_id === projectId);
+  return mockPackages.list(projectId);
 }
 
 export async function coverage(projectId: string): Promise<CoverageRow[]> {
   await delay();
-  return PACKAGES.filter((p) => p.project_id === projectId).map((p, i) => ({
-    package_id: p.id,
-    code: p.code,
-    name: p.name,
-    invited: 3 - i,
-    intends: 1,
-    declined: i,
-    submitted: 1 - i,
-    late: 0,
-    opened: 2 - i,
-  }));
+  return mockPackages.list(projectId).map((p, i) => {
+    const [invited, intends, declined, submitted, late, opened] = COVERAGE[i % COVERAGE.length] ?? COVERAGE[0];
+    return { package_id: p.id, code: p.code, name: p.name, invited, intends, declined, submitted, late, opened };
+  });
 }
 
 export async function invites(): Promise<InviteRow[]> {
@@ -111,7 +105,7 @@ export async function bidderPage(projectId: string): Promise<BidderPage> {
   await delay();
   if (!isBidder()) throw new DataError("You don't have access to that.", '42501', 'mock: not a bidder');
   const s = readMock().bidder;
-  const pkgs = PACKAGES.filter((p) => p.project_id === projectId);
+  const pkgs = mockPackages.list(projectId);
   return {
     project: { id: projectId, name: 'Sample Job A', number: 'S-100', address: '100 Sample Way', timezone: TZ, bid_due_at: '2026-10-15T21:00:00Z', prevailing_wage: true },
     upload_folder_id: `${projectId}-plans`,

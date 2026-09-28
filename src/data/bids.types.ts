@@ -7,7 +7,7 @@ type Fns = Database['public']['Functions'];
 
 export type CoverageRow = Fns['bid_coverage']['Returns'][number];
 
-export type PackageRow = Pick<Tables<'bid_packages'>, 'id' | 'project_id' | 'code' | 'name' | 'scope_text' | 'version'>;
+export type PackageRow = Pick<Tables<'bid_packages'>, 'id' | 'project_id' | 'code' | 'name' | 'scope_text' | 'spec_sections' | 'version'>;
 
 export type InviteRow = Pick<Tables<'bid_invites'>, 'id' | 'package_id' | 'member_id' | 'status' | 'decline_reason'>;
 

@@ -42,7 +42,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
       <Segmented current={view} hidden={isOpen ? NONE : SEALED_VIEWS} onPick={nav.setView} />
       {open.isError ? <ErrorState error={open.error} onRetry={() => void open.refetch()} /> : null}
       {view === 'coverage' ? <CoverageView {...common} /> : null}
-      {view === 'packages' ? <PackagesView {...common} orgId={project.data.org_id} /> : null}
+      {view === 'packages' ? <PackagesView {...common} /> : null}
       {view === 'subs' ? <SubsView {...common} orgId={project.data.org_id} /> : null}
       {view === 'questions' ? <QuestionsView {...common} tz={tz} /> : null}
       {view === 'addenda' ? <AddendaView {...common} /> : null}

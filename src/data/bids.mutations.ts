@@ -11,6 +11,7 @@ import { callFunction } from './functions';
 import { qk } from './keys';
 import { notInMock } from './mock/bids';
 import { isMock } from './mock';
+import * as mockPackages from './mock/packages';
 import { uploadFile } from './upload';
 import {
   inviteBiddersResultSchema,
@@ -46,19 +47,36 @@ export function useInviteBidders() {
   });
 }
 
-const PACKAGE_COLS = 'id, project_id, code, name, scope_text, version';
+const PACKAGE_COLS = 'id, project_id, code, name, scope_text, spec_sections, version';
+
+interface NewPackage {
+  projectId: string;
+  orgId: string;
+  code: string;
+  name: string;
+  scopeText: string;
+  specSections: readonly string[];
+}
 
 export function useAddPackage() {
   const refresh = useRefreshBids();
   const addToList = useAddToList();
   const user = useUser();
   return useMutation({
-    mutationFn: async (v: { projectId: string; orgId: string; code: string; name: string }): Promise<PackageRow> => {
-      if (isMock()) notInMock();
+    mutationFn: async (v: NewPackage): Promise<PackageRow> => {
+      if (isMock()) return mockPackages.add(v);
       return throwIfError(
         await supabase
           .from('bid_packages')
-          .insert({ org_id: v.orgId, project_id: v.projectId, code: v.code, name: v.name, created_by: user.id })
+          .insert({
+            org_id: v.orgId,
+            project_id: v.projectId,
+            code: v.code,
+            name: v.name,
+            scope_text: v.scopeText,
+            spec_sections: [...v.specSections],
+            created_by: user.id,
+          })
           .select(PACKAGE_COLS)
           .single(),
       );
@@ -70,13 +88,13 @@ export function useAddPackage() {
   });
 }
 
-export type PackagePatch = Pick<PackageRow, 'code' | 'name' | 'scope_text'>;
+export type PackagePatch = Pick<PackageRow, 'code' | 'name' | 'scope_text' | 'spec_sections'>;
 
 export function useSavePackage() {
   const refresh = useRefreshBids();
   return useMutation({
     mutationFn: async (v: { row: PackageRow; patch: PackagePatch }): Promise<PackageRow> => {
-      if (isMock()) notInMock();
+      if (isMock()) return mockPackages.save(v.row, v.patch);
       const rows = throwIfError(
         await supabase.from('bid_packages').update(v.patch).eq('id', v.row.id).eq('version', v.row.version).select(PACKAGE_COLS),
       );

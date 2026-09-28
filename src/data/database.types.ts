@@ -697,6 +697,7 @@ export type Database = {
           project_id: string
           scope_text: string
           sort: number
+          spec_sections: string[]
           updated_at: string
           version: number
         }
@@ -711,6 +712,7 @@ export type Database = {
           project_id: string
           scope_text?: string
           sort?: number
+          spec_sections?: string[]
           updated_at?: string
           version?: number
         }
@@ -725,6 +727,7 @@ export type Database = {
           project_id?: string
           scope_text?: string
           sort?: number
+          spec_sections?: string[]
           updated_at?: string
           version?: number
         }
@@ -1196,6 +1199,53 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      csi_divisions: {
+        Row: {
+          number: string
+          reserved: boolean
+          title: string
+        }
+        Insert: {
+          number: string
+          reserved?: boolean
+          title: string
+        }
+        Update: {
+          number?: string
+          reserved?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
+      csi_sections: {
+        Row: {
+          division: string
+          level: number
+          number: string
+          title: string
+        }
+        Insert: {
+          division: string
+          level: number
+          number: string
+          title: string
+        }
+        Update: {
+          division?: string
+          level?: number
+          number?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csi_sections_division_fkey"
+            columns: ["division"]
+            isOneToOne: false
+            referencedRelation: "csi_divisions"
+            referencedColumns: ["number"]
           },
         ]
       }

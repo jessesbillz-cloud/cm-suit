@@ -1,7 +1,7 @@
 // Mock-only persistence. Lives in sessionStorage (not module state) so a Playwright page keeps its changes
 // across route changes and reloads within one test, and nothing leaks between tests.
 import type { LayoutChoices } from '../../lib/layout';
-import type { BidderPage, BidderSubmission, ExtractionRow, SubmissionRow } from '../bids.types';
+import type { BidderPage, BidderSubmission, ExtractionRow, PackageRow, SubmissionRow } from '../bids.types';
 import type { FileRow, FolderRow, MyOrg, ProfileRow, ProjectRow } from '../types';
 
 /** What the mock bidder changed on their page. */
@@ -41,6 +41,8 @@ interface MockState {
   orgs: MyOrg[];
   projects: ProjectRow[];
   mfa: MockMfa;
+  /** Bid packages added in this test, and edits to the fixture ones (by id). */
+  packages: PackageRow[];
 }
 
 const EMPTY: MockState = {
@@ -56,6 +58,7 @@ const EMPTY: MockState = {
   orgs: [],
   projects: [],
   mfa: { factorId: null, verified: false, level: 'aal1' },
+  packages: [],
 };
 
 export function readMock(): MockState {

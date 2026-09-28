@@ -42,7 +42,7 @@ export function useBidPackages(projectId: string) {
         : throwIfError(
             await supabase
               .from('bid_packages')
-              .select('id, project_id, code, name, scope_text, version')
+              .select('id, project_id, code, name, scope_text, spec_sections, version')
               .eq('project_id', projectId)
               .is('deleted_at', null)
               .order('code'),
