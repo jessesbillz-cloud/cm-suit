@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        page: '#F2F4F7',
+        page: '#EDF0F4',
         card: { DEFAULT: '#FFFFFF', head: '#F8F9FB' },
         ink: { DEFAULT: '#111827', 2: '#586273', 3: '#98A1B0' },
         line: { DEFAULT: '#E2E5EA', strong: '#CDD2DA' },
@@ -18,7 +18,7 @@ export default {
       },
       boxShadow: {
         // Hairline edge + contact shadow + soft lift.
-        card: '0 0 0 1px rgba(16,24,40,.07), 0 1px 2px rgba(16,24,40,.06), 0 4px 12px -2px rgba(16,24,40,.08)',
+        card: '0 0 0 1px rgba(16,24,40,.09), 0 1px 3px rgba(16,24,40,.10), 0 8px 20px -4px rgba(16,24,40,.14)',
         // Menus and toasts float higher.
         pop: '0 0 0 1px rgba(16,24,40,.08), 0 4px 8px -2px rgba(16,24,40,.10), 0 16px 32px -6px rgba(16,24,40,.18)',
         control: '0 1px 2px rgba(16,24,40,.06)',

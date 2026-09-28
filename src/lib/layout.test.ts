@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LAYOUT_DEFAULTS, isTool, parseLayout, pushRecent } from './layout';
+import { LAYOUT_DEFAULTS, isTool, parseLayout, phoneTabs, pushRecent } from './layout';
 
 describe('layout', () => {
   it('returns the defaults when there is no row', () => {
@@ -19,4 +19,11 @@ describe('layout', () => {
     expect(isTool('files')).toBe(true);
     expect(isTool('rfis')).toBe(false);
   });
+  it('phone bar: first four tools, the open one always on it, the rest under More', () => {
+    const rail = ['board', 'files', 'bids', 'calendar', 'dailies', 'inspections'] as const;
+    expect(phoneTabs(rail, 'board')).toEqual({ tabs: ['board', 'files', 'bids', 'calendar'], more: ['dailies', 'inspections', 'settings'] });
+    expect(phoneTabs(rail, 'dailies')).toEqual({ tabs: ['board', 'files', 'bids', 'dailies'], more: ['calendar', 'inspections', 'settings'] });
+    expect(phoneTabs(rail, 'settings').more).toEqual(['dailies', 'inspections', 'settings']);
+  });
 });
+

@@ -100,3 +100,17 @@ export function pushRecent(recent: readonly string[], projectId: string): string
 export function isTool(v: string): v is Tool {
   return (TOOLS as readonly string[]).includes(v);
 }
+
+/** Tools on the phone's bottom bar (SPEC §7.7). */
+const PHONE_TABS = 4;
+
+/**
+ * The phone's bottom bar: the first rail tools, with the open tool always among them, then More for the rest and
+ * Settings, so every tool is one tap from More and the bar never hides where you are.
+ */
+export function phoneTabs(rail: readonly Tool[], current: Tool): { tabs: Tool[]; more: Tool[] } {
+  const tabs = rail.slice(0, PHONE_TABS);
+  if (current !== 'settings' && rail.includes(current) && !tabs.includes(current)) tabs[PHONE_TABS - 1] = current;
+  const more: Tool[] = [...rail.filter((t) => !tabs.includes(t)), 'settings'];
+  return { tabs, more };
+}

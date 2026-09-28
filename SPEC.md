@@ -472,7 +472,7 @@ Both probes run in CI on every PR and after every staging deploy.
 
 ### 7.1 Look
 - **Surfaces:**
-  - Near-white page (`#F2F4F7`).
+  - Near-white page (`#EDF0F4`).
   - White cards with a hairline edge and a two-step shadow (`shadow-card` in `tailwind.config.ts`), an 8px radius, and headers on a faint tint.
   - IBM Plex Sans (self-hosted, `public/fonts`), gray secondary text, one accent color.
 - **Nothing comical:** no emojis, illustrations, mascots or celebration animations. Lucide line icons, only where they carry meaning.
