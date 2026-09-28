@@ -30,3 +30,10 @@ email-events
 inbound-email
 # Cron: queue_health() is not granted to users.
 queue-health
+# Stores the signed daily report PDF (storeGeneratedPdf), reads the report's photo bytes from private storage and runs
+# finish_daily_submit (not user-callable); the report is read as the author and begin_daily_submit runs as the author first,
+# after requireCapability('dailies.write') and the signing re-confirmation.
+submit-daily
+# Writes the transmittal, share links and email_outbound for the author (who may lack transmittals.send); the report,
+# photos and recipients (from the author's setup) are read as the author after requireCapability('dailies.write').
+email-daily

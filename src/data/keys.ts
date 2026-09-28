@@ -30,4 +30,7 @@ export const qk = {
   /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
   subs: (orgId: string) => ['subs', orgId] as const,
   subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
+  /** Every dailies query of a job sits under this prefix (SPEC §13.1). */
+  dailies: (projectId: string) => ['dailies', projectId] as const,
+  dailiesPart: (projectId: string, part: string, id = '') => ['dailies', projectId, part, id] as const,
 };

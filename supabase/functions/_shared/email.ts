@@ -328,3 +328,30 @@ export async function sendEach<T>(items: readonly T[], send: (item: T) => Promis
     await send(item);
   }
 }
+
+/** A submitted daily report sent to the author's team (SPEC §13.1). The link is the recipient's own share link. */
+export function dailyReportEmail(p: {
+  brand: string;
+  projectName: string;
+  /** e.g. "Daily Report #12" */
+  title: string;
+  dateLabel: string;
+  authorName: string;
+  fileName: string;
+  linkUrl: string;
+}): Rendered {
+  const subject = oneLine(`${p.projectName} - ${p.title} (${p.dateLabel})`);
+  const html = layout(p.brand, `
+<h1 style="font-size:20px;margin:0 0 4px">${esc(p.title)}</h1>
+<p style="margin:0 0 16px;color:#6b7280">${esc(p.projectName)} &middot; ${esc(p.dateLabel)} &middot; ${esc(p.authorName)}</p>
+${button(p.linkUrl, 'Download report')}
+<p style="font-size:13px;color:#6b7280">${esc(p.fileName)}. The link asks for a code sent to this address the first time.</p>`);
+  const text = `${p.title} - ${p.projectName}
+${p.dateLabel} - ${p.authorName}
+
+Download: ${p.linkUrl}
+(${p.fileName}. The link asks for a code sent to this address the first time.)
+
+${p.brand}`;
+  return { subject, html, text };
+}
