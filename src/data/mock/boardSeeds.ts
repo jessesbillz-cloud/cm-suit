@@ -15,6 +15,8 @@ const INSPECTOR = 'mock-user-inspector';
 export const SEED_IR_ID = 'mock-ir-job-b-12';
 export const SEED_CN_ID = 'cn-job-b-4';
 export const SEED_DAILY_ID = 'mock-daily-job-b-7';
+/** RFI 002 on Sample Job A: answered, impact claimed (the RFI mock seeds it; a board line points at it). */
+export const SEED_RFI_ID = 'mock-rfi-job-a-2';
 
 const PHOTO_ID = 'job-b-photo-1';
 const DAILY_PDF_ID = 'job-b-daily-7';

@@ -51,9 +51,11 @@ function LocalThumb({ photo, onRemove, onRetry }: ThumbProps) {
 interface PhotoPickerProps {
   uploads: PhotoUploads;
   isPhone: boolean;
+  /** The Upload input's test id (each module's e2e names its own). */
+  inputTestId?: string | undefined;
 }
 
-export function PhotoPicker({ uploads, isPhone }: PhotoPickerProps) {
+export function PhotoPicker({ uploads, isPhone, inputTestId = 'cn-photo-input' }: PhotoPickerProps) {
   const camera = useRef<HTMLInputElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
@@ -104,7 +106,7 @@ export function PhotoPicker({ uploads, isPhone }: PhotoPickerProps) {
         accept="image/*"
         multiple
         hidden
-        data-testid="cn-photo-input"
+        data-testid={inputTestId}
         onChange={(e) => {
           take(e.target);
         }}

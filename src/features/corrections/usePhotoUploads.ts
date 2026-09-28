@@ -1,9 +1,12 @@
 // Photos picked for a new item or a step: compressed (lib/compressPhoto) and uploaded at once (data/upload through
 // the data layer), shown from the local file meanwhile. The save uses the ids of the finished ones. React state only.
+// The caller passes its module's uploader (which folder the photos land in): corrections and RFIs share this hook.
 import { useCallback, useRef, useState } from 'react';
-import { useCorrectionFileUpload } from '../../data/corrections.mutations';
 import { messageOf } from '../../data/errors';
 import { compressPhoto, jpegName } from '../../lib/compressPhoto';
+
+/** Uploads one file into the module's folder and resolves to its file id. */
+type Uploader = (projectId: string, file: File, signal: AbortSignal) => Promise<string>;
 
 export interface PickedPhoto {
   key: number;
@@ -17,8 +20,7 @@ async function compress(f: File): Promise<File> {
   return new File([await compressPhoto(f)], jpegName(f.name), { type: 'image/jpeg', lastModified: f.lastModified });
 }
 
-export function usePhotoUploads(projectId: string, limit: number) {
-  const upload = useCorrectionFileUpload();
+export function usePhotoUploads(projectId: string, limit: number, upload: Uploader) {
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const nextKey = useRef(1);

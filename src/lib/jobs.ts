@@ -28,6 +28,7 @@ export const MODULES = [
   { value: 'calendar', label: 'Calendar' },
   { value: 'dailies', label: 'Dailies' },
   { value: 'inspections', label: 'Inspections' },
+  { value: 'rfis', label: 'RFIs' },
   { value: 'deliveries', label: 'Deliveries' },
   { value: 'corrections', label: 'Corrections' },
 ] as const satisfies readonly { value: RailTool; label: string }[];

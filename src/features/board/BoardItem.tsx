@@ -19,6 +19,7 @@ import { DailyEntity } from './kinds/DailyEntity';
 import { DeliveryEntity } from './kinds/DeliveryEntity';
 import { FileEntity } from './kinds/FileEntity';
 import { InspectionEntity } from './kinds/InspectionEntity';
+import { RfiEntity } from './kinds/RfiEntity';
 import { useProjectZones } from './zones';
 
 interface BoardItemProps {
@@ -43,6 +44,7 @@ const KINDS: Record<string, Kind> = {
   addendum: AddendumEntity,
   bid_question: QuestionEntity,
   published_answer: AnswerEntity,
+  rfi: RfiEntity,
 };
 
 /** A line about nothing the board can show (a member joined, a note): its own words, who, and Open when a tool owns it. */

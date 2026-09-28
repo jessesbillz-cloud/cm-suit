@@ -8,6 +8,7 @@ import { DeliveryItem } from '../../features/deliveries/DeliveryItem';
 import { CorrectionItem } from '../../features/corrections/CorrectionItem';
 import { FileItem } from '../../features/files/FileItem';
 import { InspectionsItem } from '../../features/inspections/InspectionsItem';
+import { RfiItem } from '../../features/rfis/RfiItem';
 import { EmptyState } from '../../ui/States';
 import type { FrameModel } from './useFrameModel';
 import { useIsPhone } from './useIsPhone';
@@ -57,6 +58,9 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
       <CorrectionItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} standalone={standalone} onOpenWindow={openWindow} />
     );
   }
+  if (tool === 'rfis' && model.loc.projectId !== null) {
+    return <RfiItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
+  }
   return <EmptyState title="There is nothing to open here." />;
 }
 
@@ -70,5 +74,6 @@ export function itemTitle(tool: Tool): string {
   if (tool === 'inspections') return 'Inspection';
   if (tool === 'deliveries') return 'Delivery';
   if (tool === 'corrections') return 'Corrections';
+  if (tool === 'rfis') return 'RFI';
   return 'Item';
 }

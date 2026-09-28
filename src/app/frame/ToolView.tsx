@@ -13,6 +13,7 @@ import { DeliveriesTool } from '../../features/deliveries/DeliveriesTool';
 import { FilesTool } from '../../features/files/FilesTool';
 import { InspectionsTool } from '../../features/inspections/InspectionsTool';
 import { PeopleTool } from '../../features/people/PeopleTool';
+import { RfisTool } from '../../features/rfis/RfisTool';
 import { SettingsTool } from '../../features/settings/SettingsTool';
 import { Card } from '../../ui/Card';
 import { EmptyState } from '../../ui/States';
@@ -103,5 +104,8 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'corrections':
       if (projectId === null) return <NeedsJob what="corrections" />;
       return <CorrectionsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'rfis':
+      if (projectId === null) return <NeedsJob what="RFIs" />;
+      return <RfisTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
   }
 }

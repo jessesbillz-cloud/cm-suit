@@ -2916,6 +2916,7 @@ export type Database = {
           id: string
           intake_address: string | null
           kind: string
+          logo_path: string | null
           name: string
           settings: Json
           updated_at: string
@@ -2928,6 +2929,7 @@ export type Database = {
           id?: string
           intake_address?: string | null
           kind: string
+          logo_path?: string | null
           name: string
           settings?: Json
           updated_at?: string
@@ -2940,6 +2942,7 @@ export type Database = {
           id?: string
           intake_address?: string | null
           kind?: string
+          logo_path?: string | null
           name?: string
           settings?: Json
           updated_at?: string
@@ -3364,6 +3367,144 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rfis: {
+        Row: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        Insert: {
+          answer?: string | null
+          answer_file_ids?: string[]
+          answered_at?: string | null
+          answered_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_impact?: boolean | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          due_at?: string | null
+          held_opened_at?: string | null
+          held_since?: string
+          id?: string
+          impact_claimed_at?: string | null
+          impact_cost?: boolean | null
+          impact_gc_note?: string | null
+          impact_note?: string | null
+          impact_time?: boolean | null
+          impact_until?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          issued_hash?: string | null
+          needed_by?: string | null
+          number?: number | null
+          org_id: string
+          pdf_file_id?: string | null
+          pdf_hash?: string | null
+          photo_ids?: string[]
+          project_id: string
+          question: string
+          refs?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_hash?: string | null
+          status?: string
+          step?: number
+          suggestion?: string
+          time_impact?: boolean | null
+          title: string
+          updated_at?: string
+          version?: number
+          void_note?: string | null
+        }
+        Update: {
+          answer?: string | null
+          answer_file_ids?: string[]
+          answered_at?: string | null
+          answered_by?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_impact?: boolean | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          due_at?: string | null
+          held_opened_at?: string | null
+          held_since?: string
+          id?: string
+          impact_claimed_at?: string | null
+          impact_cost?: boolean | null
+          impact_gc_note?: string | null
+          impact_note?: string | null
+          impact_time?: boolean | null
+          impact_until?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          issued_hash?: string | null
+          needed_by?: string | null
+          number?: number | null
+          org_id?: string
+          pdf_file_id?: string | null
+          pdf_hash?: string | null
+          photo_ids?: string[]
+          project_id?: string
+          question?: string
+          refs?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_hash?: string | null
+          status?: string
+          step?: number
+          suggestion?: string
+          time_impact?: boolean | null
+          title?: string
+          updated_at?: string
+          version?: number
+          void_note?: string | null
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -6280,6 +6421,595 @@ export type Database = {
         }
         Returns: undefined
       }
+      rfi_answer: {
+        Args: {
+          p_answer: string
+          p_file_ids?: string[]
+          p_rfi_id: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_claim_impact: {
+        Args: {
+          p_cost: boolean
+          p_note: string
+          p_rfi_id: string
+          p_time: boolean
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_close: {
+        Args: {
+          p_rfi_id: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_create: {
+        Args: {
+          p_cost_impact?: boolean
+          p_key?: string
+          p_needed_by?: string
+          p_photo_ids?: string[]
+          p_project_id: string
+          p_question: string
+          p_refs?: string
+          p_suggestion?: string
+          p_time_impact?: boolean
+          p_title: string
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_detail: { Args: { p_rfi_id: string }; Returns: Json }
+      rfi_folder: { Args: { p_project_id: string }; Returns: string }
+      rfi_forward: {
+        Args: {
+          p_note?: string
+          p_rfi_id: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_gc_note: {
+        Args: {
+          p_note: string
+          p_rfi_id: string
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          answered_at: string
+          closed_at: string
+          created_at: string
+          created_by: string
+          due_at: string
+          held_opened_at: string
+          held_since: string
+          holder_label: string
+          id: string
+          impact_claimed_at: string
+          impact_until: string
+          is_mine_to_act: boolean
+          issued_at: string
+          number: number
+          originator_name: string
+          sent_at: string
+          status: string
+          title: string
+          version: number
+        }[]
+      }
+      rfi_save_settings: {
+        Args: {
+          p_answer_days: number
+          p_impact_days: number
+          p_project_id: string
+          p_route: Json
+          p_version: number
+        }
+        Returns: Json
+      }
+      rfi_send_back: {
+        Args: {
+          p_note: string
+          p_rfi_id: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_settings_for: { Args: { p_project_id: string }; Returns: Json }
+      rfi_update: {
+        Args: {
+          p_cost_impact: boolean
+          p_needed_by: string
+          p_photo_ids: string[]
+          p_question: string
+          p_refs: string
+          p_rfi_id: string
+          p_suggestion: string
+          p_time_impact: boolean
+          p_title: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_void: {
+        Args: {
+          p_note: string
+          p_rfi_id: string
+          p_version: number
+        }
+        Returns: {
+          answer: string | null
+          answer_file_ids: string[]
+          answered_at: string | null
+          answered_by: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          due_at: string | null
+          held_opened_at: string | null
+          held_since: string
+          id: string
+          impact_claimed_at: string | null
+          impact_cost: boolean | null
+          impact_gc_note: string | null
+          impact_note: string | null
+          impact_time: boolean | null
+          impact_until: string | null
+          issued_at: string | null
+          issued_by: string | null
+          issued_hash: string | null
+          needed_by: string | null
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          pdf_hash: string | null
+          photo_ids: string[]
+          project_id: string
+          question: string
+          refs: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_hash: string | null
+          status: string
+          step: number
+          suggestion: string
+          time_impact: boolean | null
+          title: string
+          updated_at: string
+          version: number
+          void_note: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rfis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rfi_waiting: {
+        Args: never
+        Returns: {
+          due_at: string
+          held_opened_at: string
+          held_since: string
+          holder_label: string
+          id: string
+          number: number
+          project_id: string
+          project_name: string
+          reason: string
+          status: string
+          title: string
+        }[]
+      }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
       rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
@@ -6458,6 +7188,28 @@ export type Database = {
       set_daily_start_number: {
         Args: { p_project_id: string; p_report_type: string; p_start: number }
         Returns: number
+      }
+      set_org_logo: {
+        Args: { p_org_id: string; p_path: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          intake_address: string | null
+          kind: string
+          logo_path: string | null
+          name: string
+          settings: Json
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orgs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }
