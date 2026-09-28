@@ -112,3 +112,9 @@ verify_jwt = true
 # --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
 [functions.queue-health]
 verify_jwt = true
+
+# --- Public endpoint (SPEC §6.4 #3): the delivery link. verify_jwt = false because people on the job site (drivers,
+# suppliers, subs' crews) post and watch the board without an account. The function gates itself: token hash, rate
+# limits per IP and per token, zod on every input, board fields only. ---
+[functions.delivery-board]
+verify_jwt = false

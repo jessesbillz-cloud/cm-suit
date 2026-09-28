@@ -77,6 +77,28 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['merge_sub_contacts', { p_existing: [], p_incoming: [] }],
   ['import_subs', { p_org_id: U, p_rows: [] }],
   ['record_cslb_check', { p_sub_id: U, p_status: 'active', p_version: 1 }],
+  // Deliveries (0025): member RPCs, the link's service-role-only SQL, and the internal helpers
+  ['post_delivery', { p_project_id: U, p_company: 'probe', p_date: '2026-10-01', p_duration: 60, p_description: 'probe' }],
+  ['update_delivery', { p_id: U, p_version: 1, p_company: 'probe', p_date: '2026-10-01', p_duration: 60, p_description: 'probe' }],
+  ['delete_delivery', { p_id: U, p_version: 1, p_name: 'probe' }],
+  ['restore_delivery', { p_id: U }],
+  ['delivery_folder', { p_project_id: U }],
+  ['attach_delivery_file', { p_delivery_id: U, p_file_id: U }],
+  ['delivery_company_options', { p_project_id: U }],
+  ['delivery_history', { p_delivery_id: U }],
+  ['review_delivery_month', { p_project_id: U, p_month: '2026-10-01', p_name: 'probe', p_company: '' }],
+  ['rotate_delivery_link', { p_project_id: U }],
+  ['undo_delivery_link_rotation', { p_project_id: U }],
+  ['delivery_link_state', { p_project_id: U }],
+  ['link_delivery_board', { p_project_id: U, p_token_hash: 'x', p_from: '2026-10-01', p_to: '2026-10-02' }],
+  ['link_post_delivery', { p_project_id: U, p_token_hash: 'x', p_name: 'probe', p_company: 'probe', p_date: '2026-10-01', p_duration: 60, p_description: 'probe' }],
+  ['link_delivery_receipt', { p_project_id: U, p_token_hash: 'x', p_delivery_id: U }],
+  ['delivery_overlaps', { p_project_id: U, p_starts_at: '2026-10-01T15:00:00Z', p_duration: 60, p_exclude: U }],
+  ['delivery_company_list', { p_project_id: U }],
+  ['delivery_company_id', { p_project_id: U, p_org_id: U, p_name: 'probe' }],
+  ['delivery_clean', { p_text: 'probe', p_max: 10 }],
+  ['delivery_insert', { p_project_id: U, p_company: 'probe', p_date: '2026-10-01', p_time: '07:00', p_duration: 60, p_description: 'probe', p_posted_name: 'probe', p_via_link: true }],
+  ['delivery_link_project', { p_project_id: U, p_token_hash: 'x' }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
@@ -85,8 +107,8 @@ const AUTHED_FUNCTIONS = [
   'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
- *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
-const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events'];
+ *  Add request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
+const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'delivery-board'];
 const WEBHOOKS = ['inbound-email', 'email-events'];
 
 async function probeTables(): Promise<void> {
@@ -197,6 +219,42 @@ async function probeFunctions(): Promise<void> {
   });
 }
 
+/** The delivery link's answer fields (SPEC §13.3: board fields only). */
+const BOARD_FIELDS = ['company', 'delivery_date', 'description', 'duration_min', 'number', 'standby', 'starts_at'];
+
+async function probeDeliveryLink(): Promise<void> {
+  const token = randomBytes(32).toString('base64url');
+  const today = new Date().toISOString().slice(0, 10);
+  const board = (projectId: string, t: string) =>
+    callFunction('delivery-board', JSON.stringify({ action: 'board', project_id: projectId, token: t, from: today, to: today }));
+  await report.guard('function', 'delivery-board: unknown token', async () => {
+    const res = await board(randomUUID(), token);
+    const text = await res.text();
+    report.check('function', 'delivery-board: unknown token -> 404', res.status === 404, `status ${res.status}`);
+    report.check('function', 'delivery-board: refusal is JSON with an error', /"error"/.test(text), text.slice(0, 120));
+  });
+  await report.guard('function', 'delivery-board: malformed', async () => {
+    const res = await board(randomUUID(), 'short');
+    report.check('function', 'delivery-board: malformed token -> 400', res.status === 400, `status ${res.status}`);
+    const del = await callFunction('delivery-board', JSON.stringify({ action: 'delete', project_id: randomUUID(), token }));
+    report.check('function', 'delivery-board: no delete action (400)', del.status === 400, `status ${del.status}`);
+  });
+  // Positive check: a live link still opens its board, with board fields only. Staging sets both env vars.
+  const projectId = process.env['PROBE_DELIVERY_PROJECT_ID'];
+  const liveToken = process.env['PROBE_DELIVERY_TOKEN'];
+  if (!projectId || !liveToken) {
+    report.todo('function', 'delivery-board: live link opens its board', 'set PROBE_DELIVERY_PROJECT_ID and PROBE_DELIVERY_TOKEN');
+    return;
+  }
+  await report.guard('function', 'delivery-board: live link', async () => {
+    const res = await board(projectId, liveToken);
+    report.check('function', 'delivery-board: live link -> 200', res.status === 200, `status ${res.status}`);
+    const body = (await res.json()) as { deliveries?: Record<string, unknown>[] };
+    const extra = (body.deliveries ?? []).flatMap((d) => Object.keys(d)).filter((k) => !BOARD_FIELDS.includes(k));
+    report.check('function', 'delivery-board: board fields only', extra.length === 0, extra.join(', '));
+  });
+}
+
 async function probeSchemas(): Promise<void> {
   for (const schema of ['pgmq', 'pgmq_public', 'queue']) {
     await report.guard('schema', schema, async () => {
@@ -225,6 +283,7 @@ async function main(): Promise<void> {
   await probeRpcs();
   await probeStorage();
   await probeFunctions();
+  await probeDeliveryLink();
   await probeSchemas();
   report.finish();
 }

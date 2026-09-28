@@ -10,6 +10,8 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 
 /** What projects.modules defaults to for a new job. */
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
+/** A job under construction also has the field tools (migration 0021). */
+const MOCK_BUILDING_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections'];
 
 export const MOCK_PROJECTS: MyProject[] = [
   {
@@ -20,7 +22,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_BUILDING_MODULES,
   },
   {
     project_id: 'job-b',
@@ -30,7 +32,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_BUILDING_MODULES,
   },
 ];
 

@@ -4,6 +4,7 @@ import { AccessLink } from '../features/auth/AccessLink';
 import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
 import { NewJobPage } from '../features/setup/NewJobPage';
+import { PublicDeliveries } from '../features/deliveries/PublicDeliveries';
 import { EmptyState } from '../ui/States';
 import { AllBoardRoute, ProjectToolRoute } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
@@ -18,6 +19,8 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
+  /** Deliveries: the picked day (yyyy-mm-dd). */
+  day?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -28,8 +31,15 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const folder = str(s['folder']);
   const view = str(s['view']);
   const pkg = str(s['pkg']);
+  const day = str(s['day']);
   const win = s['window'] === '1' || s['window'] === 1;
-  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(pkg ? { pkg } : {}), ...(win ? { window: '1' as const } : {}) };
+  return {
+    ...(folder ? { folder } : {}),
+    ...(view ? { view } : {}),
+    ...(pkg ? { pkg } : {}),
+    ...(day ? { day } : {}),
+    ...(win ? { window: '1' as const } : {}),
+  };
 }
 
 function parseAccessSearch(s: Record<string, unknown>): { t?: string } {
@@ -71,6 +81,21 @@ const allBoardRoute = createRoute({
 });
 const allBoardItemRoute = createRoute({ getParentRoute: () => allBoardRoute, path: '$itemId' });
 
+/** The job's delivery link (SPEC §6.4 #3): token, view (post, tv), picked day, receipt. */
+function parseDeliveryLinkSearch(s: Record<string, unknown>): { t?: string; view?: string; day?: string; r?: string } {
+  const t = str(s['t']);
+  const view = str(s['view']);
+  const day = str(s['day']);
+  const r = str(s['r']);
+  return { ...(t ? { t } : {}), ...(view ? { view } : {}), ...(day ? { day } : {}), ...(r ? { r } : {}) };
+}
+const deliveryLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/d/$projectId',
+  validateSearch: parseDeliveryLinkSearch,
+  component: PublicDeliveries,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -79,6 +104,7 @@ const routeTree = rootRoute.addChildren([
   shareRoute,
   toolRoute.addChildren([toolItemRoute]),
   allBoardRoute.addChildren([allBoardItemRoute]),
+  deliveryLinkRoute,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

@@ -39,6 +39,8 @@ const MATRIX: Record<string, readonly Role[]> = {
   'rfi.answer': ['architect'],
   'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator'],
   'members.manage': ['project_admin'],
+  'deliveries.view': ROLES.filter((r) => r !== 'bidder'),
+  'deliveries.post': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
 };
 
 interface ProbeUser {
@@ -403,6 +405,62 @@ async function checkPricing(s: Seed, clients: Map<UserKey, Client>): Promise<voi
   report.todo('requests', 'requesters see only anonymized fields of others\' requests', 'Phase 3 (inspection requests)');
 }
 
+// Deliveries (SPEC §13.3, §6.4 #3): RLS by capability, overlap -> Standby, and the delivery link from outside: board
+// fields only, and a rotated token locks out the old one.
+async function linkBoard(projectId: string, token: string): Promise<Response> {
+  const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  return fetch(`${url}/functions/v1/delivery-board`, {
+    method: 'POST',
+    headers: { apikey: anonKey, 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'board', project_id: projectId, token, from: day, to: day }),
+  });
+}
+
+async function checkDeliveries(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
+  must(await service.from('projects').update({ modules: ['bids', 'files', 'calendar', 'deliveries'] }).eq('id', s.projA), 'deliveries on');
+  const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const post = async (key: UserKey, time: string) => {
+    const res = await clientOf(clients, key).rpc('post_delivery', {
+      p_project_id: s.projA, p_company: `Probe Co ${RUN}`, p_date: day, p_duration: 60, p_description: `Probe ${key}`, p_time: time,
+    });
+    if (res.error) throw new Error(`post_delivery as ${key}: ${res.error.message}`);
+    return String(res.data);
+  };
+  const first = await post('foreman', '07:00');
+  const second = await post('sub', '07:30');
+  const rows = must(await clientOf(clients, 'inspector').from('deliveries').select('id, standby').eq('project_id', s.projA), 'deliveries');
+  report.check('deliveries', 'inspector (view) sees both', rows.length === 2, `${rows.length} rows`);
+  report.check('deliveries', 'the overlapping post is Standby',
+    rows.find((r) => r['id'] === second)?.['standby'] === true && rows.find((r) => r['id'] === first)?.['standby'] === false);
+  const bidderRows = await count(clientOf(clients, 'bidder'), 'deliveries', 'project_id', s.projA);
+  report.check('deliveries', 'bidder sees no deliveries', bidderRows === 0, `${bidderRows} rows`);
+  const inspectorPost = await clientOf(clients, 'inspector').rpc('post_delivery', {
+    p_project_id: s.projA, p_company: 'x', p_date: day, p_duration: 60, p_description: 'x',
+  });
+  report.check('deliveries', 'inspector cannot post', inspectorPost.error !== null);
+  const subRotate = await clientOf(clients, 'sub').rpc('rotate_delivery_link', { p_project_id: s.projA });
+  report.check('deliveries', 'sub cannot make the link', subRotate.error !== null);
+
+  const rotate = async () => {
+    const res = await clientOf(clients, 'superintendent').rpc('rotate_delivery_link', { p_project_id: s.projA });
+    if (res.error) throw new Error(`rotate_delivery_link: ${res.error.message}`);
+    return String(res.data);
+  };
+  const oldToken = await rotate();
+  const res = await linkBoard(s.projA, oldToken);
+  const text = await res.text();
+  report.check('delivery link', 'the link opens the board (200)', res.status === 200, `status ${res.status}`);
+  const body = JSON.parse(text) as { deliveries?: Record<string, unknown>[] };
+  const keys = [...new Set((body.deliveries ?? []).flatMap((d) => Object.keys(d)))].sort().join(',');
+  report.check('delivery link', 'board fields only', keys === 'company,delivery_date,description,duration_min,number,standby,starts_at', keys);
+  const leaks = [first, second, user(s, 'foreman').id, user(s, 'foreman').email, 'Probe foreman'].filter((v) => text.includes(v));
+  report.check('delivery link', 'no ids, emails or poster names', leaks.length === 0, leaks.join(', '));
+  const newToken = await rotate();
+  const [oldRes, newRes] = await Promise.all([linkBoard(s.projA, oldToken), linkBoard(s.projA, newToken)]);
+  report.check('delivery link', 'rotating locks out the old link (404)', oldRes.status === 404, `status ${oldRes.status}`);
+  report.check('delivery link', 'the new link works (200)', newRes.status === 200, `status ${newRes.status}`);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Cleanup: runs even when seeding or checks fail.
 // ---------------------------------------------------------------------------------------------------------------
@@ -440,6 +498,7 @@ async function main(): Promise<void> {
     await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients, bids));
     await report.guard('money', 'pricing', () => checkPricing(s, clients));
     await report.guard('sealed', 'sealed bids', () => checkSealed(s, clients, bids));
+    await report.guard('deliveries', 'deliveries', () => checkDeliveries(s, clients));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {

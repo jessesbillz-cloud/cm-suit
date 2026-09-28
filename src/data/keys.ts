@@ -30,4 +30,10 @@ export const qk = {
   /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
   subs: (orgId: string) => ['subs', orgId] as const,
   subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
+  /** Every deliveries query of a job sits under this prefix: one invalidation after any delivery write. */
+  deliveries: (projectId: string) => ['deliveries', projectId] as const,
+  deliveriesPart: (projectId: string, part: string, id = '') => ['deliveries', projectId, part, id] as const,
+  /** The public delivery link's board (no session): its own prefix, never mixed with the signed-in cache. */
+  deliveryLink: (projectId: string) => ['delivery_link', projectId] as const,
+  deliveryLinkPart: (projectId: string, part: string, id = '') => ['delivery_link', projectId, part, id] as const,
 };
