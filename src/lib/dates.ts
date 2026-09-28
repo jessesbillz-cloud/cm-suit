@@ -46,3 +46,9 @@ export function fromZonedInput(local: string, tz: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) throw new Error(`Not a date and time: ${local}`);
   return fromZonedTime(`${local}:00`, tz).toISOString();
 }
+
+/** The first instant of a calendar day (yyyy-MM-dd) in the given zone, as a UTC ISO string (calendar ranges). */
+export function startOfDayInZone(day: string, tz: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error(`Not a calendar day: ${day}`);
+  return fromZonedTime(`${day}T00:00:00`, tz).toISOString();
+}

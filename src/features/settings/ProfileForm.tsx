@@ -9,6 +9,7 @@ import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { CalendarFeedRow } from './CalendarFeedRow';
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(1, 'Enter your name.').max(200),
@@ -128,6 +129,7 @@ export function ProfileForm() {
       {profile.isError ? <ErrorState error={profile.error} onRetry={() => void profile.refetch()} /> : null}
       {/* Re-keyed on version: after a save the form starts from what the database now holds. */}
       {profile.data ? <ProfileFields key={profile.data.version} profile={profile.data} /> : null}
+      <CalendarFeedRow />
     </Card>
   );
 }

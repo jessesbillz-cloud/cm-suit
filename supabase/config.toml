@@ -112,3 +112,10 @@ verify_jwt = true
 # --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
 [functions.queue-health]
 verify_jwt = true
+
+# --- Public endpoint (SPEC §6.4 #7) ---
+# calendar-feed: calendar apps subscribe to a URL and fetch it with no session or headers of ours, so the platform JWT
+# check can't apply. The per-person secret token (?t=, only its sha256 stored, rotatable) is the gate; zod, a rate
+# limit per IP and per token, and a bare 404 for anything unknown.
+[functions.calendar-feed]
+verify_jwt = false

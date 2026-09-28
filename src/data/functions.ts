@@ -1,7 +1,7 @@
 // The only place edge functions are called. Non-2xx answers become a thrown FunctionError.
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { z } from 'zod';
-import { supabase } from './client';
+import { SUPABASE_URL, supabase } from './client';
 
 type FunctionName =
   | 'access'
@@ -13,7 +13,8 @@ type FunctionName =
   | 'invite-bidders'
   | 'issue-addendum'
   | 'extract-bid'
-  | 'import-subs';
+  | 'import-subs'
+  | 'calendar-feed';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';
@@ -81,4 +82,9 @@ export async function callFunction<T>(
   const err: unknown = res.error;
   if (err) throw await toFunctionError(err);
   return schema.parse(res.data);
+}
+
+/** An edge function's public URL: the same base supabase-js invokes (`<project>/functions/v1/<name>`). */
+export function functionUrl(name: FunctionName): string {
+  return `${SUPABASE_URL.replace(/\/+$/, '')}/functions/v1/${name}`;
 }

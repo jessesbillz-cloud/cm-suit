@@ -77,6 +77,11 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['merge_sub_contacts', { p_existing: [], p_incoming: [] }],
   ['import_subs', { p_org_id: U, p_rows: [] }],
   ['record_cslb_check', { p_sub_id: U, p_status: 'active', p_version: 1 }],
+  // Calendar (0021-0022)
+  ['calendar_mirror', { p_source_type: 'probe', p_source_id: U, p_project_id: U, p_kind: 'meetings', p_title: 'probe', p_starts_at: '2026-01-01T00:00:00Z' }],
+  ['calendar_unmirror', { p_source_type: 'probe', p_source_id: U }],
+  ['rotate_calendar_feed', {}],
+  ['calendar_feed_lines', { p_token_hash: '0'.repeat(64) }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
@@ -85,8 +90,8 @@ const AUTHED_FUNCTIONS = [
   'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
- *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */
-const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events'];
+ *  Add delivery-board and request-link (Phase 3) when they ship. calendar-feed is GET-only, so a POST is a 400. */
+const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed'];
 const WEBHOOKS = ['inbound-email', 'email-events'];
 
 async function probeTables(): Promise<void> {
@@ -191,10 +196,28 @@ async function probeFunctions(): Promise<void> {
     const hasError = typeof body === 'object' && body !== null && 'error' in body;
     report.check('function', 'access: refusal has an `error` field', hasError, text.slice(0, 120));
   });
+  await probeCalendarFeed();
   await report.guard('function', 'unknown function', async () => {
     const res = await callFunction(`probe-${randomUUID().slice(0, 8)}`, '{}');
     report.check('function', 'unknown function is not 200', res.status !== 200, `status ${res.status}`);
   });
+}
+
+/** calendar-feed (SPEC §6.4 #7): calendar apps send no headers; a missing or unknown token is a bare 404, never a feed. */
+async function probeCalendarFeed(): Promise<void> {
+  const cases: [string, string][] = [
+    ['no token', ''],
+    ['malformed token', '?t=probe'],
+    ['unknown token', `?t=${randomBytes(32).toString('base64url')}`],
+  ];
+  for (const [what, qs] of cases) {
+    await report.guard('function', `calendar-feed: ${what}`, async () => {
+      const res = await fetch(`${url}/functions/v1/calendar-feed${qs}`);
+      const text = await res.text();
+      report.check('function', `calendar-feed: ${what} -> 404/429`, [404, 429].includes(res.status), `status ${res.status}`);
+      report.check('function', `calendar-feed: ${what} returns no calendar`, !text.includes('BEGIN:VCALENDAR'), text.slice(0, 80));
+    });
+  }
 }
 
 async function probeSchemas(): Promise<void> {

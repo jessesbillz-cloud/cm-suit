@@ -105,6 +105,7 @@ export const PUBLIC_TABLES = [
   'email_outbound', 'email_suppressions', 'email_events', 'email_inbound', 'push_subscriptions', 'ai_calls',
   'bid_packages', 'subs', 'sub_history', 'bid_invites', 'bid_submissions', 'bid_extractions', 'bid_extraction_pricing',
   'bid_leveling', 'bid_questions', 'published_answers', 'addenda', 'addendum_acks', 'signin_allowlist',
+  'calendar_entries', 'calendar_feed_tokens',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

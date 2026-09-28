@@ -10,7 +10,7 @@ import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../
 import { useToast } from '../../ui/Toast';
 
 export interface FrameLocation {
-  /** null = all my jobs (board only). */
+  /** null = all my jobs (board and calendar). */
   projectId: string | null;
   tool: Tool;
   itemId: string | null;
@@ -46,13 +46,13 @@ export function useFrameModel(loc: FrameLocation) {
 
   function go(projectId: string | null, tool: Tool) {
     if (projectId === null) {
-      void navigate({ to: '/all/board' });
+      void navigate({ to: tool === 'calendar' ? '/all/calendar' : '/all/board' });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool } });
   }
 
-  /** Job picker: switching keeps the current tool (SPEC §7.2). "All my jobs" exists for the board. */
+  /** Job picker: switching keeps the current tool (SPEC §7.2). "All my jobs" exists for the board and the calendar. */
   function pickJob(projectId: string | null) {
     if (projectId !== null && choices) save({ recent_project_ids: pushRecent(choices.recent_project_ids, projectId) });
     go(projectId, loc.tool);
@@ -64,7 +64,7 @@ export function useFrameModel(loc: FrameLocation) {
 
   function selectTool(tool: Tool) {
     setRightFull(false);
-    if (loc.projectId === null && tool !== 'board') {
+    if (loc.projectId === null && tool !== 'board' && tool !== 'calendar') {
       go(fallbackProjectId(), tool);
       return;
     }
@@ -74,7 +74,7 @@ export function useFrameModel(loc: FrameLocation) {
   /** Opens an item in the right column (desktop) or full screen (phone). */
   function openItem(tool: Tool, itemId: string, projectId: string | null = loc.projectId) {
     if (projectId === null) {
-      void navigate({ to: '/all/board/$itemId', params: { itemId } });
+      void navigate({ to: tool === 'calendar' ? '/all/calendar/$itemId' : '/all/board/$itemId', params: { itemId } });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool, itemId } });
@@ -84,14 +84,14 @@ export function useFrameModel(loc: FrameLocation) {
   function closeItem() {
     setRightFull(false);
     if (loc.projectId === null) {
-      go(null, loc.tool);
+      void navigate({ to: loc.tool === 'calendar' ? '/all/calendar' : '/all/board', search: true });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool', params: { projectId: loc.projectId, tool: loc.tool }, search: true });
   }
 
   function itemWindowHref(tool: Tool, itemId: string, projectId: string | null = loc.projectId): string {
-    const base = projectId === null ? `/all/board/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
+    const base = projectId === null ? `/all/${tool === 'calendar' ? 'calendar' : 'board'}/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
     return `${base}?window=1`;
   }
 

@@ -1,5 +1,5 @@
-// Route components for /p/$projectId/$tool(/$itemId) and /all/board(/$itemId). They pick the desktop frame, the
-// phone shell, or the single-item window (?window=1), after the layout and job list have loaded.
+// Route components for /p/$projectId/$tool(/$itemId), /all/board(/$itemId) and /all/calendar(/$itemId). They pick the
+// desktop frame, the phone shell, or the single-item window (?window=1), after the layout and job list have loaded.
 import { getRouteApi, useParams, useSearch } from '@tanstack/react-router';
 import { isTool, type Tool } from '../../lib/layout';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -60,4 +60,12 @@ export function AllBoardRoute() {
   const { itemId } = useParams({ strict: false });
   const search: { window?: '1' | undefined } = useSearch({ strict: false });
   return <FrameSwitch loc={{ projectId: null, tool: BOARD, itemId: itemId ?? null }} folderId={null} windowMode={search.window === '1'} />;
+}
+
+const CALENDAR: Tool = 'calendar';
+
+export function AllCalendarRoute() {
+  const { itemId } = useParams({ strict: false });
+  const search: { window?: '1' | undefined } = useSearch({ strict: false });
+  return <FrameSwitch loc={{ projectId: null, tool: CALENDAR, itemId: itemId ?? null }} folderId={null} windowMode={search.window === '1'} />;
 }

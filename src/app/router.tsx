@@ -5,7 +5,7 @@ import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
 import { NewJobPage } from '../features/setup/NewJobPage';
 import { EmptyState } from '../ui/States';
-import { AllBoardRoute, ProjectToolRoute } from './frame/FrameRoute';
+import { AllBoardRoute, AllCalendarRoute, ProjectToolRoute } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
 import { RootLayout } from './RootLayout';
 
@@ -18,6 +18,8 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
+  /** Calendar: the day the view is on (yyyy-MM-dd, the job's calendar day); absent = today. */
+  day?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -29,7 +31,14 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const win = s['window'] === '1' || s['window'] === 1;
-  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(pkg ? { pkg } : {}), ...(win ? { window: '1' as const } : {}) };
+  const day = str(s['day']);
+  return {
+    ...(folder ? { folder } : {}),
+    ...(view ? { view } : {}),
+    ...(pkg ? { pkg } : {}),
+    ...(win ? { window: '1' as const } : {}),
+    ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
+  };
 }
 
 function parseAccessSearch(s: Record<string, unknown>): { t?: string } {
@@ -71,6 +80,14 @@ const allBoardRoute = createRoute({
 });
 const allBoardItemRoute = createRoute({ getParentRoute: () => allBoardRoute, path: '$itemId' });
 
+const allCalendarRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/all/calendar',
+  validateSearch: parseToolSearch,
+  component: AllCalendarRoute,
+});
+const allCalendarItemRoute = createRoute({ getParentRoute: () => allCalendarRoute, path: '$itemId' });
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -79,6 +96,7 @@ const routeTree = rootRoute.addChildren([
   shareRoute,
   toolRoute.addChildren([toolItemRoute]),
   allBoardRoute.addChildren([allBoardItemRoute]),
+  allCalendarRoute.addChildren([allCalendarItemRoute]),
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

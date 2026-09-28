@@ -1015,6 +1015,30 @@ export type Database = {
           },
         ]
       }
+      calendar_feed_tokens: {
+        Row: {
+          created_at: string
+          last_used_at: string | null
+          rotated_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_used_at?: string | null
+          rotated_at?: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_used_at?: string | null
+          rotated_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dead_jobs: {
         Row: {
           attempts: number
@@ -2787,6 +2811,23 @@ export type Database = {
           unread: boolean
         }[]
       }
+      calendar_feed_lines: {
+        Args: { p_token_hash: string }
+        Returns: {
+          all_day: boolean
+          ends_at: string
+          id: string
+          kind: string
+          location: string
+          project_id: string
+          project_name: string
+          starts_at: string
+          status: string
+          timezone: string
+          title: string
+          updated_at: string
+        }[]
+      }
       calendar_mirror: {
         Args: {
           p_all_day?: boolean
@@ -3219,6 +3260,7 @@ export type Database = {
         }[]
       }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
+      rotate_calendar_feed: { Args: never; Returns: string }
       session_aal: { Args: never; Returns: string }
       set_bid_intent: {
         Args: { p_intent: string; p_invite_id: string; p_reason?: string }
