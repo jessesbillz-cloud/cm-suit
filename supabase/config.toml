@@ -115,6 +115,9 @@ verify_jwt = true
 [functions.ir-send]
 verify_jwt = true
 
+[functions.rfis]
+verify_jwt = true
+
 # --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
 [functions.queue-health]
 verify_jwt = true

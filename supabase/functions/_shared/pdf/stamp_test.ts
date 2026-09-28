@@ -27,6 +27,13 @@ Deno.test('stamp: keeps the page count, with and without a signature image', asy
   }
 });
 
+Deno.test('stamp: two signatures, one in each bottom corner', async () => {
+  const first = await stampSignature(await twoPages(), { signaturePng: PNG_1PX, name: 'Pat Sample', signedAtLabel: 'Sep 26, 2026', align: 'left' });
+  const both = await stampSignature(first, { signaturePng: null, name: 'Sam Sample', signedAtLabel: 'Sep 27, 2026' });
+  check((await PDFDocument.load(both)).getPageCount() === 2, 'two pages after both stamps');
+  check(both.length > first.length, 'the second stamp added content');
+});
+
 Deno.test('stamp: refuses a PDF with no pages', async () => {
   const bytes = await (await PDFDocument.create()).save({ addDefaultPage: false });
   const err = await stampSignature(bytes, { signaturePng: PNG_1PX, name: 'X', signedAtLabel: 'Y' }).then(() => null, (e: unknown) => e);
