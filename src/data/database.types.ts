@@ -4165,6 +4165,7 @@ export type Database = {
       }
       daily_photo_folder: { Args: { p_project_id: string }; Returns: string }
       daily_reports_folder: { Args: { p_project_id: string }; Returns: string }
+      daily_settings_ok: { Args: { p_settings: Json }; Returns: boolean }
       delete_daily_draft: {
         Args: { p_report_id: string; p_version: number }
         Returns: undefined
@@ -4377,6 +4378,10 @@ export type Database = {
       folder_can_read: { Args: { p_folder_id: string }; Returns: boolean }
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
       folder_effective_id: { Args: { p_folder_id: string }; Returns: string }
+      folder_name_reserved: {
+        Args: { p_name: string; p_parent_id: string; p_project_id: string }
+        Returns: boolean
+      }
       has_capability: {
         Args: { p_cap: string; p_project_id: string }
         Returns: boolean
@@ -6145,6 +6150,7 @@ export type Database = {
         Args: { p_sub_id: string; p_submission_id: string }
         Returns: undefined
       }
+      signed_in_recently: { Args: never; Returns: boolean }
       submit_bid: {
         Args: { p_file_id: string; p_package_id: string }
         Returns: {

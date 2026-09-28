@@ -162,6 +162,7 @@ Deno.serve(handle(async (req) => {
   if (body.action === 'restamp') {
     if (!row.ir_file_id || !row.signed_at || !row.content_hash) throw new HttpError(409, 'There is no PDF.');
     if (row.signed_by !== user.id) throw new HttpError(403, 'Only the inspector who signed it can re-stamp it. Use Update PDF.');
+    if (row.pdf_stale) return refuse(req, 409, 'stale', 'The IR changed. Use Update PDF.');
     const postponed = row.status === 'postponed';
     if (postponed === row.pdf_postponed) return ok(req, { id: row.id, ir_file_id: row.ir_file_id });
     const hash = await irHash(row);

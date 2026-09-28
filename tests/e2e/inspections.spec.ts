@@ -25,13 +25,10 @@ test.describe('inspections (SPEC §13.2)', () => {
   });
 
   test('request -> receipt; the inspector confirms and records a result', async ({ page }) => {
-    // Setup: turn Inspections on for the sample job (Settings > Job > tools on this job).
-    await page.goto('/p/job-a/settings');
-    await page.getByRole('checkbox', { name: 'Inspections', exact: true }).check();
-    await expect(page.getByTestId('rail-inspections')).toBeVisible();
-
+    // The sample job is under construction, so Inspections is already on its rail.
     // Requester: the form is prefilled; that day is open; the receipt carries the number the database gave.
     await page.goto('/p/job-a/inspections?view=week');
+    await expect(page.getByTestId('rail-inspections')).toBeVisible();
     await page.getByTestId('ir-new').click();
     await expect(page.getByTestId('ir-company')).toHaveValue('Sample Concrete Co');
     await page.getByTestId('ir-time').selectOption('09:00');

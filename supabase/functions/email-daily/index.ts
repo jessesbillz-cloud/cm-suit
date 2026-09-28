@@ -13,6 +13,7 @@ import { requireCapability, requireUser } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { dailyReportEmail, sendEach, sendEmail, type SendStatus } from '../_shared/email.ts';
 import { appUrl, BRAND_NAME } from '../_shared/env.ts';
+import { limit } from '../_shared/ratelimit.ts';
 import { dailyHeaderSchema, needsResubmit, parseDailySettings } from '../_shared/dailies.ts';
 import { dayLabel } from '../_shared/pdf/dailyReport.ts';
 
@@ -89,6 +90,9 @@ Deno.serve(handle(async (req) => {
   const fileName = report.filename ?? `${title}.pdf`;
 
   const service = serviceClient();
+  // Mail goes out from our domain: at most 10 sends an hour per person, and 3 an hour per report (review 0030).
+  await limit(service, `email-daily:user:${user.id}`, 10, 10 / 3600);
+  await limit(service, `email-daily:report:${report.id}`, 3, 3 / 3600);
   const number = await rpc<number>(service, 'next_number', { p_project_id: report.project_id, p_kind: 'transmittal' });
   const members = await memberIds(service, report.project_id, recipients);
   const transmittal = must(

@@ -30,7 +30,25 @@ begin
   perform set_config('request.jwt.claim.sub', coalesce(p_uid::text, ''), true);
   perform set_config('request.jwt.claim.role', 'authenticated', true);
   perform set_config('request.jwt.claims',
-    json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', p_aal, 'aud', 'authenticated')::text, true);
+    json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', p_aal, 'aud', 'authenticated',
+                      -- This session signed in just now (signing needs a fresh sign-in, 0030).
+                      'amr', json_build_array(json_build_object('method', 'otp', 'timestamp', floor(extract(epoch from now())))))::text,
+    true);
+end;
+$$;
+
+-- Acts as a signed-in user whose session signed in an hour ago (too old to sign).
+create function pg_temp.login_stale(p_uid uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claim.sub', coalesce(p_uid::text, ''), true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', p_uid, 'role', 'authenticated', 'aal', 'aal1', 'aud', 'authenticated',
+                      'amr', json_build_array(json_build_object('method', 'otp', 'timestamp', floor(extract(epoch from now())) - 3600)))::text,
+    true);
 end;
 $$;
 

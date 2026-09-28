@@ -42,7 +42,7 @@ test.describe('dailies (SPEC §13.1)', () => {
     await page.goto('/p/job-a/dailies');
     await page.getByTestId('daily-setup-open').click();
     const setup = page.getByTestId('daily-setup');
-    await expect(setup.getByLabel('Name')).toHaveValue('Daily Report');
+    await expect(setup.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Daily Report');
     await expect(setup.getByTestId('daily-filename-preview')).toContainText(/^Daily Report 1 Sample Job A \d{2}-\d{2}-\d{4}\.pdf$/);
   });
 });
