@@ -14,9 +14,17 @@ export function formatBytes(n: number): string {
 }
 
 /** 'file.uploaded' / 'project_admin' -> 'File uploaded' / 'Project admin'. Labels come from data, not code. */
+/** Short trade words that are always written in capitals. */
+const ACRONYMS = new Set(['ir', 'irs', 'rfi', 'rfis', 'cn', 'dsa', 'ofs', 'pdf', 'csi', 'dir', 'cslb', 'pw', 'ccd', 'ccds']);
+
 export function humanize(key: string): string {
-  const words = key.replace(/[._]+/g, ' ').trim();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  const words = key
+    .replace(/[._]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .map((w) => (ACRONYMS.has(w.toLowerCase()) ? w.toUpperCase() : w));
+  const text = words.join(' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 const MONEY = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
