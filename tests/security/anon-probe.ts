@@ -77,12 +77,48 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['merge_sub_contacts', { p_existing: [], p_incoming: [] }],
   ['import_subs', { p_org_id: U, p_rows: [] }],
   ['record_cslb_check', { p_sub_id: U, p_status: 'active', p_version: 1 }],
+  // Inspections (0024)
+  ['ir_setting', { p_project_id: U, p_key: 'ir_gc_approval' }],
+  ['ir_status_key', { p_status: 'pending', p_result: 'approved', p_helper: U }],
+  ['ir_type_label', { p_kind: 'ior', p_special: 'x' }],
+  ['ir_when_label', { p_date: '2026-10-01', p_time: '09:00' }],
+  ['ir_member_decides', { p_project_id: U, p_member: U }],
+  ['ir_owner_ok', { p_project_id: U, p_owner: U }],
+  ['ir_for_update', { p_request_id: U, p_version: 1 }],
+  ['ir_first_status', { p_project_id: U }],
+  ['ir_tell_inspector', { p_request: {}, p_kind: 'probe', p_summary: 'probe' }],
+  ['ir_tell_requester', { p_request: {}, p_kind: 'probe', p_summary: 'probe' }],
+  ['ir_decider', { p_request_id: U, p_version: 1 }],
+  ['ir_folder', { p_project_id: U, p_which: 'attachments' }],
+  ['ir_attach_folder_id', { p_project_id: U }],
+  ['ir_form_context', { p_project_id: U }],
+  ['ir_submit', { p_project_id: U, p_company: 'probe', p_request_date: '2030-01-01', p_kind: 'ior', p_items: 'probe', p_notice_ack: true }],
+  ['ir_calendar', { p_project_id: U, p_from: '2030-01-01', p_to: '2030-01-07' }],
+  ['ir_move', { p_request_id: U, p_version: 1, p_request_date: '2030-01-01' }],
+  ['ir_withdraw', { p_request_id: U, p_version: 1 }],
+  ['ir_restore', { p_request_id: U, p_version: 1 }],
+  ['ir_gc_decide', { p_request_id: U, p_version: 1, p_approve: true }],
+  ['ir_confirm', { p_request_id: U, p_version: 1 }],
+  ['ir_unconfirm', { p_request_id: U, p_version: 1 }],
+  ['ir_set_attendance', { p_request_id: U, p_version: 1 }],
+  ['ir_set_result', { p_request_id: U, p_version: 1, p_result: 'approved' }],
+  ['ir_postpone', { p_request_id: U, p_version: 1, p_reason: 'weather' }],
+  ['ir_assign_helper', { p_request_id: U, p_version: 1 }],
+  ['ir_claim', { p_request_id: U, p_version: 1 }],
+  ['ir_helper_report', { p_request_id: U, p_version: 1, p_report: 'passed' }],
+  ['ir_sign', { p_request_id: U, p_version: 1, p_content_hash: '0'.repeat(64) }],
+  ['ir_attach_pdf', { p_request_id: U, p_file_id: U, p_content_hash: '0'.repeat(64), p_postponed: false }],
+  ['ir_delete_pdf', { p_request_id: U, p_version: 1 }],
+  ['authorize_ir_file', { p_request_id: U, p_file_id: U }],
+  ['ir_recipients', { p_request_id: U }],
+  ['ir_mark_sent', { p_request_id: U, p_transmittal_id: U }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
   'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health',
   'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs',
+  'ir-pdf', 'ir-send',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add delivery-board and request-link (Phase 3) and calendar-feed (Phase 2) when they ship. */

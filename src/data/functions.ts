@@ -13,7 +13,9 @@ type FunctionName =
   | 'invite-bidders'
   | 'issue-addendum'
   | 'extract-bid'
-  | 'import-subs';
+  | 'import-subs'
+  | 'ir-pdf'
+  | 'ir-send';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

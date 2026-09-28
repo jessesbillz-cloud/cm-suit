@@ -30,3 +30,11 @@ email-events
 inbound-email
 # Cron: queue_health() is not granted to users.
 queue-health
+# Stores the signed IR PDF (storeGeneratedPdf: storage + files row) and records it (ir_attach_pdf, service-only), reads
+# the result photos' bytes and signs download URLs; requireCapability('ir.decide') and ir_sign() / authorize_ir_file()
+# run as the user first.
+ir-pdf
+# Sends the one IR results email (email_outbound), marks its transmittal sent (no user update policy) and records the
+# send (ir_mark_sent, service-only); requireCapability('ir.decide'), the owner check and create_transmittal() run as
+# the user first.
+ir-send

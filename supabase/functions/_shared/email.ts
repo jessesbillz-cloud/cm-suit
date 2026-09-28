@@ -328,3 +328,33 @@ export async function sendEach<T>(items: readonly T[], send: (item: T) => Promis
     await send(item);
   }
 }
+
+/** Inspection results (SPEC §13.2): the one results email. The IR is a permanent share link; the item opens in the app. */
+export function irResultsEmail(p: {
+  brand: string;
+  projectName: string;
+  number: number;
+  typeLabel: string;
+  resultLabel: string;
+  dayLabel: string;
+  company: string;
+  pdfUrl: string;
+  itemUrl: string;
+}): Rendered {
+  const subject = oneLine(`${p.projectName} - IR ${p.number} ${p.resultLabel}`);
+  const html = layout(p.brand, `
+<h1 style="font-size:20px;margin:0 0 4px">IR ${p.number}: ${esc(p.resultLabel)}</h1>
+<p style="margin:0 0 16px;color:#6b7280">${esc(p.projectName)}</p>
+<p>${esc(p.typeLabel)} &middot; ${esc(p.company)} &middot; ${esc(p.dayLabel)}</p>
+${button(p.pdfUrl, 'Open the IR')}
+<p style="font-size:13px"><a href="${esc(p.itemUrl)}">Open in the app</a></p>`);
+  const text = `IR ${p.number}: ${p.resultLabel} - ${p.projectName}
+
+${p.typeLabel} - ${p.company} - ${p.dayLabel}
+
+The IR: ${p.pdfUrl}
+In the app: ${p.itemUrl}
+
+${p.brand}`;
+  return { subject, html, text };
+}

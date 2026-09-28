@@ -30,4 +30,9 @@ export const qk = {
   /** The org's sub directory (SPEC §11.2) and each sub's history sit under this prefix. */
   subs: (orgId: string) => ['subs', orgId] as const,
   subHistory: (orgId: string, subId: string) => ['subs', orgId, 'history', subId] as const,
+  /** Every inspections query of a job sits under this prefix: one invalidation after any IR write. */
+  inspections: (projectId: string) => ['inspections', projectId] as const,
+  inspectionsPart: (projectId: string, part: string, id = '') => ['inspections', projectId, part, id] as const,
+  /** The roles holding ir.decide (who can be a co-inspector), read from the capability matrix. */
+  decideRoles: ['role_permissions', 'ir.decide'] as const,
 };

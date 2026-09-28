@@ -18,6 +18,8 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
+  /** Inspections: the day being looked at (yyyy-MM-dd, the job's calendar). */
+  day?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -29,7 +31,14 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const win = s['window'] === '1' || s['window'] === 1;
-  return { ...(folder ? { folder } : {}), ...(view ? { view } : {}), ...(pkg ? { pkg } : {}), ...(win ? { window: '1' as const } : {}) };
+  const day = str(s['day']);
+  return {
+    ...(folder ? { folder } : {}),
+    ...(view ? { view } : {}),
+    ...(pkg ? { pkg } : {}),
+    ...(win ? { window: '1' as const } : {}),
+    ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
+  };
 }
 
 function parseAccessSearch(s: Record<string, unknown>): { t?: string } {

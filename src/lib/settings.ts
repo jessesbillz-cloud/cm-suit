@@ -23,11 +23,17 @@ export const PROJECT_SETTINGS_DEFAULTS = {
   rfi_turnaround_days: 10,
   /** A PE can turn the ball-in-court column on for themselves; the project default is off (SPEC §7.4). */
   show_ball_in_court: false,
+  /** Inspections: the GC approves a request before it reaches the inspector (SPEC §13.2). The database reads a missing key as off. */
+  ir_gc_approval: false,
+  /** Inspections: OFS is one of the request types on this job. */
+  ir_ofs_allowed: false,
 };
 
 const projectSettingsSchema = z.object({
   rfi_turnaround_days: z.number().int().min(1).max(365).catch(PROJECT_SETTINGS_DEFAULTS.rfi_turnaround_days),
   show_ball_in_court: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.show_ball_in_court),
+  ir_gc_approval: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_gc_approval),
+  ir_ofs_allowed: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_allowed),
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 

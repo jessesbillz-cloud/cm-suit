@@ -62,7 +62,10 @@ export type ProjectRow = Pick<
 
 /** The job fields a person edits in Settings (the column grants in migration 0013 allow exactly these and a few more). */
 export type ProjectPatch = Partial<
-  Pick<ProjectRow, 'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'job_type' | 'prevailing_wage' | 'bid_due_at' | 'bid_sealed'>
+  Pick<
+    ProjectRow,
+    'name' | 'number' | 'address' | 'timezone' | 'stage' | 'modules' | 'job_type' | 'prevailing_wage' | 'bid_due_at' | 'bid_sealed' | 'settings'
+  >
 >;
 
 export type MyOrg = Fns['my_orgs']['Returns'][number];
