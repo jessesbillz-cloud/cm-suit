@@ -9,7 +9,13 @@ import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
 import { MoveForm } from './MoveForm';
 
-export function RequesterActions({ row }: { row: IrRequest }) {
+interface RequesterActionsProps {
+  row: IrRequest;
+  /** Off when I'm also its inspector: the inspector's steps have Move (one way to each thing). */
+  canMove: boolean;
+}
+
+export function RequesterActions({ row, canMove }: RequesterActionsProps) {
   const [moving, setMoving] = useState(false);
   const withdraw = useWithdrawIr();
   const restore = useRestoreIr();
@@ -39,15 +45,17 @@ export function RequesterActions({ row }: { row: IrRequest }) {
   return (
     <div className="mt-4">
       <div className="flex gap-2">
-        <Button
-          icon={CalendarClock}
-          data-testid="ir-move-open"
-          onClick={() => {
-            setMoving(!moving);
-          }}
-        >
-          Move
-        </Button>
+        {canMove ? (
+          <Button
+            icon={CalendarClock}
+            data-testid="ir-move-open"
+            onClick={() => {
+              setMoving(!moving);
+            }}
+          >
+            Move
+          </Button>
+        ) : null}
         <Button
           variant="danger"
           loading={withdraw.isPending}
@@ -77,7 +85,7 @@ export function RequesterActions({ row }: { row: IrRequest }) {
           Withdraw
         </Button>
       </div>
-      {moving ? (
+      {moving && canMove ? (
         <MoveForm
           row={row}
           onDone={() => {
