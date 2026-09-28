@@ -2,11 +2,13 @@
 // Role probe (SPEC §6.8). Seeds two projects with one user per SPEC §5.2 role (plus a second bidder, a project-B admin,
 // an expired member and a revoked member) using the service role, then signs in as each user and checks: the capability
 // matrix, cross-project isolation, access_ends_at, revocation, the bidder wall (members, people, files, invites,
-// submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, and aal2.
+// submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, aal2, and who sees
+// an RFI draft.
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY, PROBE_SERVICE_ROLE_KEY. Exits non-zero on any failure. Cleans up even on failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { type Client, Report, errText, makeClient, requireEnv, rowsOf } from './_lib';
+import { checkRfis } from './_rfis';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -546,12 +548,11 @@ async function main(): Promise<void> {
     await report.guard('sealed', 'sealed bids', () => checkSealed(s, clients, bids));
     await report.guard('requests', 'inspection requests', () => checkRequests(s, clients));
     await report.guard('deliveries', 'deliveries', () => checkDeliveries(s, clients));
+    await report.guard('rfis', 'rfis', () => checkRfis({ report, service, projectId: s.projA, orgId: s.orgA, run: RUN, as: get }));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {
-    await cleanup(users, created.projects).catch((e: unknown) => {
-      report.check('cleanup', 'cleanup ran', false, errText(e));
-    });
+    await cleanup(users, created.projects).catch((e: unknown) => { report.check('cleanup', 'cleanup ran', false, errText(e)); });
     report.finish();
   }
 }

@@ -54,3 +54,8 @@ delivery-board
 # Testing-only public endpoint: personal sign-in links (makes a one-time sign-in token with the admin API; signin_key_email is
 # service-only).
 key-login
+# Stores the RFI PDF (storeGeneratedPdf: storage + files row) and records it (rfi_attach_pdf, service-only), reads photo,
+# company logo and signature bytes from private storage and signs download URLs; the RFI is read as the user, and
+# requireCapability('rfi.create_draft' / 'rfi.sign_issue') with rfi_sign_send() / rfi_sign_issue(), rfi_detail() or
+# rfi_authorize_file() run as the user first.
+rfis

@@ -121,9 +121,11 @@ export const PUBLIC_TABLES = [
   'org_invites',
   // Testing login (0036)
   'security_switches', 'signin_keys',
+  // RFIs (0038)
+  'rfi_settings', 'rfi_route_steps', 'rfis', 'rfi_steps', 'rfi_events',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
-export const BUCKETS = ['files', 'signatures', 'inbound', 'fixtures'] as const;
+export const BUCKETS = ['files', 'signatures', 'inbound', 'fixtures', 'org-logos'] as const;
 
 export const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
