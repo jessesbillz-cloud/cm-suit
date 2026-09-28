@@ -33,6 +33,8 @@ const MATRIX: Record<string, readonly Role[]> = {
   'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector'],
   'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin'],
   'ir.decide': ['inspector'],
+  'ir.gc_approve': ['project_admin', 'pm', 'superintendent'],
+  'ir.view_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep'],
   'deliveries.manage': ['superintendent', 'pm', 'project_admin'],
   'corrections.close': ['inspector'],
   'rfi.create_draft': ['sub', 'superintendent', 'foreman', 'pe', 'pm', 'project_admin'],
@@ -402,7 +404,28 @@ async function checkPricing(s: Seed, clients: Map<UserKey, Client>): Promise<voi
     });
   }
   report.todo('money', 'bid_extraction_pricing readable at aal2', 'positive check needs a TOTP (aal2) sign-in; covered in 08_bids.sql');
-  report.todo('requests', 'requesters see only anonymized fields of others\' requests', 'Phase 3 (inspection requests)');
+}
+
+// Inspection requests (SPEC §13.2, 0024): a requester sees other people's requests only as time, type and color.
+async function checkRequests(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
+  const day = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+  const ask = (key: UserKey, items: string) => rpcRow(clientOf(clients, key), 'ir_submit', {
+    p_project_id: s.projA, p_company: `Probe ${key}`, p_request_date: day, p_kind: 'ior', p_items: items, p_notice_ack: true,
+    p_start_time: '09:00', p_duration_min: 60,
+  });
+  const mine = str(await ask('sub', `probe sub ${RUN}`), 'id');
+  const theirs = str(await ask('foreman', `probe foreman ${RUN}`), 'id');
+  const cal = must(await clientOf(clients, 'sub').rpc('ir_calendar', { p_project_id: s.projA, p_from: day, p_to: day }), 'ir_calendar');
+  const others = cal.filter((r) => r['mine'] !== true);
+  report.check('requests', 'sub: sees the other request on the calendar', others.length === 1, `${others.length} rows`);
+  const leaks = others.filter((r) => r['id'] !== null || r['company'] !== null || r['items'] !== null || r['number'] !== null);
+  report.check('requests', 'sub: other request has no id, number, company or items', leaks.length === 0, JSON.stringify(leaks));
+  report.check('requests', 'sub: other request row unreadable', (await count(clientOf(clients, 'sub'), 'inspection_requests', 'id', theirs)) === 0);
+  report.check('requests', 'sub: own request readable', (await count(clientOf(clients, 'sub'), 'inspection_requests', 'id', mine)) === 1);
+  const insp = must(await clientOf(clients, 'inspector').rpc('ir_calendar', { p_project_id: s.projA, p_from: day, p_to: day }), 'ir_calendar');
+  report.check('requests', 'inspector: both requests in full', insp.filter((r) => r['full_detail'] === true && r['company'] !== null).length === 2);
+  const arch = await clientOf(clients, 'architect').rpc('ir_calendar', { p_project_id: s.projA, p_from: day, p_to: day });
+  report.check('requests', 'architect (no IR capability): calendar refused', Boolean(arch.error), arch.error ? arch.error.message : 'rows returned');
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -442,6 +465,7 @@ async function main(): Promise<void> {
     await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients, bids));
     await report.guard('money', 'pricing', () => checkPricing(s, clients));
     await report.guard('sealed', 'sealed bids', () => checkSealed(s, clients, bids));
+    await report.guard('requests', 'inspection requests', () => checkRequests(s, clients));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {

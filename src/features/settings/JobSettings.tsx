@@ -11,6 +11,7 @@ import { Card } from '../../ui/Card';
 import { CheckField, SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { InspectionSettings } from '../inspections/InspectionSettings';
 
 type TextKey = 'name' | 'number' | 'address' | 'job_type';
 
@@ -141,6 +142,7 @@ function JobFields({ row }: { row: ProjectWithSettings }) {
           ))}
         </div>
       </fieldset>
+      {row.modules.includes('inspections') ? <InspectionSettings row={row} /> : null}
       <div className="sm:col-span-2">
         <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
       </div>

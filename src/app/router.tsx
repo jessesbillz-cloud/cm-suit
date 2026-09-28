@@ -18,7 +18,7 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
-  /** Calendar: the day the view is on (yyyy-MM-dd, the job's calendar day); absent = today. */
+  /** Calendar and inspections: the day being looked at (yyyy-MM-dd, the job's calendar day); absent = today. */
   day?: string;
 }
 

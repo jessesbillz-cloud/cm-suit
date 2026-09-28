@@ -40,3 +40,11 @@ submit-daily
 # Writes the transmittal, share links and email_outbound for the author (who may lack transmittals.send); the report,
 # photos and recipients (from the author's setup) are read as the author after requireCapability('dailies.write').
 email-daily
+# Stores the signed IR PDF (storeGeneratedPdf: storage + files row) and records it (ir_attach_pdf, service-only), reads
+# the result photos' bytes and signs download URLs; requireCapability('ir.decide') and ir_sign() / authorize_ir_file()
+# run as the user first.
+ir-pdf
+# Sends the one IR results email (email_outbound), marks its transmittal sent (no user update policy) and records the
+# send (ir_mark_sent, service-only); requireCapability('ir.decide'), the owner check and create_transmittal() run as
+# the user first.
+ir-send

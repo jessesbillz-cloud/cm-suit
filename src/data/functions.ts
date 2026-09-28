@@ -16,7 +16,9 @@ type FunctionName =
   | 'import-subs'
   | 'calendar-feed'
   | 'submit-daily'
-  | 'email-daily';
+  | 'email-daily'
+  | 'ir-pdf'
+  | 'ir-send';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

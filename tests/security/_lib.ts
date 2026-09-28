@@ -107,6 +107,7 @@ export const PUBLIC_TABLES = [
   'bid_leveling', 'bid_questions', 'published_answers', 'addenda', 'addendum_acks', 'signin_allowlist',
   'calendar_entries', 'calendar_feed_tokens',
   'daily_setups', 'daily_reports', 'daily_report_photos', 'daily_author_folders',
+  'inspection_requests', 'ir_events', 'ir_blocks', 'ir_special_kinds',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
