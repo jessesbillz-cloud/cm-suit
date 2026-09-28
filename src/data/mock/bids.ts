@@ -23,6 +23,7 @@ import * as mockCorrections from './corrections';
 import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import * as mockPackages from './packages';
+import * as mockRfis from './rfis';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
 
@@ -35,6 +36,7 @@ function isBidder(): boolean {
 /** has_capability in the mock: the bidder can only submit; everyone else can do everything else. */
 export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('corrections.')) return mockCorrections.capability(cap);
+  if (cap.startsWith('rfi.')) return mockRfis.capability(cap);
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
 }

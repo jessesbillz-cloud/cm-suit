@@ -20,7 +20,8 @@ type FunctionName =
   | 'ir-pdf'
   | 'ir-send'
   | 'delivery-board'
-  | 'key-login';
+  | 'key-login'
+  | 'rfis';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

@@ -14,7 +14,8 @@ export default {
         line: { DEFAULT: '#E2E5EA', strong: '#CDD2DA' },
         accent: { DEFAULT: '#2563EB', hover: '#1D4ED8', soft: '#EFF6FF' },
         danger: { DEFAULT: '#DC2626', soft: '#FEF2F2' },
-        impact: { row: '#FFF7E6' },
+        // The one amber highlight: impact claimed (row, box edge, icon).
+        impact: { row: '#FFF7E6', edge: '#F3D7A6', ink: '#B45309' },
       },
       boxShadow: {
         // Hairline edge + contact shadow + soft lift.

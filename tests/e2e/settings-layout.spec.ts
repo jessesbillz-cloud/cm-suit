@@ -44,7 +44,7 @@ test.describe('settings layout (SPEC §7.2)', () => {
     await clickAndSave(page.getByTestId('layout-rail-up-dailies'), card);
     await expect
       .poll(() => toolsIn(rail))
-      .toEqual(['board', 'files', 'bids', 'dailies', 'calendar', 'inspections', 'deliveries', 'corrections', 'people', 'settings']);
+      .toEqual(['board', 'files', 'bids', 'dailies', 'calendar', 'inspections', 'rfis', 'deliveries', 'corrections', 'people', 'settings']);
     await expect.poll(() => toolsIn(phone)).toEqual(['board', 'files', 'bids', 'dailies']);
 
     if (testInfo.project.name === 'phone') {

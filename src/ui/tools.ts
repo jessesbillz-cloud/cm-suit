@@ -2,6 +2,7 @@
 import {
   CalendarDays,
   ClipboardCheck,
+  FileQuestion,
   Folder,
   Gavel,
   ListChecks,
@@ -21,6 +22,7 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   calendar: { label: 'Calendar', icon: CalendarDays },
   dailies: { label: 'Dailies', icon: NotebookPen },
   inspections: { label: 'Inspections', icon: ClipboardCheck },
+  rfis: { label: 'RFIs', icon: FileQuestion },
   deliveries: { label: 'Deliveries', icon: Truck },
   corrections: { label: 'Corrections', icon: ListChecks },
   people: { label: 'People', icon: Users },

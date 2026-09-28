@@ -1,5 +1,5 @@
-// Settings: the job (for people who run it), my company (if I run it), my profile, my layout, calendar subscriptions,
-// notifications, two-step login, and signing out.
+// Settings: the job (for people who run it), its RFIs (for those who issue them), my company (if I run it), my profile,
+// my layout, calendar subscriptions, notifications, two-step login, and signing out.
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { signOut, useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { RfiSettingsCard } from '../rfis/RfiSettings';
 import { CalendarSubscriptions } from './CalendarSubscriptions';
 import { CompanySettings } from './CompanySettings';
 import { JobSettings } from './JobSettings';
@@ -57,6 +58,7 @@ export function SettingsTool({ projectId }: { projectId: string | null }) {
   return (
     <div data-testid="settings" className="mx-auto flex max-w-4xl flex-col gap-5 pb-6">
       {projectId ? <JobSettings projectId={projectId} /> : null}
+      {projectId ? <RfiSettingsCard projectId={projectId} /> : null}
       <CompanySettings />
       <ProfileForm />
       <LayoutForm />

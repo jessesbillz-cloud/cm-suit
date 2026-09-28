@@ -1,4 +1,5 @@
-// Settings > Company: my company's name and type, saved as I go. Shown only for companies I run (is_org_admin).
+// Settings > Company: my company's name and type, saved as I go, and its logo. Shown only for companies I run
+// (is_org_admin).
 import { useState } from 'react';
 import { messageOf } from '../../data/errors';
 import { useSaveOrg } from '../../data/jobs.mutations';
@@ -9,6 +10,7 @@ import { Card } from '../../ui/Card';
 import { SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState } from '../../ui/States';
+import { CompanyLogo } from './CompanyLogo';
 
 function CompanyFields({ org, commit }: { org: MyOrg; commit: (patch: OrgPatch) => void }) {
   const [name, setName] = useState(org.name);
@@ -57,6 +59,9 @@ function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
   return (
     <Card title={titled ? org.name : 'Company'} actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
       <CompanyFields key={org.org_id} org={org} commit={commit} />
+      <div className="mt-4 border-t border-line pt-4">
+        <CompanyLogo orgId={org.org_id} />
+      </div>
     </Card>
   );
 }

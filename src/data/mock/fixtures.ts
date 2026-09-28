@@ -1,6 +1,6 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
-import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID } from './boardSeeds';
+import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID, SEED_RFI_ID } from './boardSeeds';
 
 const TZ = 'America/Los_Angeles';
 
@@ -13,7 +13,7 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
 /** The sample jobs are being built, so they have the field tools too (0021 tg_project_field_modules). */
-const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections'];
+const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections', 'rfis'];
 
 export const MOCK_PROJECTS: MyProject[] = [
   {
@@ -71,6 +71,7 @@ const LINE_SEEDS: LineSeed[] = [
   ['job-a', 'addendum.issued', 'Addendum 1 issued: Sample schedule change', 'addendum', 'add-1'],
   ['job-a', 'bid.question', 'Pre-bid question 1', 'bid_question', 'q-1'],
   ['job-a', 'bid.answer', 'Answer 2 published', 'published_answer', 'answer-2'],
+  ['job-a', 'rfi.impact_claimed', 'RFI 002 impact claimed: Sample storefront head anchor spacing at grid C', 'rfi', SEED_RFI_ID],
 ];
 
 export const MOCK_ACTIVITY: ActivityRow[] = LINE_SEEDS.map(([project_id, kind, summary, entity_type, entity_id], i) => ({

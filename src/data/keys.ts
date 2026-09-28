@@ -57,4 +57,11 @@ export const qk = {
   bidPipeline: ['bid_pipeline'] as const,
   /** The CSI MasterFormat reference (the same for every job). */
   csi: ['csi'] as const,
+  /** Every RFI query of a job sits under this prefix: one invalidation after any RFI write. */
+  rfis: (projectId: string) => ['rfis', projectId] as const,
+  rfisPart: (projectId: string, part: string, id = '') => ['rfis', projectId, part, id] as const,
+  /** RFIs someone else is sitting on, across all my jobs (the top of "Needs you"). */
+  rfiWaiting: ['rfi_waiting'] as const,
+  /** A company's logo (path and a fresh signed URL for the preview). */
+  orgLogo: (orgId: string) => ['org_logo', orgId] as const,
 };

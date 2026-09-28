@@ -1,7 +1,7 @@
 // One step on an item: mark ready (GC or sub) or the inspector's decision, with a note and up to 6 photos.
 // Undo in the toast afterwards, never "are you sure?".
 import { useState } from 'react';
-import { useCorrectionStep } from '../../data/corrections.mutations';
+import { useCorrectionFileUpload, useCorrectionStep } from '../../data/corrections.mutations';
 import { STEP_PHOTO_LIMIT, type CorrectionRow, type CorrectionStep } from '../../data/corrections.types';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
@@ -22,7 +22,7 @@ const AREA = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text
 export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
   const move = useCorrectionStep();
   const offerUndo = useUndoOffer(row.project_id, row.id);
-  const photos = usePhotoUploads(row.project_id, STEP_PHOTO_LIMIT);
+  const photos = usePhotoUploads(row.project_id, STEP_PHOTO_LIMIT, useCorrectionFileUpload());
   const [note, setNote] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
 

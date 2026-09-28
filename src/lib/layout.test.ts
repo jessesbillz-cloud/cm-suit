@@ -36,7 +36,8 @@ describe('layout', () => {
   });
   it('knows its tools', () => {
     expect(isTool('files')).toBe(true);
-    expect(isTool('rfis')).toBe(false);
+    expect(isTool('rfis')).toBe(true);
+    expect(isTool('not-a-tool')).toBe(false);
   });
   it('phone bar: first four tools, the open one always on it, the rest under More', () => {
     const rail = ['board', 'files', 'bids', 'calendar', 'dailies', 'inspections'] as const;

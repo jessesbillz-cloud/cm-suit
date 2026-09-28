@@ -2,7 +2,7 @@
 // prefilled from my latest item. The database numbers it; a repeated save returns the same item (request key).
 import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
-import { useCreateCorrection } from '../../data/corrections.mutations';
+import { useCorrectionFileUpload, useCreateCorrection } from '../../data/corrections.mutations';
 import { useCorrections } from '../../data/corrections.queries';
 import { ITEM_PHOTO_LIMIT, type CorrectionRow } from '../../data/corrections.types';
 import { useUser } from '../../data/auth';
@@ -29,7 +29,7 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
   const list = useCorrections(projectId);
   const create = useCreateCorrection();
   const offerUndo = useUndoOffer(projectId, null);
-  const photos = usePhotoUploads(projectId, ITEM_PHOTO_LIMIT);
+  const photos = usePhotoUploads(projectId, ITEM_PHOTO_LIMIT, useCorrectionFileUpload());
   const [requestKey] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<FieldsDraft>(() => ({
     title: '',
