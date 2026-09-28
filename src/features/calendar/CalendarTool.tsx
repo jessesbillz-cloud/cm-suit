@@ -2,15 +2,13 @@
 // its job. Days and times are each job's own (projects.timezone). The phone gets the week as one list.
 import { useMemo } from 'react';
 import { useCalendarLines } from '../../data/calendar.queries';
-import type { CalendarLine } from '../../data/calendar.types';
 import { useCapability, useMyProjects, useUserLayout } from '../../data/queries';
 import { detectZone, todayInZone } from '../../lib/dates';
-import { toolIsOn } from '../../lib/jobs';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { CalendarBar } from './CalendarBar';
 import { DayView, WeekView, type DaysProps } from './DayViews';
-import { bucketByDay, rangeFor, rangeLabel, step, visibleDays, type CalView } from './model';
+import { bucketByDay, rangeFor, rangeLabel, step, visibleDays, visibleLines, type CalView } from './model';
 import { MonthView } from './MonthView';
 import { PhoneAgenda } from './PhoneAgenda';
 import { TypeFilter } from './TypeFilter';
@@ -54,12 +52,10 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const lines = useCalendarLines(projectId, rangeFor(days));
 
   const types = layout.data?.choices.calendar_types;
-  const shown = useMemo(() => {
-    const on = new Set(types ?? []);
-    // All my jobs: only jobs that have the calendar on.
-    const jobs = new Set((projects.data ?? []).filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id));
-    return (lines.data ?? []).filter((l: CalendarLine) => on.has(l.kind) && (projectId !== null || jobs.has(l.project_id)));
-  }, [lines.data, types, projects.data, projectId]);
+  const shown = useMemo(
+    () => visibleLines(lines.data ?? [], types ?? [], projects.data ?? [], projectId),
+    [lines.data, types, projects.data, projectId],
+  );
   const buckets = useMemo(() => bucketByDay(shown, days), [shown, days]);
 
   if (layout.isPending || projects.isPending) return <LoadingState label="Loading calendar" />;

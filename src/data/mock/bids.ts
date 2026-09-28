@@ -11,6 +11,7 @@ import type {
   InviteRow,
   PackageRow,
   PricingAccess,
+  PublishedAnswerRow,
   QuestionRow,
   ReadBidResult,
   ReceivedFile,
@@ -288,4 +289,18 @@ export async function extract(submissionId: string): Promise<ReadBidResult> {
 /** Manager writes are not simulated: the mock covers the screens and the tap budgets, not every edit. */
 export function notInMock(): never {
   throw new Error('Not available in the e2e mock.');
+}
+
+/** The job's one published answer (the bidder page shows the same one). */
+export async function publishedAnswer(id: string): Promise<PublishedAnswerRow | null> {
+  await delay();
+  if (id !== 'answer-2') return null;
+  return {
+    id,
+    project_id: 'job-a',
+    number: 2,
+    question_text: 'Is there a sample walk?',
+    answer: 'Yes, see addendum 1.',
+    published_at: '2026-09-23T18:00:00Z',
+  };
 }

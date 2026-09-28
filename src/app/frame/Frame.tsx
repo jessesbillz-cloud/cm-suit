@@ -1,10 +1,10 @@
 // The desktop frame (SPEC §7.2): job picker top-left, then rail / main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
 import { DockedBoard } from '../../features/board/DockedBoard';
+import { TodayPanel } from '../../features/board/TodayPanel';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
-import { EmptyState } from '../../ui/States';
 import { ItemView, itemTitle } from './ItemView';
 import { ToolView } from './ToolView';
 import type { FrameModel } from './useFrameModel';
@@ -18,8 +18,9 @@ interface DockedProps {
   model: FrameModel;
 }
 
+/** The docked panel: the board beside every other tool; beside the board itself, what's on today (never the board twice). */
 function Docked({ model }: DockedProps) {
-  if (model.loc.tool === 'board') return <EmptyState title="Pick a line to read it here." />;
+  if (model.loc.tool === 'board') return <TodayPanel projectId={model.loc.projectId} />;
   return (
     <DockedBoard
       projectId={model.loc.projectId}
@@ -67,7 +68,7 @@ export function Frame({ model, folderId }: FrameProps) {
         )}
         {showRight ? (
           <RightColumn
-            title={itemOpen ? itemTitle(loc.tool) : 'Board'}
+            title={itemOpen ? itemTitle(loc.tool) : loc.tool === 'board' ? 'Today' : 'Board'}
             collapsed={rightCollapsed}
             full={rightFull}
             onToggleCollapsed={() => {

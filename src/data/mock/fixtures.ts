@@ -1,5 +1,6 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
+import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID } from './boardSeeds';
 
 const TZ = 'America/Los_Angeles';
 
@@ -37,18 +38,21 @@ export const MOCK_PROJECTS: MyProject[] = [
   },
 ];
 
-export const MOCK_FILES: FileRow[] = MOCK_PROJECTS.map((p, i) => ({
-  id: `${p.project_id}-file-1`,
-  project_id: p.project_id,
-  folder_id: `${p.project_id}-plans`,
-  original_name: `Sample Plan Set ${i === 0 ? 'A' : 'B'}.pdf`,
-  mime: 'application/pdf',
-  size: 48_213,
-  scan_status: 'clean',
-  upload_complete: true,
-  created_at: '2026-09-20T16:00:00Z',
-  created_by: 'mock-someone',
-}));
+export const MOCK_FILES: FileRow[] = [
+  ...MOCK_PROJECTS.map((p, i): FileRow => ({
+    id: `${p.project_id}-file-1`,
+    project_id: p.project_id,
+    folder_id: `${p.project_id}-plans`,
+    original_name: `Sample Plan Set ${i === 0 ? 'A' : 'B'}.pdf`,
+    mime: 'application/pdf',
+    size: 48_213,
+    scan_status: 'clean',
+    upload_complete: true,
+    created_at: '2026-09-20T16:00:00Z',
+    created_by: 'mock-someone',
+  })),
+  ...SEED_FILES,
+];
 
 const LINE_BASE = Date.parse('2026-09-25T20:00:00Z');
 
@@ -59,6 +63,14 @@ const LINE_SEEDS: LineSeed[] = [
   ['job-a', 'member.joined', 'A sample reviewer joined the job', null, null],
   ['job-b', 'file.uploaded', 'Sample Plan Set B.pdf was added to Plans', 'file', 'job-b-file-1'],
   ['job-b', 'note', 'Sample site walk moved to Thursday', null, null],
+  // One line per kind of record the board opens (the records live in each module's mock).
+  ['job-a', 'delivery.posted', 'Delivery #3: Sample Steel Co', 'delivery', 'mock-delivery-3'],
+  ['job-b', 'ir.results', 'IR 12 results: Approved', 'inspection_request', SEED_IR_ID],
+  ['job-b', 'correction.opened', 'CN-004 opened: Sample missing firestop at corridor penetrations', 'correction', SEED_CN_ID],
+  ['job-b', 'daily.submitted', 'Sample Inspector submitted Daily report #7 for Sep 25', 'daily_report', SEED_DAILY_ID],
+  ['job-a', 'addendum.issued', 'Addendum 1 issued: Sample schedule change', 'addendum', 'add-1'],
+  ['job-a', 'bid.question', 'Pre-bid question 1', 'bid_question', 'q-1'],
+  ['job-a', 'bid.answer', 'Answer 2 published', 'published_answer', 'answer-2'],
 ];
 
 export const MOCK_ACTIVITY: ActivityRow[] = LINE_SEEDS.map(([project_id, kind, summary, entity_type, entity_id], i) => ({

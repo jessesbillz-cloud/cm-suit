@@ -1,7 +1,8 @@
 // Calendar line kinds (SPEC §7.6): ONE table of label + icon, used by the calendar, its type filter and Settings.
-// And ONE mapping from a mirrored line's source to the tool that opens it.
+// A mirrored line opens its source's item through lib/entityTarget (the board's mapping too).
 import { AlarmClock, CalendarRange, ClipboardCheck, Construction, Flag, ShieldCheck, Truck, Users, type LucideIcon } from 'lucide-react';
-import { CALENDAR_TYPES, type Tool } from './layout';
+import { entityTarget, type EntityTarget } from './entityTarget';
+import { CALENDAR_TYPES } from './layout';
 
 type CalendarKind = (typeof CALENDAR_TYPES)[number];
 
@@ -28,29 +29,11 @@ export function kindLabel(kind: string): string {
   return isCalendarKind(kind) ? CALENDAR_KINDS[kind].label : kind;
 }
 
-/** Mirrored lines: calendar_entries.source_type -> the tool that owns the row. */
-const SOURCE_TOOL: Record<string, Tool> = {
-  delivery: 'deliveries',
-  inspection_request: 'inspections',
-  correction: 'corrections',
-  daily_report: 'dailies',
-  project_bid_due: 'bids',
-};
-
-/** Sources whose line opens the tool itself, not an item in it (the job's bid time is the job, not a row). */
-const OPENS_TOOL_ONLY = new Set(['project_bid_due']);
-
-interface LineTarget {
-  tool: Tool;
-  /** null: open the tool, not an item. */
-  itemId: string | null;
-}
-
-/** Where clicking a line goes: a manual line opens in the calendar; a mirrored one opens its module item. */
-export function lineTarget(line: { id: string; source_type: string; source_id: string | null }): LineTarget | null {
+/**
+ * Where clicking a line goes: a manual line opens in the calendar; a mirrored one opens its module item, through the
+ * one mapping the board uses too (lib/entityTarget).
+ */
+export function lineTarget(line: { id: string; source_type: string; source_id: string | null }): EntityTarget | null {
   if (line.source_type === 'manual') return { tool: 'calendar', itemId: line.id };
-  const tool = SOURCE_TOOL[line.source_type];
-  if (!tool) return null;
-  if (OPENS_TOOL_ONLY.has(line.source_type)) return { tool, itemId: null };
-  return line.source_id ? { tool, itemId: line.source_id } : null;
+  return entityTarget(line.source_type, line.source_id);
 }

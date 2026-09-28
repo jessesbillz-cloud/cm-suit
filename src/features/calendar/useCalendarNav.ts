@@ -2,6 +2,7 @@
 // item. A manual line opens in the calendar's right column; a mirrored line opens its module item (lib/calendarKinds).
 // Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useOpenTarget } from '../../app/frame/useOpenTarget';
 import type { CalendarLine } from '../../data/calendar.types';
 import { lineTarget } from '../../lib/calendarKinds';
 import { NEW_LINE, parseCalView, parseDay, type CalView } from './model';
@@ -14,6 +15,7 @@ interface Where {
 
 export function useCalendarNav(projectId: string | null) {
   const navigate = useNavigate();
+  const openTarget = useOpenTarget();
   const search: { view?: string | undefined; day?: string | undefined } = useSearch({ strict: false });
   const view = parseCalView(search.view);
   const day = parseDay(search.day);
@@ -36,9 +38,7 @@ export function useCalendarNav(projectId: string | null) {
       go({ view, day }, line.id);
       return;
     }
-    const params = { projectId: line.project_id, tool: target.tool };
-    if (target.itemId === null) void navigate({ to: '/p/$projectId/$tool', params });
-    else void navigate({ to: '/p/$projectId/$tool/$itemId', params: { ...params, itemId: target.itemId } });
+    openTarget(line.project_id, target);
   }
 
   return {

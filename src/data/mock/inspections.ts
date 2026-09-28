@@ -3,6 +3,7 @@
 import { todayInZone } from '../../lib/dates';
 import { conflictError } from '../errors';
 import type { CalendarRow, FormContext, IrEvent, IrRecipient, IrRequest, IrRowRaw, NewBlock } from '../inspections.types';
+import { SEED_IR } from './boardSeeds';
 import { mockUser } from './index';
 import { delay } from './store';
 
@@ -34,7 +35,8 @@ interface IrState {
 
 function read(): IrState {
   const raw = window.sessionStorage.getItem(KEY);
-  const empty: IrState = { requests: [], events: [], blocks: [], next: {} };
+  // Sample Job B starts with IR 12 (a board line points at it).
+  const empty: IrState = { requests: [SEED_IR], events: [], blocks: [], next: { [SEED_IR.project_id]: SEED_IR.number + 1 } };
   return raw === null ? empty : { ...empty, ...(JSON.parse(raw) as Partial<IrState>) };
 }
 

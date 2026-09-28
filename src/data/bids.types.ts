@@ -217,3 +217,6 @@ export const inviteBiddersResultSchema = z.object({
     .catch([]),
 });
 export type InviteBiddersResult = z.infer<typeof inviteBiddersResultSchema>;
+
+/** A published (anonymized) answer to a pre-bid question. */
+export type PublishedAnswerRow = Pick<Tables<'published_answers'>, 'id' | 'project_id' | 'number' | 'question_text' | 'answer' | 'published_at'>;
