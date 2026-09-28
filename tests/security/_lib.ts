@@ -115,6 +115,8 @@ export const PUBLIC_TABLES = [
   'corrections', 'correction_history',
   // CSI reference (0033)
   'csi_divisions', 'csi_sections',
+  // Bid forms (0034)
+  'bid_form_templates', 'bid_form_items',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

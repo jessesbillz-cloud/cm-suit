@@ -166,6 +166,8 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['create_correction', { p_project_id: U, p_title: 'probe', p_request_key: 'probe' }],
   ['set_correction_status', { p_id: U, p_version: 1, p_status: 'ready' }],
   ['undo_correction', { p_id: U, p_version: 1 }],
+  // Bid forms (0034)
+  ['open_bid_forms', { p_project_id: U }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

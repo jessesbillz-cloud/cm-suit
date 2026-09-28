@@ -1,9 +1,12 @@
 // Manager side of bids (SPEC §11.2–11.6): one compact switch on top, the picked list below, the row in the right column.
+import { useBidForms } from '../../data/bidForms';
 import { useBidsOpen } from '../../data/bids.queries';
 import { useProject } from '../../data/queries';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { AddendaView } from './AddendaView';
 import { CoverageView } from './CoverageView';
+import { missingCount } from './forms';
+import { FormsView } from './FormsView';
 import { LevelingView } from './LevelingView';
 import { SEALED_VIEWS, type BidsView } from './model';
 import { PackagesView } from './PackagesView';
@@ -25,6 +28,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
   const nav = useBidsNav(projectId);
   const open = useBidsOpen(projectId);
   const project = useProject(projectId);
+  const forms = useBidForms(projectId);
 
   if (project.isPending) return <LoadingState label="Loading bids" />;
   if (project.isError) return <ErrorState error={project.error} onRetry={() => void project.refetch()} />;
@@ -39,7 +43,12 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-3">
-      <Segmented current={view} hidden={isOpen ? NONE : SEALED_VIEWS} onPick={nav.setView} />
+      <Segmented
+        current={view}
+        hidden={isOpen ? NONE : SEALED_VIEWS}
+        counts={{ forms: forms.data ? missingCount(forms.data.items, project.data.stage) : 0 }}
+        onPick={nav.setView}
+      />
       {open.isError ? <ErrorState error={open.error} onRetry={() => void open.refetch()} /> : null}
       {view === 'coverage' ? <CoverageView {...common} /> : null}
       {view === 'packages' ? <PackagesView {...common} /> : null}
@@ -49,6 +58,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
       {view === 'received' ? <ReceivedView {...common} orgId={project.data.org_id} tz={tz} /> : null}
       {view === 'leveling' ? <LevelingView {...common} packageId={nav.pkg} onPickPackage={nav.setPkg} /> : null}
       {view === 'summary' ? <SummaryView projectId={projectId} onOpenPackage={nav.setPkg} /> : null}
+      {view === 'forms' ? <FormsView {...common} project={project.data} /> : null}
     </div>
   );
 }

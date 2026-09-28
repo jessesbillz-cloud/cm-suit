@@ -29,6 +29,8 @@ const HOMES: Record<string, Home> = {
   // An answer is its own row; the questions view is where it lives.
   published_answer: { tool: 'bids', view: 'questions', toolOnly: true },
   bid_invite: { tool: 'bids', view: 'coverage', toolOnly: true },
+  // A required bid form (a due day on the calendar opens it).
+  bid_form_item: { tool: 'bids', view: 'forms' },
   // The job's bid time is the job, not a row.
   project_bid_due: { tool: 'bids', toolOnly: true },
   project_member: { tool: 'people', toolOnly: true },
