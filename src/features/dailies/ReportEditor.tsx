@@ -194,6 +194,16 @@ export function ReportEditor(props: ReportEditorProps) {
       )}
 
       {c.standing_note.trim() !== '' ? <p className="whitespace-pre-wrap break-words text-sm text-ink-2">{c.standing_note}</p> : null}
+      {c.inspections.length > 0 ? (
+        <section className="flex flex-col gap-1" data-testid="daily-inspections">
+          <h3 className="text-xs font-medium text-ink-2">Inspections</h3>
+          {c.inspections.map((i) => (
+            <p key={i.ref} className="whitespace-pre-wrap break-words text-sm text-ink">
+              {i.text}
+            </p>
+          ))}
+        </section>
+      ) : null}
       <NotesFields
         content={c}
         locked={locked}

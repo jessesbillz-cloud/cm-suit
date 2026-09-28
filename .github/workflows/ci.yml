@@ -116,7 +116,8 @@ jobs:
         with: { node-version-file: .nvmrc, cache: npm }
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
+      # The github reporter turns each failure into an annotation (readable without the log or the report artifact).
+      - run: npm run test:e2e -- --reporter=github,list
         env:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_PUBLISHABLE_KEY: e2e-placeholder

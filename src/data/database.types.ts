@@ -4127,6 +4127,7 @@ export type Database = {
         }
         Returns: string
       }
+      daily_note_ir: { Args: { p_request_id: string }; Returns: undefined }
       daily_own_report: {
         Args: { p_report_id: string }
         Returns: {
