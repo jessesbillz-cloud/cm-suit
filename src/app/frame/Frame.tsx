@@ -5,6 +5,7 @@ import { TodayPanel } from '../../features/board/TodayPanel';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
+import { ViewAs } from '../../ui/ViewAs';
 import { ItemView, itemTitle } from './ItemView';
 import { ToolView } from './ToolView';
 import type { FrameModel } from './useFrameModel';
@@ -50,6 +51,9 @@ export function Frame({ model, folderId }: FrameProps) {
           onPick={model.pickJob}
           onNewJob={model.newJob}
         />
+        <div className="ml-auto pr-2">
+          <ViewAs />
+        </div>
       </header>
       <div className="flex min-h-0 flex-1">
         <Rail

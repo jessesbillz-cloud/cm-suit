@@ -4087,6 +4087,57 @@ export type Database = {
           },
         ]
       }
+      testing_role_home: {
+        Row: {
+          created_at: string
+          project_id: string
+          real_role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          project_id: string
+          real_role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          project_id?: string
+          real_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testing_role_home_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "testing_role_home_real_role_fkey"
+            columns: ["real_role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["name"]
+          },
+        ]
+      }
+      testing_superusers: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transmittals: {
         Row: {
           created_at: string
@@ -7759,6 +7810,8 @@ export type Database = {
       sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
       testing_relaxed_login: { Args: never; Returns: boolean }
+      testing_view_as: { Args: { p_role: string }; Returns: Json }
+      testing_view_as_state: { Args: never; Returns: Json }
       undo_correction: {
         Args: { p_id: string; p_version: number }
         Returns: {

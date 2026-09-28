@@ -121,6 +121,8 @@ export const PUBLIC_TABLES = [
   'org_invites',
   // Testing login (0036)
   'security_switches', 'signin_keys',
+  // Testing "View as" (0039)
+  'testing_superusers', 'testing_role_home',
   // RFIs (0038)
   'rfi_settings', 'rfi_route_steps', 'rfis', 'rfi_steps', 'rfi_events',
 ] as const;

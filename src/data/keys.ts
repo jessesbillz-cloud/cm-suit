@@ -64,4 +64,6 @@ export const qk = {
   rfiWaiting: ['rfi_waiting'] as const,
   /** A company's logo (path and a fresh signed URL for the preview). */
   orgLogo: (orgId: string) => ['org_logo', orgId] as const,
+  /** Testing only: the "View as" control in the top bar (0039). */
+  viewAs: ['testing_view_as'] as const,
 };

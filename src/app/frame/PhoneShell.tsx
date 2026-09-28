@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { phoneTabs } from '../../lib/layout';
 import { JobPicker } from '../../ui/JobPicker';
+import { ViewAs } from '../../ui/ViewAs';
 import { PanelBack, PanelMoreSheet, PanelScreen, PanelTabBar } from '../../ui/Panel';
 import { TOOL_META } from '../../ui/tools';
 import { ItemView } from './ItemView';
@@ -38,13 +39,18 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
   return (
     <PanelScreen
       top={
-        <JobPicker
-          projects={model.projects}
-          recentIds={choices.recent_project_ids}
-          currentId={loc.projectId}
-          onPick={model.pickJob}
-          onNewJob={model.newJob}
-        />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <JobPicker
+              projects={model.projects}
+              recentIds={choices.recent_project_ids}
+              currentId={loc.projectId}
+              onPick={model.pickJob}
+              onNewJob={model.newJob}
+            />
+          </div>
+          <ViewAs />
+        </div>
       }
       bottom={
         <>

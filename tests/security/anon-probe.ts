@@ -171,6 +171,9 @@ const RPCS: [string, Record<string, unknown>][] = [
   // Testing login (0036)
   ['signin_key_email', { p_token_hash: '0'.repeat(64) }],
   ['testing_relaxed_login', {}],
+  // Testing "View as" (0039)
+  ['testing_view_as_state', {}],
+  ['testing_view_as', { p_role: 'architect' }],
   // RFIs and the company logo (0038): member RPCs, the service-only PDF record, and the internal helpers
   ['rfi_create', { p_project_id: U, p_title: 'probe', p_question: 'probe' }],
   ['rfi_update', { p_rfi_id: U, p_version: 1, p_title: 'probe', p_question: 'probe', p_photo_ids: [], p_suggestion: '', p_refs: '', p_needed_by: null, p_cost_impact: null, p_time_impact: null }],
