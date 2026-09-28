@@ -1,12 +1,12 @@
-// The auth gate. Public entry points (/a/..., /s/..., the delivery link /d/...) render for anyone; everything else needs a
-// session, and a signed-out visitor sees the sign-in screen in place (no redirect dance).
+// The auth gate. Public entry points (/a/..., /s/..., the delivery link /d/..., the testing sign-in link /k/...) render
+// for anyone; everything else needs a session, and a signed-out visitor sees the sign-in screen in place.
 import { Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 import { useSession } from '../data/auth';
 import { SignIn } from '../features/auth/SignIn';
 import { LoadingState } from '../ui/States';
 
 function isPublicPath(path: string): boolean {
-  return path.startsWith('/a/') || path.startsWith('/s/') || path.startsWith('/d/');
+  return path.startsWith('/a/') || path.startsWith('/s/') || path.startsWith('/d/') || path.startsWith('/k/');
 }
 
 export function RootLayout() {

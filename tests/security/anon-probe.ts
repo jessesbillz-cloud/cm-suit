@@ -168,6 +168,9 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['undo_correction', { p_id: U, p_version: 1 }],
   // Bid forms (0034)
   ['open_bid_forms', { p_project_id: U }],
+  // Testing login (0036)
+  ['signin_key_email', { p_token_hash: '0'.repeat(64) }],
+  ['testing_relaxed_login', {}],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
@@ -178,7 +181,7 @@ const AUTHED_FUNCTIONS = [
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add request-link (Phase 3) when it ships. calendar-feed is GET-only, so a POST is a 400. */
-const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed', 'delivery-board'];
+const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed', 'delivery-board', 'key-login'];
 const WEBHOOKS = ['inbound-email', 'email-events'];
 
 async function probeTables(): Promise<void> {

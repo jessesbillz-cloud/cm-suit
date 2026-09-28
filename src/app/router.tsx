@@ -1,6 +1,7 @@
 // Code-based routes (TanStack Router). App flow goes through the router only (CLAUDE.md rule 10).
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { AccessLink } from '../features/auth/AccessLink';
+import { KeyLogin } from '../features/auth/KeyLogin';
 import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
 import { NewJobPage } from '../features/setup/NewJobPage';
@@ -89,6 +90,8 @@ const accessRoute = createRoute({
   component: AccessLink,
 });
 const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: '/s/$shareLinkId', component: ShareLink });
+/** Personal sign-in link, testing only (docs/decisions.md 0036). */
+const keyLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/k/$key', component: KeyLogin });
 
 const toolRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -143,6 +146,7 @@ const routeTree = rootRoute.addChildren([
   newJobRoute,
   accessRoute,
   shareRoute,
+  keyLoginRoute,
   toolRoute.addChildren([toolItemRoute]),
   allBoardRoute.addChildren([allBoardItemRoute]),
   allCalendarRoute.addChildren([allCalendarItemRoute]),

@@ -13,7 +13,7 @@
 // PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not user-callable).
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, storageError } from '../_shared/db.ts';
-import { requireCapability, requireUser, signedInRecently } from '../_shared/auth.ts';
+import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { contentHash } from '../_shared/crypto.ts';
 import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
@@ -147,7 +147,7 @@ Deno.serve(handle(async (req) => {
   await requireCapability(client, report.project_id, 'dailies.write');
   if (report.version !== body.version) throw new HttpError(409, 'The report changed. Reload and try again.');
 
-  if (!signedInRecently(user, req)) {
+  if (!(await signingConfirmed(client, user, req))) {
     return refuse(req, 403, 'reauth_required', 'Sign in again to sign this report');
   }
 

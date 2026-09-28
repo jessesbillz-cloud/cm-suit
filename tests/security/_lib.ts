@@ -119,6 +119,8 @@ export const PUBLIC_TABLES = [
   'bid_form_templates', 'bid_form_items',
   // Company invites (0035)
   'org_invites',
+  // Testing login (0036)
+  'security_switches', 'signin_keys',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

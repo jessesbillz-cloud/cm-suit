@@ -11,7 +11,7 @@
 // code path and is not yet checked, so it never substitutes for the fresh sign-in.
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient } from '../_shared/db.ts';
-import { requireCapability, requireUser, signedInRecently } from '../_shared/auth.ts';
+import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { addendumEmail, sendEach, sendEmail } from '../_shared/email.ts';
 import { BRAND_NAME, appUrl } from '../_shared/env.ts';
@@ -77,7 +77,7 @@ Deno.serve(handle(async (req) => {
   await requireCapability(client, draft.project_id, 'bids.manage');
   if (draft.issued_at) return ok(req, draft);
 
-  if (!signedInRecently(user, req)) {
+  if (!(await signingConfirmed(client, user, req))) {
     return refuse(req, 403, 'reauth_required', 'Sign in again to sign this addendum');
   }
 

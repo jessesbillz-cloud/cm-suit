@@ -138,3 +138,10 @@ verify_jwt = true
 # limits per IP and per token, zod on every input, board fields only. ---
 [functions.delivery-board]
 verify_jwt = false
+
+# --- Testing-only public endpoint (Jesse, Sep 28; docs/decisions.md): personal sign-in links. The person has no session
+# yet, so the platform JWT check can't apply; the key (only its SHA-256 stored, allowlisted addresses only, revocable)
+# is the gate, with zod, rate limits per IP and per key, and a bare 404 for anything unknown. Remove before real use. ---
+[functions.key-login]
+verify_jwt = false
+

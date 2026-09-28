@@ -51,3 +51,6 @@ ir-send
 # Public endpoint §6.4 #3: the delivery link. The token is checked by service-role-only SQL (link_*), which returns
 # board fields only; rate-limited per IP and per token.
 delivery-board
+# Testing-only public endpoint: personal sign-in links (makes a one-time sign-in token with the admin API; signin_key_email is
+# service-only).
+key-login

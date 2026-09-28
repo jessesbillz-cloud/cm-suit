@@ -2,9 +2,11 @@
 import { createContext, useContext } from 'react';
 import type { AuthError } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { supabase } from './client';
 import { detectZone } from '../lib/dates';
 import { DataError, throwIfErrorMaybe, toDataError } from './errors';
+import { callFunction } from './functions';
 import { clearMockUser, isMock } from './mock';
 import type { AppUser } from './types';
 
@@ -60,6 +62,18 @@ export async function sendCode(email: string): Promise<void> {
 
 export async function verifyCode(email: string, code: string): Promise<void> {
   const { error } = await supabase.auth.verifyOtp({ email: normalizeEmail(email), token: code.trim(), type: 'email' });
+  if (error) throw authMessage(error);
+}
+
+const KeyLoginAnswer = z.object({ token_hash: z.string().regex(/^[0-9a-f]{20,128}$/) }).strict();
+
+/**
+ * Testing only (decisions.md, 0036): a personal sign-in link /k/<key> signs its owner in with no email and no code.
+ * key-login turns the key into a one-time sign-in token on the spot; verifying it here starts the session.
+ */
+export async function signInWithKey(key: string): Promise<void> {
+  const { token_hash } = await callFunction('key-login', { key }, KeyLoginAnswer);
+  const { error } = await supabase.auth.verifyOtp({ token_hash, type: 'email' });
   if (error) throw authMessage(error);
 }
 

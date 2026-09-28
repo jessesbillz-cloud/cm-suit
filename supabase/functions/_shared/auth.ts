@@ -97,6 +97,15 @@ export function signedInRecently(user: User, req: Request, now = Date.now()): bo
   });
 }
 
+/**
+ * The signing re-confirmation as the signing functions use it: a fresh sign-in, or the database's testing switch
+ * (security_switches 'testing_relaxed_login', migration 0036; OFF by default). The SQL signing RPCs check the same.
+ */
+export async function signingConfirmed(client: Db, user: User, req: Request): Promise<boolean> {
+  if (signedInRecently(user, req)) return true;
+  return await rpc<boolean>(client, 'testing_relaxed_login');
+}
+
 /** Cron callers send `x-cron-secret: $CRON_SECRET`. A missing secret on the server refuses (env() throws). */
 export async function requireCron(req: Request): Promise<void> {
   const expected = env('CRON_SECRET');

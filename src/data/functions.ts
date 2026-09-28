@@ -19,7 +19,8 @@ type FunctionName =
   | 'email-daily'
   | 'ir-pdf'
   | 'ir-send'
-  | 'delivery-board';
+  | 'delivery-board'
+  | 'key-login';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

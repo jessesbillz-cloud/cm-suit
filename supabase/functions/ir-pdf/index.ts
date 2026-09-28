@@ -13,7 +13,7 @@
 // (ir_attach_pdf), reading the result photos' bytes and signing download URLs; each only after the caller-run checks.
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, storageError } from '../_shared/db.ts';
-import { requireCapability, requireUser, signedInRecently } from '../_shared/auth.ts';
+import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
 import { buildInspectionReport } from '../_shared/pdf/inspectionReport.ts';
@@ -184,7 +184,7 @@ Deno.serve(handle(async (req) => {
   // generate
   if (!row.result) throw new HttpError(400, 'Record the result first.');
   if (row.status === 'postponed') throw new HttpError(400, 'Confirm it again first.');
-  if (!signedInRecently(user, req)) return refuse(req, 403, 'reauth_required', 'Confirm it is you to sign this IR');
+  if (!(await signingConfirmed(client, user, req))) return refuse(req, 403, 'reauth_required', 'Confirm it is you to sign this IR');
   const hash = await irHash(row);
   const signed = await rpc<SignedRow>(client, 'ir_sign', { p_request_id: row.id, p_version: row.version, p_content_hash: hash });
   if (signed.content_hash !== hash || !signed.signed_at) {

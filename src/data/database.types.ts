@@ -3403,6 +3403,27 @@ export type Database = {
         }
         Relationships: []
       }
+      security_switches: {
+        Row: {
+          enabled: boolean
+          key: string
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          note?: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          note?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       share_links: {
         Row: {
           created_at: string
@@ -3485,6 +3506,36 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+        }
+        Relationships: []
+      }
+      signin_keys: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          label: string
+          last_used_at: string | null
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash?: string
         }
         Relationships: []
       }
@@ -6409,6 +6460,7 @@ export type Database = {
         Returns: undefined
       }
       signed_in_recently: { Args: never; Returns: boolean }
+      signin_key_email: { Args: { p_token_hash: string }; Returns: string }
       submit_bid: {
         Args: { p_file_id: string; p_package_id: string }
         Returns: {
@@ -6441,6 +6493,7 @@ export type Database = {
       }
       sync_detected_timezone: { Args: { p_zone: string }; Returns: string }
       sync_login_audit: { Args: never; Returns: number }
+      testing_relaxed_login: { Args: never; Returns: boolean }
       undo_correction: {
         Args: { p_id: string; p_version: number }
         Returns: {
