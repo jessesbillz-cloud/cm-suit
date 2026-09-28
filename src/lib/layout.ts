@@ -47,7 +47,115 @@ export const CALENDAR_TYPES = [
   'my_due',
 ] as const;
 
-export const NOTIFICATION_KINDS = ['tasks', 'rfi_answers', 'impact_claims', 'ir_results', 'addenda', 'transmittals'] as const;
+interface NotifyEventDef {
+  key: string;
+  label: string;
+  /** Who the event is for, when it is not everyone. */
+  note?: string;
+}
+
+export interface NotifyAreaDef {
+  key: string;
+  label: string;
+  events: readonly NotifyEventDef[];
+}
+
+/**
+ * What a person can be notified about (SPEC §7.8): areas, each with its events. The ONE place these keys and labels
+ * live. Event keys are stored in user_layout.notification_kinds, so a key never changes; rfi_answers, impact_claims,
+ * ir_results, addenda and transmittals are the keys saved before the tree and keep their meaning.
+ */
+export const NOTIFY_AREAS = [
+  {
+    key: 'tasks',
+    label: 'Tasks that involve me',
+    events: [
+      { key: 'task_assigned', label: 'Assigned to me' },
+      { key: 'task_signature', label: 'Waiting on my signature' },
+      { key: 'task_due_soon', label: 'Due soon' },
+    ],
+  },
+  {
+    key: 'rfis',
+    label: 'RFIs',
+    events: [
+      { key: 'rfi_asked', label: 'An RFI is asked of me' },
+      { key: 'rfi_answers', label: 'My RFI is answered' },
+      { key: 'impact_claims', label: 'Impact claimed' },
+    ],
+  },
+  {
+    key: 'inspections',
+    label: 'Inspections',
+    events: [
+      { key: 'ir_confirmed', label: 'My request confirmed' },
+      { key: 'ir_moved', label: 'Moved or postponed' },
+      { key: 'ir_results', label: 'Results in' },
+    ],
+  },
+  {
+    key: 'deliveries',
+    label: 'Deliveries',
+    events: [
+      { key: 'delivery_posted', label: 'Posted on my job' },
+      { key: 'delivery_standby', label: 'Standby' },
+    ],
+  },
+  {
+    key: 'corrections',
+    label: 'Corrections',
+    events: [
+      { key: 'correction_ready', label: 'Marked ready', note: 'Inspectors' },
+      { key: 'correction_status', label: 'Status changed on mine' },
+    ],
+  },
+  {
+    key: 'bids',
+    label: 'Bids',
+    events: [
+      { key: 'addenda', label: 'Addendum issued' },
+      { key: 'bid_question_answered', label: 'Question answered' },
+      { key: 'bid_received', label: 'Bid received' },
+    ],
+  },
+  {
+    key: 'files',
+    label: 'Files',
+    events: [{ key: 'transmittals', label: 'Transmittal sent to me' }],
+  },
+] as const satisfies readonly NotifyAreaDef[];
+
+export type NotifyArea = (typeof NOTIFY_AREAS)[number]['key'];
+type NotifyKind = (typeof NOTIFY_AREAS)[number]['events'][number]['key'];
+
+/** Every event key, in tree order. */
+const NOTIFY_KINDS: readonly NotifyKind[] = NOTIFY_AREAS.flatMap((a) => a.events.map((e) => e.key));
+
+/** Before the tree, 'tasks' meant every task event. */
+const LEGACY_TASKS: readonly NotifyKind[] = ['task_assigned', 'task_signature', 'task_due_soon'];
+
+/** Saved keys made current: the legacy 'tasks' expanded, unknown keys dropped, in tree order, no duplicates. */
+function normalizeNotify(saved: readonly string[]): NotifyKind[] {
+  const on = new Set<string>(saved.flatMap((k): readonly string[] => (k === 'tasks' ? LEGACY_TASKS : [k])));
+  return NOTIFY_KINDS.filter((k) => on.has(k));
+}
+
+/** A parent box: all, some (indeterminate) or none of its events are on. */
+export function areaState(area: NotifyAreaDef, on: readonly string[]): 'all' | 'some' | 'none' {
+  const n = area.events.filter((e) => on.includes(e.key)).length;
+  if (n === 0) return 'none';
+  return n === area.events.length ? 'all' : 'some';
+}
+
+/** Turns events on or off (one child, or every child of a parent), keeping tree order. */
+export function setNotify(on: readonly string[], keys: readonly string[], checked: boolean): NotifyKind[] {
+  const set = new Set<string>(normalizeNotify(on));
+  for (const k of keys) {
+    if (checked) set.add(k);
+    else set.delete(k);
+  }
+  return NOTIFY_KINDS.filter((k) => set.has(k));
+}
 
 /** How many recent jobs the picker remembers. */
 const RECENT_LIMIT = 8;
@@ -58,13 +166,38 @@ export const LAYOUT_DEFAULTS = {
   docked_panel: 'board' as DockedPanel,
   collapsed: { rail: false, right: false },
   calendar_types: ['inspections', 'deliveries', 'meetings', 'milestones'] as string[],
-  notification_kinds: ['tasks', 'rfi_answers', 'impact_claims', 'ir_results'] as string[],
+  // The quiet set (SPEC §7.8): my tasks, answers to my RFIs, impact claims, my IR results.
+  notification_kinds: [...LEGACY_TASKS, 'rfi_answers', 'impact_claims', 'ir_results'] as NotifyKind[],
   recent_project_ids: [] as string[],
   whats_new_enabled: true,
 };
 
 function isRailTool(v: string): v is RailTool {
   return (RAIL_TOOLS as readonly string[]).includes(v);
+}
+
+type RailChoices = Pick<LayoutChoices, 'rail_items' | 'main_default'>;
+
+/** Moves a tool one place up (-1) or down (+1) on the rail. The phone bar shows the first ones. */
+export function moveRailItem(items: readonly RailTool[], tool: RailTool, step: -1 | 1): RailTool[] {
+  const from = items.indexOf(tool);
+  const to = from + step;
+  if (from < 0 || to < 0 || to >= items.length) return [...items];
+  const next = items.filter((t) => t !== tool);
+  next.splice(to, 0, tool);
+  return next;
+}
+
+/**
+ * Shows a tool (it joins the end of the rail) or hides it. The rail never goes empty, and hiding the tool I land on
+ * moves "Opens on" to the first tool left.
+ */
+export function showOnRail(c: RailChoices, tool: RailTool, shown: boolean): RailChoices {
+  if (shown) return { rail_items: c.rail_items.includes(tool) ? [...c.rail_items] : [...c.rail_items, tool], main_default: c.main_default };
+  const next = c.rail_items.filter((t) => t !== tool);
+  const first = next[0];
+  if (first === undefined) return { rail_items: [...c.rail_items], main_default: c.main_default };
+  return { rail_items: next, main_default: next.includes(c.main_default) ? c.main_default : first };
 }
 
 /** Unknown values in the row fall back to defaults rather than breaking the frame. */
@@ -79,7 +212,7 @@ const layoutChoicesSchema = z.object({
     .object({ rail: z.boolean().catch(false), right: z.boolean().catch(false) })
     .catch(LAYOUT_DEFAULTS.collapsed),
   calendar_types: z.array(z.string()).catch(LAYOUT_DEFAULTS.calendar_types),
-  notification_kinds: z.array(z.string()).catch(LAYOUT_DEFAULTS.notification_kinds),
+  notification_kinds: z.array(z.string()).transform(normalizeNotify).catch(LAYOUT_DEFAULTS.notification_kinds),
   recent_project_ids: z.array(z.string()).catch(LAYOUT_DEFAULTS.recent_project_ids),
   whats_new_enabled: z.boolean().catch(LAYOUT_DEFAULTS.whats_new_enabled),
 });

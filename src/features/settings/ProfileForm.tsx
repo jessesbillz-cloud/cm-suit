@@ -7,6 +7,7 @@ import { messageOf } from '../../data/errors';
 import type { ProfileRow } from '../../data/types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { SelectField, TextField } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { CalendarFeedRow } from './CalendarFeedRow';
@@ -31,7 +32,7 @@ const FIELDS: { key: FieldKey; label: string; type: string; autoComplete: string
 function ProfileFields({ profile }: { profile: ProfileRow }) {
   const save = useSaveProfile();
   const toast = useToast();
-  const zones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
+  const zones = useMemo(() => Intl.supportedValuesOf('timeZone').map((z) => ({ value: z, label: z })), []);
   const [form, setForm] = useState({
     full_name: profile.full_name,
     title: profile.title ?? '',
@@ -81,41 +82,38 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
       }}
     >
       {FIELDS.map((f) => (
-        <label key={f.key} className="flex flex-col gap-1 text-xs font-medium text-ink-2">
-          {f.label}
-          <input
-            type={f.type}
-            autoComplete={f.autoComplete}
-            className="h-9 rounded-md border border-line px-2.5 text-sm font-normal text-ink outline-none focus:border-accent"
-            value={form[f.key]}
-            onChange={(e) => {
-              setForm({ ...form, [f.key]: e.target.value });
-            }}
-          />
-        </label>
-      ))}
-      <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
-        My time zone
-        <select
-          className="h-9 rounded-md border border-line bg-card px-2 text-sm font-normal text-ink"
-          value={form.timezone}
-          onChange={(e) => {
-            setForm({ ...form, timezone: e.target.value });
+        <TextField
+          key={f.key}
+          label={f.label}
+          type={f.type}
+          autoComplete={f.autoComplete}
+          value={form[f.key]}
+          onChange={(v) => {
+            setForm({ ...form, [f.key]: v });
           }}
-        >
-          {zones.map((z2) => (
-            <option key={z2} value={z2}>
-              {z2}
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="self-end text-xs text-ink-2">Email: {profile.email}</p>
+        />
+      ))}
+      <div className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+        Email
+        <p className="flex min-h-9 items-center break-all text-sm font-normal text-ink-2">{profile.email}</p>
+      </div>
+      <SelectField
+        label="My time zone"
+        value={form.timezone}
+        options={zones}
+        onChange={(timezone) => {
+          setForm({ ...form, timezone });
+        }}
+      />
       <div className="flex items-center gap-3 sm:col-span-2">
         <Button type="submit" variant="primary" loading={save.isPending}>
           Save profile
         </Button>
-        {problem ? <p className="text-sm text-danger">{problem}</p> : null}
+        {problem ? (
+          <p role="alert" className="text-sm text-danger">
+            {problem}
+          </p>
+        ) : null}
       </div>
     </form>
   );

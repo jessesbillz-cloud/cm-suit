@@ -19,8 +19,13 @@ function textOf(row: ProjectWithSettings, key: TextKey): string {
   return row[key] ?? '';
 }
 
-function JobFields({ row }: { row: ProjectWithSettings }) {
-  const save = useSaveProject(row.id);
+interface JobFieldsProps {
+  row: ProjectWithSettings;
+  commit: (patch: ProjectPatch) => void;
+  onProblem: (problem: string) => void;
+}
+
+function JobFields({ row, commit, onProblem }: JobFieldsProps) {
   const zones = useMemo(() => Intl.supportedValuesOf('timeZone').map((z) => ({ value: z, label: z })), []);
   const [text, setText] = useState<Record<TextKey, string>>({
     name: textOf(row, 'name'),
@@ -30,23 +35,13 @@ function JobFields({ row }: { row: ProjectWithSettings }) {
   });
   const savedBidDue = row.bid_due_at ? toZonedInput(row.bid_due_at, row.timezone) : '';
   const [bidDue, setBidDue] = useState(savedBidDue);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  function commit(patch: ProjectPatch) {
-    setProblem(null);
-    save.mutate(patch, {
-      onError: (e) => {
-        setProblem(messageOf(e));
-      },
-    });
-  }
 
   function commitText(key: TextKey) {
     const value = text[key].trim();
     if (value === textOf(row, key)) return;
     if (key === 'name') {
       if (value === '') {
-        setProblem('Name is empty.');
+        onProblem('Name is empty.');
         return;
       }
       commit({ name: value });
@@ -132,28 +127,31 @@ function JobFields({ row }: { row: ProjectWithSettings }) {
           />
         </>
       ) : null}
-      <fieldset className="flex flex-col sm:col-span-2">
-        <legend className="mb-1 text-xs font-medium text-ink-2">Tools on this job</legend>
-        <div className="flex flex-wrap gap-x-5">
-          {MODULES.map((m) => (
-            <CheckField
-              key={m.value}
-              label={m.label}
-              checked={row.modules.includes(m.value)}
-              onChange={(on) => {
-                const set = new Set(row.modules);
-                if (on) set.add(m.value);
-                else set.delete(m.value);
-                commit({ modules: MODULES.map((x) => x.value).filter((v) => set.has(v)) });
-              }}
-            />
-          ))}
-        </div>
-      </fieldset>
-      {row.modules.includes('inspections') ? <InspectionSettings row={row} /> : null}
-      <div className="sm:col-span-2">
-        <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
+      <div className="mt-1 border-t border-line pt-3 sm:col-span-2">
+        <fieldset className="flex flex-col">
+          <legend className="mb-1 text-xs font-medium text-ink-2">Tools on this job</legend>
+          <div className="flex flex-wrap gap-x-5">
+            {MODULES.map((m) => (
+              <CheckField
+                key={m.value}
+                label={m.label}
+                checked={row.modules.includes(m.value)}
+                onChange={(on) => {
+                  const set = new Set(row.modules);
+                  if (on) set.add(m.value);
+                  else set.delete(m.value);
+                  commit({ modules: MODULES.map((x) => x.value).filter((v) => set.has(v)) });
+                }}
+              />
+            ))}
+          </div>
+        </fieldset>
       </div>
+      {row.modules.includes('inspections') ? (
+        <div className="border-t border-line pt-3 sm:col-span-2">
+          <InspectionSettings row={row} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -161,15 +159,26 @@ function JobFields({ row }: { row: ProjectWithSettings }) {
 export function JobSettings({ projectId }: { projectId: string }) {
   const can = useCapability(projectId, 'project.manage');
   const project = useProject(projectId);
+  const save = useSaveProject(projectId);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  function commit(patch: ProjectPatch) {
+    setProblem(null);
+    save.mutate(patch, {
+      onError: (e) => {
+        setProblem(messageOf(e));
+      },
+    });
+  }
 
   if (can.isError) return <ErrorState error={can.error} onRetry={() => void can.refetch()} />;
   if (can.data !== true) return null;
   return (
-    <Card title="Job">
+    <Card title="Job" actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
       {project.isPending ? <LoadingState label="Loading the job" /> : null}
       {project.isError ? <ErrorState error={project.error} onRetry={() => void project.refetch()} /> : null}
       {/* Keyed on the job, not the version: my typing survives each autosave. */}
-      {project.data ? <JobFields key={project.data.id} row={project.data} /> : null}
+      {project.data ? <JobFields key={project.data.id} row={project.data} commit={commit} onProblem={setProblem} /> : null}
     </Card>
   );
 }

@@ -10,24 +10,8 @@ import { SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState } from '../../ui/States';
 
-function CompanyFields({ org }: { org: MyOrg }) {
-  const save = useSaveOrg(org.org_id);
+function CompanyFields({ org, commit }: { org: MyOrg; commit: (patch: OrgPatch) => void }) {
   const [name, setName] = useState(org.name);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  function commit(patch: OrgPatch) {
-    if (patch.name !== undefined && patch.name === '') {
-      setProblem('Name is empty.');
-      return;
-    }
-    setProblem(null);
-    save.mutate(patch, {
-      onError: (e) => {
-        setProblem(messageOf(e));
-      },
-    });
-  }
-
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <TextField
@@ -46,20 +30,33 @@ function CompanyFields({ org }: { org: MyOrg }) {
           commit({ kind });
         }}
       />
-      <div className="sm:col-span-2">
-        <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
-      </div>
     </div>
   );
 }
 
 function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
   const admin = useOrgAdmin(org.org_id);
+  const save = useSaveOrg(org.org_id);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  function commit(patch: OrgPatch) {
+    if (patch.name !== undefined && patch.name === '') {
+      setProblem('Name is empty.');
+      return;
+    }
+    setProblem(null);
+    save.mutate(patch, {
+      onError: (e) => {
+        setProblem(messageOf(e));
+      },
+    });
+  }
+
   if (admin.isError) return <ErrorState error={admin.error} onRetry={() => void admin.refetch()} />;
   if (admin.data !== true) return null;
   return (
-    <Card title={titled ? org.name : 'Company'}>
-      <CompanyFields key={org.org_id} org={org} />
+    <Card title={titled ? org.name : 'Company'} actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
+      <CompanyFields key={org.org_id} org={org} commit={commit} />
     </Card>
   );
 }
