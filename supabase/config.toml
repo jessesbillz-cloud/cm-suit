@@ -119,3 +119,10 @@ verify_jwt = true
 # limit per IP and per token, and a bare 404 for anything unknown.
 [functions.calendar-feed]
 verify_jwt = false
+
+# --- Dailies ---
+[functions.submit-daily]
+verify_jwt = true
+
+[functions.email-daily]
+verify_jwt = true

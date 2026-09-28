@@ -82,12 +82,32 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['calendar_unmirror', { p_source_type: 'probe', p_source_id: U }],
   ['rotate_calendar_feed', {}],
   ['calendar_feed_lines', { p_token_hash: '0'.repeat(64) }],
+  // Dailies (0023)
+  ['save_daily_setup', { p_project_id: U, p_report_type: 'daily', p_settings: {} }],
+  ['set_daily_start_number', { p_project_id: U, p_report_type: 'daily', p_start: 1 }],
+  ['ensure_todays_draft', { p_project_id: U, p_report_type: 'daily', p_settings_if_new: {} }],
+  ['create_daily_report', { p_project_id: U, p_report_type: 'daily', p_report_date: '2026-01-05' }],
+  ['save_daily_content', { p_report_id: U, p_version: 1, p_content: {} }],
+  ['delete_daily_draft', { p_report_id: U, p_version: 1 }],
+  ['daily_photo_folder', { p_project_id: U }],
+  ['add_daily_photo', { p_report_id: U, p_file_id: U, p_row_key: '', p_caption: '', p_taken_at: '2026-01-05T16:00:00Z' }],
+  ['save_daily_photo', { p_photo_id: U, p_version: 1, p_caption: '' }],
+  ['remove_daily_photo', { p_photo_id: U, p_version: 1 }],
+  ['daily_reports_folder', { p_project_id: U }],
+  ['begin_daily_submit', { p_report_id: U, p_version: 1, p_content_hash: '0'.repeat(64), p_photos_stamp: '' }],
+  ['finish_daily_submit', { p_report_id: U, p_version: 1, p_content_hash: '0'.repeat(64), p_file_id: U, p_filename: 'x.pdf' }],
+  ['daily_ensure_at', { p_project_id: U, p_report_type: 'daily', p_settings_if_new: {}, p_at: '2026-01-05T16:00:00Z' }],
+  ['daily_author_folder', { p_project_id: U, p_author: U, p_kind: 'reports' }],
+  ['daily_own_report', { p_report_id: U }],
+  ['daily_local_date', { p_tz: 'America/Los_Angeles', p_at: '2026-01-05T16:00:00Z' }],
+  ['daily_is_scheduled', { p_settings: {}, p_day: '2026-01-05' }],
+  ['daily_carryover', { p_prev: {} }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
   'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health',
-  'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs',
+  'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs', 'submit-daily', 'email-daily',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add delivery-board and request-link (Phase 3) when they ship. calendar-feed is GET-only, so a POST is a 400. */

@@ -29,8 +29,30 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-/** Compresses a photo. Non-image files are rejected, never passed through silently. */
-export async function compressPhoto(file: Blob): Promise<Blob> {
+/** Stamp text height for a photo of this size: readable on a phone, small on the page. */
+function stampSize(width: number, height: number): number {
+  return Math.max(14, Math.round(Math.min(width, height) * 0.028));
+}
+
+/** Burns a one-line stamp (e.g. "Sample Job A · Sep 26, 2026 4:05 PM") into the bottom-left corner on a dark band. */
+function drawStamp(ctx: CanvasRenderingContext2D, text: string, width: number, height: number): void {
+  const size = stampSize(width, height);
+  const pad = Math.round(size / 2);
+  ctx.font = `600 ${String(size)}px Inter, system-ui, sans-serif`;
+  const bandW = Math.min(ctx.measureText(text).width + pad * 2, width);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.fillRect(0, height - size - pad * 2, bandW, size + pad * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'bottom';
+  // maxWidth squeezes a long stamp to fit; it is never cut off.
+  ctx.fillText(text, pad, height - pad, width - pad * 2);
+}
+
+/**
+ * Compresses a photo. Non-image files are rejected, never passed through silently. `stamp`, when given, is burned into
+ * the photo (job, date and time, SPEC §7.7), so it travels with the image wherever it is seen.
+ */
+export async function compressPhoto(file: Blob, stamp?: string): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('Only photos can be compressed.');
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   try {
@@ -41,6 +63,7 @@ export async function compressPhoto(file: Blob): Promise<Blob> {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('This browser cannot compress photos.');
     ctx.drawImage(bitmap, 0, 0, size.width, size.height);
+    if (stamp) drawStamp(ctx, stamp, size.width, size.height);
     return await canvasToJpeg(canvas);
   } finally {
     bitmap.close();

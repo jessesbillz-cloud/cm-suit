@@ -11,6 +11,9 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 /** What projects.modules defaults to for a new job. */
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
+/** The sample jobs are being built, so they have the field tools too (0021 tg_project_field_modules). */
+const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections'];
+
 export const MOCK_PROJECTS: MyProject[] = [
   {
     project_id: 'job-a',
@@ -20,7 +23,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_JOB_MODULES,
   },
   {
     project_id: 'job-b',
@@ -30,7 +33,7 @@ export const MOCK_PROJECTS: MyProject[] = [
     role: 'pm',
     stage: 'construction',
     timezone: TZ,
-    modules: MOCK_DEFAULT_MODULES,
+    modules: MOCK_JOB_MODULES,
   },
 ];
 

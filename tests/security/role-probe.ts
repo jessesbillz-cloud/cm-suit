@@ -30,6 +30,7 @@ const MATRIX: Record<string, readonly Role[]> = {
   'bids.manage': ['project_admin', 'estimator'],
   'bids.submit': ['bidder'],
   'dailies.read_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep'],
+  'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector'],
   'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin'],
   'ir.decide': ['inspector'],
   'deliveries.manage': ['superintendent', 'pm', 'project_admin'],
@@ -270,7 +271,8 @@ async function checkMatrix(s: Seed, clients: Map<UserKey, Client>): Promise<void
 }
 
 async function checkIsolation(s: Seed, c: Client, who: string): Promise<void> {
-  for (const [table, col] of [['projects', 'id'], ['project_members', 'project_id'], ['folders', 'project_id'], ['files', 'project_id'], ['activity', 'project_id']] as const) {
+  for (const [table, col] of [['projects', 'id'], ['project_members', 'project_id'], ['folders', 'project_id'], ['files', 'project_id'], ['activity', 'project_id'],
+    ['daily_reports', 'project_id']] as const) {
     await report.guard('isolation', `${who}: ${table}`, async () => {
       const n = await count(c, table, col, s.projB);
       report.check('isolation', `${who}: sees no project B ${table}`, n === 0, `${n} rows`);

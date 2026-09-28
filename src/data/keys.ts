@@ -36,4 +36,7 @@ export const qk = {
   calendarLine: (id: string) => ['calendar', 'line', id] as const,
   /** When my calendar feed link was made (never the token itself). */
   calendarFeed: ['calendar_feed'] as const,
+  /** Every dailies query of a job sits under this prefix (SPEC §13.1). */
+  dailies: (projectId: string) => ['dailies', projectId] as const,
+  dailiesPart: (projectId: string, part: string, id = '') => ['dailies', projectId, part, id] as const,
 };

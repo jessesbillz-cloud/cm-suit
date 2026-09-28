@@ -14,7 +14,9 @@ type FunctionName =
   | 'issue-addendum'
   | 'extract-bid'
   | 'import-subs'
-  | 'calendar-feed';
+  | 'calendar-feed'
+  | 'submit-daily'
+  | 'email-daily';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

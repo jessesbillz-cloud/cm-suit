@@ -1038,6 +1038,254 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      daily_author_folders: {
+        Row: {
+          author_id: string
+          folder_id: string
+          kind: string
+          project_id: string
+        }
+        Insert: {
+          author_id: string
+          folder_id: string
+          kind: string
+          project_id: string
+        }
+        Update: {
+          author_id?: string
+          folder_id?: string
+          kind?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_author_folders_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_author_folders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_photos: {
+        Row: {
+          caption: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string
+          id: string
+          org_id: string
+          project_id: string
+          report_id: string
+          row_key: string | null
+          taken_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id: string
+          id?: string
+          org_id: string
+          project_id: string
+          report_id: string
+          row_key?: string | null
+          taken_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id?: string
+          id?: string
+          org_id?: string
+          project_id?: string
+          report_id?: string
+          row_key?: string | null
+          taken_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_photos_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_report_photos_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "daily_report_photos_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_reports: {
+        Row: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_id: string
+          content?: Json
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          filename?: string | null
+          header?: Json
+          id?: string
+          number?: number | null
+          org_id: string
+          pdf_file_id?: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at?: string | null
+          sign_pending_hash?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signed_version?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_id?: string
+          content?: Json
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          filename?: string | null
+          header?: Json
+          id?: string
+          number?: number | null
+          org_id?: string
+          pdf_file_id?: string | null
+          project_id?: string
+          report_date?: string
+          report_type?: string
+          sign_pending_at?: string | null
+          sign_pending_hash?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signed_version?: number | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      daily_setups: {
+        Row: {
+          author_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          org_id: string
+          project_id: string
+          report_type: string
+          settings: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org_id: string
+          project_id: string
+          report_type: string
+          settings?: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org_id?: string
+          project_id?: string
+          report_type?: string
+          settings?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_setups_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
       }
       dead_jobs: {
         Row: {
@@ -2658,6 +2906,36 @@ export type Database = {
         Args: { p_addendum_id: string }
         Returns: undefined
       }
+      add_daily_photo: {
+        Args: {
+          p_caption: string
+          p_file_id: string
+          p_report_id: string
+          p_row_key: string
+          p_taken_at: string
+        }
+        Returns: {
+          caption: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string
+          id: string
+          org_id: string
+          project_id: string
+          report_id: string
+          row_key: string | null
+          taken_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_report_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       answer_bid_question: {
         Args: {
           p_answer: string
@@ -2736,6 +3014,46 @@ export type Database = {
           original_name: string
           storage_path: string
         }[]
+      }
+      begin_daily_submit: {
+        Args: {
+          p_content_hash: string
+          p_photos_stamp: string
+          p_report_id: string
+          p_version: number
+        }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       bid_coverage: {
         Args: { p_project_id: string }
@@ -2920,6 +3238,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_daily_report: {
+        Args: {
+          p_project_id: string
+          p_report_date: string
+          p_report_type: string
+        }
+        Returns: string
+      }
       create_org: { Args: { p_kind: string; p_name: string }; Returns: string }
       create_project: {
         Args: {
@@ -2986,6 +3312,89 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      daily_author_folder: {
+        Args: {
+          p_author: string
+          p_kind: string
+          p_project_id: string
+        }
+        Returns: string
+      }
+      daily_carryover: { Args: { p_prev: Json }; Returns: Json }
+      daily_ensure_at: {
+        Args: {
+          p_at: string
+          p_project_id: string
+          p_report_type: string
+          p_settings_if_new: Json
+        }
+        Returns: string
+      }
+      daily_is_scheduled: {
+        Args: {
+          p_day: string
+          p_settings: Json
+        }
+        Returns: boolean
+      }
+      daily_local_date: {
+        Args: {
+          p_at: string
+          p_tz: string
+        }
+        Returns: string
+      }
+      daily_make_report: {
+        Args: {
+          p_day: string
+          p_setup: Database["public"]["Tables"]["daily_setups"]["Row"]
+        }
+        Returns: string
+      }
+      daily_own_report: {
+        Args: { p_report_id: string }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      daily_photo_folder: { Args: { p_project_id: string }; Returns: string }
+      daily_reports_folder: { Args: { p_project_id: string }; Returns: string }
+      delete_daily_draft: {
+        Args: {
+          p_report_id: string
+          p_version: number
+        }
+        Returns: undefined
+      }
       enqueue_job: {
         Args: {
           p_hold_until?: string
@@ -2993,6 +3402,14 @@ export type Database = {
           p_kind: string
           p_payload: Json
           p_project_id?: string
+        }
+        Returns: string
+      }
+      ensure_todays_draft: {
+        Args: {
+          p_project_id: string
+          p_report_type: string
+          p_settings_if_new?: Json
         }
         Returns: string
       }
@@ -3004,6 +3421,47 @@ export type Database = {
           p_project_id: string
         }
         Returns: string
+      }
+      finish_daily_submit: {
+        Args: {
+          p_content_hash: string
+          p_file_id: string
+          p_filename: string
+          p_report_id: string
+          p_version: number
+        }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       folder_can_read: { Args: { p_folder_id: string }; Returns: boolean }
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
@@ -3220,6 +3678,13 @@ export type Database = {
         }
       }
       release_held_jobs: { Args: never; Returns: number }
+      remove_daily_photo: {
+        Args: {
+          p_photo_id: string
+          p_version: number
+        }
+        Returns: undefined
+      }
       reopen_task: {
         Args: { p_task_id: string; p_version: number }
         Returns: {
@@ -3261,6 +3726,99 @@ export type Database = {
       }
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
+      save_daily_content: {
+        Args: {
+          p_content: Json
+          p_report_id: string
+          p_version: number
+        }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_daily_photo: {
+        Args: {
+          p_caption: string
+          p_photo_id: string
+          p_version: number
+        }
+        Returns: {
+          caption: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string
+          id: string
+          org_id: string
+          project_id: string
+          report_id: string
+          row_key: string | null
+          taken_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_report_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_daily_setup: {
+        Args: {
+          p_project_id: string
+          p_report_type: string
+          p_settings: Json
+          p_version?: number
+        }
+        Returns: {
+          author_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          org_id: string
+          project_id: string
+          report_type: string
+          settings: Json
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_setups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       session_aal: { Args: never; Returns: string }
       set_bid_intent: {
         Args: { p_intent: string; p_invite_id: string; p_reason?: string }
@@ -3309,6 +3867,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_daily_start_number: {
+        Args: {
+          p_project_id: string
+          p_report_type: string
+          p_start: number
+        }
+        Returns: number
       }
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }
