@@ -33,10 +33,12 @@ export function pointAt(spot: Spot, onSpot: (spot: Spot | null) => void) {
   };
 }
 
-type PreviewChoices = Pick<LayoutChoices, 'rail_items' | 'main_default' | 'docked_panel' | 'whats_new_enabled'>;
+type PreviewChoices = Pick<LayoutChoices, 'main_default' | 'docked_panel' | 'whats_new_enabled'> & { rail_items: readonly RailTool[] };
 
 interface PreviewProps {
   choices: PreviewChoices;
+  /** Some tools are left off the rail: they sit under More. */
+  more: boolean;
   spot: Spot | null;
 }
 
@@ -79,7 +81,7 @@ function RailDot({ tool, active, lit }: DotProps) {
 }
 
 /** The frame as it is: the navy rail with the mark on top, the white top bar, white cards on the page. */
-function DesktopSketch({ choices, spot }: PreviewProps) {
+function DesktopSketch({ choices, more, spot }: PreviewProps) {
   const at = (a: SpotArea) => spot?.area === a;
   const main = choices.main_default;
   const docked = choices.docked_panel === 'board';
@@ -97,6 +99,11 @@ function DesktopSketch({ choices, spot }: PreviewProps) {
         {choices.rail_items.map((t) => (
           <RailDot key={t} tool={t} active={t === main} lit={spot?.tool === t} />
         ))}
+        {more ? (
+          <span data-more="true" className="flex h-[17px] w-6 shrink-0 items-center justify-center text-rail-ink">
+            <Icon icon={Ellipsis} size={11} />
+          </span>
+        ) : null}
         <span className="flex-1" />
         <RailDot tool="settings" active={false} lit={false} />
       </div>
@@ -154,7 +161,7 @@ function TabDot({ tool, active, lit }: DotProps) {
   );
 }
 
-function PhoneSketch({ choices, spot }: PreviewProps) {
+function PhoneSketch({ choices, spot }: Omit<PreviewProps, 'more'>) {
   // The phone opens on my main tool, so it is on the bar (lib/layout phoneTabs, the same rule the phone uses).
   const { tabs } = phoneTabs(choices.rail_items, choices.main_default);
   const at = (a: SpotArea) => spot?.area === a;
@@ -190,7 +197,7 @@ function Caption({ children }: { children: string }) {
   return <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-3">{children}</p>;
 }
 
-export function LayoutPreview({ choices, spot }: PreviewProps) {
+export function LayoutPreview({ choices, more, spot }: PreviewProps) {
   const label = `Preview. Rail: ${choices.rail_items.map((t) => TOOL_META[t].label).join(', ')}. Opens on ${
     TOOL_META[choices.main_default].label
   }. Right column: ${choices.docked_panel === 'board' ? 'Board' : 'open item only'}.`;
@@ -198,7 +205,7 @@ export function LayoutPreview({ choices, spot }: PreviewProps) {
     <div role="img" aria-label={label} data-testid="layout-preview" className="flex flex-col gap-4 sm:flex-row xl:flex-col">
       <div className="min-w-0 sm:flex-1 xl:flex-none">
         <Caption>Desktop</Caption>
-        <DesktopSketch choices={choices} spot={spot} />
+        <DesktopSketch choices={choices} more={more} spot={spot} />
       </div>
       {/* On a phone, the phone sketch comes first. */}
       <div className="max-sm:order-first sm:w-60 xl:w-auto">

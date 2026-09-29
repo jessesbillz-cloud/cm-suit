@@ -1,5 +1,6 @@
 // The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. Job picker on top, the person's top tools
-// along the bottom, one screen at a time, items full screen with a back button.
+// along the bottom (the rail's order: my pins or my position's tools, each with its count), More for the rest, one
+// screen at a time, items full screen with a back button.
 import { useState } from 'react';
 import { phoneTabs } from '../../lib/layout';
 import { JobPicker } from '../../ui/JobPicker';
@@ -20,7 +21,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   if (!choices) return null;
 
-  const { tabs, more } = phoneTabs(model.railItems, loc.tool);
+  const { tabs, more } = phoneTabs(model.railItems, loc.tool, model.moreItems);
   const pick: typeof model.selectTool = (t) => {
     setMoreOpen(false);
     model.selectTool(t);
@@ -54,11 +55,13 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
       }
       bottom={
         <>
-          {moreOpen ? <PanelMoreSheet tools={more} current={loc.tool} onSelect={pick} /> : null}
+          {moreOpen ? <PanelMoreSheet tools={more} current={loc.tool} counts={model.counts} onSelect={pick} /> : null}
           <PanelTabBar
             tools={tabs}
             current={loc.tool}
             onSelect={pick}
+            counts={model.counts}
+            moreTools={more}
             moreOpen={moreOpen}
             onMore={() => {
               setMoreOpen(!moreOpen);

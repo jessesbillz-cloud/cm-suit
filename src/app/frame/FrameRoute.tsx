@@ -22,10 +22,15 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   const model = useFrameModel(loc);
   const isPhone = useIsPhone();
 
-  if (model.layoutQuery.isPending || model.projectsQuery.isPending) return <LoadingState label="Opening your jobs" />;
+  if (model.layoutQuery.isPending || model.projectsQuery.isPending || model.recommendedQuery.isPending) {
+    return <LoadingState label="Opening your jobs" />;
+  }
   if (model.layoutQuery.isError) return <ErrorState error={model.layoutQuery.error} onRetry={() => void model.layoutQuery.refetch()} />;
   if (model.projectsQuery.isError) {
     return <ErrorState error={model.projectsQuery.error} onRetry={() => void model.projectsQuery.refetch()} />;
+  }
+  if (model.recommendedQuery.isError) {
+    return <ErrorState error={model.recommendedQuery.error} onRetry={() => void model.recommendedQuery.refetch()} />;
   }
   if (loc.projectId !== null && !model.projects.some((p) => p.project_id === loc.projectId)) {
     return <EmptyState title="This job is not in your list." hint="Your access may have ended. Pick another job from the home screen." />;

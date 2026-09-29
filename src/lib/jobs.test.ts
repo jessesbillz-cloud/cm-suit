@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allJobsTool, defaultStage, isBidStage, railForAllJobs, railForJob, stageLabel, toolIsOn } from './jobs';
+import { allJobsRail, allJobsTool, defaultStage, isBidStage, jobRail, railForAllJobs, railForJob, stageLabel, toolIsOn } from './jobs';
 
 describe('jobs', () => {
   it('a switched-off module leaves the rail; board and people always stay', () => {
@@ -24,6 +24,23 @@ describe('jobs', () => {
     expect(allJobsTool('bids')).toBe('bids');
     expect(allJobsTool('calendar')).toBe('calendar');
     expect(allJobsTool('settings')).toBe('settings');
+  });
+  it("a job's rail: my role's recommendation on the job, in its order; the rest of the job's tools under More", () => {
+    const modules = ['files', 'calendar', 'dailies', 'inspections', 'rfis', 'deliveries', 'corrections'];
+    expect(jobRail(null, ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files'], modules)).toEqual({
+      rail: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files'],
+      more: ['rfis', 'deliveries', 'people'],
+    });
+  });
+  it("a job's rail: pins win on every job, minus what the job has off; never empty", () => {
+    expect(jobRail(['dailies', 'board', 'bids'], ['board', 'rfis'], ['dailies'])).toEqual({ rail: ['dailies', 'board'], more: ['people'] });
+    expect(jobRail(null, ['nope', 'bids'], ['files'])).toEqual({ rail: ['board'], more: ['files', 'people'] });
+    expect(jobRail(null, [], [])).toEqual({ rail: ['board'], more: ['people'] });
+  });
+  it('All my jobs: every cross-job tool some job has on; pins pick which stay on the rail', () => {
+    expect(allJobsRail(null, [['bids', 'files', 'calendar']])).toEqual({ rail: ['board', 'calendar', 'bids'], more: [] });
+    expect(allJobsRail(null, [['files']])).toEqual({ rail: ['board'], more: [] });
+    expect(allJobsRail(['calendar', 'files', 'board'], [['bids', 'calendar']])).toEqual({ rail: ['calendar', 'board'], more: ['bids'] });
   });
   it('tools that are not modules are always on', () => {
     expect(toolIsOn('settings', [])).toBe(true);

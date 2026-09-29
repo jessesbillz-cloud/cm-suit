@@ -5,8 +5,10 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMyProjects, useUserLayout } from '../../data/queries';
 import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
-import { allJobsTool, railForAllJobs, railForJob } from '../../lib/jobs';
-import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
+import { useRecommendedTools, useToolCounts } from '../../data/rail.queries';
+import { allJobsRail, allJobsTool, jobRail, type RailModel } from '../../lib/jobs';
+import { pushRecent, type LayoutChoices, type Tool } from '../../lib/layout';
+import { countsByTool } from '../../lib/toolCounts';
 import { useToast } from '../../ui/Toast';
 
 export interface FrameLocation {
@@ -28,18 +30,25 @@ export function useFrameModel(loc: FrameLocation) {
   const toast = useToast();
   const layoutQuery = useUserLayout();
   const projectsQuery = useMyProjects();
+  const recommendedQuery = useRecommendedTools();
+  const countsQuery = useToolCounts(loc.projectId);
   const saveLayout = useSaveLayout();
   const [rightFull, setRightFull] = useState(false);
 
   const choices: LayoutChoices | undefined = layoutQuery.data?.choices;
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.project_id === loc.projectId);
-  /** My rail picks, minus the modules this job has switched off. On "All my jobs", only the cross-job tools. */
-  const railItems: RailTool[] = !choices
-    ? []
+  /**
+   * The rail: my pins, else my role's recommendation on this job, minus the modules it has switched off; the job's
+   * other tools under More. On "All my jobs", only the cross-job tools.
+   */
+  const { rail: railItems, more: moreItems }: RailModel = !choices
+    ? { rail: [], more: [] }
     : loc.projectId === null
-      ? railForAllJobs(choices.rail_items, projects.map((p) => p.modules))
-      : railForJob(choices.rail_items, current?.modules ?? []);
+      ? allJobsRail(choices.rail_items, projects.map((p) => p.modules))
+      : jobRail(choices.rail_items, recommendedQuery.data?.[loc.projectId] ?? [], current?.modules ?? []);
+  /** What needs me, per tool on this rail (the rest counts on the Board). */
+  const counts = countsByTool(countsQuery.data ?? [], [...railItems, ...moreItems]);
 
   function save(patch: Partial<LayoutChoices>) {
     saveLayout.mutate(patch, {
@@ -101,9 +110,12 @@ export function useFrameModel(loc: FrameLocation) {
     loc,
     layoutQuery,
     projectsQuery,
+    recommendedQuery,
     choices,
     projects,
     railItems,
+    moreItems,
+    counts,
     rightFull,
     setRightFull,
     save,

@@ -66,4 +66,8 @@ export const qk = {
   orgLogo: (orgId: string) => ['org_logo', orgId] as const,
   /** Testing only: the "View as" control in the top bar (0039). */
   viewAs: ['testing_view_as'] as const,
+  /** My role's recommended rail on each of my jobs (0040). */
+  recommendedTools: ['my_recommended_tools'] as const,
+  /** What needs me per record type (0040): under the tasks prefix, so every task write refreshes the rail badges. */
+  toolCounts: (projectId: string | null) => ['tasks', 'tool_counts', projectId ?? 'all'] as const,
 };

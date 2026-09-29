@@ -69,7 +69,7 @@ export function SettingsTool({ projectId }: { projectId: string | null }) {
         {projectId ? <RfiSettingsCard projectId={projectId} /> : null}
         <CompanySettings />
         <ProfileForm />
-        <LayoutForm />
+        <LayoutForm projectId={projectId} />
         <CalendarSubscriptions />
         <NotifyTree />
         <TwoStepCard />

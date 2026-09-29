@@ -81,12 +81,17 @@ test.describe('All my jobs and the bids pipeline', () => {
     await signIn(page);
     await page.goto('/p/job-a/files');
     await expect(page.getByTestId('rail-files')).toBeVisible();
-    await expect(page.getByTestId('rail-dailies')).toBeVisible();
+    // The PM's rail (0040) leaves Dailies under More.
+    await expect(page.getByTestId('rail-dailies')).toHaveCount(0);
+    await page.getByTestId('rail-more').click();
+    await expect(page.getByTestId('rail-more-dailies')).toBeVisible();
+    await page.keyboard.press('Escape');
 
     await page.getByTestId('job-picker').click();
     await page.getByRole('option', { name: /All my jobs/ }).click();
     await expect(page).toHaveURL(/\/all\/board$/);
     await expect(page.getByTestId('rail-files')).toHaveCount(0);
+    await expect(page.getByTestId('rail-more')).toHaveCount(0);
   });
 
   test('New prospect opens the new-job form with the stage prefilled and lands in the job\'s Bids', async ({ page }) => {
