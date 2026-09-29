@@ -1,11 +1,10 @@
 // The RFI log (SPEC §7.4): number (or Draft), full title (wraps, never cut off), status, asked, due, answered. Click a
 // header to sort (a third click goes back to the default order). Amber row = impact claimed, nothing else. RFIs that
-// wait on me say "Your turn". On the phone: one tappable line per RFI.
-import { ArrowDown, ArrowUp } from 'lucide-react';
+// wait on me say "Your turn". On the phone: one stacked row per RFI (title, then one line of number, due, turn).
 import type { RfiListRow } from '../../data/rfis.types';
 import { formatInZone } from '../../lib/dates';
-import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
+import { HEAD_ROW, SortTh, TABLE, TD, TD_NUM, phoneRowClass, rowClass } from '../../ui/Table';
 import { dueCell, dueLine, nextSort, rfiNumber, statusChip, type Sort, type SortKey } from './model';
 
 interface RfiLogProps {
@@ -20,83 +19,84 @@ interface RfiLogProps {
 }
 
 const COLUMNS: { key: SortKey; title: string; className: string }[] = [
-  { key: 'number', title: 'No.', className: 'w-[4.5rem]' },
+  { key: 'number', title: 'No.', className: 'w-[4.75rem] pl-4' },
   { key: 'title', title: 'Title', className: '' },
-  { key: 'status', title: 'Status', className: 'w-32' },
+  { key: 'status', title: 'Status', className: 'w-[8.5rem]' },
   { key: 'asked', title: 'Asked', className: 'w-[5.5rem]' },
   { key: 'due', title: 'Due', className: 'w-28' },
-  { key: 'answered', title: 'Answered', className: 'w-24' },
+  { key: 'answered', title: 'Answered', className: 'w-[6.5rem] pr-4' },
 ];
 
 function day(v: string | null, tz: string): string {
   return v === null ? '' : formatInZone(v, tz, 'MMM d');
 }
 
-/** Amber stays amber when selected (the open row then carries an accent edge instead). */
-function rowTint(r: RfiListRow, selected: boolean): string {
-  const edge = selected ? 'shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : '';
-  if (r.impact_claimed_at !== null) return `bg-impact-row ${edge}`;
-  return selected ? `bg-accent-soft ${edge}` : 'hover:bg-page';
-}
-
 function Header({ sort, onSort }: { sort: Sort; onSort: (next: Sort) => void }) {
   return (
     <thead>
-      <tr className="border-b border-line bg-card-head text-left text-xs text-ink-2">
-        {COLUMNS.map((c) => {
-          const active = sort?.key === c.key;
-          return (
-            <th
-              key={c.key}
-              className={`px-3 py-2 font-medium ${c.className}`}
-              aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-            >
-              <button
-                type="button"
-                data-testid={`rfi-sort-${c.key}`}
-                className="inline-flex items-center gap-1 hover:text-ink"
-                onClick={() => {
-                  onSort(nextSort(sort, c.key));
-                }}
-              >
-                {c.title}
-                {active ? <Icon icon={sort.dir === 'asc' ? ArrowUp : ArrowDown} size={12} /> : null}
-              </button>
-            </th>
-          );
-        })}
+      <tr className={HEAD_ROW}>
+        {COLUMNS.map((c) => (
+          <SortTh
+            key={c.key}
+            title={c.title}
+            active={sort?.key === c.key}
+            dir={sort?.dir ?? 'asc'}
+            className={c.className}
+            testId={`rfi-sort-${c.key}`}
+            onSort={() => {
+              onSort(nextSort(sort, c.key));
+            }}
+          />
+        ))}
       </tr>
     </thead>
   );
 }
 
 function YourTurn() {
-  return <span className="mt-1 block text-xs font-medium text-accent">Your turn</span>;
+  return <span className="text-xs font-semibold text-accent">Your turn</span>;
 }
 
-function PhoneList({ rows, timeZone, now, onOpen }: Pick<RfiLogProps, 'rows' | 'timeZone' | 'now' | 'onOpen'>) {
+function PhoneList({ rows, timeZone, now, selectedId, onOpen }: Pick<RfiLogProps, 'rows' | 'timeZone' | 'now' | 'selectedId' | 'onOpen'>) {
   return (
     <ul className="divide-y divide-line">
       {rows.map((r) => {
         const chip = statusChip(r.status);
         const due = dueLine(r, timeZone, now);
+        const impact = r.impact_claimed_at !== null;
         return (
-          <li key={r.id} className={r.impact_claimed_at !== null ? 'bg-impact-row' : ''} data-impact={r.impact_claimed_at !== null ? 'true' : undefined}>
+          <li key={r.id} data-impact={impact ? 'true' : undefined}>
             <button
               type="button"
               data-testid={`rfi-row-${rfiNumber(r.number)}`}
-              className="flex w-full items-start gap-3 px-4 py-3 text-left"
+              className={`${phoneRowClass(selectedId === r.id, impact)} flex flex-col gap-1`}
               onClick={() => {
                 onOpen(r.id);
               }}
             >
-              <span className="w-12 shrink-0 pt-px text-sm tabular-nums text-ink-2">{rfiNumber(r.number)}</span>
-              <span className="min-w-0 flex-1 whitespace-normal break-words">
-                <span className={`block text-sm text-ink ${r.is_mine_to_act ? 'font-medium' : ''}`}>{r.title}</span>
-                {due ? <span className={`block text-xs ${due.late ? 'font-medium text-danger' : 'text-ink-2'}`}>{due.text}</span> : null}
-                {r.is_mine_to_act ? <YourTurn /> : null}
+              <span className="flex w-full items-start gap-3">
+                <span className={`min-w-0 flex-1 whitespace-normal break-words text-[15px] leading-6 text-ink ${r.is_mine_to_act ? 'font-semibold' : ''}`}>
+                  {r.title}
+                </span>
+                <span className="shrink-0 pt-px">
+                  <StatusChip status={chip.status} label={chip.label} />
+                </span>
               </span>
-              <StatusChip status={chip.status} label={chip.label} />
+              <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-2">
+                <span className="font-medium tabular-nums">{rfiNumber(r.number)}</span>
+                {due ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className={due.late ? 'font-semibold text-danger' : ''}>{due.text}</span>
+                  </>
+                ) : null}
+                {r.is_mine_to_act ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <YourTurn />
+                  </>
+                ) : null}
+              </span>
             </button>
           </li>
         );
@@ -106,9 +106,9 @@ function PhoneList({ rows, timeZone, now, onOpen }: Pick<RfiLogProps, 'rows' | '
 }
 
 export function RfiLog({ rows, timeZone, now, selectedId, sort, onSort, onOpen, isPhone }: RfiLogProps) {
-  if (isPhone) return <PhoneList rows={rows} timeZone={timeZone} now={now} onOpen={onOpen} />;
+  if (isPhone) return <PhoneList rows={rows} timeZone={timeZone} now={now} selectedId={selectedId} onOpen={onOpen} />;
   return (
-    <table className="w-full table-fixed border-collapse text-sm">
+    <table className={TABLE}>
       <Header sort={sort} onSort={onSort} />
       <tbody>
         {rows.map((r) => {
@@ -121,25 +121,27 @@ export function RfiLog({ rows, timeZone, now, selectedId, sort, onSort, onOpen, 
               data-testid={`rfi-row-${rfiNumber(r.number)}`}
               data-impact={r.impact_claimed_at !== null ? 'true' : undefined}
               aria-current={selected ? 'true' : undefined}
-              className={`cursor-pointer border-b border-line align-top last:border-b-0 ${rowTint(r, selected)}`}
+              className={rowClass(selected, r.impact_claimed_at !== null)}
               onClick={() => {
                 onOpen(r.id);
               }}
             >
-              <td className="px-3 py-2.5 tabular-nums text-ink-2">{rfiNumber(r.number)}</td>
-              <td className="whitespace-normal break-words px-3 py-2.5 text-ink">
+              <td className={`${TD_NUM} pl-4 font-medium ${r.number === null ? 'text-ink-3' : 'text-ink-2'}`}>{rfiNumber(r.number)}</td>
+              <td className={`${TD} whitespace-normal break-words text-ink`}>
                 {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
-                <button type="button" className={`text-left ${r.is_mine_to_act ? 'font-medium' : ''}`}>
+                <button type="button" className={`text-left ${r.is_mine_to_act ? 'font-semibold' : ''}`}>
                   {r.title}
                 </button>
               </td>
-              <td className="px-3 py-2.5">
-                <StatusChip status={chip.status} label={chip.label} />
-                {r.is_mine_to_act ? <YourTurn /> : null}
+              <td className={TD}>
+                <span className="flex flex-col items-start gap-1">
+                  <StatusChip status={chip.status} label={chip.label} />
+                  {r.is_mine_to_act ? <YourTurn /> : null}
+                </span>
               </td>
-              <td className="px-3 py-2.5 tabular-nums text-ink-2">{day(r.sent_at, timeZone)}</td>
-              <td className={`px-3 py-2.5 tabular-nums ${due?.late === true ? 'font-medium text-danger' : 'text-ink-2'}`}>{due?.text ?? ''}</td>
-              <td className="px-3 py-2.5 tabular-nums text-ink-2">{day(r.answered_at, timeZone)}</td>
+              <td className={`${TD_NUM} text-ink-2`}>{day(r.sent_at, timeZone)}</td>
+              <td className={`${TD_NUM} ${due?.late === true ? 'font-semibold text-danger' : 'text-ink-2'}`}>{due?.text ?? ''}</td>
+              <td className={`${TD_NUM} pr-4 text-ink-2`}>{day(r.answered_at, timeZone)}</td>
             </tr>
           );
         })}

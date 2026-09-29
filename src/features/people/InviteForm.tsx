@@ -2,7 +2,7 @@
 // When the email can't go (email test mode, a bounce), the link is shown with copy and mail-app fallbacks.
 import { useState } from 'react';
 import { z } from 'zod';
-import { Copy, Mail, UserPlus } from 'lucide-react';
+import { Copy, Mail, UserPlus, X } from 'lucide-react';
 import { useInviteMember } from '../../data/mutations';
 import { useRoles } from '../../data/queries';
 import { messageOf } from '../../data/errors';
@@ -11,6 +11,7 @@ import { endOfDayInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 const inviteSchema = z.object({
@@ -24,6 +25,7 @@ interface InviteFormProps {
   projectName: string;
   /** The project time zone: "access ends" means the end of that day on the job (CLAUDE.md rule 14). */
   timeZone: string;
+  onClose: () => void;
 }
 
 interface SentProps {
@@ -39,11 +41,11 @@ function Sent({ email, projectName, result }: SentProps) {
     `Open this link to get to ${projectName}. It asks for a code we email you, and it keeps working:\n\n${result.link_url}`,
   )}`;
   return (
-    <div className="mt-3 rounded-md border border-line bg-page p-3 text-sm">
-      <p className="text-ink">{emailed ? `Invite emailed to ${email}.` : `Invite created for ${email}, but the email was not sent.`}</p>
+    <div className="mt-4 rounded-lg border border-line bg-card-head p-3.5 text-sm">
+      <p className="font-medium text-ink">{emailed ? `Invite emailed to ${email}.` : `Invite created for ${email}, but the email was not sent.`}</p>
       {result.email_error ? <p className="text-danger">{result.email_error}</p> : null}
-      <p className="mt-2 break-all text-xs text-ink-2">{result.link_url}</p>
-      <div className="mt-2 flex gap-2">
+      <p className="mt-2 break-all font-mono text-xs text-ink-2">{result.link_url}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
         <Button
           size="sm"
           icon={Copy}
@@ -61,7 +63,7 @@ function Sent({ email, projectName, result }: SentProps) {
           Copy link
         </Button>
         <a
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-sm font-medium text-ink hover:bg-page"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-card px-3 text-[13px] font-medium text-ink shadow-control hover:bg-card-head"
           href={mailto}
         >
           <Mail size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -72,7 +74,7 @@ function Sent({ email, projectName, result }: SentProps) {
   );
 }
 
-export function InviteForm({ projectId, projectName, timeZone }: InviteFormProps) {
+export function InviteForm({ projectId, projectName, timeZone, onClose }: InviteFormProps) {
   const roles = useRoles();
   const invite = useInviteMember();
   const [email, setEmail] = useState('');
@@ -109,7 +111,10 @@ export function InviteForm({ projectId, projectName, timeZone }: InviteFormProps
   }
 
   return (
-    <Card title="Invite someone">
+    <Card
+      title="Invite someone"
+      actions={<Button size="sm" variant="quiet" icon={X} aria-label="Close" title="Close" onClick={onClose} />}
+    >
       <form
         className="grid gap-3 sm:grid-cols-[1fr_12rem_10rem_auto] sm:items-end"
         onSubmit={(e) => {
@@ -117,22 +122,23 @@ export function InviteForm({ projectId, projectName, timeZone }: InviteFormProps
           submit();
         }}
       >
-        <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+        <label className={FIELD_LABEL}>
           Email
           <input
             type="email"
             autoComplete="off"
-            className="h-9 rounded-md border border-line px-2.5 text-sm font-normal text-ink outline-none focus:border-accent"
+            autoFocus
+            className={FIELD_CONTROL}
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
             }}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+        <label className={FIELD_LABEL}>
           Role
           <select
-            className="h-9 rounded-md border border-line bg-card px-2 text-sm font-normal text-ink"
+            className={FIELD_CONTROL}
             value={role}
             onChange={(e) => {
               setRole(e.target.value);
@@ -146,11 +152,11 @@ export function InviteForm({ projectId, projectName, timeZone }: InviteFormProps
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+        <label className={FIELD_LABEL}>
           Access ends (optional)
           <input
             type="date"
-            className="h-9 rounded-md border border-line px-2 text-sm font-normal text-ink outline-none focus:border-accent"
+            className={FIELD_CONTROL}
             value={accessEnds}
             onChange={(e) => {
               setAccessEnds(e.target.value);

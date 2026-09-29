@@ -2,14 +2,13 @@
 // suggestion, reference, needed-by date and possible impact. Nothing below the photos is required. Autosaves.
 import { Image as PhotoIcon, X } from 'lucide-react';
 import type { RfiFileRef } from '../../data/rfis.types';
-import { CheckField, TextField } from '../../ui/Fields';
+import { CheckField, FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { PhotoPicker } from '../corrections/PhotoPicker';
 import type { RfiDraft } from './useRfiDraft';
 
-const AREA =
-  'rounded-md border border-line-strong bg-card px-2.5 py-2 text-sm font-normal leading-6 text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
+const AREA = FIELD_AREA;
+const LABEL = FIELD_LABEL;
 
 interface KeptPhotosProps {
   photos: readonly RfiFileRef[];
@@ -81,7 +80,7 @@ export function RfiEditor({ draft, photos, isPhone, autoFocus }: RfiEditorProps)
         />
       </label>
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-ink-2">Photos</span>
+        <span className="text-[13px] font-medium text-ink-2">Photos</span>
         <KeptPhotos
           photos={photos}
           kept={form.kept}
@@ -130,7 +129,7 @@ export function RfiEditor({ draft, photos, isPhone, autoFocus }: RfiEditorProps)
           />
         </div>
         <fieldset className="flex flex-col">
-          <legend className="text-xs font-medium text-ink-2">Possible impact</legend>
+          <legend className="text-[13px] font-medium text-ink-2">Possible impact</legend>
           <div className="flex gap-6">
             <CheckField
               label="Cost"

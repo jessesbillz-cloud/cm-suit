@@ -12,6 +12,7 @@ import {
   filterRows,
   impactKinds,
   impactWindow,
+  logSummary,
   matches,
   moveAt,
   neighbors,
@@ -192,6 +193,13 @@ describe('the log', () => {
     expect(openTarget(rows, open, 'RFI 1')?.id).toBe('closed');
     expect(openTarget(rows, [row({ id: 'only' })], 'sample')?.id).toBe('only');
     expect(openTarget(rows, open, 'sample')).toBeUndefined();
+  });
+
+  it('the header counts what is open and what is late', () => {
+    // Open: everything but closed and void (drafts too); late: only 'late' (due Sep 26, still with the architect).
+    expect(logSummary(rows, TZ, NOW)).toBe('6 open · 1 late');
+    expect(logSummary([row({ id: 'a', due_at: '2026-10-05T19:00:00Z' })], TZ, NOW)).toBe('1 open');
+    expect(logSummary([], TZ, NOW)).toBe('0 open');
   });
 
   it('arrow keys walk the order shown', () => {

@@ -1,7 +1,7 @@
 // The fields a person types on an item: title, trade, location, description, spec tags, notice reference.
 // One set for New and Edit.
 import type { CorrectionFields as SavedFields } from '../../data/corrections.types';
-import { TextField } from '../../ui/Fields';
+import { FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
 import { parseTags } from './model';
 
 export interface FieldsDraft {
@@ -36,8 +36,8 @@ export function fieldsOf(d: FieldsDraft): SavedFields {
   };
 }
 
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
-const AREA = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
+const LABEL = FIELD_LABEL;
+const AREA = FIELD_AREA;
 
 interface CorrectionFieldsProps {
   value: FieldsDraft;

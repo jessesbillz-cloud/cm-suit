@@ -11,7 +11,7 @@ import { useRfiDetail, useRfiList } from '../../data/rfis.queries';
 import type { RfiDetail, RfiEvent } from '../../data/rfis.types';
 import { formatInZone } from '../../lib/dates';
 import { Icon } from '../../ui/Icon';
-import { ReadingPane } from '../../ui/ReadingPane';
+import { PaneSection, ReadingPane } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
@@ -112,18 +112,19 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
       downloading={pdf.isPending}
       downloadLabel="PDF"
     >
-      <div className="flex flex-col gap-5" data-testid="rfi-pane">
-        <RfiTracker detail={d} timeZone={tz} now={now} />
+      <div className="flex flex-col gap-3" data-testid="rfi-pane">
+        <PaneSection>
+          <RfiTracker detail={d} timeZone={tz} now={now} />
+        </PaneSection>
         {editingTitle !== null ? (
           <RfiEdit row={d.rfi} photos={d.photos} isPhone={isPhone} onDone={() => { setEditingTitle(null); }} />
         ) : (
           <RfiBody detail={d} timeZone={tz} />
         )}
         {d.rfi.status === 'void' && d.rfi.void_note ? (
-          <p className="text-sm text-ink-2">
-            <span className="font-medium text-ink">Void: </span>
-            {d.rfi.void_note}
-          </p>
+          <PaneSection title="Void" tone="tint">
+            <p className="whitespace-pre-wrap break-words text-sm text-ink">{d.rfi.void_note}</p>
+          </PaneSection>
         ) : null}
         <RfiImpact detail={d} timeZone={tz} now={now} />
         {editingTitle === null ? <RfiActions detail={d} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}

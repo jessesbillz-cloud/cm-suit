@@ -22,7 +22,7 @@ interface ReturnedProps {
 /** Why it came back to me: who sent it back, when, and their note. */
 function Returned({ event, timeZone }: ReturnedProps) {
   return (
-    <div className="rounded-md border border-accent/25 bg-accent-soft px-3 py-2.5 text-sm" data-testid="rfi-returned">
+    <div className="rounded-lg border border-accent/25 bg-accent-soft px-3.5 py-3 text-sm" data-testid="rfi-returned">
       <p className="text-ink-2">
         <span className="font-medium text-ink">Sent back</span> · {event.actor_name ?? 'Someone'} · {formatInZone(event.at, timeZone, 'MMM d, h:mm a')}
       </p>
@@ -105,7 +105,7 @@ export function RfiCompose({ projectId, row, photos, returned, timeZone, isPhone
     >
       <div className="flex flex-1 flex-col gap-4 px-5 py-4">
         <header className="flex items-baseline justify-between gap-3">
-          <h1 className="text-base font-semibold text-ink">{row === null ? 'New RFI' : 'Draft'}</h1>
+          <h1 className="text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">{row === null ? 'New RFI' : 'Draft'}</h1>
           <SaveState pending={draft.saving} saved={draft.justSaved} problem={null} />
         </header>
         {returned ? <Returned event={returned} timeZone={timeZone} /> : null}

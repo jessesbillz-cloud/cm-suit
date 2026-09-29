@@ -195,6 +195,13 @@ export function latestStep(history: readonly CorrectionHistoryRow[]): Correction
 
 const OPEN_STATUSES: readonly CorrectionStatus[] = ['open', 'ready', 'reopened'];
 
+/** The page header's count line: "4 open · 1 ready" (open = open, ready or reopened; ready = waiting on the inspector). */
+export function logSummary(rows: readonly CorrectionRow[]): string {
+  const open = rows.filter((r) => OPEN_STATUSES.includes(r.status)).length;
+  const ready = rows.filter((r) => r.status === 'ready').length;
+  return ready > 0 ? `${String(open)} open · ${String(ready)} ready` : `${String(open)} open`;
+}
+
 interface Snapshot {
   counts: Record<CorrectionStatus, number>;
   openedThisWeek: number;

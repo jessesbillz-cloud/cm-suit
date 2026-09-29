@@ -40,6 +40,20 @@ export function treeOrder<F extends TreeFolder>(folders: readonly F[]): TreeNode
   return out;
 }
 
+/** "Plans / Architectural": the folder's path down from the top of the tree I can see (the page header's line). */
+export function folderPath(folders: readonly Pick<FolderRow, 'id' | 'parent_id' | 'name'>[], id: string): string {
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const names: string[] = [];
+  const seen = new Set<string>();
+  let at = byId.get(id);
+  while (at && !seen.has(at.id)) {
+    seen.add(at.id);
+    names.unshift(at.name);
+    at = at.parent_id === null ? undefined : byId.get(at.parent_id);
+  }
+  return names.join(' / ');
+}
+
 /** The folder Files opens on: the first one in the tree. */
 export function defaultFolderId(folders: readonly TreeFolder[]): string | null {
   return treeOrder(visibleFolders(folders))[0]?.folder.id ?? null;

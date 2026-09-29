@@ -7,10 +7,10 @@ import { usePostDelivery } from '../../data/deliveries.mutations';
 import type { DeliveryInput } from '../../data/deliveries.types';
 import { messageOf } from '../../data/errors';
 import { usePeopleDisplay } from '../../data/queries';
-import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { headsUpFor } from './headsUp';
+import { ItemFrame } from './ItemFrame';
 import { PostForm } from './PostForm';
 
 interface PostDeliveryProps {
@@ -39,7 +39,7 @@ function PostFormCard({ projectId, tz, day, onPosted, companies, myCompany }: Po
   const headsUp = headsUpFor(sameDay.data ?? [], value, tz);
 
   return (
-    <Card title="Post delivery">
+    <ItemFrame title="Post delivery">
       <PostForm
         value={value}
         onChange={setValue}
@@ -56,7 +56,7 @@ function PostFormCard({ projectId, tz, day, onPosted, companies, myCompany }: Po
           });
         }}
       />
-    </Card>
+    </ItemFrame>
   );
 }
 

@@ -1,10 +1,9 @@
 // The corrections log (SPEC §7.4): CN number, full title (wraps, never cut off), status, trade, location, opened,
-// closed. Click a header to sort. On the phone: one tappable line per item.
-import { ArrowDown, ArrowUp } from 'lucide-react';
+// closed. Click a header to sort. On the phone: one stacked row per item (title, then number, trade and location).
 import type { CorrectionRow } from '../../data/corrections.types';
 import { formatInZone } from '../../lib/dates';
-import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
+import { HEAD_ROW, SortTh, TABLE, TD, TD_NUM, phoneRowClass, rowClass } from '../../ui/Table';
 import { cnLabel, nextSort, statusChip, type Sort, type SortKey } from './model';
 
 interface CorrectionsLogProps {
@@ -18,13 +17,13 @@ interface CorrectionsLogProps {
 }
 
 const COLUMNS: { key: SortKey; title: string; className: string }[] = [
-  { key: 'number', title: 'No.', className: 'w-20' },
+  { key: 'number', title: 'No.', className: 'w-[5.5rem] pl-4' },
   { key: 'title', title: 'Title', className: '' },
-  { key: 'status', title: 'Status', className: 'w-28' },
+  { key: 'status', title: 'Status', className: 'w-[7.5rem]' },
   { key: 'trade', title: 'Trade', className: 'w-28' },
   { key: 'location', title: 'Location', className: 'w-32' },
-  { key: 'opened', title: 'Opened', className: 'w-20' },
-  { key: 'closed', title: 'Closed', className: 'w-20' },
+  { key: 'opened', title: 'Opened', className: 'w-[5.25rem]' },
+  { key: 'closed', title: 'Closed', className: 'w-[5.25rem] pr-4' },
 ];
 
 function day(v: string | null, tz: string): string {
@@ -39,29 +38,20 @@ interface HeaderProps {
 function Header({ sort, onSort }: HeaderProps) {
   return (
     <thead>
-      <tr className="border-b border-line text-left text-xs text-ink-2">
-        {COLUMNS.map((c) => {
-          const active = sort.key === c.key;
-          return (
-            <th
-              key={c.key}
-              className={`px-3 py-2 font-medium ${c.className}`}
-              aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-            >
-              <button
-                type="button"
-                data-testid={`cn-sort-${c.key}`}
-                className="inline-flex items-center gap-1 hover:text-ink"
-                onClick={() => {
-                  onSort(nextSort(sort, c.key));
-                }}
-              >
-                {c.title}
-                {active ? <Icon icon={sort.dir === 'asc' ? ArrowUp : ArrowDown} size={12} /> : null}
-              </button>
-            </th>
-          );
-        })}
+      <tr className={HEAD_ROW}>
+        {COLUMNS.map((c) => (
+          <SortTh
+            key={c.key}
+            title={c.title}
+            active={sort.key === c.key}
+            dir={sort.dir}
+            className={c.className}
+            testId={`cn-sort-${c.key}`}
+            onSort={() => {
+              onSort(nextSort(sort, c.key));
+            }}
+          />
+        ))}
       </tr>
     </thead>
   );
@@ -69,31 +59,41 @@ function Header({ sort, onSort }: HeaderProps) {
 
 interface PhoneListProps {
   rows: readonly CorrectionRow[];
+  selectedId: string | null;
   onOpen: (id: string) => void;
 }
 
-function PhoneList({ rows, onOpen }: PhoneListProps) {
+function PhoneList({ rows, selectedId, onOpen }: PhoneListProps) {
   return (
     <ul className="divide-y divide-line">
       {rows.map((r) => {
         const chip = statusChip(r.status);
-        const where = [r.trade, r.location].filter((v) => v !== '').join(' · ');
+        const where = [r.trade, r.location].filter((v) => v !== '');
         return (
           <li key={r.id}>
             <button
               type="button"
               data-testid={`log-row-${cnLabel(r.number)}`}
-              className="flex w-full items-start gap-3 px-4 py-3 text-left"
+              className={`${phoneRowClass(selectedId === r.id)} flex flex-col gap-1`}
               onClick={() => {
                 onOpen(r.id);
               }}
             >
-              <span className="w-16 shrink-0 tabular-nums text-sm text-ink-2">{cnLabel(r.number)}</span>
-              <span className="min-w-0 flex-1 whitespace-normal break-words">
-                <span className="block text-sm text-ink">{r.title}</span>
-                {where !== '' ? <span className="block text-xs text-ink-2">{where}</span> : null}
+              <span className="flex w-full items-start gap-3">
+                <span className="min-w-0 flex-1 whitespace-normal break-words text-[15px] leading-6 text-ink">{r.title}</span>
+                <span className="shrink-0 pt-px">
+                  <StatusChip status={chip.status} label={chip.label} />
+                </span>
               </span>
-              <StatusChip status={chip.status} label={chip.label} />
+              <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-2">
+                <span className="font-medium tabular-nums">{cnLabel(r.number)}</span>
+                {where.map((w) => (
+                  <span key={w} className="contents">
+                    <span aria-hidden>·</span>
+                    <span className="break-words">{w}</span>
+                  </span>
+                ))}
+              </span>
             </button>
           </li>
         );
@@ -103,37 +103,38 @@ function PhoneList({ rows, onOpen }: PhoneListProps) {
 }
 
 export function CorrectionsLog({ rows, timeZone, selectedId, sort, onSort, onOpen, isPhone }: CorrectionsLogProps) {
-  if (isPhone) return <PhoneList rows={rows} onOpen={onOpen} />;
+  if (isPhone) return <PhoneList rows={rows} selectedId={selectedId} onOpen={onOpen} />;
   return (
-    <table className="w-full table-fixed border-collapse text-sm">
+    <table className={TABLE}>
       <Header sort={sort} onSort={onSort} />
       <tbody>
         {rows.map((r) => {
           const chip = statusChip(r.status);
+          const selected = selectedId === r.id;
           return (
             <tr
               key={r.id}
               data-testid={`log-row-${cnLabel(r.number)}`}
-              aria-current={selectedId === r.id ? 'true' : undefined}
-              className={`cursor-pointer border-b border-line align-top ${selectedId === r.id ? 'bg-accent-soft' : 'hover:bg-page'}`}
+              aria-current={selected ? 'true' : undefined}
+              className={rowClass(selected)}
               onClick={() => {
                 onOpen(r.id);
               }}
             >
-              <td className="px-3 py-2 tabular-nums text-ink-2">{cnLabel(r.number)}</td>
-              <td className="whitespace-normal break-words px-3 py-2 text-ink">
+              <td className={`${TD_NUM} pl-4 font-medium text-ink-2`}>{cnLabel(r.number)}</td>
+              <td className={`${TD} whitespace-normal break-words text-ink`}>
                 {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
                 <button type="button" className="text-left">
                   {r.title}
                 </button>
               </td>
-              <td className="px-3 py-2">
+              <td className={TD}>
                 <StatusChip status={chip.status} label={chip.label} />
               </td>
-              <td className="whitespace-normal break-words px-3 py-2 text-ink-2">{r.trade}</td>
-              <td className="whitespace-normal break-words px-3 py-2 text-ink-2">{r.location}</td>
-              <td className="px-3 py-2 text-ink-2">{day(r.created_at, timeZone)}</td>
-              <td className="px-3 py-2 text-ink-2">{day(r.closed_at, timeZone)}</td>
+              <td className={`${TD} whitespace-normal break-words text-ink-2`}>{r.trade}</td>
+              <td className={`${TD} whitespace-normal break-words text-ink-2`}>{r.location}</td>
+              <td className={`${TD_NUM} text-ink-2`}>{day(r.created_at, timeZone)}</td>
+              <td className={`${TD_NUM} pr-4 text-ink-2`}>{day(r.closed_at, timeZone)}</td>
             </tr>
           );
         })}

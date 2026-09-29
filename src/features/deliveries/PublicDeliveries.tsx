@@ -9,7 +9,9 @@ import { shiftDay } from '../../lib/deliveries';
 import { PublicPage } from '../auth/PublicPage';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { Board, boardWindow } from './Board';
 import { PrintSheet } from './PrintSheet';
 import { PublicPost } from './PublicPost';
@@ -112,67 +114,72 @@ function PublicBoard({ projectId, token }: LinkProps) {
 
   return (
     <main className="min-h-[100dvh] bg-page px-4 py-6">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        <header className="flex flex-wrap items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="break-words text-sm text-ink-2">{data.project_name}</p>
-            <h1 className="text-xl font-semibold text-ink">Deliveries</h1>
-          </div>
-          <Button icon={Monitor} data-testid="deliveries-tv" onClick={() => {
-              enterFullScreen();
-              nav.go({ view: 'tv' });
-            }}>
-            TV
-          </Button>
-          {nav.view !== 'post' ? (
-            <Button variant="primary" icon={Plus} data-testid="deliveries-post" onClick={() => {
-                nav.go({ view: 'post', r: null });
-              }}>
-              Post delivery
-            </Button>
+      <div className="mx-auto max-w-3xl">
+        <PageHeader
+          title="Deliveries"
+          icon={TOOL_META.deliveries.icon}
+          meta={<span className="break-words">{data.project_name}</span>}
+          actions={
+            <>
+              <Button icon={Monitor} data-testid="deliveries-tv" onClick={() => {
+                  enterFullScreen();
+                  nav.go({ view: 'tv' });
+                }}>
+                TV
+              </Button>
+              {nav.view !== 'post' ? (
+                <Button variant="primary" icon={Plus} data-testid="deliveries-post" onClick={() => {
+                    nav.go({ view: 'post', r: null });
+                  }}>
+                  Post delivery
+                </Button>
+              ) : null}
+            </>
+          }
+        />
+        <div className="flex flex-col gap-4">
+          {nav.receiptId ? (
+            <ReceiptCard
+              projectId={projectId}
+              token={token}
+              receiptId={nav.receiptId}
+              tz={zone}
+              projectName={data.project_name}
+              onClose={() => {
+                nav.go({ r: null });
+              }}
+            />
           ) : null}
-        </header>
-        {nav.receiptId ? (
-          <ReceiptCard
-            projectId={projectId}
-            token={token}
-            receiptId={nav.receiptId}
-            tz={zone}
-            projectName={data.project_name}
-            onClose={() => {
-              nav.go({ r: null });
-            }}
-          />
-        ) : null}
-        {nav.view === 'post' ? (
-          <PublicPost
-            projectId={projectId}
-            token={token}
-            tz={zone}
-            day={day}
-            companies={data.companies}
-            onPosted={(receipt) => {
-              nav.go({ view: 'board', day: receipt.delivery_date, r: receipt.id });
-            }}
-            onCancel={() => {
-              nav.go({ view: 'board' });
-            }}
-          />
-        ) : null}
-        <Card>
-          <Board
-            tz={zone}
-            today={today}
-            day={day}
-            rows={data.deliveries}
-            isPending={false}
-            error={board.error}
-            onRetry={() => void board.refetch()}
-            onPickDay={(d) => {
-              nav.go({ day: d });
-            }}
-          />
-        </Card>
+          {nav.view === 'post' ? (
+            <PublicPost
+              projectId={projectId}
+              token={token}
+              tz={zone}
+              day={day}
+              companies={data.companies}
+              onPosted={(receipt) => {
+                nav.go({ view: 'board', day: receipt.delivery_date, r: receipt.id });
+              }}
+              onCancel={() => {
+                nav.go({ view: 'board' });
+              }}
+            />
+          ) : null}
+          <Card padded={false}>
+            <Board
+              tz={zone}
+              today={today}
+              day={day}
+              rows={data.deliveries}
+              isPending={false}
+              error={board.error}
+              onRetry={() => void board.refetch()}
+              onPickDay={(d) => {
+                nav.go({ day: d });
+              }}
+            />
+          </Card>
+        </div>
       </div>
     </main>
   );

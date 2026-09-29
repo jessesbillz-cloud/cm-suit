@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, X, type LucideIcon } from 'lucide-react';
 import type { Person } from '../../data/types';
 import { humanize } from '../../lib/format';
+import { FIELD_CONTROL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 
 export interface Step {
@@ -91,7 +92,7 @@ export function RouteSteps({ steps, people, onMove, onRemove, onAdd }: RouteStep
         aria-label="Add a step"
         data-testid="rfi-route-add"
         disabled={full || (roles.length === 0 && persons.length === 0)}
-        className="h-9 w-full rounded-md border border-line-strong bg-card px-2.5 text-sm text-ink shadow-control outline-none focus:border-accent sm:w-72"
+        className={`${FIELD_CONTROL} w-full sm:w-72`}
         value=""
         onChange={(e) => {
           const [kind, value = ''] = e.target.value.split(':');

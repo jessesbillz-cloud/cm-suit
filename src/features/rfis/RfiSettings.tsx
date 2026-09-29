@@ -9,6 +9,7 @@ import { useRfiSettings } from '../../data/rfis.queries';
 import type { RfiSettings, RouteChoice } from '../../data/rfis.types';
 import type { Person } from '../../data/types';
 import { Card } from '../../ui/Card';
+import { FIELD_LABEL } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { moveAt, parseDays } from './model';
@@ -24,9 +25,9 @@ interface DaysFieldProps {
 
 function DaysField({ label, value, testId, onChange, onBlur }: DaysFieldProps) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+    <label className={FIELD_LABEL}>
       {label}
-      <span className="flex h-9 w-36 items-center rounded-md border border-line-strong bg-card shadow-control focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent/20">
+      <span className="flex h-10 w-36 items-center rounded-lg border border-line-strong bg-card shadow-control focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent/20">
         <input
           type="number"
           inputMode="numeric"
@@ -102,7 +103,7 @@ function RfiSettingsForm({ initial, people, save, onProblem: setProblem }: FormP
         <DaysField label="Impact window" value={impact} testId="rfi-impact-days" onChange={setImpact} onBlur={blurDays} />
       </div>
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-ink-2">Route</span>
+        <span className="text-[13px] font-medium text-ink-2">Route</span>
         <RouteSteps
           steps={steps}
           people={people}

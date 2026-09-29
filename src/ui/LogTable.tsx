@@ -1,10 +1,11 @@
 // The log table (SPEC §7.4), shared by RFIs, submittals, transmittals, IRs, corrections and deliveries.
 // Columns: number, full title (wraps, never cut off), date asked, date answered. Click a header to sort.
 // No ball-in-court or days-open columns, no expand/collapse. Amber row = impact claimed, nothing else.
+// On a phone the date columns fold into one line under the title (one row per item, never a wide table).
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Search } from 'lucide-react';
 import { formatInZone } from '../lib/dates';
-import { Icon } from './Icon';
+import { SearchBox } from './SearchBox';
+import { HEAD_ROW, SortTh, TABLE, TD, TD_NUM, rowClass } from './Table';
 
 export interface LogRow {
   id: string;
@@ -45,17 +46,23 @@ interface LogTableProps {
 }
 
 const COLUMNS: { key: SortKey; title: string; className: string }[] = [
-  { key: 'number', title: 'No.', className: 'w-20' },
+  { key: 'number', title: 'No.', className: 'w-16 sm:w-20' },
   { key: 'title', title: 'Title', className: '' },
-  { key: 'askedAt', title: 'Asked', className: 'w-32' },
-  { key: 'answeredAt', title: 'Answered', className: 'w-32' },
+  { key: 'askedAt', title: 'Asked', className: 'hidden w-32 sm:table-cell' },
+  { key: 'answeredAt', title: 'Answered', className: 'hidden w-32 sm:table-cell' },
 ];
 
 function dateCell(v: string | null, tz: string): string {
   return v === null ? '' : formatInZone(v, tz, 'MMM d, yyyy');
 }
 
-/** @public Consumed by the Phase 1+ logs; Phase 0 ships the component and its tests. */
+/** The phone's line under the title: "Asked Sep 3 · Answered Sep 5". */
+function phoneLine(r: LogRow, tz: string): string {
+  const asked = r.askedAt === null ? '' : `Asked ${formatInZone(r.askedAt, tz, 'MMM d')}`;
+  const answered = r.answeredAt === null ? '' : `Answered ${formatInZone(r.answeredAt, tz, 'MMM d')}`;
+  return [asked, answered].filter((s) => s !== '').join(' · ');
+}
+
 export function LogTable({ rows, timeZone, onOpen, selectedId, label }: LogTableProps) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'number', dir: 'desc' });
   const [query, setQuery] = useState('');
@@ -66,83 +73,67 @@ export function LogTable({ rows, timeZone, onOpen, selectedId, label }: LogTable
     return sortLogRows(filtered, sort.key, sort.dir);
   }, [rows, query, sort]);
 
-  function openByNumber() {
-    const exact = rows.find((r) => r.number.toLowerCase() === query.trim().toLowerCase());
+  function openByNumber(typed: string) {
+    const exact = rows.find((r) => r.number.toLowerCase() === typed.trim().toLowerCase());
     const target = exact ?? (visible.length === 1 ? visible[0] : undefined);
     if (target) onOpen(target.id);
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex h-9 items-center gap-2 rounded-md border border-line bg-card px-3 text-sm focus-within:border-accent">
-        <Icon icon={Search} size={16} className="text-ink-3" />
-        <input
-          type="search"
-          aria-label={`Search ${label}`}
-          placeholder={`Search ${label} by number or title`}
-          className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink-3"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') openByNumber();
-          }}
-        />
-      </label>
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-line bg-card-head text-left text-xs text-ink-2">
-            {COLUMNS.map((c) => {
-              const active = sort.key === c.key;
-              return (
-                <th
-                  key={c.key}
-                  className={`px-3 py-2 font-medium ${c.className}`}
-                  aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 hover:text-ink"
-                    onClick={() => {
+      <SearchBox label={`Search ${label}`} placeholder="Number or title" onChange={setQuery} onEnter={openByNumber} />
+      <div className="overflow-hidden rounded-lg border border-line">
+        <table className={TABLE}>
+          <thead>
+            <tr className={HEAD_ROW}>
+              {COLUMNS.map((c) => {
+                const active = sort.key === c.key;
+                return (
+                  <SortTh
+                    key={c.key}
+                    title={c.title}
+                    active={active}
+                    dir={sort.dir}
+                    className={c.className}
+                    onSort={() => {
                       setSort({ key: c.key, dir: active && sort.dir === 'asc' ? 'desc' : 'asc' });
                     }}
-                  >
-                    {c.title}
-                    {active ? <Icon icon={sort.dir === 'asc' ? ArrowUp : ArrowDown} size={12} /> : null}
-                  </button>
-                </th>
+                  />
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((r) => {
+              const line = phoneLine(r, timeZone);
+              return (
+                <tr
+                  key={r.id}
+                  data-testid={`log-row-${r.number}`}
+                  data-impact={r.impact === true ? 'true' : undefined}
+                  aria-current={selectedId === r.id ? 'true' : undefined}
+                  className={rowClass(selectedId === r.id, r.impact === true)}
+                  onClick={() => {
+                    onOpen(r.id);
+                  }}
+                >
+                  <td className={`${TD_NUM} font-medium text-ink-2`}>{r.number}</td>
+                  <td className={`${TD} whitespace-normal break-words text-ink`}>
+                    {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
+                    <button type="button" className="text-left">
+                      {r.title}
+                    </button>
+                    {line !== '' ? <span className="mt-0.5 block text-xs tabular-nums text-ink-2 sm:hidden">{line}</span> : null}
+                  </td>
+                  <td className={`${TD_NUM} hidden text-ink-2 sm:table-cell`}>{dateCell(r.askedAt, timeZone)}</td>
+                  <td className={`${TD_NUM} hidden text-ink-2 sm:table-cell`}>{dateCell(r.answeredAt, timeZone)}</td>
+                </tr>
               );
             })}
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map((r) => (
-            <tr
-              key={r.id}
-              data-testid={`log-row-${r.number}`}
-              data-impact={r.impact === true ? 'true' : undefined}
-              className={`cursor-pointer border-b border-line align-top ${r.impact === true ? 'bg-impact-row' : ''} ${
-                selectedId === r.id ? 'bg-accent-soft' : 'hover:bg-page'
-              }`}
-              onClick={() => {
-                onOpen(r.id);
-              }}
-            >
-              <td className="px-3 py-2 tabular-nums text-ink-2">{r.number}</td>
-              <td className="whitespace-normal break-words px-3 py-2 text-ink">
-                {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
-                <button type="button" className="text-left">
-                  {r.title}
-                </button>
-              </td>
-              <td className="px-3 py-2 text-ink-2">{dateCell(r.askedAt, timeZone)}</td>
-              <td className="px-3 py-2 text-ink-2">{dateCell(r.answeredAt, timeZone)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {visible.length === 0 ? <p className="px-3 py-6 text-center text-sm text-ink-2">Nothing matches.</p> : null}
+          </tbody>
+        </table>
+        {visible.length === 0 ? <p className="px-3 py-8 text-center text-sm text-ink-2">Nothing matches.</p> : null}
+      </div>
     </div>
   );
 }

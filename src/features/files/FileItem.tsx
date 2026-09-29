@@ -4,6 +4,8 @@ import { useFile } from '../../data/queries';
 import { useUser } from '../../data/auth';
 import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
+import { fileIcon } from '../../ui/fileIcon';
+import { Icon } from '../../ui/Icon';
 import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -44,6 +46,12 @@ export function FileItem({ fileId, onOpenWindow }: FileItemProps) {
 
   return (
     <ReadingPane
+      eyebrow={
+        <>
+          <Icon icon={fileIcon(f.original_name, f.mime)} size={16} className="text-accent" />
+          <StatusChip status={chip.status} label={chip.label} />
+        </>
+      }
       title={f.original_name}
       meta={`${formatBytes(f.size)} · added ${formatInZone(f.created_at, zoneOf(f.project_id), 'MMM d, yyyy h:mm a')}`}
       onOpenWindow={onOpenWindow}
@@ -56,15 +64,16 @@ export function FileItem({ fileId, onOpenWindow }: FileItemProps) {
       }
       downloading={download.pendingId === f.id}
     >
-      <div className="flex flex-col gap-3">
-        <div>
-          <StatusChip status={chip.status} label={chip.label} />
-        </div>
-        {notice ? (
-          <p className={f.scan_status === 'infected' ? 'text-danger' : 'text-ink-2'}>{notice}</p>
-        ) : null}
-        <p className="text-ink-2">Page-by-page viewing arrives with the drawings viewer. Download opens the original file.</p>
-      </div>
+      {notice ? (
+        <p
+          role={f.scan_status === 'infected' ? 'alert' : undefined}
+          className={`rounded-lg border px-3.5 py-2.5 ${
+            f.scan_status === 'infected' ? 'border-danger/30 bg-danger-soft text-danger' : 'border-line bg-card-head text-ink-2'
+          }`}
+        >
+          {notice}
+        </p>
+      ) : null}
     </ReadingPane>
   );
 }

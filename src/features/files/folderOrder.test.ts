@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultFolderId, treeOrder, visibleFolders } from './folderOrder';
+import { defaultFolderId, folderPath, treeOrder, visibleFolders } from './folderOrder';
 
 type F = { id: string; parent_id: string | null; name: string; kind: string; sort: number; file_count: number | null };
 
@@ -56,5 +56,19 @@ describe('folder tree order', () => {
 
   it('opens on nothing when there are no folders to show', () => {
     expect(defaultFolderId([folder('in', 'Emailed in', 900, { kind: 'inbound', file_count: 0 })])).toBeNull();
+  });
+});
+
+describe('folder path', () => {
+  it('names the folder from the top of the tree down', () => {
+    const list = [
+      folder('reports', 'Reports', 50),
+      folder('a', 'A author', 100, { parent_id: 'reports' }),
+      folder('orphan', 'Shared with me', 100, { parent_id: 'not-visible' }),
+    ];
+    expect(folderPath(list, 'a')).toBe('Reports / A author');
+    expect(folderPath(list, 'reports')).toBe('Reports');
+    expect(folderPath(list, 'orphan')).toBe('Shared with me');
+    expect(folderPath(list, 'missing')).toBe('');
   });
 });

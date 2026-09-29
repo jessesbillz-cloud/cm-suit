@@ -4,6 +4,7 @@ import { useAttachDeliveryFiles } from '../../data/deliveries.mutations';
 import { messageOf } from '../../data/errors';
 import { FileLine } from '../bids/FileLine';
 import { UploadButtons } from '../files/UploadButtons';
+import { PaneSection } from '../../ui/ReadingPane';
 import { useToast } from '../../ui/Toast';
 
 interface DeliveryPhotosProps {
@@ -19,8 +20,7 @@ export function DeliveryPhotos({ projectId, deliveryId, fileIds, canAdd, isPhone
   const toast = useToast();
   if (fileIds.length === 0 && !canAdd) return null;
   return (
-    <section className="flex flex-col gap-2" aria-label="Photos and tickets">
-      <h3 className="text-xs font-medium text-ink-2">Photos / tickets</h3>
+    <PaneSection title="Photos / tickets">
       {fileIds.length > 0 ? (
         <ul className="flex flex-col gap-1.5">
           {fileIds.map((id) => (
@@ -48,6 +48,6 @@ export function DeliveryPhotos({ projectId, deliveryId, fileIds, canAdd, isPhone
           />
         </div>
       ) : null}
-    </section>
+    </PaneSection>
   );
 }

@@ -9,6 +9,7 @@ import { formatInZone, weekStartInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
+import { HEAD_ROW, TD, TD_NUM, TH } from '../../ui/Table';
 import { cnLabel, statusChip, weeklySnapshot } from './model';
 
 interface ProgressViewProps {
@@ -20,9 +21,9 @@ interface ProgressViewProps {
 
 function Stat({ label, value, testId }: { label: string; value: number; testId: string }) {
   return (
-    <div className="rounded-card border border-line px-3 py-2">
+    <div className="rounded-lg border border-line bg-card-head px-3 py-2.5">
       <dt className="text-xs text-ink-2">{label}</dt>
-      <dd className="text-xl font-semibold tabular-nums text-ink" data-testid={testId}>
+      <dd className="mt-0.5 text-[22px] font-semibold leading-7 tabular-nums text-ink" data-testid={testId}>
         {value}
       </dd>
     </div>
@@ -45,8 +46,8 @@ export function ProgressView({ projectId, standalone, onOpenWindow }: ProgressVi
     <article className="flex flex-col gap-5 p-5" data-testid="cn-progress">
       <header className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-base font-semibold text-ink">Corrections progress</h1>
-          <p className="text-sm text-ink-2">
+          <h1 className="text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">Corrections progress</h1>
+          <p className="mt-0.5 text-[13px] text-ink-2">
             {project.data.name} &middot; Week of {formatInZone(weekStart, tz, 'MMM d, yyyy')}
           </p>
         </div>
@@ -61,9 +62,7 @@ export function ProgressView({ projectId, standalone, onOpenWindow }: ProgressVi
             Print
           </Button>
         ) : onOpenWindow ? (
-          <Button variant="quiet" icon={ExternalLink} onClick={onOpenWindow}>
-            Open in new window
-          </Button>
+          <Button variant="quiet" icon={ExternalLink} aria-label="Open in new window" title="Open in new window" onClick={onOpenWindow} />
         ) : null}
       </header>
 
@@ -86,37 +85,41 @@ export function ProgressView({ projectId, standalone, onOpenWindow }: ProgressVi
       </ul>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-ink">Open items</h2>
+        <h2 className="text-[15px] font-semibold text-ink">Open items</h2>
         {snap.open.length === 0 ? (
           <p className="text-sm text-ink-2">Nothing open.</p>
         ) : (
-          <table className="w-full table-fixed border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs text-ink-2">
-                <th className="w-20 px-2 py-1.5 font-medium">No.</th>
-                <th className="px-2 py-1.5 font-medium">Title</th>
-                <th className="w-24 px-2 py-1.5 font-medium">Status</th>
-                <th className="w-28 px-2 py-1.5 font-medium">Location</th>
-                <th className="w-20 px-2 py-1.5 font-medium">Opened</th>
-              </tr>
-            </thead>
-            <tbody>
-              {snap.open.map((r) => {
-                const chip = statusChip(r.status);
-                return (
-                  <tr key={r.id} className="border-b border-line align-top">
-                    <td className="px-2 py-1.5 tabular-nums text-ink-2">{cnLabel(r.number)}</td>
-                    <td className="whitespace-normal break-words px-2 py-1.5 text-ink">{r.title}</td>
-                    <td className="px-2 py-1.5">
-                      <StatusChip status={chip.status} label={chip.label} />
-                    </td>
-                    <td className="whitespace-normal break-words px-2 py-1.5 text-ink-2">{r.location}</td>
-                    <td className="px-2 py-1.5 text-ink-2">{formatInZone(r.created_at, tz, 'MMM d')}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-hidden rounded-lg border border-line">
+            {/* Auto layout: it fits the right column and its own window alike; the title takes what is left. */}
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className={HEAD_ROW}>
+                  <th className={`${TH} whitespace-nowrap`}>No.</th>
+                  <th className={`${TH} w-full`}>Title</th>
+                  <th className={TH}>Status</th>
+                  <th className={`${TH} whitespace-nowrap`}>Opened</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snap.open.map((r) => {
+                  const chip = statusChip(r.status);
+                  return (
+                    <tr key={r.id} className="h-11 border-b border-line last:border-b-0">
+                      <td className={`${TD_NUM} whitespace-nowrap font-medium text-ink-2`}>{cnLabel(r.number)}</td>
+                      <td className={`${TD} whitespace-normal break-words text-ink`}>
+                        {r.title}
+                        {r.location !== '' ? <span className="block text-xs text-ink-2">{r.location}</span> : null}
+                      </td>
+                      <td className={TD}>
+                        <StatusChip status={chip.status} label={chip.label} />
+                      </td>
+                      <td className={`${TD_NUM} whitespace-nowrap text-ink-2`}>{formatInZone(r.created_at, tz, 'MMM d')}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </article>

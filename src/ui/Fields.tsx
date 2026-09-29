@@ -1,9 +1,13 @@
-// Form fields with one look: short label above, 36px control, accent focus ring. Used by setup and settings forms.
+// Form fields with one look: short label above, 40px control (a button's height), accent focus ring. Forms that need
+// their own control (a textarea, a time input) take the same classes from here, so every field looks alike.
 import type { HTMLInputTypeAttribute } from 'react';
 
-const CONTROL =
-  'h-9 rounded-md border border-line-strong bg-card px-2.5 text-sm font-normal text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
+const FOCUS = 'outline-none transition-[border-color,box-shadow] focus:border-accent focus:ring-[3px] focus:ring-accent/20';
+export const FIELD_CONTROL = `h-10 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink shadow-control placeholder:text-ink-3 disabled:bg-card-head disabled:text-ink-3 ${FOCUS}`;
+export const FIELD_AREA = `rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal leading-6 text-ink shadow-control placeholder:text-ink-3 ${FOCUS}`;
+export const FIELD_LABEL = 'flex flex-col gap-1.5 text-[13px] font-medium text-ink-2';
+const CONTROL = FIELD_CONTROL;
+const LABEL = FIELD_LABEL;
 
 interface TextFieldProps {
   label: string;
@@ -82,10 +86,10 @@ interface CheckFieldProps {
 
 export function CheckField({ label, checked, onChange, disabled, testId }: CheckFieldProps) {
   return (
-    <label className={`flex h-9 items-center gap-2 text-sm ${disabled === true ? 'text-ink-3' : 'text-ink'}`}>
+    <label className={`flex min-h-10 items-center gap-2 text-sm ${disabled === true ? 'cursor-not-allowed text-ink-3' : 'cursor-pointer text-ink'}`}>
       <input
         type="checkbox"
-        className="h-4 w-4 accent-accent"
+        className="h-4 w-4 shrink-0 cursor-[inherit] accent-accent"
         checked={checked}
         disabled={disabled}
         data-testid={testId}

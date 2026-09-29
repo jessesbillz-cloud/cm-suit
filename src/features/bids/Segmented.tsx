@@ -1,5 +1,6 @@
 // The compact sub-view switch at the top of the bids tool. One row of short labels; no tab bar. On a phone the row
 // scrolls sideways. A view can carry a count of what's missing there (e.g. Forms), in lib/status's pending colors.
+import { SEGMENT_TRACK, segmentClass } from '../../ui/Segments';
 import { BIDS_VIEWS, VIEW_LABELS, type BidsView } from './model';
 
 interface SegmentedProps {
@@ -23,7 +24,7 @@ function keepInSight(el: HTMLElement | null) {
 
 export function Segmented({ current, hidden, counts, onPick }: SegmentedProps) {
   return (
-    <div role="tablist" aria-label="Bids" className="inline-flex max-w-full overflow-x-auto rounded-md border border-line bg-card p-0.5">
+    <div role="tablist" aria-label="Bids" className={SEGMENT_TRACK}>
       {BIDS_VIEWS.filter((v) => !hidden.includes(v)).map((v) => {
         const count = counts?.[v] ?? 0;
         return (
@@ -34,7 +35,7 @@ export function Segmented({ current, hidden, counts, onPick }: SegmentedProps) {
             aria-selected={v === current}
             data-testid={`bids-view-${v}`}
             ref={v === current ? keepInSight : undefined}
-            className={`inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-3 text-sm ${v === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
+            className={segmentClass(v === current)}
             onClick={() => {
               onPick(v);
             }}
@@ -44,7 +45,7 @@ export function Segmented({ current, hidden, counts, onPick }: SegmentedProps) {
               <span
                 data-testid={`bids-view-${v}-count`}
                 aria-label={`${String(count)} missing`}
-                className="rounded-full px-1.5 text-xs font-medium tabular-nums"
+                className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums"
                 style={{ color: 'var(--status-pending-fg)', background: 'var(--status-pending-bg)' }}
               >
                 {count}

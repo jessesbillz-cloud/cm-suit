@@ -37,13 +37,13 @@ export function PhotoStrip({ projectId, ids, timeZone }: PhotoStripProps) {
             type="button"
             title={f.original_name}
             aria-label={`Download ${f.original_name}`}
-            className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-md border border-line bg-page text-ink-2 hover:bg-accent-soft hover:text-accent"
+            className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-line bg-card-head p-1.5 text-ink-2 transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent"
             onClick={() => {
               download.start(f.id, f.size);
             }}
           >
             <Icon icon={download.pendingId === f.id ? LoaderCircle : PhotoIcon} size={22} className={download.pendingId === f.id ? 'animate-spin' : ''} />
-            <span className="text-xs">{formatInZone(f.created_at, timeZone, 'MMM d, h:mm a')}</span>
+            <span className="text-center text-[11px] leading-4 tabular-nums">{formatInZone(f.created_at, timeZone, 'MMM d, h:mm a')}</span>
           </button>
         </li>
       ))}
