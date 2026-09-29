@@ -29,7 +29,7 @@ const rememberedSchema = z.object({
   /** The hub's id (hub links only). */
   id: z.string().min(1).optional(),
 });
-export type RememberedLink = z.infer<typeof rememberedSchema>;
+type RememberedLink = z.infer<typeof rememberedSchema>;
 
 export const requestLinkKey = (projectId: string): string => `app:request-link:${projectId}`;
 export const HUB_LINK_KEY = 'app:request-hub';
