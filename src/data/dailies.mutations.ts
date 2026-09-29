@@ -1,7 +1,7 @@
 // Daily report writes (SPEC §13.1). Every save carries a version check; numbers, dates and ids come from the database.
 // Submitting and emailing go through edge functions (signed record, email out); photos through the one upload queue.
+// Setups, today's copy, numbers and past dates are per form (report type): the one the person writes on the job.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { DAILY_REPORT_TYPE } from '../lib/dailies';
 import { supabase } from './client';
 import type { Json } from './database.types';
 import { emailResultSchema, submitResultSchema, type DailyPhotoRow, type DailyReportRow, type DailySetupRow } from './dailies.types';
@@ -12,49 +12,66 @@ import * as mockDailies from './mock/dailies';
 import { isMock } from './mock';
 import { useUploadQueue } from './UploadQueue';
 
+interface SetupSave {
+  reportType: string;
+  settings: Json;
+  version: number | null;
+}
+
 export function useSaveDailySetup(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ settings, version }: { settings: Json; version: number | null }): Promise<DailySetupRow> => {
-      if (isMock()) return mockDailies.saveSetup(projectId, settings, version);
+    mutationFn: async ({ reportType, settings, version }: SetupSave): Promise<DailySetupRow> => {
+      if (isMock()) return mockDailies.saveSetup(projectId, reportType, settings, version);
       // A first save has no version yet; the RPC then refuses if a setup appeared meanwhile.
-      const args = { p_project_id: projectId, p_report_type: DAILY_REPORT_TYPE, p_settings: settings };
+      const args = { p_project_id: projectId, p_report_type: reportType, p_settings: settings };
       return throwIfError(await supabase.rpc('save_daily_setup', version === null ? args : { ...args, p_version: version }));
     },
     onSuccess: async (row) => {
-      qc.setQueryData(qk.dailiesPart(projectId, 'setup'), row);
+      qc.setQueryData<DailySetupRow[]>(qk.dailiesPart(projectId, 'setups'), (list) =>
+        list?.some((s) => s.id === row.id) ? list.map((s) => (s.id === row.id ? row : s)) : [row, ...(list ?? [])],
+      );
       // Schedule days may have changed: ask for today's working copy again.
-      await qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'today') });
+      await qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'today', row.report_type) });
     },
   });
 }
 
-export function useSetDailyStartNumber(projectId: string) {
+/** Switches the form I write on this job (making its setup from `settingsIfNew` the first time). */
+export function useChooseDailyForm(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (start: number): Promise<number> =>
+    mutationFn: async ({ reportType, settingsIfNew }: { reportType: string; settingsIfNew: Json }): Promise<DailySetupRow> =>
       isMock()
-        ? mockDailies.setStartNumber(projectId, start)
+        ? mockDailies.chooseForm(projectId, reportType, settingsIfNew)
         : throwIfError(
-            await supabase.rpc('set_daily_start_number', { p_project_id: projectId, p_report_type: DAILY_REPORT_TYPE, p_start: start }),
+            await supabase.rpc('choose_daily_form', { p_project_id: projectId, p_report_type: reportType, p_settings_if_new: settingsIfNew }),
           ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'next') }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.dailies(projectId) }),
   });
 }
 
-/** "Past date" and Start: the report for that day (made, or a deleted draft brought back). Answers its id. */
+/** The number my next report on this form gets; continues an earlier sequence. The database keeps it. */
+export function useSetDailyStartNumber(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ reportType, start }: { reportType: string; start: number }): Promise<number> =>
+      isMock()
+        ? mockDailies.setStartNumber(projectId, reportType, start)
+        : throwIfError(await supabase.rpc('set_daily_start_number', { p_project_id: projectId, p_report_type: reportType, p_start: start })),
+    onSuccess: (_n, v) => qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'next', v.reportType) }),
+  });
+}
+
+/** "Past date" and Start: the report for that day on that form (made, or a deleted draft brought back). Answers its id. */
 export function useCreateDailyReport(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (reportDate: string): Promise<string> =>
+    mutationFn: async ({ reportType, reportDate }: { reportType: string; reportDate: string }): Promise<string> =>
       isMock()
-        ? mockDailies.createReport(projectId, reportDate)
+        ? mockDailies.createReport(projectId, reportType, reportDate)
         : throwIfError(
-            await supabase.rpc('create_daily_report', {
-              p_project_id: projectId,
-              p_report_type: DAILY_REPORT_TYPE,
-              p_report_date: reportDate,
-            }),
+            await supabase.rpc('create_daily_report', { p_project_id: projectId, p_report_type: reportType, p_report_date: reportDate }),
           ),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.dailies(projectId) }),
   });
@@ -145,13 +162,21 @@ export function useDailyPhotoUploads(projectId: string) {
   return { items: folderId === undefined ? [] : queue.items.filter((i) => i.folderId === folderId), retry: queue.retry };
 }
 
+/** A photo's caption, and its description when given (undefined leaves the description as it is). */
 export function useSaveDailyPhoto(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ photo, caption }: { photo: DailyPhotoRow; caption: string }): Promise<DailyPhotoRow> =>
+    mutationFn: async ({ photo, caption, description }: { photo: DailyPhotoRow; caption: string; description?: string }): Promise<DailyPhotoRow> =>
       isMock()
-        ? mockDailies.savePhoto(photo.id, photo.version, caption)
-        : throwIfError(await supabase.rpc('save_daily_photo', { p_photo_id: photo.id, p_version: photo.version, p_caption: caption })),
+        ? mockDailies.savePhoto(photo.id, photo.version, caption, description)
+        : throwIfError(
+            await supabase.rpc('save_daily_photo', {
+              p_photo_id: photo.id,
+              p_version: photo.version,
+              p_caption: caption,
+              ...(description === undefined ? {} : { p_description: description }),
+            }),
+          ),
     onSuccess: (row) => qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'photos', row.report_id) }),
   });
 }

@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { Download, FileText } from 'lucide-react';
 import { useUser } from '../../data/auth';
-import { useDailyPhotos, useDailyReport, useDailySetup, useNextDailyNumber } from '../../data/dailies.queries';
+import { useDailyPhotos, useDailyReport, useDailySetups, useNextDailyNumber } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
 import { downloadErrorMessage, downloadFile } from '../../data/download';
-import { dailyContentSchema, dailyHeaderSchema, parseDailySettings, type DailyHeader } from '../../lib/dailies';
+import { DAILY_REPORT_TYPE, dailyContentSchema, dailyHeaderSchema, formOf, parseDailySettings, type DailyHeader } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
@@ -82,8 +82,9 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
   const report = useDailyReport(projectId, reportId);
   const mine = report.data?.author_id === user.id;
   const photos = useDailyPhotos(projectId, reportId);
-  const setup = useDailySetup(projectId);
-  const next = useNextDailyNumber(projectId, mine);
+  const setups = useDailySetups(projectId);
+  const reportType = report.data?.report_type ?? DAILY_REPORT_TYPE;
+  const next = useNextDailyNumber(projectId, reportType, mine);
   // Bumped by Reload after a conflict: the editor starts over from the saved report.
   const [generation, setGeneration] = useState(0);
 
@@ -96,9 +97,10 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
   }
   if (!mine) return <SignedCopy report={report.data} header={header.data} />;
 
-  if (photos.isPending || setup.isPending) return <LoadingState label="Loading report" />;
+  if (photos.isPending || setups.isPending) return <LoadingState label="Loading report" />;
   if (photos.isError) return <ErrorState error={photos.error} onRetry={() => void photos.refetch()} />;
-  if (setup.isError) return <ErrorState error={setup.error} onRetry={() => void setup.refetch()} />;
+  if (setups.isError) return <ErrorState error={setups.error} onRetry={() => void setups.refetch()} />;
+  const setup = setups.data.find((s) => s.report_type === reportType);
 
   return (
     <ReportEditor
@@ -108,9 +110,10 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
       report={report.data}
       header={header.data}
       content={content.data}
+      form={formOf(reportType)}
       photos={photos.data}
       nextNumber={next.data}
-      recipients={parseDailySettings(setup.data?.settings).recipients}
+      recipients={parseDailySettings(setup?.settings).recipients}
       isPhone={isPhone}
       onSigned={() => void report.refetch()}
       onReload={() => {

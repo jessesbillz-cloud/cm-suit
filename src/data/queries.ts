@@ -245,7 +245,7 @@ export function useOrgSettings(orgId: string) {
   return useQuery({
     queryKey: qk.orgSettings(orgId),
     queryFn: async () => {
-      if (isMock()) return parseOrgSettings(mockJobs.orgSettings());
+      if (isMock()) return parseOrgSettings(mockJobs.orgSettings(orgId));
       const row: unknown = throwIfError(await supabase.from('orgs').select('settings').eq('id', orgId).single());
       return parseOrgSettings(z.object({ settings: z.unknown() }).parse(row).settings);
     },

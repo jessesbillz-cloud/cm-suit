@@ -4,8 +4,14 @@
 // relative imports (the browser build reads this file too).
 import { z } from 'zod';
 
-/** The built-in work-log template's report type (daily_reports.report_type). Company generators come later. */
+/** The built-in work-log template's report type (daily_reports.report_type). Company forms use their own id
+ *  (reportForms.ts). */
 export const DAILY_REPORT_TYPE = 'daily';
+
+/** A company form's field key (reportForms.ts): settings.locked and content.fields are keyed by these. */
+const formKey = z.string().regex(/^[a-z0-9_]{1,40}$/, 'Bad field key');
+/** At most this many keys in settings.locked or content.fields. */
+const FORM_KEYS_MAX = 40;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Setup (daily_setups.settings): one row per person per job per report type.
@@ -25,8 +31,10 @@ export const DAILY_SETTINGS_DEFAULTS = {
   /** Stamp the signature on the PDF. */
   signature: true,
   photos_per_page: 2 as 1 | 2 | 4,
-  /** Goes on every report. */
+  /** Goes on every report. A company form puts it in its standing field (e.g. the VIS form's IOR Notes). */
   standing_note: '',
+  /** A company form's job values (reportForms.ts), typed once and printed on every report. */
+  locked: {} as Record<string, string>,
 };
 
 type SettingsKey = keyof typeof DAILY_SETTINGS_DEFAULTS;
@@ -44,6 +52,9 @@ export const dailySettingsSchema = z.object({
   signature: z.boolean(),
   photos_per_page: z.union([z.literal(1), z.literal(2), z.literal(4)]),
   standing_note: z.string().max(4000),
+  locked: z
+    .record(formKey, z.string().max(1000))
+    .refine((o) => Object.keys(o).length <= FORM_KEYS_MAX, 'Too many job values'),
 });
 export type DailySettings = z.output<typeof dailySettingsSchema>;
 
@@ -128,6 +139,11 @@ export const dailyContentSchema = z
       .array(z.object({ ref: z.string().min(1).max(100), text: z.string().max(4000) }))
       .max(100)
       .default([]),
+    /** A company form's daily values (reportForms.ts), by field key. The work log leaves it empty. */
+    fields: z
+      .record(formKey, z.string().max(20000))
+      .refine((o) => Object.keys(o).length <= FORM_KEYS_MAX, 'Too many fields')
+      .default({}),
   })
   .superRefine((c, ctx) => {
     const seen = new Set<string>();

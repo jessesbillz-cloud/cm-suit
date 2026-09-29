@@ -1440,6 +1440,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          description: string
           file_id: string
           id: string
           org_id: string
@@ -1455,6 +1456,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          description?: string
           file_id: string
           id?: string
           org_id: string
@@ -1470,6 +1472,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          description?: string
           file_id?: string
           id?: string
           org_id?: string
@@ -1603,6 +1606,7 @@ export type Database = {
       daily_setups: {
         Row: {
           author_id: string
+          chosen_at: string
           created_at: string
           created_by: string | null
           id: string
@@ -1615,6 +1619,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          chosen_at?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1627,6 +1632,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          chosen_at?: string
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4311,6 +4317,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          description: string
           file_id: string
           id: string
           org_id: string
@@ -4597,6 +4604,32 @@ export type Database = {
         Returns: undefined
       }
       can_manage_subs: { Args: { p_org_id: string }; Returns: boolean }
+      choose_daily_form: {
+        Args: {
+          p_project_id: string
+          p_report_type: string
+          p_settings_if_new: Json
+        }
+        Returns: {
+          author_id: string
+          chosen_at: string
+          created_at: string
+          created_by: string | null
+          id: string
+          org_id: string
+          project_id: string
+          report_type: string
+          settings: Json
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_setups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       complete_task: {
         Args: { p_task_id: string; p_version: number }
         Returns: {
@@ -7626,12 +7659,18 @@ export type Database = {
         }
       }
       save_daily_photo: {
-        Args: { p_caption: string; p_photo_id: string; p_version: number }
+        Args: {
+          p_caption: string
+          p_description?: string
+          p_photo_id: string
+          p_version: number
+        }
         Returns: {
           caption: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          description: string
           file_id: string
           id: string
           org_id: string
@@ -7658,6 +7697,7 @@ export type Database = {
         }
         Returns: {
           author_id: string
+          chosen_at: string
           created_at: string
           created_by: string | null
           id: string

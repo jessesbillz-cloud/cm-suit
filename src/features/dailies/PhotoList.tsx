@@ -1,6 +1,7 @@
 // The report's photos as a grid: each tile shows its place on the report, the time taken, the row it belongs to and a
-// caption (saved on leaving the box); remove with Undo. Upload progress and failed uploads (with Retry) come from the
-// one upload queue. The Camera and Upload buttons sit in the header, or above the grid in Field Mode.
+// caption (saved on leaving the box), and on a company form an optional description (its "Photo Analysis" pages); remove
+// with Undo. Upload progress and failed uploads (with Retry) come from the one upload queue. The Camera and Upload
+// buttons sit in the header, or above the grid in Field Mode.
 import { useState, type ReactNode } from 'react';
 import { ImageIcon, LoaderCircle, RotateCw, X } from 'lucide-react';
 import { useDailyPhotoUploads, useRemoveDailyPhoto, useSaveDailyPhoto } from '../../data/dailies.mutations';
@@ -21,15 +22,29 @@ interface PhotoTileProps {
   tz: string;
   rowLabel: string | null;
   locked: boolean;
+  describe: boolean;
   onRemove: () => void;
 }
 
-function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, onRemove }: PhotoTileProps) {
+function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, onRemove }: PhotoTileProps) {
   const save = useSaveDailyPhoto(projectId);
   const toast = useToast();
   const [caption, setCaption] = useState(photo.caption);
+  const [description, setDescription] = useState(photo.description);
   const when = photo.taken_at ? formatInZone(photo.taken_at, tz, 'h:mm a') : '';
   const meta = [when, rowLabel].filter((x) => x !== null && x !== '').join(' · ');
+
+  function saveText(what: string) {
+    if (caption === photo.caption && description === photo.description) return;
+    save.mutate(
+      { photo, caption, ...(description === photo.description ? {} : { description }) },
+      {
+        onError: (e) => {
+          toast.show({ tone: 'error', message: `${what} not saved: ${messageOf(e)}` });
+        },
+      },
+    );
+  }
 
   return (
     <li className="flex min-w-0 flex-col gap-2" data-testid="daily-photo">
@@ -61,17 +76,27 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, onRemove }: 
           setCaption(e.target.value);
         }}
         onBlur={() => {
-          if (caption === photo.caption) return;
-          save.mutate(
-            { photo, caption },
-            {
-              onError: (e) => {
-                toast.show({ tone: 'error', message: `Caption not saved: ${messageOf(e)}` });
-              },
-            },
-          );
+          saveText('Caption');
         }}
       />
+      {describe ? (
+        <textarea
+          aria-label={`Description for photo ${String(index + 1)}`}
+          placeholder="Description"
+          rows={2}
+          maxLength={4000}
+          className={`min-w-0 py-1.5 ${INPUT}`}
+          value={description}
+          disabled={locked}
+          data-testid="daily-photo-description"
+          onChange={(e) => {
+            setDescription(e.target.value);
+          }}
+          onBlur={() => {
+            saveText('Description');
+          }}
+        />
+      ) : null}
     </li>
   );
 }
@@ -86,9 +111,11 @@ interface PhotoListProps {
   buttons: ReactNode;
   /** Field Mode: the big buttons go above the grid instead of in the header. */
   field: boolean;
+  /** A company form: each photo takes an optional description. */
+  describe: boolean;
 }
 
-export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field }: PhotoListProps) {
+export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field, describe }: PhotoListProps) {
   const remove = useRemoveDailyPhoto(projectId);
   const uploads = useDailyPhotoUploads(projectId);
   const toast = useToast();
@@ -157,6 +184,7 @@ export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field 
                   tz={tz}
                   rowLabel={p.row_key ? (rowName.get(p.row_key) ?? null) : null}
                   locked={locked}
+                  describe={describe}
                   onRemove={() => {
                     removeLater(p);
                   }}

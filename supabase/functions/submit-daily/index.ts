@@ -4,13 +4,17 @@
 // Order: requireUser → load the report AS THE CALLER (RLS; unseen = 404) → author check + requireCapability
 // ('dailies.write') → the version the person saw → signing re-confirmation (signedInRecently, else 403
 // reauth_required) → content hash → begin_daily_submit AS THE CALLER (numbers the report on its first signing, records
-// the hash; refuses if the content or photos moved) → the PDF from the saved content (pdf/dailyReport.ts + the ONE
-// stamp) → storeGeneratedPdf into Reports/<author> → finish_daily_submit (service role) marks it submitted.
-// Nothing before the finish marks the report submitted; if storing or finishing fails, the new file is taken back out
-// and the call fails loudly.
+// the hash; refuses if the content or photos moved) → the PDF from the saved content (the work log's
+// pdf/dailyReport.ts, or the report's company form, e.g. pdf/vis.ts, SPEC §8.3; then the ONE stamp) → storeGeneratedPdf
+// into Reports/<author> → finish_daily_submit (service role) marks it submitted. Nothing before the finish marks the
+// report submitted; if storing or finishing fails, the new file is taken back out and the call fails loudly.
 //
-// Service client (listed in admin_service_key_allowlist.txt): reading photo bytes from private storage, storing the
-// PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not user-callable).
+// A company form's report prints the setup's job values and the company's logo (orgs.logo_path of the job's company);
+// the job values are part of the signed hash, and so are photo descriptions.
+//
+// Service client (listed in admin_service_key_allowlist.txt): reading photo and logo bytes from private storage,
+// storing the PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not
+// user-callable).
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, storageError } from '../_shared/db.ts';
 import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
@@ -20,15 +24,19 @@ import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
 import { buildFilename } from '../_shared/buildFilename.ts';
 import {
   asPdfName,
+  DAILY_REPORT_TYPE,
   type DailyContent,
   dailyContentSchema,
   dailyFilenameFields,
   type DailyHeader,
   dailyHeaderSchema,
+  type DailySettings,
   parseDailySettings,
 } from '../_shared/dailies.ts';
-import { buildDailyReportPdf, type DailyPdfPhoto, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
-import { stampSignature } from '../_shared/pdf/stamp.ts';
+import { dailyValues, formIdOf, lockedValues, REPORT_FORMS, type ReportFormId } from '../_shared/reportForms.ts';
+import { buildDailyReportPdf, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
+import { buildVisPdf, FormFitError, VIS_SIGNATURE_AT, visDate, visPhotoTime } from '../_shared/pdf/vis.ts';
+import { stampSignature, type StampSpot } from '../_shared/pdf/stamp.ts';
 
 const Body = z.object({ report_id: uuid, version: z.number().int().min(1) }).strict();
 
@@ -56,9 +64,20 @@ type Report = {
 const REPORT_COLS = 'id, org_id, project_id, author_id, report_type, report_date, status, number, header, content, version, ' +
   'filename, pdf_file_id, sign_pending_at, signed_at, signed_version, submitted_at';
 
-type Photo = { id: string; file_id: string; row_key: string | null; caption: string; taken_at: string | null; version: number };
+type Photo = {
+  id: string;
+  file_id: string;
+  row_key: string | null;
+  caption: string;
+  description: string;
+  taken_at: string | null;
+  version: number;
+};
 
 type PhotoFile = { id: string; storage_path: string; mime: string; upload_complete: boolean };
+
+/** A photo's bytes with its row, oldest first (the order both PDFs print). */
+type PhotoBytes = { photo: Photo; bytes: Uint8Array; mime: string };
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -67,16 +86,17 @@ function photosStamp(photos: readonly Photo[]): string {
   return [...photos].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).map((p) => `${p.id}:${p.version}`).join(',');
 }
 
-/** The content hash (SPEC §6.9): the saved record exactly as stored, plus its photos. */
-function hashOf(r: Report, photos: readonly Photo[]): Promise<string> {
+/** The content hash (SPEC §6.9): the saved record exactly as stored, its photos, and a company form's job values. */
+function hashOf(r: Report, photos: readonly Photo[], jobValues: Record<string, string> | null): Promise<string> {
   return contentHash({
     report_type: r.report_type,
     report_date: r.report_date,
     author_id: r.author_id,
     header: r.header,
     content: r.content,
-    photos: photos.map((p) => ({ file_id: p.file_id, caption: p.caption, taken_at: p.taken_at, row_key: p.row_key }))
+    photos: photos.map((p) => ({ file_id: p.file_id, caption: p.caption, description: p.description, taken_at: p.taken_at, row_key: p.row_key }))
       .sort((a, b) => (a.file_id < b.file_id ? -1 : 1)),
+    ...(jobValues === null ? {} : { job: jobValues }),
   });
 }
 
@@ -88,7 +108,7 @@ function filenameFor(pattern: string, number: number, r: Report, header: DailyHe
   }
 }
 
-async function readPhotos(client: Db, service: Db, photos: readonly Photo[], content: DailyContent, header: DailyHeader): Promise<DailyPdfPhoto[]> {
+async function readPhotos(client: Db, service: Db, photos: readonly Photo[]): Promise<PhotoBytes[]> {
   if (photos.length === 0) return [];
   // The author reads their own photo files through RLS; only the bytes need the service client.
   const files = must(
@@ -96,21 +116,14 @@ async function readPhotos(client: Db, service: Db, photos: readonly Photo[], con
     'photo files',
   ) as PhotoFile[];
   const byId = new Map(files.map((f) => [f.id, f]));
-  const rows = new Map(content.work.map((w) => [w.key, w.company.trim()]));
   const sorted = [...photos].sort((a, b) => (a.taken_at ?? '').localeCompare(b.taken_at ?? '') || a.id.localeCompare(b.id));
-  return await Promise.all(sorted.map(async (p, i): Promise<DailyPdfPhoto> => {
+  return await Promise.all(sorted.map(async (p, i): Promise<PhotoBytes> => {
     const f = byId.get(p.file_id);
     if (!f) throw new HttpError(400, `Photo ${i + 1} is gone. Remove it from the report.`);
     if (!f.upload_complete) throw new HttpError(409, 'A photo is still uploading. Submit when it finishes.');
     const { data, error } = await service.storage.from('files').download(f.storage_path);
     if (error || !data) throw storageError(error ?? { message: 'no data' }, `photo ${p.file_id}`);
-    return {
-      bytes: new Uint8Array(await data.arrayBuffer()),
-      mime: f.mime,
-      caption: p.caption,
-      stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
-      rowLabel: p.row_key ? rows.get(p.row_key) || null : null,
-    };
+    return { photo: p, bytes: new Uint8Array(await data.arrayBuffer()), mime: f.mime };
   }));
 }
 
@@ -122,6 +135,75 @@ async function signatureImage(client: Db, path: string | null): Promise<Uint8Arr
   const bytes = new Uint8Array(await data.arrayBuffer());
   if (!PNG_MAGIC.every((b, i) => bytes[i] === b)) throw new HttpError(400, 'Your signature image must be a PNG. Add it again in Settings.');
   return bytes;
+}
+
+/** The job's company logo (orgs.logo_path, read as the caller; bytes from the private org-logos bucket), or null. */
+async function companyLogo(client: Db, service: Db, orgId: string): Promise<Uint8Array | null> {
+  const org = must(await client.from('orgs').select('logo_path').eq('id', orgId).maybeSingle(), 'company lookup') as
+    { logo_path: string | null } | null;
+  if (!org?.logo_path) return null;
+  const { data, error } = await service.storage.from('org-logos').download(org.logo_path);
+  if (error || !data) throw storageError(error ?? { message: 'no data' }, 'company logo');
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+interface RenderInput {
+  client: Db;
+  service: Db;
+  report: Report;
+  number: number;
+  header: DailyHeader;
+  content: DailyContent;
+  settings: DailySettings;
+  photos: PhotoBytes[];
+  inspector: string;
+}
+
+/** The PDF (before the signature) and where its signature goes: the work log's corner, or a company form's line. */
+async function render(form: ReportFormId | null, i: RenderInput): Promise<{ bytes: Uint8Array; at: StampSpot | undefined }> {
+  const { header, content, settings } = i;
+  if (form === null) {
+    const rows = new Map(content.work.map((w) => [w.key, w.company.trim()]));
+    const bytes = await buildDailyReportPdf({
+      header, number: i.number, dateLabel: dayLabel(i.report.report_date), content, photosPerPage: settings.photos_per_page,
+      photos: i.photos.map(({ photo: p, bytes, mime }) => ({
+        bytes, mime, caption: p.caption,
+        stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
+        rowLabel: p.row_key ? rows.get(p.row_key) || null : null,
+      })),
+    });
+    return { bytes, at: undefined };
+  }
+  switch (form) {
+    case 'vis_daily': {
+      const f = REPORT_FORMS[form];
+      const bytes = await buildVisPdf({
+        ...visDate(i.report.report_date),
+        job: lockedValues(f, settings.locked),
+        day: dailyValues(f, content.fields, content.standing_note),
+        inspections: content.inspections.map((e) => e.text),
+        inspector: i.inspector,
+        logo: await companyLogo(i.client, i.service, i.report.org_id),
+        photosPerPage: settings.photos_per_page,
+        photos: i.photos.map(({ photo: p, bytes }) => ({
+          bytes,
+          caption: [p.caption.trim(), p.taken_at ? visPhotoTime(p.taken_at, header.timezone) : ''].filter((s) => s !== '').join(' · '),
+          description: p.description,
+        })),
+      });
+      return { bytes, at: VIS_SIGNATURE_AT };
+    }
+  }
+}
+
+/** render(), with a photo that can't be read or a value too long for the form refused by name. */
+async function renderOr400(form: ReportFormId | null, i: RenderInput): Promise<{ bytes: Uint8Array; at: StampSpot | undefined }> {
+  try {
+    return await render(form, i);
+  } catch (e) {
+    if (e instanceof PhotoReadError || e instanceof FormFitError) throw new HttpError(400, e.message);
+    throw e;
+  }
 }
 
 /** Takes a stored PDF back out when the submit could not finish (and un-supersedes the one it replaced). */
@@ -146,6 +228,8 @@ Deno.serve(handle(async (req) => {
   if (report.author_id !== user.id) throw new HttpError(403, 'Only its author signs a report');
   await requireCapability(client, report.project_id, 'dailies.write');
   if (report.version !== body.version) throw new HttpError(409, 'The report changed. Reload and try again.');
+  const form = formIdOf(report.report_type);
+  if (form === null && report.report_type !== DAILY_REPORT_TYPE) throw new HttpError(400, 'This report\'s form is not available.');
 
   if (!(await signingConfirmed(client, user, req))) {
     return refuse(req, 403, 'reauth_required', 'Sign in again to sign this report');
@@ -162,11 +246,12 @@ Deno.serve(handle(async (req) => {
     'setup lookup',
   ) as { settings: unknown } | null;
   const settings = parseDailySettings(setup?.settings);
+  const jobValues = form === null ? null : lockedValues(REPORT_FORMS[form], settings.locked);
   // A broken filename pattern is refused before a number is used.
   filenameFor(settings.filename_pattern, report.number ?? 1, report, header);
 
   const photos = must(
-    await client.from('daily_report_photos').select('id, file_id, row_key, caption, taken_at, version')
+    await client.from('daily_report_photos').select('id, file_id, row_key, caption, description, taken_at, version')
       .eq('report_id', report.id).is('deleted_at', null),
     'photo lookup',
   ) as Photo[];
@@ -176,10 +261,15 @@ Deno.serve(handle(async (req) => {
   ) as { full_name: string; signature_path: string | null };
 
   const service = serviceClient();
-  const pdfPhotos = await readPhotos(client, service, photos, content, header);
+  const photoBytes = await readPhotos(client, service, photos);
   const signature = settings.signature ? await signatureImage(client, profile.signature_path) : null;
 
-  const hash = await hashOf(report, photos);
+  const signer = profile.full_name.trim() || header.author_name;
+  const renderInput = { client, service, report, header, content, settings, photos: photoBytes, inspector: signer };
+  // A company form doesn't print the number: it is rendered (and any problem refused) before a number is used.
+  const early = form === null ? null : await renderOr400(form, { ...renderInput, number: report.number ?? 0 });
+
+  const hash = await hashOf(report, photos, jobValues);
   const begun = await rpc<Report>(client, 'begin_daily_submit', {
     p_report_id: report.id,
     p_version: report.version,
@@ -190,21 +280,14 @@ Deno.serve(handle(async (req) => {
   const folderId = await rpc<string>(client, 'daily_reports_folder', { p_project_id: report.project_id });
   const filename = begun.filename ?? filenameFor(settings.filename_pattern, begun.number, begun, header);
 
-  let bytes: Uint8Array;
-  try {
-    bytes = await buildDailyReportPdf({
-      header, number: begun.number, dateLabel: dayLabel(report.report_date), content, photos: pdfPhotos,
-      photosPerPage: settings.photos_per_page,
-    });
-  } catch (e) {
-    if (e instanceof PhotoReadError) throw new HttpError(400, e.message);
-    throw e;
-  }
+  const pdf = early ?? await renderOr400(form, { ...renderInput, number: begun.number });
+  let bytes = pdf.bytes;
   if (settings.signature) {
     bytes = await stampSignature(bytes, {
       signaturePng: signature,
-      name: profile.full_name.trim() || header.author_name,
+      name: signer,
       signedAtLabel: instantLabel(begun.sign_pending_at, header.timezone),
+      ...(pdf.at ? { at: pdf.at } : {}),
     });
   }
 

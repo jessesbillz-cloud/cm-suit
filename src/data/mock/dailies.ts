@@ -1,6 +1,6 @@
-// Synthetic dailies for the e2e mock (SPEC §13.1): the mock user's setup, reports and photos on the sample jobs, kept in
-// sessionStorage (not module state). Numbers are handed out here the way the database does: per author, at the first
-// signing, never for a deleted draft.
+// Synthetic dailies for the e2e mock (SPEC §13.1): the mock user's setups (one per form, the one chosen last is the form
+// they write), reports and photos on the sample jobs, kept in sessionStorage (not module state). Numbers are handed out
+// here the way the database does: per author and form, at the first signing, never for a deleted draft.
 import { buildFilename } from '../../lib/buildFilename';
 import { DAILY_REPORT_TYPE, asPdfName, dailyFilenameFields, dailyHeaderSchema, parseDailySettings } from '../../lib/dailies';
 import { todayInZone } from '../../lib/dates';
@@ -14,19 +14,27 @@ import * as jobs from './jobs';
 import { delay } from './store';
 
 interface MockDailies {
+  /** The one chosen last first. */
   setups: DailySetupRow[];
   reports: DailyReportRow[];
   /** Deleted drafts: the row stays (the server-side flag), hidden from lists. */
   deleted: string[];
   photos: DailyPhotoRow[];
-  /** Next number per job (the mock has one author). */
+  /** Next number per job and form ("<job>:<report type>"; the mock has one author). */
   next: Record<string, number>;
   seq: number;
 }
 
 const KEY = 'e2e-mock-dailies';
 // Sample Job B starts with someone else's submitted report #7 (a board line points at it).
-const EMPTY: MockDailies = { setups: [], reports: [SEED_DAILY], deleted: [], photos: [], next: { [SEED_DAILY.project_id]: 8 }, seq: 0 };
+const EMPTY: MockDailies = {
+  setups: [],
+  reports: [SEED_DAILY],
+  deleted: [],
+  photos: [],
+  next: { [`${SEED_DAILY.project_id}:${DAILY_REPORT_TYPE}`]: 8 },
+  seq: 0,
+};
 
 function read(): MockDailies {
   const raw = window.sessionStorage.getItem(KEY);
@@ -54,20 +62,33 @@ function live(m: MockDailies, id: string): DailyReportRow | undefined {
   return m.reports.find((r) => r.id === id && !m.deleted.includes(id));
 }
 
-export async function setup(projectId: string): Promise<DailySetupRow | null> {
-  await delay();
-  return read().setups.find((s) => s.project_id === projectId) ?? null;
+function numberKey(projectId: string, reportType: string): string {
+  return `${projectId}:${reportType}`;
 }
 
-async function makeReport(projectId: string, date: string): Promise<string> {
+function setupOf(m: MockDailies, projectId: string, reportType: string): DailySetupRow | undefined {
+  return m.setups.find((s) => s.project_id === projectId && s.report_type === reportType);
+}
+
+/** A setup made or chosen now goes first (the one chosen last). */
+function putFirst(row: DailySetupRow): void {
+  write((m) => ({ ...m, setups: [row, ...m.setups.filter((s) => s.id !== row.id)] }));
+}
+
+export async function setups(projectId: string): Promise<DailySetupRow[]> {
+  await delay();
+  return read().setups.filter((s) => s.project_id === projectId);
+}
+
+async function makeReport(projectId: string, reportType: string, date: string): Promise<string> {
   const project = await jobs.project(projectId);
-  const settings = parseDailySettings(read().setups.find((s) => s.project_id === projectId)?.settings);
+  const settings = parseDailySettings(setupOf(read(), projectId, reportType)?.settings);
   const id = newId('mock-daily');
   const row: DailyReportRow = {
     id,
     project_id: projectId,
     author_id: mockUser().id,
-    report_type: DAILY_REPORT_TYPE,
+    report_type: reportType,
     report_date: date,
     status: 'draft',
     number: null,
@@ -91,31 +112,43 @@ async function makeReport(projectId: string, date: string): Promise<string> {
   return id;
 }
 
-export async function ensureToday(projectId: string, defaults: Json): Promise<string | null> {
+function newSetup(projectId: string, reportType: string, settings: Json): DailySetupRow {
+  return {
+    id: newId('mock-setup'),
+    project_id: projectId,
+    report_type: reportType,
+    settings,
+    version: 1,
+    chosen_at: new Date().toISOString(),
+  };
+}
+
+function reportOn(m: MockDailies, projectId: string, reportType: string, date: string): DailyReportRow | undefined {
+  return m.reports.find((r) => r.project_id === projectId && r.report_type === reportType && r.report_date === date);
+}
+
+export async function ensureToday(projectId: string, reportType: string, defaults: Json): Promise<string | null> {
   await delay();
-  if (!read().setups.some((s) => s.project_id === projectId)) {
-    const row: DailySetupRow = { id: newId('mock-setup'), project_id: projectId, report_type: DAILY_REPORT_TYPE, settings: defaults, version: 1 };
-    write((m) => ({ ...m, setups: [...m.setups, row] }));
-  }
+  if (!setupOf(read(), projectId, reportType)) putFirst(newSetup(projectId, reportType, defaults));
   const project = await jobs.project(projectId);
   const today = todayInZone(project.timezone);
   const m = read();
-  const existing = m.reports.find((r) => r.project_id === projectId && r.report_date === today);
+  const existing = reportOn(m, projectId, reportType, today);
   if (existing) return m.deleted.includes(existing.id) ? null : existing.id;
-  const settings = parseDailySettings(read().setups.find((s) => s.project_id === projectId)?.settings);
+  const settings = parseDailySettings(setupOf(m, projectId, reportType)?.settings);
   const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
   if (!settings.schedule_days.includes(weekday)) return null;
-  return makeReport(projectId, today);
+  return makeReport(projectId, reportType, today);
 }
 
-export async function createReport(projectId: string, date: string): Promise<string> {
+export async function createReport(projectId: string, reportType: string, date: string): Promise<string> {
   await delay();
-  const existing = read().reports.find((r) => r.project_id === projectId && r.report_date === date);
+  const existing = reportOn(read(), projectId, reportType, date);
   if (existing) {
     write((m) => ({ ...m, deleted: m.deleted.filter((d) => d !== existing.id) }));
     return existing.id;
   }
-  return makeReport(projectId, date);
+  return makeReport(projectId, reportType, date);
 }
 
 export async function myReports(projectId: string): Promise<DailyReportRow[]> {
@@ -142,28 +175,37 @@ export async function photos(reportId: string): Promise<DailyPhotoRow[]> {
   return read().photos.filter((p) => p.report_id === reportId);
 }
 
-export async function peek(projectId: string): Promise<number> {
+export async function peek(projectId: string, reportType: string): Promise<number> {
   await delay();
-  return read().next[projectId] ?? 1;
+  return read().next[numberKey(projectId, reportType)] ?? 1;
 }
 
-export async function saveSetup(projectId: string, settings: Json, version: number | null): Promise<DailySetupRow> {
+export async function saveSetup(projectId: string, reportType: string, settings: Json, version: number | null): Promise<DailySetupRow> {
   await delay();
-  const current = read().setups.find((s) => s.project_id === projectId) ?? null;
+  const current = setupOf(read(), projectId, reportType) ?? null;
   if ((current?.version ?? null) !== version) throw conflictError();
-  const row: DailySetupRow = current
-    ? { ...current, settings, version: current.version + 1 }
-    : { id: newId('mock-setup'), project_id: projectId, report_type: DAILY_REPORT_TYPE, settings, version: 1 };
-  write((m) => ({ ...m, setups: [...m.setups.filter((s) => s.project_id !== projectId), row] }));
+  const row: DailySetupRow = current ? { ...current, settings, version: current.version + 1 } : newSetup(projectId, reportType, settings);
+  if (current) write((m) => ({ ...m, setups: m.setups.map((s) => (s.id === row.id ? row : s)) }));
+  else putFirst(row);
   return row;
 }
 
-export async function setStartNumber(projectId: string, start: number): Promise<number> {
+export async function chooseForm(projectId: string, reportType: string, settingsIfNew: Json): Promise<DailySetupRow> {
   await delay();
-  if (read().reports.some((r) => r.project_id === projectId && (r.number ?? 0) >= start)) {
+  const current = setupOf(read(), projectId, reportType);
+  const row = current
+    ? { ...current, version: current.version + 1, chosen_at: new Date().toISOString() }
+    : newSetup(projectId, reportType, settingsIfNew);
+  putFirst(row);
+  return row;
+}
+
+export async function setStartNumber(projectId: string, reportType: string, start: number): Promise<number> {
+  await delay();
+  if (read().reports.some((r) => r.project_id === projectId && r.report_type === reportType && (r.number ?? 0) >= start)) {
     throw new DataError('That number is already used', '22023', null);
   }
-  write((m) => ({ ...m, next: { ...m.next, [projectId]: start } }));
+  write((m) => ({ ...m, next: { ...m.next, [numberKey(projectId, reportType)]: start } }));
   return start;
 }
 
@@ -203,6 +245,7 @@ export async function addPhoto(reportId: string, fileId: string, rowKey: string 
     file_id: fileId,
     row_key: rowKey,
     caption: '',
+    description: '',
     taken_at: takenAt,
     version: 1,
     updated_at: new Date().toISOString(),
@@ -221,9 +264,9 @@ function updatePhoto(id: string, version: number, patch: Partial<DailyPhotoRow>)
   return next;
 }
 
-export async function savePhoto(id: string, version: number, caption: string): Promise<DailyPhotoRow> {
+export async function savePhoto(id: string, version: number, caption: string, description: string | undefined): Promise<DailyPhotoRow> {
   await delay();
-  return updatePhoto(id, version, { caption });
+  return updatePhoto(id, version, description === undefined ? { caption } : { caption, description });
 }
 
 export async function removePhoto(id: string, version: number): Promise<void> {
@@ -236,8 +279,9 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
   const r = live(read(), id);
   if (!r) throw gone();
   if (r.version !== version) throw conflictError();
-  const number = r.number ?? read().next[r.project_id] ?? 1;
-  const settings = parseDailySettings(read().setups.find((s) => s.project_id === r.project_id)?.settings);
+  const key = numberKey(r.project_id, r.report_type);
+  const number = r.number ?? read().next[key] ?? 1;
+  const settings = parseDailySettings(setupOf(read(), r.project_id, r.report_type)?.settings);
   const header = dailyHeaderSchema.parse(r.header);
   const filename =
     r.filename ??
@@ -246,7 +290,7 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
   const signedAt = new Date().toISOString();
   write((m) => ({
     ...m,
-    next: r.number === null ? { ...m.next, [r.project_id]: number + 1 } : m.next,
+    next: r.number === null ? { ...m.next, [key]: number + 1 } : m.next,
     reports: m.reports.map((x) =>
       x.id === id
         ? { ...x, status: 'submitted', number, filename, pdf_file_id: file.id, version: x.version + 2, signed_version: x.version + 2, signed_at: signedAt, submitted_at: x.submitted_at ?? signedAt }
@@ -260,7 +304,7 @@ export async function email(id: string): Promise<EmailResult> {
   await delay();
   const r = live(read(), id);
   if (!r) throw gone();
-  const recipients = parseDailySettings(read().setups.find((s) => s.project_id === r.project_id)?.settings).recipients;
+  const recipients = parseDailySettings(setupOf(read(), r.project_id, r.report_type)?.settings).recipients;
   if (recipients.length === 0) throw new DataError('Add recipients in Setup', '22023', null);
   return {
     delivery_status: 'sent',
