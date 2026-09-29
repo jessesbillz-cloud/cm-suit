@@ -42,12 +42,12 @@ select 'b0000000-0000-0000-0000-000000000191', 'c0000000-0000-0000-0000-00000000
 -- Capabilities (data)
 -- ---------------------------------------------------------------------------------------------------------------
 select results_eq($$ select role from public.role_permissions where capability = 'deliveries.view' order by 1 $$,
-  $$ values ('architect'::text), ('estimator'), ('foreman'), ('inspector'), ('owner_rep'), ('pe'), ('pm'), ('project_admin'),
+  $$ values ('architect'::text), ('estimator'), ('foreman'), ('inspector'), ('inspector_admin'), ('owner_rep'), ('pe'), ('pm'), ('project_admin'),
             ('special_inspector'), ('sub'), ('superintendent'), ('viewer') $$,
   'deliveries.view: every role but bidder');
 select results_eq($$ select role from public.role_permissions where capability = 'deliveries.post' order by 1 $$,
-  $$ values ('foreman'::text), ('pe'), ('pm'), ('project_admin'), ('sub'), ('superintendent') $$,
-  'deliveries.post: project admin, PM, PE, super, foreman, sub');
+  $$ values ('foreman'::text), ('inspector_admin'), ('pe'), ('pm'), ('project_admin'), ('sub'), ('superintendent') $$,
+  'deliveries.post: project admin, PM, PE, super, foreman, sub (and the inspector who runs the job, 0044)');
 
 set local role authenticated;
 

@@ -20,7 +20,8 @@ insert into public.projects (id, org_id, name, number, timezone, stage, created_
    'America/Los_Angeles', 'construction', 'a0000000-0000-0000-0000-000000000372'),
   ('c0000000-0000-0000-0000-000000000372', 'b0000000-0000-0000-0000-000000000372', 'Sample Hours Gym', 'S-372',
    'America/Los_Angeles', 'construction', 'a0000000-0000-0000-0000-000000000372');
--- The admin made both jobs, so they are its project admin already.
+-- The admin made both jobs, so they run both already (inspector_admin on the inspection company's, project_admin on
+-- the GC's, 0044).
 insert into public.project_members (org_id, project_id, user_id, invite_email, role, status)
 select o, p, u, e, r, 'active'
   from (values

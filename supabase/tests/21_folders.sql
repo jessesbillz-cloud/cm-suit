@@ -66,7 +66,7 @@ select results_eq($$ select distinct created_by from public.folders where projec
 -- ---------------------------------------------------------------------------------------------------------------
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000071');
-select lives_ok($$ update public.projects set is_dsa = true where id = pg_temp.id('city') $$, 'the project admin turns DSA on');
+select lives_ok($$ update public.projects set is_dsa = true where id = pg_temp.id('city') $$, 'the inspector who runs the job turns DSA on');
 reset role;
 select is(pg_temp.tree(pg_temp.id('city')), 'Plans, Specs, DSA 103, Testing & inspections, CCDs, Reports, Photos',
   'DSA on: DSA 103 and CCDs are added, testing & inspections stays');

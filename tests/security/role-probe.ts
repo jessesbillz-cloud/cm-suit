@@ -18,7 +18,7 @@ const RUN = randomUUID().slice(0, 8);
 
 const ROLES = [
   'project_admin', 'estimator', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector',
-  'bidder', 'sub', 'architect', 'owner_rep', 'viewer',
+  'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin',
 ] as const;
 type Role = (typeof ROLES)[number];
 /** Extra users: key -> role they hold (project A unless noted). */
@@ -31,24 +31,24 @@ const MATRIX: Record<string, readonly Role[]> = {
   'bids.view_ai_findings': [],
   'bids.manage': ['project_admin', 'estimator'],
   'bids.submit': ['bidder'],
-  'dailies.read_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep'],
-  'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector'],
-  'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin'],
-  'ir.decide': ['inspector'],
-  'ir.gc_approve': ['project_admin', 'pm', 'superintendent'],
-  'ir.view_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep'],
-  'deliveries.manage': ['superintendent', 'pm', 'project_admin'],
-  'corrections.close': ['inspector'],
-  'rfi.create_draft': ['sub', 'superintendent', 'foreman', 'pe', 'pm', 'project_admin'],
-  'rfi.sign_issue': ['pm', 'pe', 'project_admin'],
+  'dailies.read_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep', 'inspector_admin'],
+  'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'inspector_admin'],
+  'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin', 'inspector_admin'],
+  'ir.decide': ['inspector', 'inspector_admin'],
+  'ir.gc_approve': ['project_admin', 'pm', 'superintendent', 'inspector_admin'],
+  'ir.view_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep', 'inspector_admin'],
+  'deliveries.manage': ['superintendent', 'pm', 'project_admin', 'inspector_admin'],
+  'corrections.close': ['inspector', 'inspector_admin'],
+  'rfi.create_draft': ['sub', 'superintendent', 'foreman', 'pe', 'pm', 'project_admin', 'inspector_admin'],
+  'rfi.sign_issue': ['pm', 'pe', 'project_admin', 'inspector_admin'],
   'rfi.answer': ['architect'],
-  'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator'],
-  'members.manage': ['project_admin'],
+  'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator', 'inspector_admin'],
+  'members.manage': ['project_admin', 'inspector_admin'],
   'deliveries.view': ROLES.filter((r) => r !== 'bidder'),
-  'deliveries.post': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
-  'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer'],
-  'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector'],
-  'corrections.mark_ready': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'],
+  'deliveries.post': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'inspector_admin'],
+  'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin'],
+  'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'inspector_admin'],
+  'corrections.mark_ready': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'inspector_admin'],
 };
 
 interface ProbeUser {

@@ -15,10 +15,10 @@ values ('b0000000-0000-0000-0000-000000000341', 'Sample Inspection Co', 'inspect
 insert into public.projects (id, org_id, name, number, timezone, stage, created_by)
 values ('c0000000-0000-0000-0000-000000000341', 'b0000000-0000-0000-0000-000000000341', 'Sample School Wing', 'S-400',
         'America/Los_Angeles', 'construction', 'a0000000-0000-0000-0000-000000000341');
+-- The inspector made the job, so they run it as inspector_admin (0044): one role, the inspector's abilities.
 insert into public.project_members (org_id, project_id, user_id, invite_email, role, status)
-select 'b0000000-0000-0000-0000-000000000341', 'c0000000-0000-0000-0000-000000000341', u, e, r, 'active'
-  from (values ('a0000000-0000-0000-0000-000000000341'::uuid, 'probe+vis-insp@example.test', 'inspector'),
-               ('a0000000-0000-0000-0000-000000000342'::uuid, 'probe+vis-sub@example.test', 'sub')) v(u, e, r);
+values ('b0000000-0000-0000-0000-000000000341', 'c0000000-0000-0000-0000-000000000341', 'a0000000-0000-0000-0000-000000000342',
+        'probe+vis-sub@example.test', 'sub', 'active');
 
 create temp table t (k text primary key, v uuid);
 grant all on t to public;
