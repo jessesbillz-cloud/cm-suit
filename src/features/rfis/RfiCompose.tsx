@@ -109,7 +109,7 @@ export function RfiCompose({ projectId, row, photos, returned, timeZone, isPhone
           <SaveState pending={draft.saving} saved={draft.justSaved} problem={null} />
         </header>
         {returned ? <Returned event={returned} timeZone={timeZone} /> : null}
-        <RfiEditor draft={draft} photos={photos} isPhone={isPhone} autoFocus={!isPhone && row === null} />
+        <RfiEditor draft={draft} rfiId={row?.id ?? null} photos={photos} isPhone={isPhone} autoFocus={!isPhone && row === null} />
         {draft.problem !== null ? (
           <p role="alert" className="text-sm text-danger">
             {draft.problem}

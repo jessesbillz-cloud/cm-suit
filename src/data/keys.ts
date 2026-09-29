@@ -75,4 +75,6 @@ export const qk = {
   hoursPart: (part: string, id = '') => ['hours', part, id] as const,
   /** Today's report on each of my jobs (0045): the top of All my jobs. */
   dailyToday: ['daily_today'] as const,
+  /** A photo's short-lived preview URL (0047), per file and where it is opened from (its folder, an RFI, a request). */
+  imagePreview: (fileId: string, via: string) => ['image_preview', fileId, via] as const,
 };

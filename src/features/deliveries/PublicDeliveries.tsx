@@ -93,7 +93,7 @@ function PublicBoard({ projectId, token }: LinkProps) {
   if (board.isError && !board.data) {
     return (
       <PublicPage title="Link not active">
-        <ErrorState error={board.error} title="This link does not work right now." />
+        <ErrorState error={board.error} title="This link does not work right now." className="m-0" />
       </PublicPage>
     );
   }

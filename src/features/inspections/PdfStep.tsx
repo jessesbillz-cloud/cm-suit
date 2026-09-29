@@ -45,7 +45,7 @@ export function PdfStep({ row, jobName }: PdfStepProps) {
       {row.pdf_stale ? (
         <div className="flex flex-wrap items-center gap-2">
           <StatusChip status="pending" label="PDF out of date" />
-          <SignButton label="Update PDF" testId="ir-update-pdf" icon={FileSignature} pending={generate.isPending} sign={sign} onSigned={onSigned} />
+          <SignButton label="Update PDF" testId="ir-update-pdf" icon={FileSignature} size="sm" pending={generate.isPending} sign={sign} onSigned={onSigned} />
         </div>
       ) : null}
       {stampOff && !row.pdf_stale ? (

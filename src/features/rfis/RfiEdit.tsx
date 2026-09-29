@@ -18,7 +18,7 @@ export function RfiEdit({ row, photos, isPhone, onDone }: RfiEditProps) {
   const draft = useRfiDraft(row.project_id, row);
   return (
     <div className="flex flex-col gap-3 rounded-md border border-accent/25 p-3" data-testid="rfi-edit-form">
-      <RfiEditor draft={draft} photos={photos} isPhone={isPhone} autoFocus={false} />
+      <RfiEditor draft={draft} rfiId={row.id} photos={photos} isPhone={isPhone} autoFocus={false} />
       {draft.problem !== null ? (
         <p role="alert" className="text-sm text-danger">
           {draft.problem}

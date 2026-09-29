@@ -60,7 +60,7 @@ export function AccessLink() {
   if (link.isError) {
     return (
       <PublicPage title="Link not active">
-        <ErrorState title="This link does not work right now." error={link.error} />
+        <ErrorState title="This link does not work right now." error={link.error} className="m-0" />
       </PublicPage>
     );
   }

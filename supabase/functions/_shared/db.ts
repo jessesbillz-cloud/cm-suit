@@ -84,3 +84,11 @@ export async function signedDownloadUrl(service: Db, bucket: string, path: strin
   if (error || !data) throw storageError(error ?? { message: 'no signed url' }, 'createSignedUrl');
   return data.signedUrl;
 }
+
+/** A short-lived signed URL to show an image in the app (a preview, not a download). Served as an attachment, so the
+ *  URL opened on its own saves the file instead of rendering it; an <img> shows it either way. */
+export async function signedPreviewUrl(service: Db, bucket: string, path: string, ttlSeconds: number): Promise<string> {
+  const { data, error } = await service.storage.from(bucket).createSignedUrl(path, ttlSeconds, { download: true });
+  if (error || !data) throw storageError(error ?? { message: 'no signed url' }, 'createSignedUrl');
+  return data.signedUrl;
+}

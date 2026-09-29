@@ -4627,6 +4627,14 @@ export type Database = {
           storage_path: string
         }[]
       }
+      authorize_preview: {
+        Args: { p_file_id: string; p_request_id?: string; p_rfi_id?: string }
+        Returns: {
+          mime: string
+          original_name: string
+          storage_path: string
+        }[]
+      }
       begin_daily_submit: {
         Args: {
           p_content_hash: string

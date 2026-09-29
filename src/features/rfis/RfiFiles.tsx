@@ -1,11 +1,13 @@
 // An RFI's photos or answer files: one tile each; one click downloads the original through the rfis edge function
-// (a fresh signed URL, the original filename, logged). Photo tiles are square; files are a line each.
-import { Image as PhotoIcon, LoaderCircle } from 'lucide-react';
+// (a fresh signed URL, the original filename, logged). Photo tiles show the picture (ui/Thumb, opened through the RFI);
+// files are a line each.
+import { LoaderCircle } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useRfiDownload } from '../../data/rfis.mutations';
 import type { RfiFileRef } from '../../data/rfis.types';
 import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
+import { PHOTO_GRID, PHOTO_TILE, Thumb } from '../../ui/Thumb';
 import { useToast } from '../../ui/Toast';
 
 interface RfiFilesProps {
@@ -59,20 +61,24 @@ export function RfiFiles({ rfiId, files, kind }: RfiFilesProps) {
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Photos">
+    <ul className={PHOTO_GRID} aria-label="Photos">
       {files.map((f) => (
         <li key={f.id}>
           <button
             type="button"
             title={f.original_name}
             aria-label={`Download ${f.original_name}`}
-            className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-card-head p-1.5 text-ink-2 transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent"
+            className={PHOTO_TILE}
             onClick={() => {
               get(f.id);
             }}
           >
-            <Icon icon={pending === f.id ? LoaderCircle : PhotoIcon} size={22} className={pending === f.id ? 'animate-spin' : ''} />
-            <span className="w-full break-words text-center text-[11px] leading-4">{f.original_name}</span>
+            <Thumb fileId={f.id} via={{ rfiId }} alt={f.original_name} fill />
+            {pending === f.id ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-card/60">
+                <Icon icon={LoaderCircle} size={20} className="animate-spin text-ink-2" label="Downloading" />
+              </span>
+            ) : null}
           </button>
         </li>
       ))}

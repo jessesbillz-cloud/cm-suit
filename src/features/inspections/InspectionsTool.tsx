@@ -6,9 +6,9 @@ import { todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
+import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { ChoiceRow } from './ChoiceRow';
 import { DayView } from './DayView';
 import { LogView } from './LogView';
 import { BLOCK_ITEM, NEW_ITEM, VIEW_LABELS, dayMeta, viewsFor, type IrView } from './model';
@@ -79,11 +79,7 @@ function InspectionsMain({ projectId, itemId, isPhone, can, job }: MainProps) {
           </>
         }
         below={
-          options.length > 1 ? (
-            <div>
-              <ChoiceRow<IrView> label="View" options={options} value={nav.view} onPick={nav.setView} testId="ir-view" />
-            </div>
-          ) : undefined
+          options.length > 1 ? <Segments<IrView> label="View" options={options} value={nav.view} onPick={nav.setView} testId="ir-view" /> : undefined
         }
       />
       {nav.view === 'day' ? <DayView {...common} day={nav.day} today={today} onDay={nav.setDay} onRequest={request} /> : null}
