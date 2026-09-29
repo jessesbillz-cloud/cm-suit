@@ -4,6 +4,10 @@ import { sendCode, verifyCode } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
 
+/** The public pages' one input look: a 44px box with the accent focus ring. */
+export const INPUT =
+  'h-11 w-full rounded-md border border-line-strong bg-card px-3 text-base text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
+
 interface CodeFormProps {
   /** The address the code was sent to (full; used to verify). */
   email: string;
@@ -48,14 +52,14 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
       <p className="text-sm text-ink-2">
         We emailed a code to <span className="font-medium text-ink">{emailLabel}</span>.
       </p>
-      <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+      <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
         Code
         <input
           autoFocus
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={10}
-          className="h-11 rounded-md border border-line px-3 text-lg tracking-[0.3em] text-ink outline-none focus:border-accent"
+          className={`${INPUT} text-center text-lg font-medium tabular-nums tracking-[0.3em]`}
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
@@ -67,10 +71,10 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
           {problem}
         </p>
       ) : null}
-      <Button type="submit" variant="primary" loading={busy}>
+      <Button type="submit" variant="primary" loading={busy} className="h-11">
         Sign in
       </Button>
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center justify-between border-t border-line pt-3 text-sm">
         {onBack ? (
           <button type="button" className="text-ink-2 hover:text-ink" onClick={onBack}>
             Use a different email

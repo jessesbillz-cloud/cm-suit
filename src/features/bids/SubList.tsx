@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { SubRow } from '../../data/subs.types';
 import { Button } from '../../ui/Button';
 import { StatusChip } from '../../ui/StatusChip';
+import { OPEN_BAR, ROW_HOVER, ROW_OPEN } from './rowStyles';
 import { licenseChip, mainContact } from './subs';
 
 function SubLine({ s, selected, onOpen }: { s: SubRow; selected: boolean; onOpen: (id: string) => void }) {
@@ -16,13 +17,13 @@ function SubLine({ s, selected, onOpen }: { s: SubRow; selected: boolean; onOpen
         type="button"
         data-testid="sub-row"
         aria-current={selected ? 'true' : undefined}
-        className={`grid w-full grid-cols-[minmax(0,1fr)_6rem_7rem_7.5rem] items-start gap-3 px-4 py-2.5 text-left text-sm ${selected ? 'bg-accent-soft' : 'hover:bg-page'}`}
+        className={`grid min-h-[52px] w-full grid-cols-[minmax(0,1fr)_6rem_7rem_7.5rem] items-center gap-3 px-4 py-2.5 text-left text-sm ${selected ? `${ROW_OPEN} ${OPEN_BAR}` : ROW_HOVER}`}
         onClick={() => {
           onOpen(s.id);
         }}
       >
         <span className="min-w-0 break-words">
-          <span className="block text-ink">{s.company}</span>
+          <span className="block font-medium text-ink">{s.company}</span>
           {contact !== '' ? <span className="block break-words text-xs text-ink-2">{contact}</span> : null}
         </span>
         <span className="break-words text-xs tabular-nums text-ink-2">{s.trades.join(' ')}</span>

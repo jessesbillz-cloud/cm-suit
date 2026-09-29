@@ -10,6 +10,7 @@ import { TOOL_META } from '../../ui/tools';
 import { LayoutPreview, pointAt, type Spot } from './LayoutPreview';
 import { LayoutTips } from './LayoutTips';
 import { RailPicker } from './RailPicker';
+import { FIELD_ROW, SettingRow } from './SettingRow';
 import { useLayoutEditor } from './useLayoutEditor';
 
 type Docked = LayoutChoices['docked_panel'];
@@ -18,7 +19,7 @@ const DOCKED_LABELS: Record<Docked, string> = { board: 'Board', none: 'Open item
 
 function DockedChoice({ value, onPick }: { value: Docked; onPick: (v: Docked) => void }) {
   return (
-    <div role="radiogroup" aria-label="Right column" className="inline-flex self-start rounded-md border border-line-strong bg-card p-0.5 shadow-control">
+    <div role="radiogroup" aria-label="Right column" className="inline-flex self-start rounded-lg border border-line bg-card p-0.5 shadow-control">
       {DOCKED_PANELS.map((d) => (
         <button
           key={d}
@@ -26,7 +27,7 @@ function DockedChoice({ value, onPick }: { value: Docked; onPick: (v: Docked) =>
           role="radio"
           aria-checked={d === value}
           data-testid={`layout-docked-${d}`}
-          className={`h-8 rounded px-3 text-sm ${d === value ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
+          className={`h-8 rounded-md px-3.5 text-sm ${d === value ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
           onClick={() => {
             onPick(d);
           }}
@@ -40,8 +41,8 @@ function DockedChoice({ value, onPick }: { value: Docked; onPick: (v: Docked) =>
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-ink-2">{label}</span>
+    <div className="flex flex-col gap-2">
+      <span className="text-sm font-medium text-ink">{label}</span>
       {children}
     </div>
   );
@@ -75,42 +76,47 @@ function LayoutChoicesForm({ c, set }: ChoicesProps) {
           <LayoutPreview choices={c} spot={spot} />
         </div>
       </div>
-      <div className="flex min-w-0 flex-col gap-5 xl:order-1">
+      <div className="flex min-w-0 flex-col gap-4 xl:order-1">
         <Group label="Rail">
           <RailPicker choices={c} onChange={set} onSpot={setSpot} />
         </Group>
-        <div {...pointAt({ area: 'main', tool: null }, setSpot)}>
-          <SelectField
-            label="Opens on"
-            value={c.main_default}
-            options={opens}
-            className="sm:max-w-xs"
-            testId="layout-main-default"
-            onChange={(v) => {
-              const t = RAIL_TOOLS.find((x) => x === v);
-              if (t) set({ main_default: t });
-            }}
-          />
-        </div>
-        <div {...pointAt({ area: 'right', tool: null }, setSpot)}>
-          <Group label="Right column">
-            <DockedChoice
-              value={c.docked_panel}
-              onPick={(docked_panel) => {
-                set({ docked_panel });
+        {/* Each row sits in the box that lights its spot in the preview; the list draws the lines between them. */}
+        <div className="flex flex-col divide-y divide-line border-t border-line">
+          <div {...pointAt({ area: 'main', tool: null }, setSpot)}>
+            <SelectField
+              label="Opens on"
+              value={c.main_default}
+              options={opens}
+              className={FIELD_ROW}
+              testId="layout-main-default"
+              onChange={(v) => {
+                const t = RAIL_TOOLS.find((x) => x === v);
+                if (t) set({ main_default: t });
               }}
             />
-          </Group>
-        </div>
-        <div {...pointAt({ area: 'whats_new', tool: null }, setSpot)}>
-          <CheckField
-            label="What's new line on the board"
-            checked={c.whats_new_enabled}
-            testId="layout-whats-new"
-            onChange={(whats_new_enabled) => {
-              set({ whats_new_enabled });
-            }}
-          />
+          </div>
+          <div {...pointAt({ area: 'right', tool: null }, setSpot)}>
+            <SettingRow label="Right column">
+              <DockedChoice
+                value={c.docked_panel}
+                onPick={(docked_panel) => {
+                  set({ docked_panel });
+                }}
+              />
+            </SettingRow>
+          </div>
+          <div {...pointAt({ area: 'whats_new', tool: null }, setSpot)}>
+            <SettingRow label="Board">
+              <CheckField
+                label="What's new line"
+                checked={c.whats_new_enabled}
+                testId="layout-whats-new"
+                onChange={(whats_new_enabled) => {
+                  set({ whats_new_enabled });
+                }}
+              />
+            </SettingRow>
+          </div>
         </div>
       </div>
     </div>

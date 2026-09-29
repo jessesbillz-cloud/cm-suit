@@ -6,6 +6,7 @@ import { sectionsLine } from '../../lib/csi';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { BidList } from './BidList';
 import { firstLine } from './model';
 import { NEW_PACKAGE_ITEM } from './packageDraft';
@@ -36,7 +37,7 @@ export function PackagesView({ projectId, selectedId, onOpen }: PackagesViewProp
     <Card actions={action} padded={false}>
       {packages.isPending ? <LoadingState label="Loading packages" /> : null}
       {packages.isError ? <ErrorState error={packages.error} onRetry={() => void packages.refetch()} /> : null}
-      {packages.data?.length === 0 ? <EmptyState title="No packages yet." /> : null}
+      {packages.data?.length === 0 ? <EmptyState title="No packages yet." icon={TOOL_META.bids.icon} /> : null}
       {packages.data && packages.data.length > 0 ? (
         <BidList
           testId="package"

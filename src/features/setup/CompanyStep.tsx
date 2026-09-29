@@ -42,15 +42,16 @@ export function CompanyStep({ initialName }: CompanyStepProps) {
       >
         <TextField label="Company name" value={name} onChange={setName} autoFocus autoComplete="organization" testId="setup-company-name" />
         <SelectField label="Type" value={kind} options={ORG_KINDS} onChange={setKind} />
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="primary" loading={create.isPending} data-testid="setup-company-next">
-            Next
-          </Button>
+        <div className="-mx-4 mt-1 flex flex-wrap items-center gap-3 border-t border-line px-4 pt-4">
           {problem ? (
             <p role="alert" className="text-sm text-danger">
               {problem}
             </p>
           ) : null}
+          <span className="flex-1" />
+          <Button type="submit" variant="primary" loading={create.isPending} data-testid="setup-company-next">
+            Next
+          </Button>
         </div>
       </form>
     </Card>

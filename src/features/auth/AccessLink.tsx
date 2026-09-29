@@ -100,6 +100,7 @@ export function AccessLink() {
           <Button
             variant="primary"
             loading={busy}
+            className="h-11"
             onClick={() => {
               setBusy(true);
               setProblem(null);

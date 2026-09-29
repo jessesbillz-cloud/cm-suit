@@ -11,6 +11,7 @@ import { SelectField, TextField } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { CalendarFeedRow } from './CalendarFeedRow';
+import { FIELD_ROW, SettingRow } from './SettingRow';
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(1, 'Enter your name.').max(200),
@@ -75,7 +76,7 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
 
   return (
     <form
-      className="grid gap-3 sm:grid-cols-2"
+      className="flex flex-col"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -88,24 +89,25 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
           type={f.type}
           autoComplete={f.autoComplete}
           value={form[f.key]}
+          className={FIELD_ROW}
           onChange={(v) => {
             setForm({ ...form, [f.key]: v });
           }}
         />
       ))}
-      <div className="flex flex-col gap-1 text-xs font-medium text-ink-2">
-        Email
-        <p className="flex min-h-9 items-center break-all text-sm font-normal text-ink-2">{profile.email}</p>
-      </div>
+      <SettingRow label="Email">
+        <p className="break-all text-sm text-ink-2">{profile.email}</p>
+      </SettingRow>
       <SelectField
         label="My time zone"
         value={form.timezone}
         options={zones}
+        className={FIELD_ROW}
         onChange={(timezone) => {
           setForm({ ...form, timezone });
         }}
       />
-      <div className="flex items-center gap-3 sm:col-span-2">
+      <div className="flex flex-wrap items-center gap-3 pt-3 sm:pl-48">
         <Button type="submit" variant="primary" loading={save.isPending}>
           Save profile
         </Button>

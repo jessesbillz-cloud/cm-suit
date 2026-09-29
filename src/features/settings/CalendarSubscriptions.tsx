@@ -44,7 +44,7 @@ function KindGroups({ version, selected, onChange }: KindsProps) {
     <div data-testid="cal-subs" data-version={version ?? 'none'} className="grid gap-x-6 gap-y-5 sm:grid-cols-2 2xl:grid-cols-4">
       {GROUPS.map((g) => (
         <fieldset key={g} className="flex flex-col">
-          <legend className="mb-1 text-xs font-medium text-ink-2">{g}</legend>
+          <legend className="mb-1 text-[12px] font-medium uppercase tracking-wide text-ink-3">{g}</legend>
           {CALENDAR_TYPES.filter((k) => GROUP_OF[k] === g).map((k) => (
             <label key={k} className="flex h-10 cursor-pointer items-center gap-2.5 text-sm text-ink sm:h-9">
               <input

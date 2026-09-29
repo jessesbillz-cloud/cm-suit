@@ -30,7 +30,8 @@ export function TypeFilter({ selected }: TypeFilterProps) {
   }
 
   return (
-    <div role="group" aria-label="Types shown" className="flex flex-wrap gap-1.5">
+    // Phone: one row that scrolls sideways, so the week stays in view. Desktop: the chips wrap.
+    <div role="group" aria-label="Types shown" className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
       {CALENDAR_TYPES.map((kind) => {
         const on = selected.includes(kind);
         return (
@@ -39,8 +40,8 @@ export function TypeFilter({ selected }: TypeFilterProps) {
             type="button"
             aria-pressed={on}
             data-testid={`cal-type-${kind}`}
-            className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs ${
-              on ? 'border-accent/30 bg-accent-soft text-accent' : 'border-line bg-card text-ink-3 hover:text-ink-2'
+            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] sm:h-8 sm:gap-1 sm:px-2 sm:text-xs ${
+              on ? 'border-accent/30 bg-accent-soft font-medium text-accent' : 'border-line bg-card text-ink-3 hover:border-line-strong hover:text-ink-2'
             }`}
             onClick={() => {
               toggle(kind);

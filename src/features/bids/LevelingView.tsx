@@ -5,6 +5,7 @@ import type { FlagRow, LevelingRow, PackageRow } from '../../data/bids.types';
 import { useBidFlags, useLevelingBoard } from '../../data/leveling.queries';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { StatusChip } from '../../ui/StatusChip';
 import { flagChip, indexFlags, lowBid } from './leveling';
 import { LevelingGrid } from './LevelingGrid';
@@ -42,7 +43,7 @@ function Loaded({ projectId, packages, rows, flags, selectedId, onOpen, packageI
   if (!picked) {
     return (
       <Card>
-        <EmptyState title="No packages yet." />
+        <EmptyState title="No packages yet." icon={TOOL_META.bids.icon} />
       </Card>
     );
   }
@@ -72,7 +73,7 @@ function Loaded({ projectId, packages, rows, flags, selectedId, onOpen, packageI
           </div>
         ) : null}
         {mine.length === 0 ? (
-          <EmptyState title="No bids in this package." />
+          <EmptyState title="No bids in this package." icon={TOOL_META.bids.icon} />
         ) : (
           <LevelingGrid rows={mine} byRow={byRow} money={money} lowId={money ? (lowBid(mine)?.submission_id ?? null) : null} selectedId={selectedId} onOpen={onOpen} />
         )}

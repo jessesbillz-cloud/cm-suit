@@ -7,6 +7,7 @@ import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import type { Chip } from './model';
+import { OPEN_BAR, ROW_HOVER, ROW_OPEN } from './rowStyles';
 
 interface FormRowProps {
   item: BidFormItem;
@@ -25,13 +26,13 @@ export function FormRow({ item, chip, selected, downloading, onOpen, onDownload 
     <li
       data-testid={`form-row-${item.name}`}
       aria-current={selected ? 'true' : undefined}
-      className={`flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:flex-nowrap ${selected ? 'bg-accent-soft' : 'hover:bg-page'}`}
+      className={`flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:flex-nowrap ${selected ? `${ROW_OPEN} ${OPEN_BAR} cursor-pointer` : ROW_HOVER}`}
       onClick={() => {
         onOpen(item.id);
       }}
     >
       <button type="button" className="min-w-0 flex-1 text-left">
-        <span className="block break-words text-ink">{item.name}</span>
+        <span className="block break-words font-medium text-ink">{item.name}</span>
         {item.reference !== '' ? <span className="block break-words text-xs text-ink-2">{item.reference}</span> : null}
       </button>
       <span

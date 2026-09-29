@@ -1,6 +1,6 @@
 // Calendar views (SPEC §7.6): which days show, the time range to load, and the day each line falls on in its OWN
 // job's time zone (SPEC §8.8). Days are calendar days (yyyy-MM-dd); weeks start on Monday.
-import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, isWeekend, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarLine, CalendarRange } from '../../data/calendar.types';
 import { formatDay, formatInZone, startOfDayInZone } from '../../lib/dates';
 import { toolIsOn } from '../../lib/jobs';
@@ -45,6 +45,11 @@ export function visibleDays(view: CalView, anchor: string): string[] {
   if (view === 'day') return [anchor];
   if (view === 'week') return daysBetween(startOfWeek(a, WEEK), endOfWeek(a, WEEK));
   return daysBetween(startOfWeek(startOfMonth(a), WEEK), endOfWeek(endOfMonth(a), WEEK));
+}
+
+/** Saturday or Sunday: the grids draw those days lighter. */
+export function isWeekendDay(day: string): boolean {
+  return isWeekend(parseISO(day));
 }
 
 /** Prev / Next. */

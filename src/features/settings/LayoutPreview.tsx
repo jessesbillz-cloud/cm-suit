@@ -5,6 +5,7 @@ import { Ellipsis } from 'lucide-react';
 import { phoneTabs, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { Icon } from '../../ui/Icon';
 import { TOOL_META } from '../../ui/tools';
+import { BrandMark } from '../auth/BrandMark';
 
 type SpotArea = 'rail' | 'main' | 'right' | 'whats_new';
 
@@ -32,7 +33,7 @@ export function pointAt(spot: Spot, onSpot: (spot: Spot | null) => void) {
   };
 }
 
-type PreviewChoices =Pick<LayoutChoices, 'rail_items' | 'main_default' | 'docked_panel' | 'whats_new_enabled'>;
+type PreviewChoices = Pick<LayoutChoices, 'rail_items' | 'main_default' | 'docked_panel' | 'whats_new_enabled'>;
 
 interface PreviewProps {
   choices: PreviewChoices;
@@ -67,8 +68,9 @@ interface DotProps {
   lit: boolean;
 }
 
+/** A rail tool on the navy strip: the open one lighter, the one the form points at in the accent. */
 function RailDot({ tool, active, lit }: DotProps) {
-  const tone = lit ? 'bg-accent text-white' : active ? 'bg-accent-soft text-accent' : 'text-ink-2';
+  const tone = lit ? 'bg-accent text-white' : active ? 'bg-rail-active text-white' : 'text-rail-ink';
   return (
     <span data-tool={tool} className={`flex h-[17px] w-6 shrink-0 items-center justify-center rounded-sm ${tone}`}>
       <Icon icon={TOOL_META[tool].icon} size={11} />
@@ -76,57 +78,66 @@ function RailDot({ tool, active, lit }: DotProps) {
   );
 }
 
+/** The frame as it is: the navy rail with the mark on top, the white top bar, white cards on the page. */
 function DesktopSketch({ choices, spot }: PreviewProps) {
   const at = (a: SpotArea) => spot?.area === a;
   const main = choices.main_default;
   const docked = choices.docked_panel === 'board';
   return (
-    <div className="overflow-hidden rounded-md border border-line-strong bg-page shadow-control">
-      <div className="flex h-4 items-center border-b border-line bg-card px-2">
-        <span className="h-1 w-10 rounded-full bg-line-strong" />
+    <div className="flex h-[216px] overflow-hidden rounded-lg border border-line-strong bg-page shadow-control">
+      <div
+        data-testid="layout-preview-rail"
+        className={`flex w-8 shrink-0 flex-col items-center gap-0.5 pb-1 transition-colors ${
+          at('rail') ? 'bg-rail-hover ring-2 ring-inset ring-accent' : 'bg-rail'
+        }`}
+      >
+        <span className="flex h-6 shrink-0 items-center">
+          <BrandMark size="xs" />
+        </span>
+        {choices.rail_items.map((t) => (
+          <RailDot key={t} tool={t} active={t === main} lit={spot?.tool === t} />
+        ))}
+        <span className="flex-1" />
+        <RailDot tool="settings" active={false} lit={false} />
       </div>
-      <div className="flex h-[200px]">
-        <div
-          data-testid="layout-preview-rail"
-          className={`flex w-8 shrink-0 flex-col items-center gap-0.5 border-r border-line py-1 transition-colors ${at('rail') ? LIT : 'bg-card'}`}
-        >
-          {choices.rail_items.map((t) => (
-            <RailDot key={t} tool={t} active={t === main} lit={spot?.tool === t} />
-          ))}
-          <span className="flex-1" />
-          <RailDot tool="settings" active={false} lit={false} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-6 shrink-0 items-center gap-1.5 border-b border-line bg-card px-2">
+          <span className="h-1.5 w-12 rounded-full bg-ink-3/70" />
+          <span className="h-1 w-6 rounded-full bg-line-strong" />
         </div>
-        <div
-          data-testid="layout-preview-main"
-          data-tool={main}
-          className={`flex min-w-0 flex-1 flex-col gap-1.5 p-2 transition-colors ${at('main') ? LIT : ''}`}
-        >
-          <Heading tool={main} />
-          {main === 'board' && choices.whats_new_enabled ? (
-            <span className={`h-2.5 rounded-sm transition-colors ${at('whats_new') ? 'bg-accent' : 'bg-accent/25'}`} />
-          ) : null}
-          <div className="rounded-sm bg-card p-1.5 shadow-control">
-            <Lines count={5} />
+        <div className="flex min-h-0 flex-1">
+          <div
+            data-testid="layout-preview-main"
+            data-tool={main}
+            className={`flex min-w-0 flex-1 flex-col gap-1.5 p-2 transition-colors ${at('main') ? LIT : ''}`}
+          >
+            <Heading tool={main} />
+            {main === 'board' && choices.whats_new_enabled ? (
+              <span className={`h-2.5 rounded-sm transition-colors ${at('whats_new') ? 'bg-accent' : 'bg-accent/25'}`} />
+            ) : null}
+            <div className="rounded bg-card p-1.5 shadow-card">
+              <Lines count={5} />
+            </div>
+            <div className="rounded bg-card p-1.5 shadow-card">
+              <Lines count={3} />
+            </div>
           </div>
-          <div className="rounded-sm bg-card p-1.5 shadow-control">
-            <Lines count={3} />
+          <div
+            data-testid="layout-preview-right"
+            data-panel={choices.docked_panel}
+            className={`flex w-[34%] shrink-0 flex-col gap-1.5 border-l p-2 transition-colors ${
+              docked ? 'border-line' : 'border-dashed border-line-strong'
+            } ${at('right') ? LIT : docked ? 'bg-card' : ''}`}
+          >
+            {docked ? (
+              <>
+                <Heading tool="board" />
+                <Lines count={4} />
+              </>
+            ) : (
+              <p className="m-auto text-center text-[10px] leading-3 text-ink-3">Open item</p>
+            )}
           </div>
-        </div>
-        <div
-          data-testid="layout-preview-right"
-          data-panel={choices.docked_panel}
-          className={`flex w-[34%] shrink-0 flex-col gap-1.5 border-l p-2 transition-colors ${
-            docked ? 'border-line' : 'border-dashed border-line-strong'
-          } ${at('right') ? LIT : docked ? 'bg-card' : ''}`}
-        >
-          {docked ? (
-            <>
-              <Heading tool="board" />
-              <Lines count={4} />
-            </>
-          ) : (
-            <p className="m-auto text-center text-[10px] leading-3 text-ink-3">Open item</p>
-          )}
         </div>
       </div>
     </div>
@@ -149,6 +160,9 @@ function PhoneSketch({ choices, spot }: PreviewProps) {
   const at = (a: SpotArea) => spot?.area === a;
   return (
     <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-b-[22px] rounded-t-md border-2 border-line-strong bg-page">
+      <div className="flex h-4 items-center border-b border-line bg-card px-2">
+        <span className="h-1 w-10 rounded-full bg-ink-3/70" />
+      </div>
       <div className={`flex flex-col gap-1 px-2 pb-2 pt-1.5 transition-colors ${at('main') ? LIT : ''}`}>
         <Heading tool={choices.main_default} />
         <Lines count={2} />

@@ -1,6 +1,5 @@
-// The calendar's top row: Week / Day / Month (the bids Segmented style), Prev / Today / Next, and what's showing.
+// The calendar's controls in its page header: Prev / Today / Next on the right, Week / Day / Month under the title.
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { CAL_VIEWS, VIEW_LABELS, type CalView } from './model';
 
@@ -9,9 +8,9 @@ interface ViewSwitchProps {
   onPick: (v: CalView) => void;
 }
 
-function ViewSwitch({ current, onPick }: ViewSwitchProps) {
+export function ViewSwitch({ current, onPick }: ViewSwitchProps) {
   return (
-    <div role="tablist" aria-label="Calendar view" className="inline-flex rounded-md border border-line bg-card p-0.5">
+    <div role="tablist" aria-label="Calendar view" className="inline-flex rounded-lg border border-line bg-card p-0.5 shadow-control">
       {CAL_VIEWS.map((v) => (
         <button
           key={v}
@@ -19,7 +18,7 @@ function ViewSwitch({ current, onPick }: ViewSwitchProps) {
           role="tab"
           aria-selected={v === current}
           data-testid={`cal-view-${v}`}
-          className={`h-8 rounded px-3 text-sm ${v === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
+          className={`h-8 rounded-md px-3.5 text-sm ${v === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
           onClick={() => {
             onPick(v);
           }}
@@ -31,50 +30,55 @@ function ViewSwitch({ current, onPick }: ViewSwitchProps) {
   );
 }
 
-interface CalendarBarProps {
-  view: CalView;
+interface StepProps {
   label: string;
-  /** Phone: the week list only, so no view switch. */
-  showViews: boolean;
-  onView: (v: CalView) => void;
+  testId: string;
+  icon: typeof ChevronLeft;
+  onClick: () => void;
+}
+
+function StepButton({ label, testId, icon, onClick }: StepProps) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid={testId}
+      className="flex h-9 w-9 items-center justify-center text-ink-2 hover:bg-page hover:text-ink"
+      onClick={onClick}
+    >
+      <Icon icon={icon} size={18} />
+    </button>
+  );
+}
+
+interface DayStepperProps {
   onStep: (dir: 1 | -1) => void;
   onToday: () => void;
 }
 
-export function CalendarBar({ view, label, showViews, onView, onStep, onToday }: CalendarBarProps) {
+/** One joined control: previous, Today, next. */
+export function DayStepper({ onStep, onToday }: DayStepperProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {showViews ? <ViewSwitch current={view} onPick={onView} /> : null}
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          aria-label="Previous"
-          data-testid="cal-prev"
-          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-ink"
-          onClick={() => {
-            onStep(-1);
-          }}
-        >
-          <Icon icon={ChevronLeft} size={18} />
-        </button>
-        <Button size="sm" onClick={onToday} data-testid="cal-today">
-          Today
-        </Button>
-        <button
-          type="button"
-          aria-label="Next"
-          data-testid="cal-next"
-          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-ink"
-          onClick={() => {
-            onStep(1);
-          }}
-        >
-          <Icon icon={ChevronRight} size={18} />
-        </button>
-      </div>
-      <h2 data-testid="cal-range" className="text-sm font-semibold text-ink">
-        {label}
-      </h2>
+    <div className="inline-flex items-stretch divide-x divide-line overflow-hidden rounded-lg border border-line-strong bg-card shadow-control">
+      <StepButton
+        label="Previous"
+        testId="cal-prev"
+        icon={ChevronLeft}
+        onClick={() => {
+          onStep(-1);
+        }}
+      />
+      <button type="button" data-testid="cal-today" className="h-9 px-3.5 text-sm font-medium text-ink hover:bg-page" onClick={onToday}>
+        Today
+      </button>
+      <StepButton
+        label="Next"
+        testId="cal-next"
+        icon={ChevronRight}
+        onClick={() => {
+          onStep(1);
+        }}
+      />
     </div>
   );
 }

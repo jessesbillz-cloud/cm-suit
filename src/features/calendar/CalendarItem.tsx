@@ -7,9 +7,12 @@ import { kindLabel, lineTarget } from '../../lib/calendarKinds';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
+import { TOOL_META } from '../../ui/tools';
 import { AddLine } from './AddLine';
 import { EditLine } from './EditLine';
-import { lineTime, NEW_LINE } from './model';
+import { KindTile } from './LineRow';
+import { lineTime, NEW_LINE, statusKey } from './model';
 import { useCalendarNav, type CalendarNav } from './useCalendarNav';
 
 interface CalendarItemProps {
@@ -20,19 +23,35 @@ interface CalendarItemProps {
 
 function LineSummary({ line, nav }: { line: CalendarLine; nav: CalendarNav }) {
   const opensElsewhere = line.source_type !== 'manual' && lineTarget(line) !== null;
+  const key = statusKey(line.status);
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <p className="break-words text-base font-semibold text-ink">{line.title}</p>
-      <p className="text-sm text-ink-2">
-        {formatInZone(line.starts_at, line.timezone, 'EEE, MMM d, yyyy')} · {lineTime(line)}
-      </p>
-      <p className="text-sm text-ink-2">
-        {kindLabel(line.kind)} · {line.project_name}
-      </p>
-      {line.location ? <p className="text-sm text-ink">{line.location}</p> : null}
+    <div className="flex flex-col gap-4 p-4">
+      <div className="flex items-start gap-3">
+        <KindTile kind={line.kind} />
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-[17px] font-semibold leading-6 text-ink">{line.title}</p>
+          <p className="text-sm text-ink-2">
+            {kindLabel(line.kind)} · {line.project_name}
+          </p>
+        </div>
+        {key ? <StatusChip status={key} /> : null}
+      </div>
+      <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+        <dt className="text-ink-3">When</dt>
+        <dd className="text-ink">
+          {formatInZone(line.starts_at, line.timezone, 'EEE, MMM d, yyyy')} · {lineTime(line)}
+        </dd>
+        {line.location ? (
+          <>
+            <dt className="text-ink-3">Where</dt>
+            <dd className="break-words text-ink">{line.location}</dd>
+          </>
+        ) : null}
+      </dl>
       {opensElsewhere ? (
         <div>
           <Button
+            variant="primary"
             onClick={() => {
               nav.openLine(line);
             }}
@@ -51,7 +70,7 @@ function OpenLine({ itemId, nav }: { itemId: string; nav: CalendarNav }) {
 
   if (line.isPending) return <LoadingState label="Loading" />;
   if (line.isError) return <ErrorState error={line.error} onRetry={() => void line.refetch()} />;
-  if (line.data === null) return <EmptyState title="This line is gone." />;
+  if (line.data === null) return <EmptyState title="This line is gone." icon={TOOL_META.calendar.icon} />;
   if (line.data.source_type !== 'manual') return <LineSummary line={line.data} nav={nav} />;
   if (manage.isPending) return <LoadingState label="Loading" />;
   if (manage.isError) return <ErrorState error={manage.error} onRetry={() => void manage.refetch()} />;

@@ -10,7 +10,9 @@ import { messageOf } from '../../data/errors';
 import { openShare, type ShareFolder } from '../../data/links';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
-import { CodeForm } from './CodeForm';
+import { Icon } from '../../ui/Icon';
+import { fileIcon } from '../bids/fileIcon';
+import { CodeForm, INPUT } from './CodeForm';
 import { PublicPage } from './PublicPage';
 
 const route = getRouteApi('/s/$shareLinkId');
@@ -27,11 +29,16 @@ interface FolderListProps {
 function FolderList({ folder, busyId, onDownload }: FolderListProps) {
   if (folder.files.length === 0) return <p className="text-sm text-ink-2">This folder is empty.</p>;
   return (
-    <ul className="flex flex-col divide-y divide-line">
+    <ul className="-mx-2 flex flex-col divide-y divide-line border-t border-line">
       {folder.files.map((f) => (
-        <li key={f.id} className="flex items-center gap-3 py-2">
-          <span className="min-w-0 flex-1 break-words text-sm text-ink">{f.original_name}</span>
-          <span className="text-xs text-ink-2">{formatBytes(f.size)}</span>
+        <li key={f.id} className="flex min-h-[52px] items-center gap-3 px-2 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
+            <Icon icon={fileIcon(null, f.original_name)} size={16} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block break-words text-sm font-medium text-ink">{f.original_name}</span>
+            <span className="block text-xs tabular-nums text-ink-2">{formatBytes(f.size)}</span>
+          </span>
           {folder.view_only ? null : (
             <Button size="sm" icon={Download} loading={busyId === f.id} onClick={() => {
                 onDownload(f.id);
@@ -99,9 +106,12 @@ export function ShareLink() {
     return (
       <PublicPage title="Your download started">
         <div className="flex flex-col gap-3">
-          <p className="break-words text-sm text-ink">{step.filename}</p>
+          <p className="flex items-center gap-3 rounded-lg bg-page px-3 py-2.5 text-sm font-medium text-ink">
+            <Icon icon={fileIcon(null, step.filename)} size={18} className="shrink-0 text-ink-2" />
+            <span className="min-w-0 break-words">{step.filename}</span>
+          </p>
           {error}
-          <Button variant="primary" icon={Download} loading={busy} onClick={() => {
+          <Button variant="primary" icon={Download} loading={busy} className="h-11" onClick={() => {
               run(() => open(address));
             }}
           >
@@ -114,7 +124,7 @@ export function ShareLink() {
   if (step.kind === 'folder') {
     return (
       <PublicPage title={step.folder.folder_name}>
-        {step.folder.view_only ? <p className="mb-2 text-sm text-ink-2">This folder is view-only.</p> : null}
+        {step.folder.view_only ? <p className="text-sm text-ink-2">This folder is view-only.</p> : null}
         {error}
         <FolderList
           folder={step.folder}
@@ -150,22 +160,24 @@ export function ShareLink() {
           run(() => open(parsed.data));
         }}
       >
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink" htmlFor="share-email">
-          Email
-        </label>
-        <input
-          id="share-email"
-          type="email"
-          autoComplete="email"
-          className="h-11 rounded-md border border-line px-3 text-base text-ink outline-none focus:border-accent"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-ink" htmlFor="share-email">
+            Email
+          </label>
+          <input
+            id="share-email"
+            type="email"
+            autoComplete="email"
+            className={INPUT}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
+          />
+        </div>
         <p className="text-xs text-ink-2">Use the address this link was sent to. We email a code to confirm it is you.</p>
         {error}
-        <Button type="submit" variant="primary" loading={busy}>
+        <Button type="submit" variant="primary" loading={busy} className="h-11">
           Continue
         </Button>
       </form>

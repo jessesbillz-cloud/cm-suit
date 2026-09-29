@@ -2,7 +2,9 @@
 import { Download, X } from 'lucide-react';
 import { useFile } from '../../data/queries';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { useDownload } from '../files/useDownload';
+import { fileIcon } from './fileIcon';
 
 interface FileLineProps {
   fileId: string;
@@ -15,7 +17,8 @@ export function FileLine({ fileId, onRemove }: FileLineProps) {
   const download = useDownload();
   const name = file.data?.original_name ?? (file.isPending ? 'Loading' : 'File');
   return (
-    <li className="flex items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm">
+    <li className="flex items-center gap-2.5 rounded-lg border border-line bg-card px-3 py-1.5 text-sm">
+      <Icon icon={fileIcon(file.data?.mime, name)} size={16} className="shrink-0 text-ink-2" />
       <span className="min-w-0 flex-1 break-words text-ink">{name}</span>
       <Button
         size="sm"

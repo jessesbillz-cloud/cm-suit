@@ -6,6 +6,7 @@ import {
   nextSort,
   parseSort,
   parseStages,
+  pipelineLine,
   shownRows,
   sortParam,
   sortPipeline,
@@ -108,5 +109,21 @@ describe('bid due', () => {
   it('shows the date and time in the job\'s zone', () => {
     expect(dueDate('2026-10-01T21:00:00Z', TZ)).toBe('Oct 1, 2:00 PM');
     expect(dueDate('2026-10-01T21:00:00Z', 'America/New_York')).toBe('Oct 1, 5:00 PM');
+  });
+});
+
+describe('pipelineLine', () => {
+  const now = new Date('2026-09-28T17:00:00Z');
+
+  it('counts the open bids and names the soonest bid time still ahead', () => {
+    const rows = [
+      row('past', 'bidding', '2026-09-26T21:00:00Z'),
+      row('later', 'bidding', '2026-10-01T21:00:00Z'),
+      row('next', 'prospect', '2026-09-29T21:00:00Z'),
+      row('done', 'awarded', '2026-09-28T21:00:00Z'),
+    ];
+    expect(pipelineLine(rows, now)).toBe('3 open · next due tomorrow');
+    expect(pipelineLine([row('past', 'bidding', '2026-09-26T21:00:00Z'), row('none', 'prospect', null)], now)).toBe('2 open');
+    expect(pipelineLine([row('done', 'lost', null)], now)).toBe('No open bids');
   });
 });

@@ -76,6 +76,13 @@ export function isUnread(extraction: { status: string } | undefined, textStatus:
   return extraction === undefined && textStatus !== 'none' && textStatus !== 'failed';
 }
 
+/** The bids page header's count: "7 of 12 packages covered" (a package with at least one current bid). */
+export function coverageLine(rows: readonly { submitted: number }[]): string {
+  if (rows.length === 0) return 'No packages';
+  const covered = rows.filter((r) => r.submitted > 0).length;
+  return `${String(covered)} of ${String(rows.length)} ${rows.length === 1 ? 'package' : 'packages'} covered`;
+}
+
 export function firstLine(text: string): string {
   const line = text.split('\n').find((l) => l.trim() !== '');
   return line?.trim() ?? '';

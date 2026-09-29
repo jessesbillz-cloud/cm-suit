@@ -7,6 +7,7 @@ import { groupKey, qrImageSrc } from '../../lib/twoStep';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TotpCodeForm } from '../auth/TotpCodeForm';
 
@@ -39,9 +40,9 @@ function EnrollPanel({ enrollment, onVerified, onCancel }: { enrollment: Enrollm
 function StatusLine({ on, action }: { on: boolean; action: ReactNode }) {
   return (
     <div className="flex items-center gap-3">
-      <p className="flex-1 text-sm text-ink" data-testid="two-step-status">
-        {on ? 'On' : 'Off'}
-      </p>
+      <span className="flex-1" data-testid="two-step-status">
+        <StatusChip status={on ? 'confirmed' : 'cancelled'} label={on ? 'On' : 'Off'} />
+      </span>
       {action}
     </div>
   );

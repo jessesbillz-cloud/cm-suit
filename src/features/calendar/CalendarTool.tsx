@@ -5,8 +5,10 @@ import { useCalendarLines } from '../../data/calendar.queries';
 import { useCapability, useMyProjects, useUserLayout } from '../../data/queries';
 import { detectZone, todayInZone } from '../../lib/dates';
 import { Card } from '../../ui/Card';
+import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState, LoadingState } from '../../ui/States';
-import { CalendarBar } from './CalendarBar';
+import { TOOL_META } from '../../ui/tools';
+import { DayStepper, ViewSwitch } from './CalendarBar';
 import { DayView, WeekView, type DaysProps } from './DayViews';
 import { bucketByDay, rangeFor, rangeLabel, step, visibleDays, visibleLines, type CalView } from './model';
 import { MonthView } from './MonthView';
@@ -58,9 +60,39 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   );
   const buckets = useMemo(() => bucketByDay(shown, days), [shown, days]);
 
-  if (layout.isPending || projects.isPending) return <LoadingState label="Loading calendar" />;
-  if (layout.isError) return <ErrorState error={layout.error} onRetry={() => void layout.refetch()} />;
-  if (projects.isError) return <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />;
+  const header = (
+    <PageHeader
+      title={TOOL_META.calendar.label}
+      icon={TOOL_META.calendar.icon}
+      meta={<span data-testid="cal-range">{rangeLabel(view, days, anchor)}</span>}
+      actions={
+        <>
+          {isPhone ? null : <ViewSwitch current={view} onPick={nav.setView} />}
+          <DayStepper
+            onStep={(dir) => {
+              nav.setDay(step(view, anchor, dir));
+            }}
+            onToday={() => {
+              nav.setDay(null);
+            }}
+          />
+        </>
+      }
+      below={types ? <TypeFilter selected={types} /> : null}
+    />
+  );
+
+  const failed = layout.isError ? layout : projects.isError ? projects : null;
+  if (layout.isPending || projects.isPending || failed) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col">
+        {header}
+        <Card padded={false}>
+          {failed ? <ErrorState error={failed.error} onRetry={() => void failed.refetch()} /> : <LoadingState label="Loading calendar" />}
+        </Card>
+      </div>
+    );
+  }
 
   // All my jobs: the add form picks the job (and checks it); one job: only with calendar.manage.
   const canAdd = projectId === null || manage.data === true;
@@ -78,25 +110,13 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-3">
-      <CalendarBar
-        view={view}
-        label={rangeLabel(view, days, anchor)}
-        showViews={!isPhone}
-        onView={nav.setView}
-        onStep={(dir) => {
-          nav.setDay(step(view, anchor, dir));
-        }}
-        onToday={() => {
-          nav.setDay(null);
-        }}
-      />
-      <TypeFilter selected={types ?? []} />
-      <Card padded={false}>
+    <div className="mx-auto flex max-w-6xl flex-col">
+      {header}
+      <Card padded={false} className="overflow-hidden">
         {lines.isPending ? <LoadingState label="Loading calendar" /> : null}
         {lines.isError ? <ErrorState error={lines.error} onRetry={() => void lines.refetch()} /> : null}
         {empty ? (
-          <p data-testid="cal-empty" className="border-b border-line px-4 py-2 text-sm text-ink-2">
+          <p data-testid="cal-empty" className="border-b border-line bg-card-head px-4 py-2.5 text-sm text-ink-2">
             {(types ?? []).length === 0 ? 'No types picked.' : EMPTY_WORDS[view]}
           </p>
         ) : null}

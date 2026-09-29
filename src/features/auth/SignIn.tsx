@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { sendCode } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
-import { CodeForm } from './CodeForm';
+import { CodeForm, INPUT } from './CodeForm';
 import { PublicPage } from './PublicPage';
 
 const emailSchema = z.string().trim().toLowerCase().email('Enter a valid email address.');
@@ -80,32 +80,36 @@ export function SignIn({ onSignedIn }: SignInProps) {
           submit();
         }}
       >
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink" htmlFor="signin-email">
-          Email
-        </label>
-        <input
-          id="signin-email"
-          type="email"
-          autoComplete="off"
-          autoFocus
-          className="h-11 rounded-md border border-line px-3 text-base text-ink outline-none focus:border-accent"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-          }}
-        />
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-ink" htmlFor="signin-email">
+            Email
+          </label>
+          <input
+            id="signin-email"
+            type="email"
+            autoComplete="off"
+            autoFocus
+            className={INPUT}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
+          />
+        </div>
         {problem ? (
           <p role="alert" className="text-sm text-danger">
             {problem}
           </p>
         ) : null}
-        <Button type="submit" variant="primary" loading={busy}>
+        <Button type="submit" variant="primary" loading={busy} className="h-11">
           Send code
         </Button>
-        <p className="text-xs text-ink-2">We email you a code. There is no password.</p>
-        <button type="button" className="self-start text-sm text-accent hover:underline" onClick={enterExistingCode}>
-          I already have a code
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <p className="text-xs text-ink-2">We email you a code. There is no password.</p>
+          <button type="button" className="text-sm font-medium text-accent hover:underline" onClick={enterExistingCode}>
+            I already have a code
+          </button>
+        </div>
       </form>
     </PublicPage>
   );

@@ -87,20 +87,21 @@ export function NewJobForm({ orgs, zone, initialStage, onCreated, onCancel }: Ne
         {isBidStage(stage) ? <TextField label="Bid due" type="datetime-local" value={bidDue} onChange={setBidDue} /> : null}
         <CheckField label="Prevailing wage" checked={prevailingWage} onChange={setPrevailingWage} />
         <CheckField label="DSA job" checked={isDsa} onChange={setIsDsa} testId="setup-job-dsa" />
-        <div className="flex items-center gap-3 sm:col-span-2">
-          <Button type="submit" variant="primary" loading={create.isPending} data-testid="setup-job-create">
-            Create job
-          </Button>
-          {onCancel ? (
-            <Button variant="quiet" onClick={onCancel}>
-              Cancel
-            </Button>
-          ) : null}
+        <div className="-mx-4 mt-1 flex flex-wrap items-center gap-3 border-t border-line px-4 pt-4 sm:col-span-2">
           {problem ? (
             <p role="alert" className="text-sm text-danger">
               {problem}
             </p>
           ) : null}
+          <span className="flex-1" />
+          {onCancel ? (
+            <Button variant="quiet" onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : null}
+          <Button type="submit" variant="primary" loading={create.isPending} data-testid="setup-job-create">
+            Create job
+          </Button>
         </div>
       </form>
     </Card>

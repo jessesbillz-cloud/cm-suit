@@ -10,15 +10,13 @@ export function NewJobPage() {
   const router = useRouter();
   const { stage, tool } = route.useSearch();
   return (
-    <main className="min-h-screen bg-page">
-      <SetupFlow
-        stage={stage}
-        openTool={tool}
-        onCancel={() => {
-          if (router.history.canGoBack()) router.history.back();
-          else void navigate({ to: '/' });
-        }}
-      />
-    </main>
+    <SetupFlow
+      stage={stage}
+      openTool={tool}
+      onCancel={() => {
+        if (router.history.canGoBack()) router.history.back();
+        else void navigate({ to: '/' });
+      }}
+    />
   );
 }

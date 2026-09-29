@@ -6,8 +6,10 @@ import { useSaveLayout } from '../../data/mutations';
 import { useMyOrgs, useProfile, useUserLayout } from '../../data/queries';
 import { pushRecent, type Tool } from '../../lib/layout';
 import { Button } from '../../ui/Button';
+import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { PublicShell } from '../auth/PublicPage';
 import { CompanyStep } from './CompanyStep';
 import { NewJobForm } from './NewJobForm';
 
@@ -27,10 +29,17 @@ export function SetupFlow({ onCancel, stage, openTool }: SetupFlowProps) {
   const navigate = useNavigate();
   const toast = useToast();
 
-  if (orgs.isPending || profile.isPending || layout.isPending) return <LoadingState label="Opening" />;
-  if (orgs.isError) return <ErrorState error={orgs.error} onRetry={() => void orgs.refetch()} />;
-  if (profile.isError) return <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />;
-  if (layout.isError) return <ErrorState error={layout.error} onRetry={() => void layout.refetch()} />;
+  if (!orgs.isSuccess || !profile.isSuccess || !layout.isSuccess) {
+    const pending = orgs.isPending || profile.isPending || layout.isPending;
+    const failed = orgs.isError ? orgs : profile.isError ? profile : layout.isError ? layout : null;
+    return (
+      <PublicShell wide>
+        <Card padded={false}>
+          {!pending && failed !== null ? <ErrorState error={failed.error} onRetry={() => void failed.refetch()} /> : <LoadingState label="Opening" />}
+        </Card>
+      </PublicShell>
+    );
+  }
 
   const choices = layout.data.choices;
 
@@ -47,7 +56,7 @@ export function SetupFlow({ onCancel, stage, openTool }: SetupFlowProps) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 p-4 sm:p-6">
+    <PublicShell wide>
       {orgs.data.length === 0 ? (
         <CompanyStep initialName={profile.data.company ?? ''} />
       ) : (
@@ -60,6 +69,6 @@ export function SetupFlow({ onCancel, stage, openTool }: SetupFlowProps) {
       ) : (
         <p className="text-center text-sm text-ink-2">Invited to a job? Open the link in your invite email.</p>
       )}
-    </div>
+    </PublicShell>
   );
 }

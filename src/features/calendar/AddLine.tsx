@@ -12,6 +12,7 @@ import { toolIsOn } from '../../lib/jobs';
 import { CALENDAR_TYPES } from '../../lib/layout';
 import { SelectField } from '../../ui/Fields';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { fieldsOf, newDraft, type LineDraft } from './draft';
 import { LineForm } from './LineForm';
 import { lineDay } from './model';
@@ -101,6 +102,6 @@ export function AddLine({ projectId, nav }: AddLineProps) {
   // One job: that job. All my jobs: the ones with the calendar on, starting on the most recent.
   const jobs = projectId !== null ? projects.data : projects.data.filter((p) => toolIsOn('calendar', p.modules));
   const initial = projectId ?? recent.find((id) => jobs.some((j) => j.project_id === id)) ?? jobs[0]?.project_id;
-  if (initial === undefined) return <EmptyState title="No job has the calendar on." />;
+  if (initial === undefined) return <EmptyState title="No job has the calendar on." icon={TOOL_META.calendar.icon} />;
   return <AddForm jobs={jobs} initialJobId={initial} showJobField={projectId === null} types={types} nav={nav} />;
 }

@@ -156,6 +156,18 @@ export function dueDate(dueAt: string, tz: string): string {
   return formatInZone(dueAt, tz, 'MMM d, h:mm a');
 }
 
+/** The pipeline's page header count: "5 open · next due tomorrow" (the soonest bid time still ahead). */
+export function pipelineLine(rows: readonly PipelineRow[], now: Date = new Date()): string {
+  const open = rows.filter((r) => isBidStage(r.stage));
+  if (open.length === 0) return 'No open bids';
+  const ahead = open
+    .filter((r): r is PipelineRow & { bid_due_at: string } => r.bid_due_at !== null && Date.parse(r.bid_due_at) > now.getTime())
+    .sort((a, b) => Date.parse(a.bid_due_at) - Date.parse(b.bid_due_at));
+  const next = ahead[0];
+  const count = `${String(open.length)} open`;
+  return next ? `${count} · next due ${dueRelative(next.bid_due_at, next.timezone, now)}` : count;
+}
+
 /** "today", "tomorrow", "in 3 days" (calendar days in the job's zone), or "past" once bid time has gone by. */
 export function dueRelative(dueAt: string, tz: string, now: Date = new Date()): string {
   if (Date.parse(dueAt) <= now.getTime()) return 'past';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarLine } from '../../data/calendar.types';
-import { bucketByDay, lineDay, parseCalView, parseDay, rangeFor, rangeLabel, statusKey, step, visibleDays, visibleLines } from './model';
+import { bucketByDay, isWeekendDay, lineDay, parseCalView, parseDay, rangeFor, rangeLabel, statusKey, step, visibleDays, visibleLines } from './model';
 
 const LA = 'America/Los_Angeles';
 const NY = 'America/New_York';
@@ -34,6 +34,10 @@ describe('calendar days', () => {
     ]);
     expect(visibleDays('week', '2026-10-04')[0]).toBe('2026-09-28');
     expect(visibleDays('day', '2026-09-30')).toEqual(['2026-09-30']);
+  });
+
+  it('Saturday and Sunday are the weekend', () => {
+    expect(visibleDays('week', '2026-09-30').map(isWeekendDay)).toEqual([false, false, false, false, false, true, true]);
   });
 
   it('the week the clocks fall back has seven distinct days, none skipped', () => {

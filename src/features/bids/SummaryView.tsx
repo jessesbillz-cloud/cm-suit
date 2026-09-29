@@ -7,15 +7,17 @@ import { formatMoney } from '../../lib/format';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
+import { TOOL_META } from '../../ui/tools';
 import { flagChip, formatPct, pwLabel, SPREAD_WARN, sumOfLows, summarize, type PackageSummary } from './leveling';
 import { StepUp } from '../auth/StepUp';
+import { ROW_HOVER, TH as HEAD } from './rowStyles';
 
 interface SummaryViewProps {
   projectId: string;
   onOpenPackage: (packageId: string) => void;
 }
 
-const TH = 'px-2 py-2 font-medium';
+const TH = 'px-2 py-2.5 font-medium';
 
 function Flags({ s }: { s: PackageSummary }) {
   if (s.flags.length === 0) return null;
@@ -33,7 +35,7 @@ function MoneyCells({ s }: { s: PackageSummary }) {
   // No low: no bids, or none priced yet ("No bids" already sits in the Bids column).
   if (s.low === null) {
     return (
-      <td className="px-2 py-2 text-ink-3" colSpan={5}>
+      <td className="px-2 py-3 text-ink-3" colSpan={5}>
         -
       </td>
     );
@@ -41,11 +43,11 @@ function MoneyCells({ s }: { s: PackageSummary }) {
   const spread = s.spread;
   return (
     <>
-      <td className="px-2 py-2 text-right font-semibold tabular-nums text-ink">{formatMoney(s.low.base_amount ?? 0)}</td>
-      <td className="whitespace-normal break-words px-2 py-2 text-ink">{s.low.bidder}</td>
-      <td className="px-2 py-2">{pwLabel(s.low.prevailing_wage)}</td>
-      <td className="px-2 py-2 text-right tabular-nums">{s.high === null ? '-' : formatMoney(s.high)}</td>
-      <td className={`px-2 py-2 text-right tabular-nums ${spread !== null && spread > SPREAD_WARN ? 'font-semibold text-danger' : ''}`}>
+      <td className="px-2 py-3 text-right font-semibold tabular-nums text-ink">{formatMoney(s.low.base_amount ?? 0)}</td>
+      <td className="whitespace-normal break-words px-2 py-3 text-ink">{s.low.bidder}</td>
+      <td className="px-2 py-3">{pwLabel(s.low.prevailing_wage)}</td>
+      <td className="px-2 py-3 text-right tabular-nums">{s.high === null ? '-' : formatMoney(s.high)}</td>
+      <td className={`px-2 py-3 text-right tabular-nums ${spread !== null && spread > SPREAD_WARN ? 'font-semibold text-danger' : ''}`}>
         {spread === null ? '-' : formatPct(spread)}
       </td>
     </>
@@ -64,7 +66,7 @@ function SummaryTable({ summaries, access, onOpenPackage }: TableProps) {
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm" data-testid="bid-summary">
         <thead>
-          <tr className="border-b border-line text-left text-xs text-ink-2">
+          <tr className={`border-b border-line text-left ${HEAD}`}>
             <th className={`${TH} w-14 pl-4`}>Code</th>
             <th className={TH}>Package</th>
             <th className={`${TH} w-12 text-right`}>Bids</th>
@@ -85,18 +87,18 @@ function SummaryTable({ summaries, access, onOpenPackage }: TableProps) {
             <tr
               key={s.id}
               data-testid={`summary-row-${s.code}`}
-              className="cursor-pointer border-b border-line align-top hover:bg-page"
+              className={`h-[52px] border-b border-line align-top ${ROW_HOVER}`}
               onClick={() => {
                 onOpenPackage(s.id);
               }}
             >
-              <td className="py-2 pl-4 pr-2 tabular-nums text-ink-2">{s.code}</td>
-              <td className="whitespace-normal break-words px-2 py-2 text-ink">{s.name}</td>
-              <td data-testid={`summary-bids-${s.code}`} className={`px-2 py-2 text-right tabular-nums ${s.bids === 0 ? 'font-semibold text-danger' : ''}`}>
+              <td className="py-3 pl-4 pr-2 font-medium tabular-nums text-ink-2">{s.code}</td>
+              <td className="whitespace-normal break-words px-2 py-3 font-medium text-ink">{s.name}</td>
+              <td data-testid={`summary-bids-${s.code}`} className={`whitespace-nowrap px-2 py-3 text-right tabular-nums ${s.bids === 0 ? 'font-semibold text-danger' : ''}`}>
                 {s.bids === 0 ? 'No bids' : s.bids}
               </td>
               {money ? <MoneyCells s={s} /> : null}
-              <td className="py-2 pl-2 pr-4">
+              <td className="py-3 pl-2 pr-4">
                 <Flags s={s} />
               </td>
             </tr>
@@ -105,11 +107,11 @@ function SummaryTable({ summaries, access, onOpenPackage }: TableProps) {
         {money ? (
           <tfoot>
             <tr className="text-sm">
-              <td className="py-2 pl-4 pr-2" colSpan={3} />
-              <td className="px-2 py-2 text-right font-semibold tabular-nums text-ink" data-testid="summary-sum-of-lows">
+              <td className="py-3 pl-4 pr-2" colSpan={3} />
+              <td className="px-2 py-3 text-right font-semibold tabular-nums text-ink" data-testid="summary-sum-of-lows">
                 {formatMoney(sumOfLows(summaries))}
               </td>
-              <td className="px-2 py-2 text-ink-2" colSpan={5}>
+              <td className="px-2 py-3 text-ink-2" colSpan={5}>
                 Sum of lows
               </td>
             </tr>
@@ -133,7 +135,7 @@ export function SummaryView({ projectId, onOpenPackage }: SummaryViewProps) {
       {board.isError ? <ErrorState error={board.error} onRetry={() => void board.refetch()} /> : null}
       {flags.isError ? <ErrorState error={flags.error} onRetry={() => void flags.refetch()} /> : null}
       {access.isError ? <ErrorState error={access.error} onRetry={() => void access.refetch()} /> : null}
-      {packages.data?.length === 0 ? <EmptyState title="No packages yet." /> : null}
+      {packages.data?.length === 0 ? <EmptyState title="No packages yet." icon={TOOL_META.bids.icon} /> : null}
       {access.data === 'two_factor' ? (
         <div className="px-4 pt-3">
           <StepUp />

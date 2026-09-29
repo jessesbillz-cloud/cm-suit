@@ -5,6 +5,7 @@ import type { PipelineRow } from '../../data/bids.pipeline';
 import { Icon } from '../../ui/Icon';
 import { DueCell, PackagesCell, StageCell } from './PipelineCells';
 import type { PipelineSort, PipelineSortKey } from './pipeline';
+import { ROW_HOVER, TH } from './rowStyles';
 
 interface PipelineTableProps {
   rows: readonly PipelineRow[];
@@ -25,19 +26,19 @@ const COLUMNS: { key: PipelineSortKey; title: string; className: string }[] = [
 function Header({ sort, onSort }: { sort: PipelineSort; onSort: (key: PipelineSortKey) => void }) {
   return (
     <thead>
-      <tr className="border-b border-line text-left text-xs text-ink-2">
+      <tr className={`border-b border-line text-left ${TH}`}>
         {COLUMNS.map((c) => {
           const active = sort.key === c.key;
           return (
             <th
               key={c.key}
-              className={`px-3 py-2 font-medium ${c.className}`}
+              className={`px-3 py-2.5 font-medium ${c.className}`}
               aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
               <button
                 type="button"
                 data-testid={`pipeline-sort-${c.key}`}
-                className={`inline-flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
+                className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink ${active ? 'text-ink' : ''}`}
                 onClick={() => {
                   onSort(c.key);
                 }}
@@ -58,7 +59,7 @@ function Row({ row, onOpen }: { row: PipelineRow; onOpen: (projectId: string) =>
   return (
     <tr
       data-testid={`pipeline-row-${row.project_id}`}
-      className="cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-page"
+      className={`border-b border-line align-top last:border-b-0 ${ROW_HOVER}`}
       onClick={() => {
         onOpen(row.project_id);
       }}

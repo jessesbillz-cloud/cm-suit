@@ -10,6 +10,7 @@ import { detectZone, formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { ErrorState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { SettingRow } from './SettingRow';
 
 export function CalendarFeedRow() {
   const feed = useCalendarFeed();
@@ -48,47 +49,50 @@ export function CalendarFeedRow() {
   const has = made !== null;
 
   return (
-    <div data-testid="calendar-feed" className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-      <span className="text-sm font-medium text-ink">Calendar feed</span>
-      {feed.isPending ? (
-        <span role="status" className="text-xs text-ink-2">
-          Loading...
-        </span>
-      ) : null}
-      {made !== null && url === null ? (
-        <span className="text-xs text-ink-2">Made {formatInZone(made.rotated_at, detectZone(), 'MMM d, yyyy')}</span>
-      ) : null}
-      <div className="ml-auto flex gap-2">
-        {feed.isSuccess && (!has || url !== null) ? (
-          <Button
-            size="sm"
-            icon={Copy}
-            loading={rotate.isPending && !has}
-            onClick={() => {
-              if (url !== null) copy(url);
-              else make();
+    <div className="mt-3 border-t border-line">
+      <SettingRow label="Calendar feed" testId="calendar-feed">
+        <div className="flex flex-wrap items-center gap-3">
+          {feed.isPending ? (
+            <span role="status" className="text-xs text-ink-2">
+              Loading...
+            </span>
+          ) : null}
+          {made !== null && url === null ? (
+            <span className="text-sm text-ink-2">Made {formatInZone(made.rotated_at, detectZone(), 'MMM d, yyyy')}</span>
+          ) : null}
+          <div className="flex gap-2">
+            {feed.isSuccess && (!has || url !== null) ? (
+              <Button
+                size="sm"
+                icon={Copy}
+                loading={rotate.isPending && !has}
+                onClick={() => {
+                  if (url !== null) copy(url);
+                  else make();
+                }}
+              >
+                Copy link
+              </Button>
+            ) : null}
+            {has ? (
+              <Button size="sm" icon={RefreshCw} loading={rotate.isPending} onClick={make}>
+                New link
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        {url !== null ? (
+          <input
+            readOnly
+            aria-label="Calendar feed link"
+            value={url}
+            className="mt-2 h-9 w-full max-w-md rounded-md border border-line bg-page px-2.5 text-xs text-ink"
+            onFocus={(e) => {
+              e.target.select();
             }}
-          >
-            Copy link
-          </Button>
+          />
         ) : null}
-        {has ? (
-          <Button size="sm" icon={RefreshCw} loading={rotate.isPending} onClick={make}>
-            New link
-          </Button>
-        ) : null}
-      </div>
-      {url !== null ? (
-        <input
-          readOnly
-          aria-label="Calendar feed link"
-          value={url}
-          className="h-9 w-full rounded-md border border-line bg-page px-2.5 text-xs text-ink"
-          onFocus={(e) => {
-            e.target.select();
-          }}
-        />
-      ) : null}
+      </SettingRow>
     </div>
   );
 }
