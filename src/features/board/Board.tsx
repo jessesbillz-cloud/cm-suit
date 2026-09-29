@@ -15,6 +15,7 @@ import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
 import { BoardLineRow } from './BoardLineRow';
 import { NeedsYou } from './NeedsYou';
+import { TodayReports } from './TodayReports';
 import { useNeedsYou } from './useNeedsYou';
 import { WhatsNew } from './WhatsNew';
 import { useProjectZones } from './zones';
@@ -106,6 +107,7 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
     <div className="mx-auto max-w-4xl">
       <PageHeader title={TOOL_META.board.label} icon={TOOL_META.board.icon} meta={meta} />
       <div className="flex flex-col gap-4">
+        {projectId === null ? <TodayReports /> : null}
         <NeedsYou projectId={projectId} />
         <Card title="Activity" actions={filter} padded={false}>
           {whatsNewEnabled && feed.isSuccess ? (

@@ -9,6 +9,7 @@ import type { DailyPhotoRow, DailyReportRow, DailySetupRow, EmailResult, SubmitR
 import { DataError, conflictError } from '../errors';
 import * as api from './api';
 import { SEED_DAILY } from './boardSeeds';
+import { dailySetupSeeds } from './dailySetupSeeds';
 import { HOURS_SEED_NEXT, hoursSeedReports } from './hoursSeeds';
 import { mockUser } from './index';
 import * as jobs from './jobs';
@@ -37,11 +38,13 @@ const EMPTY: MockDailies = {
   seq: 0,
 };
 
-/** The starting state, with the mock user's past dailies on the inspection job (hours seeds, before today). */
+/** The starting state, with the mock user's past dailies on the inspection job (hours seeds, before today) and their
+ *  setups on the sample jobs (the top of All my jobs). */
 function seeded(): MockDailies {
   const today = todayInZone('America/Los_Angeles');
   return {
     ...EMPTY,
+    setups: dailySetupSeeds(),
     reports: [...EMPTY.reports, ...hoursSeedReports(mockUser().id, today)],
     next: { ...EMPTY.next, ...HOURS_SEED_NEXT },
   };

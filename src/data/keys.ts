@@ -73,4 +73,6 @@ export const qk = {
   /** Every hours query (my hours, contract hours, billing, invoices; 0043) sits under this prefix: one refresh after any write. */
   hours: ['hours'] as const,
   hoursPart: (part: string, id = '') => ['hours', part, id] as const,
+  /** Today's report on each of my jobs (0045): the top of All my jobs. */
+  dailyToday: ['daily_today'] as const,
 };
