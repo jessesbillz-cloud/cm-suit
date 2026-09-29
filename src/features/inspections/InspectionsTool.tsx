@@ -1,6 +1,6 @@
 // Inspections (SPEC §13.2). Requesters see the job's week and their log; inspectors start on their day; the GC review
 // list shows only when the job has the GC step on. What shows is decided by has_capability, never role names.
-import { CalendarOff, Plus } from 'lucide-react';
+import { CalendarOff, Plus, QrCode } from 'lucide-react';
 import { useIrCalendar } from '../../data/inspections.queries';
 import { todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
@@ -11,7 +11,7 @@ import { TOOL_META } from '../../ui/tools';
 import { ChoiceRow } from './ChoiceRow';
 import { DayView } from './DayView';
 import { LogView } from './LogView';
-import { BLOCK_ITEM, NEW_ITEM, VIEW_LABELS, dayMeta, viewsFor, type IrView } from './model';
+import { BLOCK_ITEM, NEW_ITEM, SHARE_ITEM, VIEW_LABELS, dayMeta, viewsFor, type IrView } from './model';
 import { ReviewView } from './ReviewView';
 import { useInspectionsNav } from './useInspectionsNav';
 import { useIrAccess, type IrCan, type IrJob } from './useIrAccess';
@@ -57,6 +57,20 @@ function InspectionsMain({ projectId, itemId, isPhone, can, job }: MainProps) {
         meta={<TodayLine projectId={projectId} today={today} />}
         actions={
           <>
+            {can.share || can.decide ? (
+              <Button
+                icon={QrCode}
+                aria-label={isPhone ? 'Share' : undefined}
+                title="Request link and QR sheet"
+                className={isPhone ? 'h-10' : ''}
+                data-testid="ir-share-open"
+                onClick={() => {
+                  nav.open(SHARE_ITEM);
+                }}
+              >
+                {isPhone ? null : 'Share'}
+              </Button>
+            ) : null}
             {can.decide ? (
               <Button
                 icon={CalendarOff}

@@ -64,3 +64,7 @@ rfis
 # the monthly timesheet; every other read (hours, contract hours, billing, invoices: mine only by RLS) and the signing
 # (sign_timesheet, log_invoice_pdf) run as the user. Nothing is written with the service key.
 timesheets
+# Public endpoint §6.4 #4: the request link and the inspector's hub. Tokens are checked by service-role-only SQL
+# (link_request_*), which answers the job name / the hub's job names and records a sub invite only for the address of
+# the caller's own session (requireUser); rate-limited per IP and per token.
+request-link

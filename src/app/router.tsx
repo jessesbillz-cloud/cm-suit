@@ -6,6 +6,8 @@ import { ShareLink } from '../features/auth/ShareLink';
 import { SignIn } from '../features/auth/SignIn';
 import { NewJobPage } from '../features/setup/NewJobPage';
 import { PublicDeliveries } from '../features/deliveries/PublicDeliveries';
+import { HubPage } from '../features/inspections/HubPage';
+import { RequestLinkPage } from '../features/inspections/RequestLinkPage';
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
@@ -132,6 +134,21 @@ const deliveryLinkRoute = createRoute({
   component: PublicDeliveries,
 });
 
+/** The job's inspection request link (SPEC §6.4 #4): its token, and the hub's id when opened from a hub. */
+function parseRequestLinkSearch(s: Record<string, unknown>): { t?: string; h?: string } {
+  const t = str(s['t']);
+  const h = str(s['h']);
+  return { ...(t ? { t } : {}), ...(h ? { h } : {}) };
+}
+const requestLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/r/$projectId',
+  validateSearch: parseRequestLinkSearch,
+  component: RequestLinkPage,
+});
+/** One link for all the jobs a person takes inspection requests on. */
+const hubRoute = createRoute({ getParentRoute: () => rootRoute, path: '/h/$hubId', validateSearch: parseAccessSearch, component: HubPage });
+
 const allBidsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/all/bids',
@@ -169,6 +186,8 @@ const routeTree = rootRoute.addChildren([
   allBoardRoute.addChildren([allBoardItemRoute]),
   allCalendarRoute.addChildren([allCalendarItemRoute]),
   deliveryLinkRoute,
+  requestLinkRoute,
+  hubRoute,
   allBidsRoute,
   allSettingsRoute,
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),

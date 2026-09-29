@@ -9,6 +9,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { type Client, Report, errText, makeClient, requireEnv, rowsOf } from './_lib';
 import { checkRfis } from './_rfis';
+import { checkRequestLink } from './_requestLink';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -537,10 +538,8 @@ async function main(): Promise<void> {
     for (const [key, u] of users) clients.set(key, await signIn(u));
     const get = (k: UserKey): Client => clientOf(clients, k);
     await report.guard('matrix', 'capability matrix', () => checkMatrix(s, clients));
-    await checkIsolation(s, get('pm'), 'pm (A)');
-    await checkIsolation(s, get('project_admin'), 'org A owner');
-    await checkLockedOut(s, get('expired'), 'access_ends_at passed');
-    await checkLockedOut(s, get('revoked'), 'revoked');
+    for (const [k, label] of [['pm', 'pm (A)'], ['project_admin', 'org A owner']] as const) await checkIsolation(s, get(k), label);
+    for (const [k, label] of [['expired', 'access_ends_at passed'], ['revoked', 'revoked']] as const) await checkLockedOut(s, get(k), label);
     const bids = await seedBids(s, clients);
     await report.guard('bidder wall', 'bidder wall', () => checkBidderWall(s, clients, bids));
     await report.guard('money', 'pricing', () => checkPricing(s, clients));
@@ -549,6 +548,7 @@ async function main(): Promise<void> {
     await report.guard('requests', 'inspection requests', () => checkRequests(s, clients));
     await report.guard('deliveries', 'deliveries', () => checkDeliveries(s, clients));
     await report.guard('rfis', 'rfis', () => checkRfis({ report, service, projectId: s.projA, orgId: s.orgA, run: RUN, as: get }));
+    await report.guard('request link', 'request link', () => checkRequestLink({ report, service, url, anonKey, projectId: s.projA, as: get }));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {

@@ -7,6 +7,8 @@ export interface IrCan {
   viewAll: boolean;
   decide: boolean;
   gcApprove: boolean;
+  /** Share the job's request link (members.manage). */
+  share: boolean;
 }
 
 export interface IrJob {
@@ -28,8 +30,9 @@ export function useIrAccess(projectId: string): Access {
   const viewAll = useCapability(projectId, 'ir.view_all');
   const decide = useCapability(projectId, 'ir.decide');
   const gcApprove = useCapability(projectId, 'ir.gc_approve');
+  const share = useCapability(projectId, 'members.manage');
   const project = useProject(projectId);
-  const queries = [request, viewAll, decide, gcApprove, project];
+  const queries = [request, viewAll, decide, gcApprove, share, project];
 
   const failed = queries.find((q) => q.isError);
   if (failed) {
@@ -41,13 +44,20 @@ export function useIrAccess(projectId: string): Access {
       },
     };
   }
-  if (!project.data || request.data === undefined || viewAll.data === undefined || decide.data === undefined || gcApprove.data === undefined) {
+  if (
+    !project.data ||
+    request.data === undefined ||
+    viewAll.data === undefined ||
+    decide.data === undefined ||
+    gcApprove.data === undefined ||
+    share.data === undefined
+  ) {
     return { state: 'loading' };
   }
   const p = project.data;
   return {
     state: 'ready',
-    can: { request: request.data, viewAll: viewAll.data, decide: decide.data, gcApprove: gcApprove.data },
+    can: { request: request.data, viewAll: viewAll.data, decide: decide.data, gcApprove: gcApprove.data, share: share.data },
     job: {
       id: p.id,
       orgId: p.org_id,

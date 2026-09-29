@@ -53,6 +53,8 @@ function normalizeEmail(email: string): string {
 
 /** Sends the code email (Supabase Auth OTP through Resend SMTP). Creates the auth user if new. */
 export async function sendCode(email: string): Promise<void> {
+  // The e2e mock sends nothing; any code verifies (the mock user stays the signed-in one).
+  if (isMock()) return;
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizeEmail(email),
     options: { shouldCreateUser: true },
@@ -61,6 +63,7 @@ export async function sendCode(email: string): Promise<void> {
 }
 
 export async function verifyCode(email: string, code: string): Promise<void> {
+  if (isMock()) return;
   const { error } = await supabase.auth.verifyOtp({ email: normalizeEmail(email), token: code.trim(), type: 'email' });
   if (error) throw authMessage(error);
 }
