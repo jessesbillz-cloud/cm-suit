@@ -1093,6 +1093,80 @@ export type Database = {
           },
         ]
       }
+      billing_job_rates: {
+        Row: {
+          created_at: string
+          project_id: string
+          rate: number | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          project_id: string
+          rate?: number | null
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          project_id?: string
+          rate?: number | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_job_rates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_profiles: {
+        Row: {
+          address: string
+          bill_to: string
+          business_name: string
+          created_at: string
+          next_invoice_number: number
+          rate: number | null
+          terms: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          address?: string
+          bill_to?: string
+          business_name?: string
+          created_at?: string
+          next_invoice_number?: number
+          rate?: number | null
+          terms?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          address?: string
+          bill_to?: string
+          business_name?: string
+          created_at?: string
+          next_invoice_number?: number
+          rate?: number | null
+          terms?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       calendar_entries: {
         Row: {
           all_day: boolean
@@ -1517,6 +1591,7 @@ export type Database = {
           deleted_at: string | null
           filename: string | null
           header: Json
+          hours: number | null
           id: string
           number: number | null
           org_id: string
@@ -1543,6 +1618,7 @@ export type Database = {
           deleted_at?: string | null
           filename?: string | null
           header?: Json
+          hours?: number | null
           id?: string
           number?: number | null
           org_id: string
@@ -1569,6 +1645,7 @@ export type Database = {
           deleted_at?: string | null
           filename?: string | null
           header?: Json
+          hours?: number | null
           id?: string
           number?: number | null
           org_id?: string
@@ -2640,6 +2717,72 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          bill_to: string
+          created_at: string
+          created_by: string | null
+          from_address: string
+          from_name: string
+          id: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at: string | null
+          period: string
+          sent_at: string | null
+          status: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          bill_to: string
+          created_at?: string
+          created_by?: string | null
+          from_address: string
+          from_name: string
+          id?: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at?: string | null
+          period: string
+          sent_at?: string | null
+          status?: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          bill_to?: string
+          created_at?: string
+          created_by?: string | null
+          from_address?: string
+          from_name?: string
+          id?: string
+          issued_on?: string
+          lines?: Json
+          number?: number
+          paid_at?: string | null
+          period?: string
+          sent_at?: string | null
+          status?: string
+          terms?: string
+          total_amount?: number
+          total_hours?: number
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       ir_blocks: {
         Row: {
           block_date: string
@@ -2760,6 +2903,56 @@ export type Database = {
           sort?: number
         }
         Relationships: []
+      }
+      job_hours_budgets: {
+        Row: {
+          baseline_hours: number
+          baseline_through: string | null
+          contract_hours: number
+          created_at: string
+          created_by: string | null
+          id: string
+          org_id: string
+          project_id: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          baseline_hours?: number
+          baseline_through?: string | null
+          contract_hours: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org_id: string
+          project_id: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          baseline_hours?: number
+          baseline_through?: string | null
+          contract_hours?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          org_id?: string
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_hours_budgets_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
       }
       job_kinds: {
         Row: {
@@ -4450,6 +4643,7 @@ export type Database = {
           deleted_at: string | null
           filename: string | null
           header: Json
+          hours: number | null
           id: string
           number: number | null
           org_id: string
@@ -4793,6 +4987,36 @@ export type Database = {
         }
         Returns: string
       }
+      create_invoice: {
+        Args: { p_period: string }
+        Returns: {
+          bill_to: string
+          created_at: string
+          created_by: string | null
+          from_address: string
+          from_name: string
+          id: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at: string | null
+          period: string
+          sent_at: string | null
+          status: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_org: { Args: { p_kind: string; p_name: string }; Returns: string }
       create_project: {
         Args: {
@@ -4901,6 +5125,7 @@ export type Database = {
           deleted_at: string | null
           filename: string | null
           header: Json
+          hours: number | null
           id: string
           number: number | null
           org_id: string
@@ -5113,6 +5338,7 @@ export type Database = {
           deleted_at: string | null
           filename: string | null
           header: Json
+          hours: number | null
           id: string
           number: number | null
           org_id: string
@@ -5152,6 +5378,14 @@ export type Database = {
         Args: { p_project_id: string; p_scope_id: string; p_scope_type: string }
         Returns: boolean
       }
+      hours_amount_ok: {
+        Args: {
+          p_max: number
+          p_places: number
+          p_value: number
+        }
+        Returns: boolean
+      }
       import_subs: {
         Args: { p_org_id: string; p_rows: Json }
         Returns: {
@@ -5159,6 +5393,14 @@ export type Database = {
           unchanged: number
           updated: number
         }[]
+      }
+      invoice_lines: {
+        Args: { p_owner: string; p_period: string }
+        Returns: Json
+      }
+      invoice_snapshot: {
+        Args: { p_period: string }
+        Returns: Json
       }
       ir_assign_helper: {
         Args: { p_helper_id?: string; p_request_id: string; p_version: number }
@@ -6504,6 +6746,10 @@ export type Database = {
         }
         Returns: Json
       }
+      log_invoice_pdf: {
+        Args: { p_invoice_id: string; p_sha256: string }
+        Returns: undefined
+      }
       log_view: {
         Args: {
           p_entity_id: string
@@ -6652,6 +6898,36 @@ export type Database = {
           receipt_number: number
           submission_id: string
         }[]
+      }
+      refresh_invoice: {
+        Args: { p_invoice_id: string; p_version: number }
+        Returns: {
+          bill_to: string
+          created_at: string
+          created_by: string | null
+          from_address: string
+          from_name: string
+          id: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at: string | null
+          period: string
+          sent_at: string | null
+          status: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       register_file: {
         Args: {
@@ -7652,6 +7928,35 @@ export type Database = {
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
       rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
+      save_billing_profile: {
+        Args: {
+          p_address: string
+          p_bill_to: string
+          p_business_name: string
+          p_next_invoice_number: number
+          p_rate: number
+          p_terms: string
+          p_version?: number
+        }
+        Returns: {
+          address: string
+          bill_to: string
+          business_name: string
+          created_at: string
+          next_invoice_number: number
+          rate: number | null
+          terms: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_daily_content: {
         Args: { p_content: Json; p_report_id: string; p_version: number }
         Returns: {
@@ -7663,6 +7968,7 @@ export type Database = {
           deleted_at: string | null
           filename: string | null
           header: Json
+          hours: number | null
           id: string
           number: number | null
           org_id: string
@@ -7740,6 +8046,34 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "daily_setups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_hours_budget: {
+        Args: {
+          p_baseline: number
+          p_contract: number
+          p_project_id: string
+          p_through: string
+          p_version?: number
+        }
+        Returns: {
+          baseline_hours: number
+          baseline_through: string | null
+          contract_hours: number
+          created_at: string
+          created_by: string | null
+          id: string
+          org_id: string
+          project_id: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_hours_budgets"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -7831,9 +8165,92 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_daily_hours: {
+        Args: { p_hours: number; p_report_id: string; p_version: number }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          header: Json
+          hours: number | null
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_daily_start_number: {
         Args: { p_project_id: string; p_report_type: string; p_start: number }
         Returns: number
+      }
+      set_invoice_status: {
+        Args: { p_invoice_id: string; p_status: string; p_version: number }
+        Returns: {
+          bill_to: string
+          created_at: string
+          created_by: string | null
+          from_address: string
+          from_name: string
+          id: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at: string | null
+          period: string
+          sent_at: string | null
+          status: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_job_rate: {
+        Args: { p_project_id: string; p_rate: number; p_version?: number }
+        Returns: {
+          created_at: string
+          project_id: string
+          rate: number | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "billing_job_rates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_org_logo: {
         Args: { p_org_id: string; p_path: string }
@@ -7860,6 +8277,14 @@ export type Database = {
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }
         Returns: undefined
+      }
+      sign_timesheet: {
+        Args: {
+          p_content_hash: string
+          p_org_id: string
+          p_period: string
+        }
+        Returns: string
       }
       signed_in_recently: { Args: never; Returns: boolean }
       signin_key_email: { Args: { p_token_hash: string }; Returns: string }

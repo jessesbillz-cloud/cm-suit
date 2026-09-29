@@ -218,13 +218,26 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['rfi_tell', { p_rfi_id: U, p_kind: 'probe', p_summary: 'probe', p_people: [] }],
   ['set_org_logo', { p_org_id: U, p_path: null }],
   ['org_logo_org', { p_name: `org/${U}/logo` }],
+  // Hours, billing and invoices (0043)
+  ['set_daily_hours', { p_report_id: U, p_version: 1, p_hours: 8 }],
+  ['save_hours_budget', { p_project_id: U, p_contract: 1, p_baseline: 0, p_through: null }],
+  ['save_billing_profile', { p_business_name: 'probe', p_address: '', p_bill_to: '', p_terms: '', p_rate: 1, p_next_invoice_number: 1 }],
+  ['set_job_rate', { p_project_id: U, p_rate: 1 }],
+  ['create_invoice', { p_period: '2026-01-01' }],
+  ['refresh_invoice', { p_invoice_id: U, p_version: 1 }],
+  ['set_invoice_status', { p_invoice_id: U, p_version: 1, p_status: 'paid' }],
+  ['log_invoice_pdf', { p_invoice_id: U, p_sha256: 'a'.repeat(64) }],
+  ['sign_timesheet', { p_period: '2026-01-01', p_org_id: U, p_content_hash: 'a'.repeat(64) }],
+  ['invoice_lines', { p_owner: U, p_period: '2026-01-01' }],
+  ['invoice_snapshot', { p_period: '2026-01-01' }],
+  ['hours_amount_ok', { p_value: 1, p_max: 1, p_places: 1 }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
   'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health',
   'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs', 'submit-daily', 'email-daily',
-  'ir-pdf', 'ir-send', 'rfis',
+  'ir-pdf', 'ir-send', 'rfis', 'timesheets',
 ];
 /** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
  *  Add request-link (Phase 3) when it ships. calendar-feed is GET-only, so a POST is a 400. */

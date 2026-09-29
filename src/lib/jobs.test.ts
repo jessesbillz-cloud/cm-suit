@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allJobsRail, allJobsTool, defaultStage, isBidStage, jobRail, railForAllJobs, railForJob, stageLabel, toolIsOn } from './jobs';
+import { allJobsRail, allJobsTool, defaultStage, isBidStage, jobRail, jobTool, railForAllJobs, railForJob, stageLabel, toolIsOn } from './jobs';
 
 describe('jobs', () => {
   it('a switched-off module leaves the rail; board and people always stay', () => {
@@ -45,6 +45,26 @@ describe('jobs', () => {
   it('tools that are not modules are always on', () => {
     expect(toolIsOn('settings', [])).toBe(true);
     expect(toolIsOn('bids', ['files'])).toBe(false);
+  });
+  it('Hours: on where the job has it; Timesheets comes with it and never sits on a job', () => {
+    const modules = ['files', 'dailies', 'hours'];
+    expect(toolIsOn('hours', ['files'])).toBe(false);
+    expect(toolIsOn('timesheets', modules)).toBe(true);
+    expect(jobRail(null, ['board', 'dailies', 'hours'], modules)).toEqual({ rail: ['board', 'dailies', 'hours'], more: ['files', 'people'] });
+    expect(jobRail(['hours', 'timesheets'], [], modules).rail).toEqual(['hours']);
+  });
+  it('All my jobs: Timesheets for people who keep hours on a job that has Hours', () => {
+    const jobs = [['bids', 'calendar'], ['calendar', 'hours']];
+    expect(allJobsRail(null, jobs, [['board'], ['board', 'hours']]).rail).toEqual(['board', 'calendar', 'bids', 'timesheets']);
+    expect(allJobsRail(null, jobs, [['board'], ['board', 'calendar']]).rail).toEqual(['board', 'calendar', 'bids']);
+    expect(allJobsRail(null, [['calendar']], [['board', 'hours']]).rail).toEqual(['board', 'calendar']);
+    expect(allJobsRail(['board', 'hours'], jobs, [])).toEqual({ rail: ['board'], more: ['calendar', 'bids', 'timesheets'] });
+  });
+  it('Hours and Timesheets land on each other between a job and All my jobs', () => {
+    expect(allJobsTool('hours')).toBe('timesheets');
+    expect(allJobsTool('timesheets')).toBe('timesheets');
+    expect(jobTool('timesheets')).toBe('hours');
+    expect(jobTool('dailies')).toBe('dailies');
   });
   it('prefills the stage from the company kind', () => {
     expect(defaultStage('gc')).toBe('bidding');

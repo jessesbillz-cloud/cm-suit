@@ -7,10 +7,12 @@ import { useEmailDaily, useSubmitDaily } from '../../data/dailies.mutations';
 import type { DailyReportRow, EmailResult } from '../../data/dailies.types';
 import { downloadErrorMessage, downloadFile } from '../../data/download';
 import { messageOf } from '../../data/errors';
+import { useMyProjects } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { SignButton } from '../auth/SignButton';
+import { HoursPrompt } from '../hours/HoursPrompt';
 
 /** The one signing button, sized for the bar (its own wrapper is SignButton's; only the button grows). */
 const SIGN = 'ml-auto min-w-0 [&>div>button]:h-11 [&>div>button]:px-6 [&>div>button]:text-base';
@@ -41,11 +43,23 @@ function SentLines({ result }: SentLinesProps) {
 }
 
 interface SubmittedPanelProps {
+  projectId: string;
   report: DailyReportRow;
   recipients: readonly string[];
 }
 
-function SubmittedPanel({ report, recipients }: SubmittedPanelProps) {
+/** MDR's hours prompt after submit, on jobs that keep hours (the Hours tool is on). */
+function Hours({ projectId, report }: { projectId: string; report: DailyReportRow }) {
+  const jobs = useMyProjects();
+  if (!jobs.data?.find((p) => p.project_id === projectId)?.modules.includes('hours')) return null;
+  return (
+    <div className="border-t border-line pt-3">
+      <HoursPrompt key={report.id} projectId={projectId} reportId={report.id} version={report.version} hours={report.hours} />
+    </div>
+  );
+}
+
+function SubmittedPanel({ projectId, report, recipients }: SubmittedPanelProps) {
   const email = useEmailDaily();
   const toast = useToast();
   const [downloading, setDownloading] = useState(false);
@@ -116,6 +130,7 @@ function SubmittedPanel({ report, recipients }: SubmittedPanelProps) {
       </div>
       <p className="break-words text-xs text-ink-3">{recipients.length > 0 ? `To: ${recipients.join(', ')}` : 'No recipients. Add them in Setup.'}</p>
       {email.data ? <SentLines result={email.data} /> : null}
+      <Hours projectId={projectId} report={report} />
     </div>
   );
 }
@@ -143,7 +158,7 @@ export function SubmitArea({ projectId, report, stale, ready, recipients, savedV
     onSigned();
   };
 
-  if (report.status === 'submitted' && !stale) return <SubmittedPanel report={report} recipients={recipients} />;
+  if (report.status === 'submitted' && !stale) return <SubmittedPanel projectId={projectId} report={report} recipients={recipients} />;
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <div className="flex min-w-0 flex-1 flex-col gap-1">

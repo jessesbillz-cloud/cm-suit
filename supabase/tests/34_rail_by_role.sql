@@ -37,16 +37,16 @@ grant all on ids to public;
 select has_column('public', 'roles', 'recommended_tools', 'roles carry a recommended rail');
 select col_not_null('public', 'roles', 'recommended_tools', 'the recommended rail is never null');
 select is_empty($$ select name from public.roles
-                    where cardinality(recommended_tools) not between 1 and 6
+                    where cardinality(recommended_tools) not between 1 and 7
                        or cardinality(recommended_tools) <> (select count(distinct t) from unnest(recommended_tools) t) $$,
-  'every role has a lean rail: 1 to 6 tools, none twice');
+  'every role has a lean rail: 1 to 7 tools, none twice');
 select is_empty($$ select name from public.roles
-                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,rfis,deliveries,corrections,people}' $$,
+                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,rfis,deliveries,corrections,people,hours}' $$,
   'recommendations name only rail tools');
 select is_empty($$ select name from public.roles where 'board' = any (recommended_tools) and recommended_tools[1] <> 'board' $$,
   'Board comes first wherever it is recommended');
 select is((select recommended_tools from public.roles where name = 'inspector'),
-  '{board,calendar,dailies,inspections,corrections,files}'::text[], 'the inspector''s starting rail');
+  '{board,calendar,dailies,inspections,corrections,files,hours}'::text[], 'the inspector''s starting rail (Hours from 0043)');
 select ok(not has_function_privilege('anon', 'public.my_recommended_tools(uuid)', 'EXECUTE')
           and not has_function_privilege('anon', 'public.my_tool_counts(uuid)', 'EXECUTE'), 'anon calls neither function');
 select ok(not (select prosecdef from pg_proc where oid = 'public.my_recommended_tools(uuid)'::regprocedure)
@@ -76,7 +76,7 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000342');
 select is((select tools from public.my_recommended_tools('c0000000-0000-0000-0000-000000000341')),
   '{board,deliveries,people}'::text[], 'changing the data changes the rail (no role names in code)');
 reset role;
-update public.roles set recommended_tools = '{board,calendar,dailies,inspections,corrections,files}' where name = 'inspector';
+update public.roles set recommended_tools = '{board,calendar,dailies,inspections,corrections,files,hours}' where name = 'inspector';
 set local role authenticated;
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000344');

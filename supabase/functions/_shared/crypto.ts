@@ -80,3 +80,10 @@ export function base64UrlToText(seg: string): string {
   const b64 = seg.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(seg.length / 4) * 4, '=');
   return new TextDecoder().decode(base64ToBytes(b64));
 }
+
+/** Encodes bytes as standard base64 (a PDF handed back in a JSON answer), in chunks so a large file never overflows. */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}

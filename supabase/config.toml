@@ -148,3 +148,7 @@ verify_jwt = false
 [functions.key-login]
 verify_jwt = false
 
+
+# --- Hours: my monthly timesheet (signed) and invoice PDFs ---
+[functions.timesheets]
+verify_jwt = true

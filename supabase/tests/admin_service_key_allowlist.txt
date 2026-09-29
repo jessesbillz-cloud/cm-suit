@@ -60,3 +60,7 @@ key-login
 # requireCapability('rfi.create_draft' / 'rfi.sign_issue') with rfi_sign_send() / rfi_sign_issue(), rfi_detail() or
 # rfi_authorize_file() run as the user first.
 rfis
+# Reads the company logo bytes from private storage (orgs.logo_path read as the caller, who is on one of its jobs) for
+# the monthly timesheet; every other read (hours, contract hours, billing, invoices: mine only by RLS) and the signing
+# (sign_timesheet, log_invoice_pdf) run as the user. Nothing is written with the service key.
+timesheets

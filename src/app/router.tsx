@@ -9,7 +9,7 @@ import { PublicDeliveries } from '../features/deliveries/PublicDeliveries';
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
-import { AllBidsRoute, AllBoardRoute, AllCalendarRoute, AllSettingsRoute, ProjectToolRoute } from './frame/FrameRoute';
+import { AllBidsRoute, AllBoardRoute, AllCalendarRoute, AllSettingsRoute, AllTimesheetsRoute, ProjectToolRoute } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
 import { RootLayout } from './RootLayout';
 
@@ -140,6 +140,24 @@ const allBidsRoute = createRoute({
 });
 const allSettingsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/all/settings', component: AllSettingsRoute });
 
+/** Timesheets (all my jobs): the month (?day=yyyy-MM-01), the company (?org=) and "open in new window". */
+function parseTimesheetsSearch(s: Record<string, unknown>): { day?: string; org?: string; window?: '1' } {
+  const day = str(s['day']);
+  const org = str(s['org']);
+  return {
+    ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
+    ...(org ? { org } : {}),
+    ...(s['window'] === '1' || s['window'] === 1 ? { window: '1' as const } : {}),
+  };
+}
+const allTimesheetsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/all/timesheets',
+  validateSearch: parseTimesheetsSearch,
+  component: AllTimesheetsRoute,
+});
+const allTimesheetsItemRoute = createRoute({ getParentRoute: () => allTimesheetsRoute, path: '$itemId' });
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -153,6 +171,7 @@ const routeTree = rootRoute.addChildren([
   deliveryLinkRoute,
   allBidsRoute,
   allSettingsRoute,
+  allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });
