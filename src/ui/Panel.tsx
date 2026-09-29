@@ -15,7 +15,7 @@ interface PanelScreenProps {
 export function PanelScreen({ top, children, bottom }: PanelScreenProps) {
   return (
     <div className="flex h-[100dvh] flex-col bg-page">
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-card px-2 pt-[env(safe-area-inset-top)]">
+      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-card px-2 pt-[env(safe-area-inset-top)]">
         {top}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>

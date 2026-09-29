@@ -1,6 +1,6 @@
 // Loading, empty and error look different on every screen (CLAUDE.md rule 6). Three components, used everywhere.
 import type { ReactNode } from 'react';
-import { CircleAlert, Inbox, LoaderCircle } from 'lucide-react';
+import { CircleAlert, Inbox, LoaderCircle, type LucideIcon } from 'lucide-react';
 import { Icon } from './Icon';
 import { Button } from './Button';
 
@@ -17,13 +17,17 @@ interface EmptyStateProps {
   title: string;
   hint?: ReactNode | undefined;
   action?: ReactNode | undefined;
+  /** The tool's own icon, so an empty screen still says where you are. */
+  icon?: LucideIcon | undefined;
 }
 
-export function EmptyState({ title, hint, action }: EmptyStateProps) {
+export function EmptyState({ title, hint, action, icon = Inbox }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-      <Icon icon={Inbox} size={22} className="text-ink-3" />
-      <p className="text-sm font-medium text-ink">{title}</p>
+    <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
+      <span className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent">
+        <Icon icon={icon} size={22} />
+      </span>
+      <p className="text-[15px] font-semibold text-ink">{title}</p>
       {hint ? <p className="max-w-sm text-sm text-ink-2">{hint}</p> : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>

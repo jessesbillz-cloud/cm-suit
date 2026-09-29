@@ -1,4 +1,4 @@
-// The desktop frame (SPEC §7.2): job picker top-left, then rail / main area / right column. Bounded: nothing drags
+// The desktop frame (SPEC §7.2): the rail down the left, then the top bar (job picker) over main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
 import { DockedBoard } from '../../features/board/DockedBoard';
 import { TodayPanel } from '../../features/board/TodayPanel';
@@ -42,54 +42,63 @@ export function Frame({ model, folderId }: FrameProps) {
   const rightFull = showRight && !rightCollapsed && model.rightFull;
 
   return (
-    <div className="flex h-screen flex-col bg-page">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-card px-2">
-        <JobPicker
-          projects={model.projects}
-          recentIds={choices.recent_project_ids}
-          currentId={loc.projectId}
-          onPick={model.pickJob}
-          onNewJob={model.newJob}
-        />
-        <div className="ml-auto pr-2">
-          <ViewAs />
+    <div className="flex h-screen bg-page">
+      <Rail
+        items={model.railItems}
+        current={loc.tool}
+        collapsed={choices.collapsed.rail}
+        onSelect={model.selectTool}
+        onToggleCollapsed={() => {
+          model.save({
+            collapsed: { ...choices.collapsed, rail: !choices.collapsed.rail },
+          });
+        }}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-3">
+          <JobPicker
+            projects={model.projects}
+            recentIds={choices.recent_project_ids}
+            currentId={loc.projectId}
+            onPick={model.pickJob}
+            onNewJob={model.newJob}
+          />
+          <div className="ml-auto">
+            <ViewAs />
+          </div>
+        </header>
+        <div className="flex min-h-0 flex-1">
+          {rightFull ? null : (
+            <main data-testid="main-area" data-tool={loc.tool} className="min-w-0 flex-1 overflow-auto p-4">
+              <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
+            </main>
+          )}
+          {showRight ? (
+            <RightColumn
+              title={itemOpen ? itemTitle(loc.tool) : loc.tool === 'board' ? 'Today' : 'Board'}
+              collapsed={rightCollapsed}
+              full={rightFull}
+              onToggleCollapsed={() => {
+                model.save({
+                  collapsed: {
+                    ...choices.collapsed,
+                    right: !choices.collapsed.right,
+                  },
+                });
+              }}
+              onToggleFull={() => {
+                model.setRightFull(!model.rightFull);
+              }}
+              onCloseItem={itemOpen ? model.closeItem : undefined}
+            >
+              {loc.itemId !== null ? (
+                <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone={false} />
+              ) : (
+                <Docked model={model} />
+              )}
+            </RightColumn>
+          ) : null}
         </div>
-      </header>
-      <div className="flex min-h-0 flex-1">
-        <Rail
-          items={model.railItems}
-          current={loc.tool}
-          collapsed={choices.collapsed.rail}
-          onSelect={model.selectTool}
-          onToggleCollapsed={() => {
-            model.save({ collapsed: { ...choices.collapsed, rail: !choices.collapsed.rail } });
-          }}
-        />
-        {rightFull ? null : (
-          <main data-testid="main-area" data-tool={loc.tool} className="min-w-0 flex-1 overflow-auto p-4">
-            <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
-          </main>
-        )}
-        {showRight ? (
-          <RightColumn
-            title={itemOpen ? itemTitle(loc.tool) : loc.tool === 'board' ? 'Today' : 'Board'}
-            collapsed={rightCollapsed}
-            full={rightFull}
-            onToggleCollapsed={() => {
-              model.save({ collapsed: { ...choices.collapsed, right: !choices.collapsed.right } });
-            }}
-            onToggleFull={() => {
-              model.setRightFull(!model.rightFull);
-            }}
-            onCloseItem={itemOpen ? model.closeItem : undefined}
-          >
-            {loc.itemId !== null ? (
-              <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone={false} />
-            ) : (
-              <Docked model={model} />
-            )}
-          </RightColumn>
-        ) : null}
       </div>
     </div>
   );

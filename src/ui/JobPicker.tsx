@@ -56,6 +56,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
 
   const current = projects.find((p) => p.project_id === currentId);
   const label = currentId === null ? ALL_JOBS_LABEL : (current?.name ?? 'Pick a job');
+  const sub = currentId === null ? `${String(projects.length)} ${projects.length === 1 ? 'job' : 'jobs'}` : current ? detailOf(current) : '';
 
   function close() {
     setOpen(false);
@@ -75,20 +76,23 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
         data-testid="job-picker"
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-9 max-w-[18rem] items-center gap-2 rounded-md px-2.5 text-sm font-semibold text-ink hover:bg-page"
+        className="flex h-11 max-w-[22rem] items-center gap-2 rounded-lg px-2.5 text-left text-ink hover:bg-page"
         onClick={() => {
           if (open) close();
           else setOpen(true);
         }}
       >
-        <span className="truncate">{label}</span>
-        <Icon icon={ChevronDown} size={16} className="text-ink-2" />
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className="truncate text-[15px] font-semibold">{label}</span>
+          {sub ? <span className="truncate text-xs text-ink-2">{sub}</span> : null}
+        </span>
+        <Icon icon={ChevronDown} size={16} className="shrink-0 text-ink-2" />
       </button>
       {open ? (
         <>
           {/* Backdrop: clicking outside closes the menu without a document listener. */}
           <div className="fixed inset-0 z-30" aria-hidden="true" onClick={close} />
-          <div className="absolute left-0 top-10 z-40 w-80 rounded-card bg-card shadow-pop">
+          <div className="absolute left-0 top-12 z-40 w-80 rounded-card bg-card shadow-pop">
             <div className="flex items-center gap-2 border-b border-line px-3">
               <Icon icon={Search} size={16} className="text-ink-3" />
               <input

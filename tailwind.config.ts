@@ -16,6 +16,8 @@ export default {
         danger: { DEFAULT: '#DC2626', soft: '#FEF2F2' },
         // The one amber highlight: impact claimed (row, box edge, icon).
         impact: { row: '#FFF7E6', edge: '#F3D7A6', ink: '#B45309' },
+        // The tool rail: a dark navy strip down the left, so the white work area reads as the page.
+        rail: { DEFAULT: '#0F1A2B', hover: '#1B2A40', active: '#24364F', ink: '#8D9BB0', line: '#22324A' },
       },
       boxShadow: {
         // Hairline edge + contact shadow + soft lift.
@@ -25,9 +27,9 @@ export default {
         control: '0 1px 2px rgba(16,24,40,.06)',
         primary: 'inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(16,24,40,.22)',
       },
-      borderRadius: { card: '8px' },
+      borderRadius: { card: '10px' },
       fontFamily: { sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'] },
-      width: { rail: '112px', 'rail-open': '208px', right: '420px' },
+      width: { rail: '96px', 'rail-open': '208px', right: '420px' },
     },
   },
   plugins: [],
