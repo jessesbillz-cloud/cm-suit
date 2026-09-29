@@ -1,15 +1,17 @@
 // Corrections log / punchlist (SPEC §13.4, §7.4). The log in the main area; a row, New and Progress open in the right
 // column (full screen on the phone). On the phone, New goes straight to the camera, then the form.
-import { useEffect, useRef, useState } from 'react';
-import { Camera, ChartColumn, Plus, Search } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Camera, ChartColumn, Plus } from 'lucide-react';
 import { useCorrections } from '../../data/corrections.queries';
 import { useProject } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { Icon } from '../../ui/Icon';
+import { PageHeader } from '../../ui/PageHeader';
+import { SearchBox } from '../../ui/SearchBox';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { CorrectionsLog } from './CorrectionsLog';
-import { NEW_ITEM, PROGRESS_ITEM, openTarget, visibleRows } from './model';
+import { NEW_ITEM, PROGRESS_ITEM, logSummary, openTarget, visibleRows } from './model';
 import { NewCorrection } from './NewCorrection';
 import { useCorrectionCaps } from './useCorrectionCaps';
 import { useCorrectionsNav } from './useCorrectionsNav';
@@ -20,33 +22,21 @@ interface CorrectionsToolProps {
   isPhone: boolean;
 }
 
-interface SearchBoxProps {
-  initial: string;
-  onChange: (q: string) => void;
-  onEnter: (q: string) => void;
+const META = TOOL_META.corrections;
+
+interface FrameProps {
+  meta?: string | undefined;
+  actions?: ReactNode;
+  below?: ReactNode;
+  children: ReactNode;
 }
 
-function SearchBox({ initial, onChange, onEnter }: SearchBoxProps) {
-  const [text, setText] = useState(initial);
+function Frame({ meta, actions, below, children }: FrameProps) {
   return (
-    <label className="flex h-9 items-center gap-2 rounded-md border border-line bg-card px-3 text-sm focus-within:border-accent">
-      <Icon icon={Search} size={16} className="text-ink-3" />
-      <input
-        type="search"
-        aria-label="Search corrections"
-        placeholder="Search"
-        data-testid="cn-search"
-        className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ink-3"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          onChange(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onEnter(text);
-        }}
-      />
-    </label>
+    <div className="mx-auto flex max-w-5xl flex-col">
+      <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
+      {children}
+    </div>
   );
 }
 
@@ -101,14 +91,16 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
   const project = useProject(projectId);
   const [shots, setShots] = useState<File[] | null>(null);
 
-  if (error) return <ErrorState error={error} onRetry={retry} />;
-  if (project.isError) return <ErrorState error={project.error} onRetry={() => void project.refetch()} />;
-  if (!caps || project.isPending) return <LoadingState label="Loading corrections" />;
+  if (error) return <Frame><ErrorState error={error} onRetry={retry} /></Frame>;
+  if (project.isError) return <Frame><ErrorState error={project.error} onRetry={() => void project.refetch()} /></Frame>;
+  if (!caps || project.isPending) return <Frame><Card><LoadingState label="Loading corrections" /></Card></Frame>;
   if (!caps.view) {
     return (
-      <Card>
-        <EmptyState title="No corrections for you on this job." />
-      </Card>
+      <Frame>
+        <Card>
+          <EmptyState icon={META.icon} title="No corrections for you on this job." />
+        </Card>
+      </Frame>
     );
   }
 
@@ -133,68 +125,76 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
 
   const rows = list.data ?? [];
   const visible = visibleRows(rows, nav.query, nav.sort);
+  const openNew = () => {
+    nav.open(NEW_ITEM);
+  };
   const newButton = !caps.create ? null : isPhone ? (
     <PhoneNew onPicked={setShots} />
   ) : (
-    <Button
-      variant="primary"
-      icon={Plus}
-      data-testid="cn-new"
-      onClick={() => {
-        nav.open(NEW_ITEM);
-      }}
-    >
+    <Button variant="primary" icon={Plus} data-testid="cn-new" onClick={openNew}>
       New
     </Button>
   );
+  const actions = (
+    <>
+      <Button
+        icon={ChartColumn}
+        data-testid="cn-progress-open-button"
+        onClick={() => {
+          nav.open(PROGRESS_ITEM);
+        }}
+      >
+        Progress
+      </Button>
+      {newButton}
+    </>
+  );
+  const search =
+    rows.length > 0 ? (
+      <SearchBox
+        label="Search corrections"
+        placeholder="Number, title or trade"
+        initial={nav.query}
+        testId="cn-search"
+        onChange={nav.setQuery}
+        onEnter={(q) => {
+          const target = openTarget(rows, visibleRows(rows, q, nav.sort), q);
+          if (target) nav.open(target.id);
+        }}
+      />
+    ) : undefined;
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-3">
-      <Card
-        padded={false}
-        title="Corrections"
-        actions={
-          <>
-            <Button
-              variant="quiet"
-              icon={ChartColumn}
-              data-testid="cn-progress-open-button"
-              onClick={() => {
-                nav.open(PROGRESS_ITEM);
-              }}
-            >
-              Progress
-            </Button>
-            {newButton}
-          </>
-        }
-      >
-        <div className="flex flex-col gap-3 p-3">
-          <SearchBox
-            initial={nav.query}
-            onChange={nav.setQuery}
-            onEnter={(q) => {
-              const target = openTarget(rows, visibleRows(rows, q, nav.sort), q);
-              if (target) nav.open(target.id);
-            }}
+    <Frame meta={rows.length > 0 ? logSummary(rows) : undefined} actions={actions} below={search}>
+      <Card padded={false} className="overflow-hidden">
+        {list.isPending ? <LoadingState label="Loading corrections" /> : null}
+        {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : null}
+        {list.data?.length === 0 ? (
+          <EmptyState
+            icon={META.icon}
+            title="No corrections yet."
+            action={
+              caps.create && !isPhone ? (
+                <Button variant="primary" icon={Plus} onClick={openNew}>
+                  New correction
+                </Button>
+              ) : undefined
+            }
           />
-          {list.isPending ? <LoadingState label="Loading corrections" /> : null}
-          {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : null}
-          {list.data?.length === 0 ? <EmptyState title="No corrections yet." /> : null}
-          {rows.length > 0 && visible.length === 0 ? <p className="px-3 py-6 text-center text-sm text-ink-2">Nothing matches.</p> : null}
-          {visible.length > 0 ? (
-            <CorrectionsLog
-              rows={visible}
-              timeZone={project.data.timezone}
-              selectedId={itemId}
-              sort={nav.sort}
-              onSort={nav.setSort}
-              onOpen={nav.open}
-              isPhone={isPhone}
-            />
-          ) : null}
-        </div>
+        ) : null}
+        {rows.length > 0 && visible.length === 0 ? <p className="px-4 py-12 text-center text-sm text-ink-2">Nothing matches.</p> : null}
+        {visible.length > 0 ? (
+          <CorrectionsLog
+            rows={visible}
+            timeZone={project.data.timezone}
+            selectedId={itemId}
+            sort={nav.sort}
+            onSort={nav.setSort}
+            onOpen={nav.open}
+            isPhone={isPhone}
+          />
+        ) : null}
       </Card>
-    </div>
+    </Frame>
   );
 }

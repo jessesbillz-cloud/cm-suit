@@ -5,6 +5,7 @@ import { useCorrectionFileUpload, useCorrectionStep } from '../../data/correctio
 import { STEP_PHOTO_LIMIT, type CorrectionRow, type CorrectionStep } from '../../data/corrections.types';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
+import { FIELD_AREA, FIELD_LABEL } from '../../ui/Fields';
 import { STEP_LABELS, stepDone } from './model';
 import { PhotoPicker } from './PhotoPicker';
 import { usePhotoUploads } from './usePhotoUploads';
@@ -17,7 +18,7 @@ interface StepFormProps {
   onDone: () => void;
 }
 
-const AREA = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
+const AREA = FIELD_AREA;
 
 export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
   const move = useCorrectionStep();
@@ -44,14 +45,14 @@ export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-card border border-line p-3"
+      className="flex flex-col gap-3 rounded-lg border border-line p-3.5"
       data-testid="cn-step-form"
       onSubmit={(e) => {
         e.preventDefault();
         confirm();
       }}
     >
-      <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+      <label className={FIELD_LABEL}>
         Note
         <textarea
           rows={3}

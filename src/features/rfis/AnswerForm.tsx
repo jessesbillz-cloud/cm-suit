@@ -60,7 +60,7 @@ export function AnswerForm({ row, onDone }: AnswerFormProps) {
   const failed = files.some((f) => f.error !== null);
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-line p-3" data-testid="rfi-answer-form">
+    <div className="flex flex-col gap-3 rounded-lg border border-line p-3.5" data-testid="rfi-answer-form">
       <NoteField label="Answer" value={text} onChange={setText} testId="rfi-answer-text" rows={6} autoFocus />
       <input
         ref={input}
@@ -77,7 +77,7 @@ export function AnswerForm({ row, onDone }: AnswerFormProps) {
       {files.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {files.map((f) => (
-            <li key={f.key} className="flex items-center gap-2 rounded-md border border-line px-2 py-1 text-sm">
+            <li key={f.key} className="flex items-center gap-2 rounded-lg border border-line py-1 pl-3 pr-1 text-sm">
               {f.fileId === null && f.error === null ? <Icon icon={LoaderCircle} size={14} className="animate-spin text-ink-2" /> : null}
               <span className={`min-w-0 flex-1 break-words ${f.error ? 'text-danger' : 'text-ink'}`}>{f.error ? `${f.name}: ${f.error}` : f.name}</span>
               <Button

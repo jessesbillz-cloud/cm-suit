@@ -30,27 +30,55 @@ interface DeliveryCardProps {
   tz: string;
   size?: 'normal' | 'tv' | undefined;
   onOpen?: (() => void) | undefined;
+  /** Open in the right column: the accent tint and bar. */
+  selected?: boolean | undefined;
 }
 
-export function DeliveryCard({ delivery: d, tz, size = 'normal', onOpen }: DeliveryCardProps) {
-  const tv = size === 'tv';
+/** The TV card, unchanged: big type in its own bordered box. */
+function TvCard({ delivery: d, tz }: { delivery: CardDelivery; tz: string }) {
+  return (
+    <li data-testid="delivery-card">
+      <div className="flex w-full items-start gap-3 rounded-card border border-line bg-card px-5 py-4 text-left">
+        <span className="w-64 shrink-0 text-3xl font-semibold tabular-nums text-ink">{timeRange(d, tz)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block break-words text-3xl font-semibold text-ink">{d.company}</span>
+          <span className="block break-words text-2xl text-ink-2">{d.description}</span>
+        </span>
+        {d.standby ? <StandbyChip /> : null}
+      </div>
+    </li>
+  );
+}
+
+export function DeliveryCard({ delivery: d, tz, size = 'normal', onOpen, selected = false }: DeliveryCardProps) {
+  if (size === 'tv') return <TvCard delivery={d} tz={tz} />;
   const meta = [durationLabel(d.duration_min), `#${String(d.number)}`, d.posted_name].filter(Boolean).join(' · ');
+  const tbd = d.starts_at === null;
   const body = (
     <>
-      <span className={`shrink-0 font-semibold tabular-nums text-ink ${tv ? 'w-64 text-3xl' : 'w-32 text-sm'}`}>{timeRange(d, tz)}</span>
+      <span className={`w-[7.5rem] shrink-0 pt-px text-sm font-semibold tabular-nums sm:w-36 ${tbd ? 'text-ink-3' : 'text-ink'}`}>{timeRange(d, tz)}</span>
       <span className="min-w-0 flex-1">
-        <span className={`block break-words font-semibold text-ink ${tv ? 'text-3xl' : 'text-sm'}`}>{d.company}</span>
-        <span className={`block break-words text-ink-2 ${tv ? 'text-2xl' : 'text-sm'}`}>{d.description}</span>
-        {tv ? null : <span className="block text-xs text-ink-3">{meta}</span>}
+        <span className="block break-words text-sm font-semibold text-ink">{d.company}</span>
+        {d.description !== '' ? <span className="block break-words text-sm text-ink-2">{d.description}</span> : null}
+        <span className="mt-0.5 block text-xs tabular-nums text-ink-3">{meta}</span>
       </span>
-      {d.standby ? <StandbyChip /> : null}
+      {d.standby ? (
+        <span className="shrink-0">
+          <StandbyChip />
+        </span>
+      ) : null}
     </>
   );
-  const cls = `flex w-full items-start gap-3 rounded-card border border-line bg-card text-left ${tv ? 'px-5 py-4' : 'px-3 py-2'}`;
+  const cls = 'flex min-h-[52px] w-full items-start gap-3 px-4 py-3 text-left';
   return (
     <li data-testid="delivery-card">
       {onOpen ? (
-        <button type="button" className={`${cls} hover:bg-page`} onClick={onOpen}>
+        <button
+          type="button"
+          aria-current={selected ? 'true' : undefined}
+          className={`${cls} transition-colors ${selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'}`}
+          onClick={onOpen}
+        >
           {body}
         </button>
       ) : (

@@ -11,13 +11,14 @@ import { messageOf } from '../../data/errors';
 import { useCapability, useProject } from '../../data/queries';
 import { todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
-import { Card } from '../../ui/Card';
+import { PaneSection } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { DeleteBox } from './DeleteBox';
 import { DeliveryPhotos } from './DeliveryPhotos';
 import { EditDelivery } from './EditDelivery';
 import { HistoryList } from './HistoryList';
+import { ItemFrame } from './ItemFrame';
 import { PostDelivery } from './PostDelivery';
 import { PrintSheet } from './PrintSheet';
 import { PrintedReceipt, ReceiptBody } from './Receipt';
@@ -62,16 +63,16 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
 
   if (mode === 'edit') {
     return (
-      <Card title={`Edit #${String(row.number)}`}>
+      <ItemFrame title={`Edit #${String(row.number)}`}>
         <EditDelivery projectId={projectId} row={row} tz={tz} onDone={toView} />
-      </Card>
+      </ItemFrame>
     );
   }
 
   return (
-    <Card
+    <ItemFrame
       title={`Delivery #${String(row.number)}`}
-      actions={
+      action={
         <Button size="sm" variant="quiet" icon={Printer} onClick={() => {
             setMode('print');
           }}>
@@ -79,10 +80,12 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
         </Button>
       }
     >
-      <div className="flex flex-col gap-4">
-        <ReceiptBody delivery={receipt} tz={tz} />
+      <div className="flex flex-col gap-3">
+        <PaneSection>
+          <ReceiptBody delivery={receipt} tz={tz} />
+        </PaneSection>
         {deleted ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-card-head px-3.5 py-2.5">
             <p className="min-w-0 flex-1 text-sm text-danger">Deleted by {row.deleted_name}</p>
             {canChange ? (
               <Button size="sm" loading={restore.isPending} onClick={doRestore}>
@@ -94,15 +97,15 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
           <DeliveryPhotos projectId={projectId} deliveryId={row.id} fileIds={row.file_ids} canAdd={canChange} isPhone={isPhone} />
         )}
         {mode === 'delete' ? <DeleteBox projectId={projectId} row={row} onDeleted={onDeleted} onCancel={toView} /> : null}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-t border-line pt-4">
           {canChange && !deleted && mode !== 'delete' ? (
             <>
-              <Button size="sm" icon={Pencil} onClick={() => {
+              <Button icon={Pencil} onClick={() => {
                   setMode('edit');
                 }}>
                 Edit
               </Button>
-              <Button size="sm" variant="danger" icon={Trash2} onClick={() => {
+              <Button variant="danger" icon={Trash2} onClick={() => {
                   setMode('delete');
                 }}>
                 Delete
@@ -110,7 +113,7 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
             </>
           ) : null}
           {mode !== 'history' ? (
-            <Button size="sm" variant="quiet" icon={History} onClick={() => {
+            <Button variant="quiet" icon={History} onClick={() => {
                 setMode('history');
               }}>
               History
@@ -124,7 +127,7 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
           <PrintedReceipt projectName={projectName} delivery={receipt} tz={tz} />
         </PrintSheet>
       ) : null}
-    </Card>
+    </ItemFrame>
   );
 }
 

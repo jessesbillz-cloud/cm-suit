@@ -13,7 +13,7 @@ interface FolderTreeProps {
 
 export function FolderTree({ folders, selectedId, onSelect }: FolderTreeProps) {
   return (
-    <ul aria-label="Folders" className="flex flex-col py-1">
+    <ul aria-label="Folders" className="flex flex-col gap-0.5 py-1">
       {treeOrder(folders).map(({ folder, depth }) => {
         const active = folder.id === selectedId;
         return (
@@ -22,15 +22,15 @@ export function FolderTree({ folders, selectedId, onSelect }: FolderTreeProps) {
               type="button"
               aria-current={active ? 'true' : undefined}
               data-testid="folder"
-              className={`flex w-full items-center gap-2 rounded-md py-1.5 pr-2 text-left text-sm ${
+              className={`flex min-h-10 w-full items-center gap-2.5 rounded-lg py-2 pr-2 text-left text-sm transition-colors ${
                 active ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-page'
               }`}
-              style={{ paddingLeft: `${String(8 + depth * 16)}px` }}
+              style={{ paddingLeft: `${String(10 + depth * 16)}px` }}
               onClick={() => {
                 onSelect(folder.id);
               }}
             >
-              <Icon icon={active ? FolderOpen : Folder} size={16} className={active ? 'text-accent' : 'text-ink-3'} />
+              <Icon icon={active ? FolderOpen : Folder} size={17} className={`shrink-0 ${active ? 'text-accent' : 'text-ink-3'}`} />
               <span className="min-w-0 flex-1 break-words">{folder.name}</span>
             </button>
           </li>

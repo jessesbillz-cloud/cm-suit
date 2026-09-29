@@ -26,7 +26,7 @@ function ClaimForm({ detail, onDone }: { detail: RfiDetail; onDone: () => void }
   const [time, setTime] = useState(detail.rfi.time_impact === true);
   const [note, setNote] = useState('');
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-line p-3" data-testid="rfi-claim-form">
+    <div className="flex flex-col gap-2 rounded-lg border border-line p-3.5" data-testid="rfi-claim-form">
       <div className="flex gap-6">
         <CheckField label="Cost" checked={cost} onChange={setCost} testId="rfi-claim-cost" />
         <CheckField label="Time" checked={time} onChange={setTime} testId="rfi-claim-time" />
@@ -92,7 +92,7 @@ function Claimed({ detail, timeZone }: Omit<ImpactProps, 'now'>) {
   const r = detail.rfi;
   const [noting, setNoting] = useState(false);
   return (
-    <section className="flex flex-col gap-2 rounded-md border border-impact-edge bg-impact-row p-3" data-testid="rfi-impact-claimed">
+    <section className="flex flex-col gap-2 rounded-lg border border-impact-edge bg-impact-row p-3.5" data-testid="rfi-impact-claimed">
       <p className="flex items-center gap-2 text-sm font-semibold text-ink">
         <Icon icon={TriangleAlert} size={16} className="text-impact-ink" />
         Impact claimed · {impactKinds(r.impact_cost, r.impact_time)}

@@ -80,7 +80,7 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
         save();
       }}
     >
-      <h1 className="text-base font-semibold text-ink">New correction</h1>
+      <h1 className="text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">New correction</h1>
       <PhotoPicker uploads={photos} isPhone={isPhone} />
       <CorrectionFields value={draft} onChange={setDraft} autoFocus={!isPhone || initialFiles.length > 0} />
       <NoticeFile projectId={projectId} fileId={noticeFileId} onChange={setNoticeFileId} />

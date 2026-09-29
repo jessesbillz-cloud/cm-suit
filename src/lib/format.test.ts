@@ -7,5 +7,6 @@ describe('humanize', () => {
     expect(humanize('rfi.answered')).toBe('RFI answered');
     expect(humanize('file_uploaded')).toBe('File uploaded');
     expect(humanize('correction.signed_off')).toBe('Correction signed off');
+    expect(humanize('pm')).toBe('PM');
   });
 });

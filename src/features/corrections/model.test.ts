@@ -6,6 +6,7 @@ import {
   canEdit,
   cnLabel,
   latestStep,
+  logSummary,
   matches,
   neighbors,
   nextSort,
@@ -182,5 +183,20 @@ describe('weekly snapshot', () => {
     expect(snap.openedThisWeek).toBe(1);
     expect(snap.closedThisWeek).toBe(1);
     expect(snap.open.map((r) => r.number)).toEqual([2, 3]);
+  });
+});
+
+describe('header counts', () => {
+  it('open includes ready and reopened; ready shows only when there is one', () => {
+    const rows = [
+      row({ number: 1, status: 'open' }),
+      row({ number: 2, status: 'ready' }),
+      row({ number: 3, status: 'reopened' }),
+      row({ number: 4, status: 'signed_off' }),
+      row({ number: 5, status: 'corrected' }),
+    ];
+    expect(logSummary(rows)).toBe('3 open · 1 ready');
+    expect(logSummary([row({ number: 1 })])).toBe('1 open');
+    expect(logSummary([])).toBe('0 open');
   });
 });

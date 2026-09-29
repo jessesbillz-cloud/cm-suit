@@ -4,9 +4,9 @@ import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
+import { FIELD_AREA, FIELD_LABEL } from '../../ui/Fields';
 
-const AREA =
-  'rounded-md border border-line-strong bg-card px-2.5 py-2 text-sm font-normal leading-6 text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
+const AREA = FIELD_AREA;
 
 interface NoteFieldProps {
   label: string;
@@ -19,7 +19,7 @@ interface NoteFieldProps {
 
 export function NoteField({ label, value, onChange, testId, rows = 3, autoFocus = false }: NoteFieldProps) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
+    <label className={FIELD_LABEL}>
       {label}
       <textarea
         rows={rows}

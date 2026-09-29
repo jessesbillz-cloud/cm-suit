@@ -11,9 +11,9 @@ interface ReceiptBodyProps {
 export function ReceiptBody({ delivery: d, tz }: ReceiptBodyProps) {
   const posted = [d.posted_name, d.posted_at ? formatInZone(d.posted_at, tz, 'MMM d, h:mm a') : undefined].filter(Boolean).join(' · ');
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm" data-testid="delivery-receipt">
+    <dl className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm" data-testid="delivery-receipt">
       <dt className="text-ink-2">Receipt</dt>
-      <dd className="font-semibold text-ink" data-testid="delivery-receipt-number">
+      <dd className="font-semibold tabular-nums text-ink" data-testid="delivery-receipt-number">
         #{d.number}
       </dd>
       <dt className="text-ink-2">Company</dt>

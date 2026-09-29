@@ -6,13 +6,13 @@ import { TriangleAlert } from 'lucide-react';
 import { DURATIONS, durationLabel } from '../../lib/deliveries';
 import type { DeliveryInput } from '../../data/deliveries.types';
 import { Button } from '../../ui/Button';
-import { CheckField, SelectField, TextField } from '../../ui/Fields';
+import { CheckField, FIELD_CONTROL, FIELD_LABEL, SelectField, TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { StandbyChip } from './DeliveryCard';
 
 const OTHER = '__other__';
-const CONTROL = 'h-9 rounded-md border border-line bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
+const CONTROL = FIELD_CONTROL;
+const LABEL = FIELD_LABEL;
 
 /** A form value that can be sent: company, description and a time (or TBD). */
 function isComplete(v: DeliveryInput): boolean {

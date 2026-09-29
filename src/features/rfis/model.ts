@@ -263,6 +263,13 @@ export function visibleRows(rows: readonly RfiListRow[], view: LogView, now: Dat
   return view.sort === null ? defaultOrder(shown, now) : sortBy(shown, view.sort);
 }
 
+/** The page header's count line: "6 open · 1 late" (open = not closed or void; late = past due with the architect). */
+export function logSummary(rows: readonly RfiListRow[], tz: string, now: Date): string {
+  const open = rows.filter((r) => !DONE.includes(r.status)).length;
+  const late = rows.filter((r) => dueCell(r, tz, now)?.late === true).length;
+  return late > 0 ? `${String(open)} open · ${String(late)} late` : `${String(open)} open`;
+}
+
 /** Enter in the search box: that number (in any filter), else the only match. */
 export function openTarget(rows: readonly RfiListRow[], visible: readonly RfiListRow[], query: string): RfiListRow | undefined {
   const n = numberQuery(query);

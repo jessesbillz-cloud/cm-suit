@@ -2,7 +2,11 @@
 import { formatDay } from '../../lib/dates';
 import { byTime } from '../../lib/deliveries';
 import type { DeliveryRow } from '../../data/deliveries.types';
+import { HEAD_ROW, TD, TD_NUM, TH } from '../../ui/Table';
 import { StandbyChip, timeRange } from './DeliveryCard';
+
+/** A day can hold several deliveries: its cells read from the top. */
+const CELL = 'px-3 py-3 align-top';
 
 interface MonthSummaryProps {
   rows: readonly DeliveryRow[];
@@ -15,44 +19,44 @@ export function MonthSummary({ rows, tz }: MonthSummaryProps) {
   return (
     <table className="w-full border-collapse text-sm" data-testid="delivery-month">
       <thead>
-        <tr className="border-b border-line text-left text-xs text-ink-2">
-          <th className="py-2 pr-3 font-medium">Day</th>
-          <th className="py-2 pr-3 font-medium">Deliveries</th>
-          <th className="py-2 text-right font-medium">Count</th>
+        <tr className={HEAD_ROW}>
+          <th className={`${TH} w-32 pl-4 sm:w-36`}>Day</th>
+          <th className={TH}>Deliveries</th>
+          <th className={`${TH} w-20 pr-4 text-right`}>Count</th>
         </tr>
       </thead>
       <tbody>
         {days.map((d) => {
           const list = rows.filter((r) => r.delivery_date === d).sort(byTime);
           return (
-            <tr key={d} className="border-b border-line align-top">
-              <td className="whitespace-nowrap py-2 pr-3 text-ink">{formatDay(d, 'EEE, MMM d')}</td>
-              <td className="py-2 pr-3">
-                <ul className="flex flex-col gap-1">
+            <tr key={d} className="border-b border-line">
+              <td className={`${CELL} whitespace-nowrap pl-4 font-medium text-ink`}>{formatDay(d, 'EEE, MMM d')}</td>
+              <td className={CELL}>
+                <ul className="flex flex-col gap-1.5">
                   {list.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center gap-x-2 text-ink">
-                      <span className="tabular-nums text-ink-2">{timeRange(r, tz)}</span>
+                    <li key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink">
+                      <span className="w-28 shrink-0 tabular-nums text-ink-2">{timeRange(r, tz)}</span>
                       <span className="font-medium">{r.company}</span>
                       <span className="break-words text-ink-2">{r.description}</span>
-                      <span className="text-ink-3">#{r.number}</span>
+                      <span className="tabular-nums text-ink-3">#{r.number}</span>
                       {r.standby ? <StandbyChip /> : null}
                     </li>
                   ))}
                 </ul>
               </td>
-              <td className="py-2 text-right font-semibold tabular-nums text-ink">{list.length}</td>
+              <td className={`${CELL} pr-4 text-right font-semibold tabular-nums text-ink`}>{list.length}</td>
             </tr>
           );
         })}
       </tbody>
       <tfoot>
-        <tr className="text-ink">
-          <td className="py-2 pr-3 font-semibold">Total</td>
-          <td className="py-2 pr-3 text-ink-2">
+        <tr className="bg-card-head text-ink">
+          <td className={`${TD} pl-4 font-semibold`}>Total</td>
+          <td className={`${TD} text-ink-2`}>
             {days.length} {days.length === 1 ? 'day' : 'days'}
             {standby > 0 ? ` · ${String(standby)} standby` : ''}
           </td>
-          <td className="py-2 text-right font-semibold tabular-nums" data-testid="delivery-month-total">
+          <td className={`${TD_NUM} pr-4 text-right font-semibold`} data-testid="delivery-month-total">
             {rows.length}
           </td>
         </tr>

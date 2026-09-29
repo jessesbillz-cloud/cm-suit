@@ -23,7 +23,7 @@ function LocalThumb({ photo, onRemove, onRetry }: ThumbProps) {
   }, [photo.file]);
 
   return (
-    <li className="relative aspect-square overflow-hidden rounded-md border border-line bg-page" data-testid="cn-picked-photo">
+    <li className="relative aspect-square overflow-hidden rounded-lg border border-line bg-card-head" data-testid="cn-picked-photo">
       {url ? <img src={url} alt={photo.file.name} className="h-full w-full object-cover" /> : null}
       {photo.status === 'uploading' ? (
         <span className="absolute inset-0 flex items-center justify-center bg-card/60">
@@ -41,7 +41,12 @@ function LocalThumb({ photo, onRemove, onRetry }: ThumbProps) {
           Retry
         </button>
       ) : null}
-      <button type="button" aria-label="Remove photo" className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-ink-2" onClick={onRemove}>
+      <button
+        type="button"
+        aria-label="Remove photo"
+        className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-ink-2 shadow-control hover:text-ink"
+        onClick={onRemove}
+      >
         <Icon icon={X} size={14} />
       </button>
     </li>

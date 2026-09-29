@@ -15,7 +15,7 @@ export function formatBytes(n: number): string {
 
 /** 'file.uploaded' / 'project_admin' -> 'File uploaded' / 'Project admin'. Labels come from data, not code. */
 /** Short trade words that are always written in capitals. */
-const ACRONYMS = new Set(['ir', 'irs', 'rfi', 'rfis', 'cn', 'dsa', 'ofs', 'pdf', 'csi', 'dir', 'cslb', 'pw', 'ccd', 'ccds']);
+const ACRONYMS = new Set(['ir', 'irs', 'rfi', 'rfis', 'cn', 'dsa', 'ofs', 'pdf', 'csi', 'dir', 'cslb', 'pw', 'ccd', 'ccds', 'pm', 'pe', 'gc']);
 
 export function humanize(key: string): string {
   const words = key

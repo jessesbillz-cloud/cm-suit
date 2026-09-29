@@ -9,6 +9,7 @@ import { formatInZone } from '../../lib/dates';
 import { deliveryLinkUrl } from '../../lib/deliveries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { Icon } from '../../ui/Icon';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { PrintSheet } from './PrintSheet';
@@ -44,7 +45,13 @@ export function LinkPanel({ projectId, projectName, tz }: LinkPanelProps) {
   const [url, setUrl] = useState<string | null>(null);
   const [poster, setPoster] = useState(false);
 
-  if (state.isPending) return <LoadingState label="Loading the link" />;
+  if (state.isPending) {
+    return (
+      <Card>
+        <LoadingState label="Loading the link" />
+      </Card>
+    );
+  }
   if (state.isError) return <ErrorState error={state.error} onRetry={() => void state.refetch()} />;
   const replacing = state.data.active;
 
@@ -75,10 +82,26 @@ export function LinkPanel({ projectId, projectName, tz }: LinkPanelProps) {
 
   return (
     <Card title="Delivery link">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${state.data.active ? 'bg-accent-soft text-accent' : 'bg-page text-ink-3'}`}>
+            <Icon icon={Link2} size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-ink" data-testid="delivery-link-state">
+              {state.data.active ? 'On' : 'No link yet'}
+            </p>
+            {state.data.active && state.data.since ? (
+              <p className="text-[13px] text-ink-2">Since {formatInZone(state.data.since, tz, 'MMM d, yyyy')}</p>
+            ) : null}
+          </div>
+          <Button variant={replacing ? 'secondary' : 'primary'} icon={Link2} loading={rotate.isPending} onClick={make}>
+            {replacing ? 'New link' : 'Make link'}
+          </Button>
+        </div>
         {url ? (
-          <>
-            <p className="break-all rounded-md border border-line bg-page p-3 font-mono text-sm text-ink" data-testid="delivery-link-url">
+          <div className="flex flex-col gap-3 border-t border-line pt-4">
+            <p className="break-all rounded-lg border border-line bg-card-head px-3 py-2.5 font-mono text-sm text-ink" data-testid="delivery-link-url">
               {url}
             </p>
             <p className="text-xs text-ink-2">Shown once. Copy or print it now.</p>
@@ -104,19 +127,8 @@ export function LinkPanel({ projectId, projectName, tz }: LinkPanelProps) {
                 Poster
               </Button>
             </div>
-          </>
-        ) : (
-          <p className="text-sm text-ink" data-testid="delivery-link-state">
-            {state.data.active
-              ? `On${state.data.since ? ` since ${formatInZone(state.data.since, tz, 'MMM d, yyyy')}` : ''}`
-              : 'No link yet'}
-          </p>
-        )}
-        <div>
-          <Button variant={replacing ? 'secondary' : 'primary'} icon={Link2} loading={rotate.isPending} onClick={make}>
-            {replacing ? 'New link' : 'Make link'}
-          </Button>
-        </div>
+          </div>
+        ) : null}
       </div>
       {poster && url ? (
         <PrintSheet

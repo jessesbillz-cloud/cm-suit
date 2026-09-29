@@ -7,6 +7,7 @@ import { monthDays, shiftDay } from '../../lib/deliveries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { MonthReview } from './MonthReview';
 import { MonthSummary } from './MonthSummary';
 import { PrintSheet } from './PrintSheet';
@@ -31,15 +32,20 @@ export function MonthView({ projectId, projectName, tz, day, canManage, onPickDa
 
   return (
     <Card
+      padded={false}
+      className="overflow-hidden"
       title={
-        <span className="flex items-center gap-1">
-          <Button size="sm" variant="quiet" icon={ChevronLeft} aria-label="Earlier month" onClick={() => {
-              onPickDay(shiftDay(first, -1));
-            }} />
-          <span className="min-w-32 text-center">{title}</span>
-          <Button size="sm" variant="quiet" icon={ChevronRight} aria-label="Later month" onClick={() => {
-              onPickDay(shiftDay(last, 1));
-            }} />
+        <span className="flex items-center gap-3">
+          <span className="flex overflow-hidden rounded-md border border-line bg-card">
+            <Button size="sm" variant="quiet" icon={ChevronLeft} aria-label="Earlier month" className="!rounded-none" onClick={() => {
+                onPickDay(shiftDay(first, -1));
+              }} />
+            <span aria-hidden className="w-px bg-line" />
+            <Button size="sm" variant="quiet" icon={ChevronRight} aria-label="Later month" className="!rounded-none" onClick={() => {
+                onPickDay(shiftDay(last, 1));
+              }} />
+          </span>
+          <span>{title}</span>
         </span>
       }
       actions={
@@ -52,10 +58,10 @@ export function MonthView({ projectId, projectName, tz, day, canManage, onPickDa
     >
       {rows.isPending ? <LoadingState label="Loading the month" /> : null}
       {rows.isError ? <ErrorState error={rows.error} onRetry={() => void rows.refetch()} /> : null}
-      {rows.data?.length === 0 ? <EmptyState title="No deliveries this month." /> : null}
+      {rows.data?.length === 0 ? <EmptyState icon={TOOL_META.deliveries.icon} title="No deliveries this month." /> : null}
       {rows.data && rows.data.length > 0 ? <MonthSummary rows={rows.data} tz={tz} /> : null}
       {canManage ? (
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="border-t border-line p-4">
           <MonthReview projectId={projectId} month={first} tz={tz} />
         </div>
       ) : null}
