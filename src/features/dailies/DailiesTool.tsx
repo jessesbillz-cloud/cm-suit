@@ -5,7 +5,10 @@ import { Settings2 } from 'lucide-react';
 import { useCapability, useProject } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
+import { ReaderMeta, WriterMeta } from './DailiesMeta';
 import { SETUP_ITEM } from './model';
 import { ReportLists } from './ReportLists';
 import { TodayCard } from './TodayCard';
@@ -16,6 +19,8 @@ interface DailiesToolProps {
   itemId: string | null;
   isPhone: boolean;
 }
+
+const META = TOOL_META.dailies;
 
 export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
   const write = useCapability(projectId, 'dailies.write');
@@ -29,22 +34,26 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
   if (project.isError) return <ErrorState error={project.error} onRetry={() => void project.refetch()} />;
   if (!write.data && !readAll.data) {
     return (
-      <Card>
-        <EmptyState title="No dailies for you on this job." />
-      </Card>
+      <div className="mx-auto max-w-3xl">
+        <PageHeader title={META.label} icon={META.icon} />
+        <Card>
+          <EmptyState icon={META.icon} title="No dailies for you on this job." />
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-3" data-testid="dailies-tool">
-      {write.data ? (
-        <Card
-          title="Dailies"
-          actions={
+    <div className="mx-auto flex max-w-3xl flex-col gap-4" data-testid="dailies-tool">
+      <PageHeader
+        title={META.label}
+        icon={META.icon}
+        meta={write.data ? <WriterMeta projectId={projectId} tz={project.data.timezone} /> : <ReaderMeta projectId={projectId} />}
+        actions={
+          write.data ? (
             <Button
-              size="sm"
-              variant="quiet"
               icon={Settings2}
+              className={isPhone ? 'h-10' : ''}
               data-testid="daily-setup-open"
               onClick={() => {
                 nav.open(SETUP_ITEM);
@@ -52,14 +61,13 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
             >
               Setup
             </Button>
-          }
-        >
-          <TodayCard projectId={projectId} projectName={project.data.name} tz={project.data.timezone} isPhone={isPhone} onOpen={nav.open} />
-        </Card>
+          ) : undefined
+        }
+      />
+      {write.data ? (
+        <TodayCard projectId={projectId} projectName={project.data.name} tz={project.data.timezone} isPhone={isPhone} onOpen={nav.open} />
       ) : null}
-      <Card padded={false} title={write.data ? undefined : 'Dailies'}>
-        <ReportLists projectId={projectId} canWrite={write.data} canReadAll={readAll.data} selectedId={itemId} />
-      </Card>
+      <ReportLists projectId={projectId} canWrite={write.data} canReadAll={readAll.data} selectedId={itemId} />
     </div>
   );
 }

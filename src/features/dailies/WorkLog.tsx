@@ -7,9 +7,9 @@ import { Button } from '../../ui/Button';
 import { CheckField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
+import { Section } from './Section';
+import { INPUT, LABEL } from './styles';
 
-const INPUT = 'rounded-md border border-line bg-card px-2.5 text-sm text-ink outline-none focus:border-accent disabled:bg-page';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
 const MAX_ROWS = 200;
 
 /** '' is no value; anything else must be a number of at least 0. */
@@ -30,12 +30,12 @@ interface WorkRowFieldsProps {
 
 function WorkRowFields({ row, locked, onChange, onRemove, camera }: WorkRowFieldsProps) {
   return (
-    <li className="flex flex-col gap-2 rounded-card border border-line p-3" data-testid="work-row">
-      <div className="flex items-end gap-2">
+    <li className="flex flex-col gap-2.5 py-3 first:pt-0" data-testid="work-row">
+      <div className="flex items-end gap-1">
         <label className={`${LABEL} min-w-0 flex-1`}>
           Company
           <input
-            className={`h-9 ${INPUT}`}
+            className={`h-10 ${INPUT}`}
             value={row.company}
             disabled={locked}
             maxLength={200}
@@ -49,7 +49,7 @@ function WorkRowFields({ row, locked, onChange, onRemove, camera }: WorkRowField
           <button
             type="button"
             aria-label="Remove row"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink"
+            className="flex h-10 w-9 shrink-0 items-center justify-center rounded-md text-ink-3 hover:bg-page hover:text-ink"
             onClick={onRemove}
           >
             <Icon icon={X} size={18} />
@@ -69,14 +69,14 @@ function WorkRowFields({ row, locked, onChange, onRemove, camera }: WorkRowField
           }}
         />
       </label>
-      <div className="flex items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <label className={`${LABEL} w-20`}>
           Crew
           <input
             type="number"
             inputMode="numeric"
             min={0}
-            className={`h-9 ${INPUT}`}
+            className={`h-10 tabular-nums ${INPUT}`}
             value={row.headcount ?? ''}
             disabled={locked}
             onChange={(e) => {
@@ -91,7 +91,7 @@ function WorkRowFields({ row, locked, onChange, onRemove, camera }: WorkRowField
             inputMode="decimal"
             min={0}
             step={0.25}
-            className={`h-9 ${INPUT}`}
+            className={`h-10 tabular-nums ${INPUT}`}
             value={row.hours ?? ''}
             disabled={locked}
             onChange={(e) => {
@@ -99,14 +99,16 @@ function WorkRowFields({ row, locked, onChange, onRemove, camera }: WorkRowField
             }}
           />
         </label>
-        <CheckField
-          label="Carry over"
-          checked={row.carry}
-          disabled={locked}
-          onChange={(carry) => {
-            onChange({ carry });
-          }}
-        />
+        <div className="pb-0.5">
+          <CheckField
+            label="Carry over"
+            checked={row.carry}
+            disabled={locked}
+            onChange={(carry) => {
+              onChange({ carry });
+            }}
+          />
+        </div>
       </div>
     </li>
   );
@@ -138,11 +140,12 @@ export function WorkLog({ rows, locked, onRows, cameraFor }: WorkLogProps) {
     });
   }
 
+  const canAdd = !locked && rows.length < MAX_ROWS;
+  if (rows.length === 0 && !canAdd) return null;
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-ink">Work log</h3>
+    <Section title="Work log" count={rows.length}>
       {rows.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="divide-y divide-line">
           {rows.map((row, i) => (
             <WorkRowFields
               key={row.key}
@@ -159,11 +162,10 @@ export function WorkLog({ rows, locked, onRows, cameraFor }: WorkLogProps) {
           ))}
         </ul>
       ) : null}
-      {locked || rows.length >= MAX_ROWS ? null : (
+      {canAdd ? (
         <Button
-          size="sm"
           icon={Plus}
-          className="w-fit"
+          className={`h-10 w-full border-dashed text-ink-2 shadow-none hover:text-ink ${rows.length > 0 ? 'mt-1' : ''}`}
           data-testid="work-add"
           onClick={() => {
             // The key only links photos to this row inside the report; the database never uses it as an id.
@@ -175,7 +177,7 @@ export function WorkLog({ rows, locked, onRows, cameraFor }: WorkLogProps) {
         >
           Add row
         </Button>
-      )}
-    </section>
+      ) : null}
+    </Section>
   );
 }

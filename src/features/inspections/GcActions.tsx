@@ -13,7 +13,7 @@ export function GcActions({ row }: { row: IrRequest }) {
   const [reason, setReason] = useState('');
 
   return (
-    <div className="mt-4 flex flex-col gap-2" data-testid="ir-gc">
+    <div className="flex flex-col gap-2 rounded-lg border border-accent/50 p-3 ring-[3px] ring-accent/10" data-testid="ir-gc">
       <div className="flex gap-2">
         <Button
           variant="primary"
@@ -35,7 +35,7 @@ export function GcActions({ row }: { row: IrRequest }) {
         </Button>
       </div>
       {returning ? (
-        <div className="flex items-end gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <TextField label="Reason" value={reason} onChange={setReason} className="flex-1" autoFocus />
           <Button
             disabled={reason.trim() === ''}

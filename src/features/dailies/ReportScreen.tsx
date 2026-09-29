@@ -1,7 +1,7 @@
 // An opened daily report (right column on desktop, full screen on the phone). The author gets the editor; someone
 // reading the job's submitted reports (dailies.read_all) gets the signed PDF.
 import { useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useDailyPhotos, useDailyReport, useDailySetup, useNextDailyNumber } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
@@ -9,8 +9,12 @@ import { downloadErrorMessage, downloadFile } from '../../data/download';
 import { dailyContentSchema, dailyHeaderSchema, parseDailySettings, type DailyHeader } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { TOOL_META } from '../../ui/tools';
+import { reportChip } from './model';
 import { ReportEditor } from './ReportEditor';
 
 interface SignedCopyProps {
@@ -23,34 +27,45 @@ function SignedCopy({ report, header }: SignedCopyProps) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const fileId = report.pdf_file_id;
+  const chip = reportChip(report);
   return (
-    <div className="flex flex-col gap-3 p-4">
-      <h2 className="text-base font-semibold text-ink">
-        {header.label} <span className="tabular-nums text-ink-2">#{report.number}</span>
-      </h2>
-      <p className="text-sm text-ink-2">
-        {formatDay(report.report_date, 'EEE, MMM d, yyyy')} · {header.author_name}
-      </p>
+    <div className="flex flex-col gap-4 p-4">
+      <header>
+        <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold text-ink">
+          <span className="break-words">{header.label}</span>
+          <span className="tabular-nums text-ink-2">#{report.number}</span>
+          <StatusChip status={chip.status} label={chip.label} />
+        </h2>
+        <p className="text-sm text-ink-2">
+          {formatDay(report.report_date, 'EEEE, MMM d, yyyy')} · {header.author_name}
+        </p>
+      </header>
       {fileId === null ? (
-        <EmptyState title="No PDF yet." />
+        <EmptyState icon={TOOL_META.dailies.icon} title="No PDF yet." />
       ) : (
-        <Button
-          icon={Download}
-          className="w-fit"
-          loading={busy}
-          onClick={() => {
-            setBusy(true);
-            downloadFile(fileId)
-              .catch((e: unknown) => {
-                toast.show({ tone: 'error', message: downloadErrorMessage(e) });
-              })
-              .finally(() => {
-                setBusy(false);
-              });
-          }}
-        >
-          Download
-        </Button>
+        <div className="flex flex-wrap items-center gap-3 rounded-card border border-line p-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
+            <Icon icon={FileText} size={20} />
+          </span>
+          <p className="min-w-0 flex-1 break-all text-sm font-medium text-ink">{report.filename}</p>
+          <Button
+            variant="primary"
+            icon={Download}
+            loading={busy}
+            onClick={() => {
+              setBusy(true);
+              downloadFile(fileId)
+                .catch((e: unknown) => {
+                  toast.show({ tone: 'error', message: downloadErrorMessage(e) });
+                })
+                .finally(() => {
+                  setBusy(false);
+                });
+            }}
+          >
+            Download
+          </Button>
+        </div>
       )}
     </div>
   );

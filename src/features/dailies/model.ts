@@ -34,6 +34,27 @@ export function reportChip(r: Pick<DailyReportRow, 'status' | 'version' | 'signe
   return { status: 'confirmed', label: 'Submitted' };
 }
 
+interface MetaInput {
+  todays: Pick<DailyReportRow, 'status' | 'number' | 'version' | 'signed_version'> | null;
+  next: number | undefined;
+  /** "5:00 PM" when a report is due today (a scheduled day, or today's report exists), else null. */
+  due: string | null;
+}
+
+/** The page header's one line: "Report #12 · due 5:00 PM", "Submitted today", or "Report #12 · changed". */
+export function todayMeta({ todays, next, due }: MetaInput): string | null {
+  const n = todays?.number ?? next;
+  if (todays?.status === 'submitted') {
+    return todays.version === todays.signed_version ? 'Submitted today' : `Report #${String(n)} · changed`;
+  }
+  const parts = [n === undefined ? null : `Report #${String(n)}`, due === null ? null : `due ${due}`].filter(
+    (p): p is string => p !== null,
+  );
+  if (parts.length === 0) return null;
+  const line = parts.join(' · ');
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
 /** Schedule day toggles, Sunday first (0 = Sunday, like the setup's schedule_days). */
 export const WEEK_DAYS = [
   { day: 0, short: 'S', name: 'Sunday' },
