@@ -86,6 +86,7 @@ export function ResultStep({ row }: { row: IrRequest }) {
         projectId={row.project_id}
         label="Photos"
         photosOnly
+        requestId={row.id}
         files={photos}
         onChange={(files) => {
           save({ photoIds: files.map((f) => f.id) });

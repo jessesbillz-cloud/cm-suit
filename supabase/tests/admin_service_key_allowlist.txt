@@ -7,6 +7,7 @@ invite-member
 # Admin: sets status = 'revoked' (trigger revokes links). requireCapability('members.manage') first.
 revoke-member
 # Signs the download URL only (users have no storage SELECT policy); authorize_download() runs as the user first.
+# Photo previews: signs a short-lived URL for an image only; authorize_preview() (the same gate) runs as the user first.
 download
 # Sends mail (email_outbound) and marks the transmittal sent (no user update policy); create_transmittal() runs as the user first.
 send-transmittal

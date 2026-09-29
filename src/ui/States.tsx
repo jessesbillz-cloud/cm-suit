@@ -38,6 +38,8 @@ interface ErrorStateProps {
   error: unknown;
   onRetry?: (() => void) | undefined;
   title?: string | undefined;
+  /** The banner's outer spacing; replaces the default m-4 (list screens). 'm-0' sits it flush in a card or form. */
+  className?: string | undefined;
 }
 
 function errorIdOf(e: unknown): string | null {
@@ -49,11 +51,11 @@ function errorIdOf(e: unknown): string | null {
 }
 
 /** A red banner with the short message and, for server errors, the error ID support can look up. */
-export function ErrorState({ error, onRetry, title = 'This did not load.' }: ErrorStateProps) {
+export function ErrorState({ error, onRetry, title = 'This did not load.', className = 'm-4' }: ErrorStateProps) {
   const message = error instanceof Error ? error.message : 'Something went wrong.';
   const id = errorIdOf(error);
   return (
-    <div role="alert" className="m-4 flex items-start gap-3 rounded-card border border-danger/30 bg-danger-soft px-4 py-3 text-sm">
+    <div role="alert" className={`flex items-start gap-3 rounded-card border border-danger/30 bg-danger-soft px-4 py-3 text-sm ${className}`}>
       <Icon icon={CircleAlert} size={18} className="mt-0.5 text-danger" />
       <div className="min-w-0 flex-1">
         <p className="font-medium text-danger">{title}</p>

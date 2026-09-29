@@ -9,10 +9,10 @@ import { formatDay, formatInZone, fromZonedInput } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { LogTable, type LogRow } from '../../ui/LogTable';
+import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
-import { ChoiceRow } from './ChoiceRow';
 import { DayNav } from './DayNav';
 import { logTitle, requestChip, requestCount } from './model';
 import { addDaysTo, monthOf, weekOf } from './time';
@@ -102,7 +102,7 @@ export function LogView({ projectId, tz, day, selectedId, isPhone, onOpen }: Log
   return (
     <Card padded={false} className="overflow-hidden">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-2.5">
-        <ChoiceRow label="Period" options={PERIODS} value={period} onPick={setPeriod} />
+        <Segments kind="radio" label="Period" options={PERIODS} value={period} onPick={setPeriod} testId="ir-log-period" />
         <DayNav
           label={label}
           onPrev={() => {

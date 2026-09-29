@@ -3,7 +3,7 @@
 // with Undo. Upload progress and failed uploads (with Retry) come from the one upload queue. The Camera and Upload
 // buttons sit in the header, or above the grid in Field Mode.
 import { useState, type ReactNode } from 'react';
-import { ImageIcon, LoaderCircle, RotateCw, X } from 'lucide-react';
+import { LoaderCircle, RotateCw, X } from 'lucide-react';
 import { useDailyPhotoUploads, useRemoveDailyPhoto, useSaveDailyPhoto } from '../../data/dailies.mutations';
 import type { DailyPhotoRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
@@ -11,6 +11,7 @@ import type { WorkRow } from '../../lib/dailies';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
+import { Thumb } from '../../ui/Thumb';
 import { useToast } from '../../ui/Toast';
 import { Section } from './Section';
 import { INPUT } from './styles';
@@ -48,8 +49,9 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, on
 
   return (
     <li className="flex min-w-0 flex-col gap-2" data-testid="daily-photo">
-      <div className="relative flex aspect-[4/3] items-center justify-center rounded-lg bg-page text-ink-3 ring-1 ring-inset ring-line">
-        <Icon icon={ImageIcon} size={28} />
+      <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
+        <Thumb fileId={photo.file_id} alt={photo.caption || `Photo ${String(index + 1)}`} fill iconSize={28} />
+        <span aria-hidden className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10" />
         <span className="absolute left-2 top-2 rounded-md bg-card px-1.5 text-xs font-medium tabular-nums text-ink shadow-control">
           {index + 1}
         </span>

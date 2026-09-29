@@ -1,10 +1,11 @@
-// Saved photos on an item or a step: one tile each, one click downloads the original (lib/saveFile via useDownload).
-// Tiles show the photo's time. The picture itself appears here once the files tool serves image previews.
-import { Image as PhotoIcon, LoaderCircle } from 'lucide-react';
+// Saved photos on an item or a step: one tile each showing the picture (ui/Thumb) and the time it was added; one click
+// downloads the original (lib/saveFile via useDownload).
+import { LoaderCircle } from 'lucide-react';
 import { usePhotoFiles } from '../../data/corrections.queries';
 import { formatInZone } from '../../lib/dates';
 import { Icon } from '../../ui/Icon';
 import { ErrorState } from '../../ui/States';
+import { PHOTO_GRID, PHOTO_TILE, PHOTO_TILE_LABEL, Thumb } from '../../ui/Thumb';
 import { useDownload } from '../files/useDownload';
 
 interface PhotoStripProps {
@@ -30,20 +31,28 @@ export function PhotoStrip({ projectId, ids, timeZone }: PhotoStripProps) {
   if (files.data.length === 0) return <p className="text-sm text-ink-2">Photos removed.</p>;
 
   return (
-    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Photos">
+    <ul className={PHOTO_GRID} aria-label="Photos">
       {files.data.map((f) => (
         <li key={f.id}>
           <button
             type="button"
             title={f.original_name}
             aria-label={`Download ${f.original_name}`}
-            className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-lg border border-line bg-card-head p-1.5 text-ink-2 transition-colors hover:border-accent/40 hover:bg-accent-soft hover:text-accent"
+            className={PHOTO_TILE}
             onClick={() => {
               download.start(f.id, f.size);
             }}
           >
-            <Icon icon={download.pendingId === f.id ? LoaderCircle : PhotoIcon} size={22} className={download.pendingId === f.id ? 'animate-spin' : ''} />
-            <span className="text-center text-[11px] leading-4 tabular-nums">{formatInZone(f.created_at, timeZone, 'MMM d, h:mm a')}</span>
+            <Thumb fileId={f.id} alt={f.original_name} fill />
+            <span className={PHOTO_TILE_LABEL}>
+              <span className="block">{formatInZone(f.created_at, timeZone, 'MMM d')}</span>
+              <span className="block">{formatInZone(f.created_at, timeZone, 'h:mm a')}</span>
+            </span>
+            {download.pendingId === f.id ? (
+              <span className="absolute inset-0 flex items-center justify-center bg-card/60">
+                <Icon icon={LoaderCircle} size={20} className="animate-spin text-ink-2" label="Downloading" />
+              </span>
+            ) : null}
           </button>
         </li>
       ))}

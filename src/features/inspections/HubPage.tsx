@@ -31,7 +31,7 @@ export function HubPage() {
   if (hub.isError) {
     return (
       <PublicPage title="Link not active">
-        <ErrorState title="This link does not work right now." error={hub.error} />
+        <ErrorState title="This link does not work right now." error={hub.error} className="m-0" />
       </PublicPage>
     );
   }

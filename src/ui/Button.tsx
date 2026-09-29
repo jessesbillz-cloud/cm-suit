@@ -8,7 +8,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'chi
   variant?: Variant | undefined;
   loading?: boolean | undefined;
   icon?: LucideIcon | undefined;
-  size?: 'md' | 'sm' | undefined;
+  size?: 'sm' | 'md' | 'lg' | undefined;
   children?: ReactNode | undefined;
 }
 
@@ -22,10 +22,11 @@ const VARIANTS: Record<Variant, string> = {
     'border border-line-strong bg-card text-danger shadow-control hover:border-danger/40 hover:bg-danger-soft disabled:border-line disabled:text-ink-3 disabled:shadow-none',
 };
 
-// sm 32px, md 40px. A button with only an icon is square.
+// sm 32px, md 40px, lg 44px (a bar's one big action, e.g. Submit). A button with only an icon is square.
 const SIZES = {
   sm: { text: 'h-8 gap-1.5 rounded-md px-3 text-[13px]', square: 'h-8 w-8 rounded-md', icon: 15 },
   md: { text: 'h-10 gap-2 rounded-lg px-4 text-sm', square: 'h-10 w-10 rounded-lg', icon: 16 },
+  lg: { text: 'h-11 gap-2 rounded-lg px-6 text-base', square: 'h-11 w-11 rounded-lg', icon: 18 },
 } as const;
 
 export function Button({

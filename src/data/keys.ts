@@ -84,4 +84,6 @@ export const qk = {
   requestLinkOpen: (projectId: string, via: string) => ['request_link_public', projectId, 'open', via] as const,
   /** The public hub page's list of jobs. */
   requestHubPublic: (hubId: string) => ['request_hub_public', hubId] as const,
+  /** A photo's short-lived preview URL (0047), per file and where it is opened from (its folder, an RFI, a request). */
+  imagePreview: (fileId: string, via: string) => ['image_preview', fileId, via] as const,
 };

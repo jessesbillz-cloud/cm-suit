@@ -22,9 +22,11 @@ interface SignButtonProps {
   pending: boolean;
   disabled?: boolean | undefined;
   icon?: LucideIcon | undefined;
+  /** sm 32px (a step inside a card), md 40px, lg 44px (a bar's one big action). */
+  size?: 'sm' | 'md' | 'lg' | undefined;
 }
 
-export function SignButton({ label, testId, sign, onSigned, pending, disabled = false, icon = Stamp }: SignButtonProps) {
+export function SignButton({ label, testId, sign, onSigned, pending, disabled = false, icon = Stamp, size = 'md' }: SignButtonProps) {
   const user = useUser();
   const [reauth, setReauth] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export function SignButton({ label, testId, sign, onSigned, pending, disabled = 
     <div className="flex flex-col gap-2">
       <Button
         variant="primary"
+        size={size}
         icon={icon}
         loading={pending}
         disabled={disabled}

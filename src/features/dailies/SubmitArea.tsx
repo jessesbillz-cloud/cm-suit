@@ -14,9 +14,6 @@ import { useToast } from '../../ui/Toast';
 import { SignButton } from '../auth/SignButton';
 import { HoursPrompt } from '../hours/HoursPrompt';
 
-/** The one signing button, sized for the bar (its own wrapper is SignButton's; only the button grows). */
-const SIGN = 'ml-auto min-w-0 [&>div>button]:h-11 [&>div>button]:px-6 [&>div>button]:text-base';
-
 interface SentLinesProps {
   result: EmailResult;
 }
@@ -169,10 +166,11 @@ export function SubmitArea({ projectId, report, stale, ready, recipients, savedV
         ) : null}
         {aside}
       </div>
-      <div className={SIGN}>
+      <div className="ml-auto min-w-0">
         <SignButton
           label={stale ? 'Update & resubmit' : 'Submit'}
           testId="daily-submit"
+          size="lg"
           icon={stale ? RefreshCw : undefined}
           pending={submit.isPending}
           disabled={!ready}

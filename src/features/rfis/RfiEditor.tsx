@@ -1,9 +1,10 @@
 // The RFI's typed fields: title, question and photos first (all most RFIs need), then a quiet "More" section with the
 // suggestion, reference, needed-by date and possible impact. Nothing below the photos is required. Autosaves.
-import { Image as PhotoIcon, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { RfiFileRef } from '../../data/rfis.types';
 import { CheckField, FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
+import { PHOTO_BOX, PHOTO_GRID, PHOTO_REMOVE, Thumb } from '../../ui/Thumb';
 import { PhotoPicker } from '../corrections/PhotoPicker';
 import type { RfiDraft } from './useRfiDraft';
 
@@ -11,25 +12,25 @@ const AREA = FIELD_AREA;
 const LABEL = FIELD_LABEL;
 
 interface KeptPhotosProps {
+  rfiId: string;
   photos: readonly RfiFileRef[];
   kept: readonly string[];
   onRemove: (id: string) => void;
 }
 
-/** Photos already on the RFI: kept unless taken off here. */
-function KeptPhotos({ photos, kept, onRemove }: KeptPhotosProps) {
+/** Photos already on the RFI (shown through it): kept unless taken off here. */
+function KeptPhotos({ rfiId, photos, kept, onRemove }: KeptPhotosProps) {
   const shown = photos.filter((p) => kept.includes(p.id));
   if (shown.length === 0) return null;
   return (
-    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-label="Photos on this RFI">
+    <ul className={PHOTO_GRID} aria-label="Photos on this RFI">
       {shown.map((p) => (
-        <li key={p.id} className="relative flex aspect-square flex-col items-center justify-center gap-1 rounded-md border border-line bg-page p-1 text-ink-2">
-          <Icon icon={PhotoIcon} size={20} />
-          <span className="w-full break-words text-center text-[11px] leading-4">{p.original_name}</span>
+        <li key={p.id} className={PHOTO_BOX}>
+          <Thumb fileId={p.id} via={{ rfiId }} alt={p.original_name} fill />
           <button
             type="button"
             aria-label={`Remove ${p.original_name}`}
-            className="absolute right-1 top-1 rounded-full bg-card/90 p-1 text-ink-2 hover:text-ink"
+            className={PHOTO_REMOVE}
             onClick={() => {
               onRemove(p.id);
             }}
@@ -44,13 +45,14 @@ function KeptPhotos({ photos, kept, onRemove }: KeptPhotosProps) {
 
 interface RfiEditorProps {
   draft: RfiDraft;
-  /** The photos already on the RFI (names for the tiles). */
+  /** The RFI being edited (null until a new one is first saved) and the photos already on it. */
+  rfiId: string | null;
   photos: readonly RfiFileRef[];
   isPhone: boolean;
   autoFocus: boolean;
 }
 
-export function RfiEditor({ draft, photos, isPhone, autoFocus }: RfiEditorProps) {
+export function RfiEditor({ draft, rfiId, photos, isPhone, autoFocus }: RfiEditorProps) {
   const { form, edit } = draft;
   return (
     <div className="flex flex-col gap-4">
@@ -81,13 +83,16 @@ export function RfiEditor({ draft, photos, isPhone, autoFocus }: RfiEditorProps)
       </label>
       <div className="flex flex-col gap-2">
         <span className="text-[13px] font-medium text-ink-2">Photos</span>
-        <KeptPhotos
-          photos={photos}
-          kept={form.kept}
-          onRemove={(id) => {
-            edit({ kept: form.kept.filter((k) => k !== id) });
-          }}
-        />
+        {rfiId !== null ? (
+          <KeptPhotos
+            rfiId={rfiId}
+            photos={photos}
+            kept={form.kept}
+            onRemove={(id) => {
+              edit({ kept: form.kept.filter((k) => k !== id) });
+            }}
+          />
+        ) : null}
         <PhotoPicker uploads={draft.photos} isPhone={isPhone} inputTestId="rfi-photo-input" />
       </div>
 

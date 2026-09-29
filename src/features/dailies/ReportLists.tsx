@@ -9,6 +9,7 @@ import { dailyHeaderSchema } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
+import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
@@ -137,28 +138,6 @@ const VIEWS: { value: DailiesView; label: string }[] = [
   { value: 'team', label: 'Team' },
 ];
 
-function ViewSwitch({ view, onPick }: { view: DailiesView; onPick: (v: DailiesView) => void }) {
-  return (
-    <div role="tablist" aria-label="Reports" className="inline-flex rounded-md border border-line bg-card p-0.5">
-      {VIEWS.map((v) => (
-        <button
-          key={v.value}
-          type="button"
-          role="tab"
-          aria-selected={v.value === view}
-          data-testid={`dailies-view-${v.value}`}
-          className={`h-8 rounded px-3 text-sm ${v.value === view ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
-          onClick={() => {
-            onPick(v.value);
-          }}
-        >
-          {v.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 interface ReportListsProps {
   projectId: string;
   canWrite: boolean;
@@ -170,7 +149,12 @@ export function ReportLists({ projectId, canWrite, canReadAll, selectedId }: Rep
   const nav = useDailiesNav(projectId);
   const view: DailiesView = !canWrite ? 'team' : !canReadAll ? 'mine' : nav.view;
   return (
-    <Card padded={false} className="overflow-hidden" title="Reports" actions={canWrite && canReadAll ? <ViewSwitch view={view} onPick={nav.setView} /> : undefined}>
+    <Card
+      padded={false}
+      className="overflow-hidden"
+      title="Reports"
+      actions={canWrite && canReadAll ? <Segments label="Reports" options={VIEWS} value={view} onPick={nav.setView} testId="dailies-view" /> : undefined}
+    >
       {view === 'mine' ? (
         <MyList projectId={projectId} selectedId={selectedId} onOpen={nav.open} />
       ) : (
