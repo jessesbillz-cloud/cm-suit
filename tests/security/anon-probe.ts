@@ -232,6 +232,21 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['invoice_snapshot', { p_period: '2026-01-01' }],
   ['hours_amount_ok', { p_value: 1, p_max: 1, p_places: 1 }],
   ['my_daily_today', {}],
+  // Request link and hub (0046): member RPCs, the service-only link RPCs, and the internal helpers
+  ['rotate_request_link', { p_project_id: U }],
+  ['undo_request_link_rotation', { p_project_id: U }],
+  ['request_link_state', { p_project_id: U }],
+  ['rotate_request_hub', {}],
+  ['request_hub_state', {}],
+  ['link_request_open', { p_project_id: U, p_token_hash: 'x', p_hub_id: null }],
+  ['link_request_join', { p_project_id: U, p_token_hash: 'x', p_hub_id: null, p_email: 'probe@example.test', p_name: 'probe', p_company: 'probe' }],
+  ['link_request_hub', { p_hub_id: U, p_token_hash: 'x' }],
+  ['request_link_on', { p_project_id: U }],
+  ['request_hub_owner', { p_hub_id: U, p_token_hash: 'x' }],
+  ['request_hub_list', { p_owner: U }],
+  ['request_hub_decides', { p_person: U }],
+  ['request_link_job', { p_project_id: U, p_token_hash: 'x', p_hub_id: null }],
+  ['request_link_token', {}],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
@@ -240,9 +255,8 @@ const AUTHED_FUNCTIONS = [
   'invite-bidders', 'issue-addendum', 'extract-bid', 'import-subs', 'submit-daily', 'email-daily',
   'ir-pdf', 'ir-send', 'rfis', 'timesheets',
 ];
-/** SPEC §6.4 public endpoints built so far: an empty body is refused (never 200).
- *  Add request-link (Phase 3) when it ships. calendar-feed is GET-only, so a POST is a 400. */
-const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed', 'delivery-board', 'key-login'];
+/** SPEC §6.4 public endpoints: an empty body is refused (never 200). calendar-feed is GET-only, so a POST is a 400. */
+const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed', 'delivery-board', 'key-login', 'request-link'];
 const WEBHOOKS = ['inbound-email', 'email-events'];
 
 async function probeTables(): Promise<void> {
@@ -407,6 +421,46 @@ async function probeDeliveryLink(): Promise<void> {
   });
 }
 
+/** The request link's open answer (SPEC §6.4 #4): the job name and two facts about the caller's own session. */
+const OPEN_FIELDS = ['can_request', 'member', 'project_name'];
+
+async function probeRequestLink(): Promise<void> {
+  const token = randomBytes(32).toString('base64url');
+  const call = (body: Record<string, unknown>) => callFunction('request-link', JSON.stringify(body));
+  const cases: [string, Record<string, unknown>, number[]][] = [
+    ['unknown job token', { action: 'open', project_id: randomUUID(), token }, [404]],
+    ['unknown hub', { action: 'hub', hub_id: randomUUID(), token }, [404]],
+    ['hub token on a job', { action: 'open', project_id: randomUUID(), token, hub_id: randomUUID() }, [404]],
+    ['malformed token', { action: 'open', project_id: randomUUID(), token: 'short' }, [400]],
+    ['join without a session', { action: 'join', project_id: randomUUID(), token, name: 'probe', company: 'probe' }, [401]],
+    ['join naming an address', { action: 'join', project_id: randomUUID(), token, name: 'probe', company: 'probe', email: 'probe@example.test' }, [400]],
+    ['no rotate action', { action: 'rotate', project_id: randomUUID(), token }, [400]],
+  ];
+  for (const [what, body, expected] of cases) {
+    await report.guard('function', `request-link: ${what}`, async () => {
+      const res = await call(body);
+      const text = await res.text();
+      report.check('function', `request-link: ${what} -> ${expected.join('/')}`, expected.includes(res.status) || res.status === 429, `status ${res.status}`);
+      report.check('function', `request-link: ${what} refusal is JSON with an error`, /"error"/.test(text), text.slice(0, 120));
+    });
+  }
+  // Positive check: a live link still opens its job, with the open fields only. Staging sets both env vars.
+  const projectId = process.env['PROBE_REQUEST_PROJECT_ID'];
+  const liveToken = process.env['PROBE_REQUEST_TOKEN'];
+  if (!projectId || !liveToken) {
+    report.todo('function', 'request-link: live link opens its job', 'set PROBE_REQUEST_PROJECT_ID and PROBE_REQUEST_TOKEN');
+    return;
+  }
+  await report.guard('function', 'request-link: live link', async () => {
+    const res = await call({ action: 'open', project_id: projectId, token: liveToken });
+    report.check('function', 'request-link: live link -> 200', res.status === 200, `status ${res.status}`);
+    const body = (await res.json()) as Record<string, unknown>;
+    report.check('function', 'request-link: open fields only', JSON.stringify(Object.keys(body).sort()) === JSON.stringify(OPEN_FIELDS),
+      Object.keys(body).join(', '));
+    report.check('function', 'request-link: no session is no member', body['member'] === false && body['can_request'] === false);
+  });
+}
+
 async function probeSchemas(): Promise<void> {
   for (const schema of ['pgmq', 'pgmq_public', 'queue']) {
     await report.guard('schema', schema, async () => {
@@ -436,6 +490,7 @@ async function main(): Promise<void> {
   await probeStorage();
   await probeFunctions();
   await probeDeliveryLink();
+  await probeRequestLink();
   await probeSchemas();
   report.finish();
 }

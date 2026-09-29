@@ -10,6 +10,7 @@ import { FileItem } from '../../features/files/FileItem';
 import { HoursItem } from '../../features/hours/HoursItem';
 import { CONTRACT_ITEM } from '../../features/hours/model';
 import { InspectionsItem } from '../../features/inspections/InspectionsItem';
+import { SHARE_ITEM } from '../../features/inspections/model';
 import { RfiItem } from '../../features/rfis/RfiItem';
 import { TimesheetsItem } from '../../features/timesheets/TimesheetsItem';
 import { BILLING_ITEM } from '../../features/timesheets/model';
@@ -77,7 +78,7 @@ export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'bids') return 'Bids';
   if (tool === 'calendar') return 'Calendar';
   if (tool === 'dailies') return 'Dailies';
-  if (tool === 'inspections') return 'Inspection';
+  if (tool === 'inspections') return itemId === SHARE_ITEM ? 'Share' : 'Inspection';
   if (tool === 'deliveries') return 'Delivery';
   if (tool === 'corrections') return 'Corrections';
   if (tool === 'rfis') return 'RFI';

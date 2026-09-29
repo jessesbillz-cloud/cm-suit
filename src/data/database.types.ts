@@ -3567,6 +3567,68 @@ export type Database = {
           },
         ]
       }
+      request_hubs: {
+        Row: {
+          created_at: string
+          id: string
+          rotated_at: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rotated_at?: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rotated_at?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      request_link_log: {
+        Row: {
+          id: string
+          new_hash: string
+          old_hash: string | null
+          project_id: string
+          rotated_at: string
+          rotated_by: string
+          undone_at: string | null
+        }
+        Insert: {
+          id?: string
+          new_hash: string
+          old_hash?: string | null
+          project_id: string
+          rotated_at?: string
+          rotated_by: string
+          undone_at?: string | null
+        }
+        Update: {
+          id?: string
+          new_hash?: string
+          old_hash?: string | null
+          project_id?: string
+          rotated_at?: string
+          rotated_by?: string
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_link_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfi_events: {
         Row: {
           actor: string | null
@@ -6740,6 +6802,25 @@ export type Database = {
         }
         Returns: Json
       }
+      link_request_hub: {
+        Args: { p_hub_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      link_request_join: {
+        Args: {
+          p_company: string
+          p_email: string
+          p_hub_id: string
+          p_name: string
+          p_project_id: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      link_request_open: {
+        Args: { p_hub_id?: string; p_project_id: string; p_token_hash: string }
+        Returns: Json
+      }
       log_invoice_pdf: {
         Args: { p_invoice_id: string; p_sha256: string }
         Returns: undefined
@@ -7012,6 +7093,70 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      request_hub_decides: { Args: { p_person: string }; Returns: boolean }
+      request_hub_list: {
+        Args: { p_owner: string }
+        Returns: {
+          name: string
+          project_id: string
+        }[]
+      }
+      request_hub_owner: {
+        Args: { p_hub_id: string; p_token_hash: string }
+        Returns: string
+      }
+      request_hub_state: {
+        Args: never
+        Returns: {
+          decides: boolean
+          hub_id: string
+          jobs: number
+          made_at: string
+        }[]
+      }
+      request_link_job: {
+        Args: { p_hub_id: string; p_project_id: string; p_token_hash: string }
+        Returns: {
+          address: string | null
+          bid_due_at: string | null
+          bid_sealed: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          delivery_token_hash: string | null
+          funding: string | null
+          id: string
+          inbound_address: string | null
+          is_dsa: boolean
+          job_type: string | null
+          modules: string[]
+          name: string
+          number: string | null
+          org_id: string
+          prevailing_wage: boolean
+          request_token_hash: string | null
+          settings: Json
+          stage: string
+          timezone: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_link_on: { Args: { p_project_id: string }; Returns: boolean }
+      request_link_state: {
+        Args: { p_project_id: string }
+        Returns: {
+          active: boolean
+          since: string
+        }[]
+      }
+      request_link_token: { Args: never; Returns: string }
       resolve_access_link: {
         Args: { p_link_id: string; p_token_hash: string }
         Returns: {
@@ -7938,6 +8083,21 @@ export type Database = {
       role_is_walled: { Args: { p_role: string }; Returns: boolean }
       rotate_calendar_feed: { Args: never; Returns: string }
       rotate_delivery_link: { Args: { p_project_id: string }; Returns: string }
+      rotate_request_hub: {
+        Args: never
+        Returns: {
+          hub_id: string
+          made_at: string
+          token: string
+        }[]
+      }
+      rotate_request_link: {
+        Args: { p_project_id: string }
+        Returns: {
+          made_at: string
+          token: string
+        }[]
+      }
       save_billing_profile: {
         Args: {
           p_address: string
@@ -8362,6 +8522,10 @@ export type Database = {
         }
       }
       undo_delivery_link_rotation: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      undo_request_link_rotation: {
         Args: { p_project_id: string }
         Returns: undefined
       }

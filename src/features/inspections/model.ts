@@ -19,6 +19,8 @@ export function parseView(v: string | undefined, allowed: readonly IrView[]): Ir
 /** Right-column items that are forms, not requests (requests are uuids). */
 export const NEW_ITEM = 'new';
 export const BLOCK_ITEM = 'block';
+/** The job's request link and QR sheet (members.manage). */
+export const SHARE_ITEM = 'share';
 
 /** The IR PDF's filename (lib/buildFilename pattern). */
 export const IR_FILENAME = 'IR {#} {Project} {MM-DD-YYYY}.pdf';

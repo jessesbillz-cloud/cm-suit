@@ -152,3 +152,10 @@ verify_jwt = false
 # --- Hours: my monthly timesheet (signed) and invoice PDFs ---
 [functions.timesheets]
 verify_jwt = true
+
+# --- Public endpoint (SPEC §6.4 #4): the job's inspection request link and the inspector's hub. verify_jwt = false
+# because subs open the link or scan the QR sheet before they have an account. The function gates itself: token hash
+# (job or hub), rate limits per IP and per token, zod on every input, the job name / hub job names only; joining needs
+# the visitor's own session (the email code), checked with requireUser. ---
+[functions.request-link]
+verify_jwt = false

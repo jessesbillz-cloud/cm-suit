@@ -75,4 +75,13 @@ export const qk = {
   hoursPart: (part: string, id = '') => ['hours', part, id] as const,
   /** Today's report on each of my jobs (0045): the top of All my jobs. */
   dailyToday: ['daily_today'] as const,
+  /** The job's inspection request link (members.manage) and my hub link (0046): on or off and since when, never a token. */
+  requestLink: (projectId: string) => ['request_link', projectId] as const,
+  requestHub: ['request_hub'] as const,
+  /** The public request page (no session needed): its own prefix, never mixed with the signed-in cache. */
+  requestLinkPublic: (projectId: string) => ['request_link_public', projectId] as const,
+  /** Opened with the job's token or a hub's (`via`), as a session (or signed out): one answer each. */
+  requestLinkOpen: (projectId: string, via: string) => ['request_link_public', projectId, 'open', via] as const,
+  /** The public hub page's list of jobs. */
+  requestHubPublic: (hubId: string) => ['request_hub_public', hubId] as const,
 };

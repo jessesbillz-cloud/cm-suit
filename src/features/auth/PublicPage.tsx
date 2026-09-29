@@ -25,13 +25,23 @@ export function PublicShell({ children, wide = false }: PublicShellProps) {
   );
 }
 
-export function PublicPage({ title, children }: { title: string; children: ReactNode }) {
+interface PublicPageProps {
+  title: string;
+  /** One short line under the title: what this page is for. */
+  meta?: string | undefined;
+  children: ReactNode;
+}
+
+export function PublicPage({ title, meta, children }: PublicPageProps) {
   return (
     <PublicShell>
       <Card className="w-full">
         {/* An error banner sits flush in the card (ui/States gives it a margin for list screens). */}
         <div className="flex flex-col gap-4 p-2 [&>[role=alert]]:m-0">
-          <h1 className="break-words text-xl font-semibold leading-7 tracking-[-0.01em] text-ink">{title}</h1>
+          <div>
+            <h1 className="break-words text-xl font-semibold leading-7 tracking-[-0.01em] text-ink">{title}</h1>
+            {meta ? <p className="mt-0.5 text-sm text-ink-2">{meta}</p> : null}
+          </div>
           {children}
         </div>
       </Card>

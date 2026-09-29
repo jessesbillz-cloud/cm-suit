@@ -127,6 +127,8 @@ export const PUBLIC_TABLES = [
   'rfi_settings', 'rfi_route_steps', 'rfis', 'rfi_steps', 'rfi_events',
   // Hours, billing and invoices (0043)
   'job_hours_budgets', 'billing_profiles', 'billing_job_rates', 'invoices',
+  // Request link and hub (0046)
+  'request_link_log', 'request_hubs',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
