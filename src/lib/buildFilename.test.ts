@@ -21,6 +21,11 @@ describe('buildFilename', () => {
   it('matches field names case-insensitively as a fallback', () => {
     expect(buildFilename('{project} - {AUTHOR}', values)).toBe('Sample Job A - Pat Q');
   });
+  it('{Name_} puts underscores for spaces (the VIS form\'s DR_{#}_{Project_}_{YYYY-MM-DD})', () => {
+    expect(buildFilename('DR_{#}_{Project_}_{YYYY-MM-DD}', { ...values, number: 233 })).toBe('DR_233_Sample_Job_A_2026-09-05');
+    expect(buildFilename('{project_}', { fields: { Project: '  Two  Words ' } })).toBe('Two_Words');
+    expect(() => buildFilename('{Missing_}', values)).toThrow(/Missing_/);
+  });
   it('removes characters that break filenames', () => {
     expect(buildFilename('{Project}', { fields: { Project: 'A/B: "C"' } })).toBe('A-B- -C-');
   });

@@ -3,6 +3,7 @@
 //   {#}, {##}, {###} ...   the record number, zero-padded to the count of '#'
 //   {MM-DD-YYYY}, {YYYY-MM-DD}, {MM.DD.YY} ...   the record date (any mix of Y/M/D runs and - . _ or space)
 //   {Project}, {Author} ...   a named value; matched exactly, then case-insensitively
+//   {Project_} ...   the same value with its spaces as underscores ("Sample Job A" -> "Sample_Job_A")
 // A token without a value throws: a filename is never silently cut short.
 
 interface FilenameValues {
@@ -39,14 +40,20 @@ function formatDate(token: string, date: string | undefined): string {
   });
 }
 
-function lookupField(token: string, fields: Readonly<Record<string, string>> | undefined): string {
-  const src = fields ?? {};
+function findField(token: string, src: Readonly<Record<string, string>>): string | undefined {
   const exact = src[token];
   if (exact !== undefined) return exact;
   const key = Object.keys(src).find((k) => k.toLowerCase() === token.toLowerCase());
-  const loose = key === undefined ? undefined : src[key];
-  if (loose === undefined) throw new Error(`Missing a value for {${token}}`);
-  return loose;
+  return key === undefined ? undefined : src[key];
+}
+
+function lookupField(token: string, fields: Readonly<Record<string, string>> | undefined): string {
+  const src = fields ?? {};
+  const value = findField(token, src);
+  if (value !== undefined) return value;
+  const base = token.endsWith('_') ? findField(token.slice(0, -1), src) : undefined;
+  if (base === undefined) throw new Error(`Missing a value for {${token}}`);
+  return base.trim().replace(/\s+/g, '_');
 }
 
 /** Builds a safe filename (no path separators or characters Windows rejects). The extension is kept as written. */

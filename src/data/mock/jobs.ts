@@ -4,6 +4,7 @@ import { conflictError } from '../errors';
 import type { MyOrg, MyProject, NewJobInput, OrgPatch, ProjectPatch, ProjectRow } from '../types';
 import { MOCK_DEFAULT_MODULES, MOCK_ORGS, MOCK_PROJECTS, mockProfile, NEWCOMER_ID } from './fixtures';
 import { missingDsaFolders, newJobFolders } from './folders';
+import { FORM_ORG, FORM_ORG_SETTINGS, formJobRows } from './formJobs';
 import { mockUser } from './index';
 import { pipelineJobRows } from './pipelineJobs';
 import { delay, readMock, writeMock } from './store';
@@ -35,7 +36,7 @@ function fixtureRow(p: MyProject): ProjectRow {
 /** Fixture rows (with this test's edits) plus the jobs made in this test. */
 function projectRows(): ProjectRow[] {
   const saved = readMock().projects;
-  const fixtures = isNewcomer() ? [] : [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows()];
+  const fixtures = isNewcomer() ? [] : [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows(), ...formJobRows()];
   const base = fixtures.map((r) => saved.find((x) => x.id === r.id) ?? r);
   return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
 }
@@ -57,7 +58,7 @@ export async function projects(): Promise<MyProject[]> {
     project_id: r.id,
     name: r.name,
     number: r.number ?? '',
-    org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? '',
+    org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? (r.org_id === FORM_ORG.org_id ? FORM_ORG.name : ''),
     role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? 'project_admin',
     stage: r.stage,
     timezone: r.timezone,
@@ -143,7 +144,8 @@ export async function isOrgAdmin(orgId: string): Promise<boolean> {
   return allOrgs().some((o) => o.org_id === orgId);
 }
 
-/** Mock companies have bid reading on, so the e2e flows can use Read / Read all. */
-export function orgSettings(): Record<string, unknown> {
-  return { ai_bid_reading: true };
+/** Mock companies have bid reading on, so the e2e flows can use Read / Read all; the sample inspection company writes
+ *  its dailies on its company form. */
+export function orgSettings(orgId: string): Record<string, unknown> {
+  return orgId === FORM_ORG.org_id ? { ...FORM_ORG_SETTINGS } : { ai_bid_reading: true };
 }

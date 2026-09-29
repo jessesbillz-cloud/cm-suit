@@ -1,11 +1,13 @@
-// Today's report on the job: the day, the number and state, the main button (Start / Continue / Edit submitted), the
-// phone's one-tap Camera that puts photos straight on today's report, the earlier drafts not yet submitted, and
-// "Past date".
+// Today's report on the job, on the form I write here (work log or a company form): the day, the number and state, the
+// main button (Start / Continue / Edit submitted), the phone's one-tap Camera that puts photos straight on today's
+// report, the earlier drafts not yet submitted, and "Past date".
 import { useState } from 'react';
 import { PenLine } from 'lucide-react';
+import type { Json } from '../../data/database.types';
 import { useAddDailyPhotos, useCreateDailyReport, type PhotoPick } from '../../data/dailies.mutations';
 import { useMyDailies, useNextDailyNumber, useTodaysDraft } from '../../data/dailies.queries';
 import { messageOf } from '../../data/errors';
+import type { ProjectRow } from '../../data/types';
 import { formatDay, todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
@@ -14,11 +16,10 @@ import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TODAY_LABELS, earlierDrafts, numberLabel, reportChip, todayAction } from './model';
 import { PhotoButtons } from './PhotoButtons';
+import { useDailyForm } from './useDailyForm';
 
 interface TodayCardProps {
-  projectId: string;
-  projectName: string;
-  tz: string;
+  project: ProjectRow;
   isPhone: boolean;
   onOpen: (reportId: string) => void;
 }
@@ -26,33 +27,43 @@ interface TodayCardProps {
 const DATE_INPUT =
   'h-9 rounded-md border border-line-strong bg-card px-2.5 text-sm text-ink outline-none focus:border-accent';
 
-export function TodayCard({ projectId, projectName, tz, isPhone, onOpen }: TodayCardProps) {
+function Loading() {
+  return (
+    <Card>
+      <LoadingState label="Loading today" />
+    </Card>
+  );
+}
+
+interface TodayProps extends TodayCardProps {
+  reportType: string;
+  settingsIfNew: Json;
+}
+
+function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayProps) {
+  const projectId = project.id;
+  const tz = project.timezone;
   const today = todayInZone(tz);
-  const ensured = useTodaysDraft(projectId, true);
+  const ensured = useTodaysDraft(projectId, reportType, settingsIfNew, true);
   const mine = useMyDailies(projectId, true);
-  const next = useNextDailyNumber(projectId, true);
+  const next = useNextDailyNumber(projectId, reportType, true);
   const create = useCreateDailyReport(projectId);
   const addPhotos = useAddDailyPhotos(projectId);
   const toast = useToast();
   const [pastDate, setPastDate] = useState('');
 
-  if (ensured.isPending || mine.isPending) {
-    return (
-      <Card>
-        <LoadingState label="Loading today" />
-      </Card>
-    );
-  }
+  if (ensured.isPending || mine.isPending) return <Loading />;
   if (ensured.isError) return <ErrorState error={ensured.error} onRetry={() => void ensured.refetch()} />;
   if (mine.isError) return <ErrorState error={mine.error} onRetry={() => void mine.refetch()} />;
 
-  const todays = mine.data.find((r) => r.report_date === today) ?? null;
+  const todays = mine.data.find((r) => r.report_date === today && r.report_type === reportType) ?? null;
   const action = todayAction(todays);
   const earlier = earlierDrafts(mine.data, today);
   const fail = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
   };
-  const todaysId = (): Promise<string> => (todays ? Promise.resolve(todays.id) : create.mutateAsync(today));
+  const open = (reportDate: string): Promise<string> => create.mutateAsync({ reportType, reportDate });
+  const todaysId = (): Promise<string> => (todays ? Promise.resolve(todays.id) : open(today));
 
   function photos(picks: PhotoPick[]) {
     todaysId().then((reportId) => {
@@ -86,7 +97,7 @@ export function TodayCard({ projectId, projectName, tz, isPhone, onOpen }: Today
             >
               {TODAY_LABELS[action]}
             </Button>
-            {isPhone ? <PhotoButtons variant="hero" projectName={projectName} tz={tz} onPicked={photos} testId="daily-quick-camera" /> : null}
+            {isPhone ? <PhotoButtons variant="hero" projectName={project.name} tz={tz} onPicked={photos} testId="daily-quick-camera" /> : null}
           </div>
         </div>
 
@@ -112,7 +123,7 @@ export function TodayCard({ projectId, projectName, tz, isPhone, onOpen }: Today
           className="-mx-4 -mb-4 flex flex-wrap items-center gap-2 rounded-b-card border-t border-line bg-card-head px-4 py-2.5"
           onSubmit={(e) => {
             e.preventDefault();
-            if (pastDate !== '') create.mutate(pastDate, { onSuccess: onOpen, onError: fail });
+            if (pastDate !== '') open(pastDate).then(onOpen, fail);
           }}
         >
           <label className="flex items-center gap-2 text-sm text-ink-2">
@@ -135,4 +146,11 @@ export function TodayCard({ projectId, projectName, tz, isPhone, onOpen }: Today
       </div>
     </Card>
   );
+}
+
+export function TodayCard(props: TodayCardProps) {
+  const f = useDailyForm(props.project);
+  if (f.status === 'pending') return <Loading />;
+  if (f.status === 'error') return <ErrorState error={f.error} onRetry={f.retry} />;
+  return <Today {...props} reportType={f.reportType} settingsIfNew={f.settingsFor(f.reportType)} />;
 }

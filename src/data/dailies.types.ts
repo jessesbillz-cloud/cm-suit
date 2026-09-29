@@ -27,14 +27,15 @@ export const REPORT_COLS =
 
 export type DailyPhotoRow = Pick<
   Tables<'daily_report_photos'>,
-  'id' | 'report_id' | 'file_id' | 'row_key' | 'caption' | 'taken_at' | 'version' | 'updated_at' | 'deleted_at'
+  'id' | 'report_id' | 'file_id' | 'row_key' | 'caption' | 'description' | 'taken_at' | 'version' | 'updated_at' | 'deleted_at'
 >;
 
-export const PHOTO_COLS = 'id, report_id, file_id, row_key, caption, taken_at, version, updated_at, deleted_at';
+export const PHOTO_COLS = 'id, report_id, file_id, row_key, caption, description, taken_at, version, updated_at, deleted_at';
 
-export type DailySetupRow = Pick<Tables<'daily_setups'>, 'id' | 'project_id' | 'report_type' | 'settings' | 'version'>;
+/** A person's setup for one form on a job; the one they chose last is the form they write (lib/dailies activeReportType). */
+export type DailySetupRow = Pick<Tables<'daily_setups'>, 'id' | 'project_id' | 'report_type' | 'settings' | 'version' | 'chosen_at'>;
 
-export const SETUP_COLS = 'id, project_id, report_type, settings, version';
+export const SETUP_COLS = 'id, project_id, report_type, settings, version, chosen_at';
 
 /** What submit-daily answers. */
 export const submitResultSchema = z.object({

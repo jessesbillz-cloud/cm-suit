@@ -48,7 +48,7 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
       <PageHeader
         title={META.label}
         icon={META.icon}
-        meta={write.data ? <WriterMeta projectId={projectId} tz={project.data.timezone} /> : <ReaderMeta projectId={projectId} />}
+        meta={write.data ? <WriterMeta project={project.data} /> : <ReaderMeta projectId={projectId} />}
         actions={
           write.data ? (
             <Button
@@ -65,7 +65,7 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
         }
       />
       {write.data ? (
-        <TodayCard projectId={projectId} projectName={project.data.name} tz={project.data.timezone} isPhone={isPhone} onOpen={nav.open} />
+        <TodayCard project={project.data} isPhone={isPhone} onOpen={nav.open} />
       ) : null}
       <ReportLists projectId={projectId} canWrite={write.data} canReadAll={readAll.data} selectedId={itemId} />
     </div>

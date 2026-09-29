@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DAILY_REPORT_TYPE,
   DAILY_SETTINGS_DEFAULTS,
+  activeReportType,
   asPdfName,
   dailyContentSchema,
   dailyFilenameFields,
   dailyHeaderSchema,
   dailySettingsSchema,
+  dailyValues,
+  formOf,
   needsResubmit,
+  newSetupSettings,
   parseDailySettings,
 } from './dailies';
 import { buildFilename } from './buildFilename';
@@ -72,6 +77,49 @@ describe('daily setup settings', () => {
     const name = buildFilename(DAILY_SETTINGS_DEFAULTS.filename_pattern, { number: 41, date: '2026-09-28', fields: dailyFilenameFields(header) });
     expect(asPdfName(name)).toBe('Daily Report 41 Sample Job A 09-28-2026.pdf');
     expect(asPdfName('Report.PDF')).toBe('Report.PDF');
+  });
+});
+
+describe('company forms (SPEC §8.3)', () => {
+  const known = { project_name: 'Sample School Wing', project_number: 'S-400', author_name: 'Pat Sample', is_dsa: true };
+
+  it('the form I write: the setup chosen last, else the company\'s form, else the work log', () => {
+    const setups = [
+      { report_type: 'daily', chosen_at: '2026-09-27T16:00:00.000000+00:00' },
+      { report_type: 'vis_daily', chosen_at: '2026-09-28T16:00:00.000000+00:00' },
+    ];
+    expect(activeReportType(setups, null)).toBe('vis_daily');
+    expect(activeReportType([], 'vis_daily')).toBe('vis_daily');
+    expect(activeReportType([], 'unknown_form')).toBe(DAILY_REPORT_TYPE);
+    expect(activeReportType([], null)).toBe(DAILY_REPORT_TYPE);
+  });
+
+  it('a new VIS setup: the form\'s name and filename, job values prefilled, everything else the defaults', () => {
+    const s = newSetupSettings('vis_daily', known);
+    expect(s.filename_pattern).toBe('DR_{#}_{Project_}_{YYYY-MM-DD}');
+    expect(s.locked).toMatchObject({ project_name: 'Sample School Wing', project_no: 'S-400', jurisdiction: 'DSA', ior: 'Pat Sample', architect: '' });
+    expect(s.schedule_days).toEqual(DAILY_SETTINGS_DEFAULTS.schedule_days);
+    expect(dailySettingsSchema.safeParse(s).success).toBe(true);
+    const name = buildFilename(s.filename_pattern, { number: 233, date: '2026-09-28', fields: { Project: 'Sample School Wing' } });
+    expect(asPdfName(name)).toBe('DR_233_Sample_School_Wing_2026-09-28.pdf');
+  });
+
+  it('a new work-log setup is just the defaults', () => {
+    expect(newSetupSettings(DAILY_REPORT_TYPE, known)).toEqual(DAILY_SETTINGS_DEFAULTS);
+  });
+
+  it('IOR Notes start as the standing note until typed in, even when cleared', () => {
+    const form = formOf('vis_daily');
+    if (!form) throw new Error('vis_daily is a form');
+    expect(dailyValues(form, {}, 'Standing').ior_notes).toBe('Standing');
+    expect(dailyValues(form, { ior_notes: '' }, 'Standing').ior_notes).toBe('');
+    expect(dailyValues(form, { contractor_activity: 'Framing' }, '').contractor_activity).toBe('Framing');
+    expect(formOf(DAILY_REPORT_TYPE)).toBeNull();
+  });
+
+  it('a report keeps its form values; bad keys are refused', () => {
+    expect(dailyContentSchema.parse({ fields: { ior_notes: 'x' } }).fields).toEqual({ ior_notes: 'x' });
+    expect(dailyContentSchema.safeParse({ fields: { 'Bad Key': 'x' } }).success).toBe(false);
   });
 });
 

@@ -1,28 +1,28 @@
-// One report being written. Full: weather, work log, notes, photos. Field Mode (the phone's default): a big Camera
-// button and the notes. Autosaves (useReportDraft); a submitted report opens read-only until Edit. The bottom bar
-// holds Submit (or Download / Send once submitted) and the autosave line.
+// One report being written. Work log: weather, work log, notes, photos. A company form (SPEC §8.3): its day's values
+// (FormFields) and photos. Field Mode (the phone's default): a big Camera button and the notes. Autosaves
+// (useReportDraft); a submitted report opens read-only until Edit. The bottom bar holds Submit (or Download / Send once
+// submitted) and the autosave line.
 import { useState } from 'react';
 import { Pencil, RotateCw, Smartphone, Trash2 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAddDailyPhotos, useCreateDailyReport, useDailyPhotoUploads, useDeleteDailyDraft, type PhotoPick } from '../../data/dailies.mutations';
 import type { DailyPhotoRow, DailyReportRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
-import { needsResubmit, type DailyContent, type DailyHeader } from '../../lib/dailies';
+import { needsResubmit, type DailyContent, type DailyHeader, type ReportForm } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { SaveState } from '../../ui/SaveState';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { FormFields } from './FormFields';
+import { InspectionsList } from './InspectionsList';
 import { numberLabel, reportChip } from './model';
-import { NotesFields } from './NotesFields';
 import { PhotoButtons } from './PhotoButtons';
 import { PhotoList } from './PhotoList';
-import { Section } from './Section';
-import { INPUT } from './styles';
 import { SubmitArea } from './SubmitArea';
 import { useReportDraft } from './useReportDraft';
-import { WorkLog } from './WorkLog';
+import { WorkLogBody } from './WorkLogBody';
 
 interface EditorHeaderProps {
   report: DailyReportRow;
@@ -72,6 +72,8 @@ interface ReportEditorProps {
   report: DailyReportRow;
   header: DailyHeader;
   content: DailyContent;
+  /** The company form the report is written on, or null for the work log. */
+  form: ReportForm | null;
   photos: readonly DailyPhotoRow[];
   nextNumber: number | undefined;
   recipients: readonly string[];
@@ -82,7 +84,7 @@ interface ReportEditorProps {
 }
 
 export function ReportEditor(props: ReportEditorProps) {
-  const { projectId, report, header, photos, nextNumber, recipients, isPhone, onSigned, onReload } = props;
+  const { projectId, report, header, form, photos, nextNumber, recipients, isPhone, onSigned, onReload } = props;
   const draft = useReportDraft(projectId, report, props.content);
   const addPhotos = useAddDailyPhotos(projectId);
   const uploads = useDailyPhotoUploads(projectId);
@@ -125,7 +127,7 @@ export function ReportEditor(props: ReportEditorProps) {
               label: 'Undo',
               // This screen is gone by then: the promise (not per-call callbacks) reports a failure.
               onClick: () => {
-                restore.mutateAsync(report.report_date).catch((e: unknown) => {
+                restore.mutateAsync({ reportType: report.report_type, reportDate: report.report_date }).catch((e: unknown) => {
                   toast.show({ tone: 'error', message: messageOf(e) });
                 });
               },
@@ -147,6 +149,7 @@ export function ReportEditor(props: ReportEditorProps) {
       tz={header.timezone}
       locked={locked}
       field={field}
+      describe={form !== null}
       buttons={
         <PhotoButtons
           projectName={header.project_name}
@@ -182,69 +185,23 @@ export function ReportEditor(props: ReportEditorProps) {
       />
 
       <div className="flex flex-1 flex-col gap-3 p-3">
-        {field ? (
-          photoList
-        ) : (
+        {field ? photoList : null}
+        {form ? (
           <>
-            <label className="flex items-center gap-3 rounded-card bg-card px-4 py-3 shadow-card">
-              <span className="w-20 shrink-0 text-[15px] font-semibold text-ink">Weather</span>
-              <input
-                className={`h-10 min-w-0 flex-1 ${INPUT}`}
-                value={c.weather}
-                maxLength={300}
-                disabled={locked}
-                onChange={(e) => {
-                  const weather = e.target.value;
-                  draft.edit((x) => ({ ...x, weather }));
-                }}
-              />
-            </label>
-            <WorkLog
-              rows={c.work}
+            <FormFields
+              form={form}
+              content={c}
               locked={locked}
-              onRows={(change) => {
-                draft.edit((x) => ({ ...x, work: change(x.work) }));
+              field={field}
+              onField={(key, value) => {
+                draft.edit((x) => ({ ...x, fields: { ...x.fields, [key]: value } }));
               }}
-              cameraFor={(rowKey) => (
-                <PhotoButtons
-                  variant="row"
-                  projectName={header.project_name}
-                  tz={header.timezone}
-                  onPicked={(picks) => {
-                    onPhotos(picks, rowKey);
-                  }}
-                />
-              )}
             />
+            <InspectionsList items={c.inspections} />
           </>
+        ) : (
+          <WorkLogBody content={c} header={header} locked={locked} field={field} edit={draft.edit} onRowPhotos={onPhotos} />
         )}
-
-        {c.inspections.length > 0 ? (
-          <Section title="Inspections" count={c.inspections.length} testId="daily-inspections">
-            <ul className="flex flex-col divide-y divide-line">
-              {c.inspections.map((i) => (
-                <li key={i.ref} className="whitespace-pre-wrap break-words py-2 text-sm text-ink first:pt-0 last:pb-0">
-                  {i.text}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ) : null}
-        <NotesFields
-          content={c}
-          locked={locked}
-          roomy={field}
-          onNote={(key, text) => {
-            draft.edit((x) => ({ ...x, notes: { ...x.notes, [key]: text } }));
-          }}
-          onCarry={(key, carry) => {
-            draft.edit((x) => ({
-              ...x,
-              carry_sections: carry ? [...x.carry_sections.filter((k) => k !== key), key] : x.carry_sections.filter((k) => k !== key),
-            }));
-          }}
-        />
-
         {field ? null : photoList}
 
         {report.status === 'draft' && report.number === null ? (

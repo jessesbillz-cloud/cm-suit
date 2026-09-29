@@ -33,8 +33,9 @@ queue-health
 # Public endpoint §6.4 #7: calendar apps have no session; the secret feed token is the gate and calendar_feed_lines()
 # is service-only.
 calendar-feed
-# Stores the signed daily report PDF (storeGeneratedPdf), reads the report's photo bytes from private storage and runs
-# finish_daily_submit (not user-callable); the report is read as the author and begin_daily_submit runs as the author first,
+# Stores the signed daily report PDF (storeGeneratedPdf), reads the report's photo bytes (and, for a company form, the
+# job's company logo, orgs.logo_path read as the author) from private storage and runs finish_daily_submit (not
+# user-callable); the report is read as the author and begin_daily_submit runs as the author first,
 # after requireCapability('dailies.write') and the signing re-confirmation.
 submit-daily
 # Writes the transmittal, share links and email_outbound for the author (who may lack transmittals.send); the report,
