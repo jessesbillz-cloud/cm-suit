@@ -1,5 +1,7 @@
-// The calendar's right column: the add form (item "new"), or an opened manual line with its edit form. People without
-// calendar.manage, and module lines opened by address, get the line itself and (for module lines) a way to its item.
+// The calendar's right column: the add form (item "new"), blocked time, the feed link, a request with the inspector's
+// steps (inspections' RequestPane; the calendar stays beside it), or an opened manual line with its edit form. People
+// without calendar.manage, and module lines opened by address, get the line itself and (for module lines) a way to
+// its item.
 import { useCalendarLine } from '../../data/calendar.queries';
 import type { CalendarLine } from '../../data/calendar.types';
 import { useCapability } from '../../data/queries';
@@ -9,10 +11,13 @@ import { Button } from '../../ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
+import { RequestPane } from '../inspections/RequestPane';
 import { AddLine } from './AddLine';
+import { BlockPanel } from './BlockPanel';
 import { EditLine } from './EditLine';
 import { KindTile } from './LineRow';
-import { lineTime, NEW_LINE, statusKey } from './model';
+import { BLOCK_ITEM, lineTime, NEW_LINE, parseRequestItem, statusKey, SUBSCRIBE_ITEM } from './model';
+import { SubscribePanel } from './SubscribePanel';
 import { useCalendarNav, type CalendarNav } from './useCalendarNav';
 
 interface CalendarItemProps {
@@ -82,5 +87,9 @@ function OpenLine({ itemId, nav }: { itemId: string; nav: CalendarNav }) {
 export function CalendarItem({ projectId, itemId }: CalendarItemProps) {
   const nav = useCalendarNav(projectId);
   if (itemId === NEW_LINE) return <AddLine projectId={projectId} nav={nav} />;
+  if (itemId === BLOCK_ITEM) return <BlockPanel projectId={projectId} nav={nav} />;
+  if (itemId === SUBSCRIBE_ITEM) return <SubscribePanel />;
+  const request = parseRequestItem(itemId);
+  if (request) return <RequestPane key={itemId} projectId={request.projectId} requestId={request.requestId} />;
   return <OpenLine itemId={itemId} nav={nav} />;
 }

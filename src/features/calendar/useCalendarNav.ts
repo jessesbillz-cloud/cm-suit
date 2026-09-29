@@ -1,11 +1,11 @@
-// Where the calendar is: the view (?view=) and the day it's on (?day=) live in the URL; the open line is the frame's
-// item. A manual line opens in the calendar's right column; a mirrored line opens its module item (lib/calendarKinds).
-// Router only.
+// Where the calendar is: the view (?view=) and the selected day (?day=) live in the URL; the open item is the frame's.
+// A request opens in the calendar's right column (the inspections RequestPane), as does a manual line, blocked time
+// and the feed link; a mirrored line of another module opens its module item (lib/calendarKinds). Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useOpenTarget } from '../../app/frame/useOpenTarget';
 import type { CalendarLine } from '../../data/calendar.types';
 import { lineTarget } from '../../lib/calendarKinds';
-import { NEW_LINE, parseCalView, parseDay, type CalView } from './model';
+import { BLOCK_ITEM, NEW_LINE, parseCalView, parseDay, requestItemId, SUBSCRIBE_ITEM, type CalView } from './model';
 
 interface Where {
   view: CalView;
@@ -51,13 +51,25 @@ export function useCalendarNav(projectId: string | null) {
     setDay: (d: string | null) => {
       go({ view, day: d });
     },
-    /** A month cell's date: that day in the day view. */
-    showDay: (d: string) => {
-      go({ view: 'day', day: d });
+    /** A day of the grid: shown under it. */
+    selectDay: (d: string) => {
+      go({ view, day: d });
     },
     /** The add form in the right column, prefilled with this day. */
     add: (d: string) => {
       go({ view, day: d }, NEW_LINE);
+    },
+    /** Blocked time for the selected day, in the right column. */
+    block: () => {
+      go({ view, day }, BLOCK_ITEM);
+    },
+    /** My calendar feed link, in the right column. */
+    subscribe: () => {
+      go({ view, day }, SUBSCRIBE_ITEM);
+    },
+    /** A request with its steps, in the right column; the calendar stays. */
+    openRequest: (requestProjectId: string, requestId: string) => {
+      go({ view, day }, requestItemId(requestProjectId, requestId));
     },
     openLine,
     /** Closes the right column and shows the given day (e.g. the day a line was just saved on). */

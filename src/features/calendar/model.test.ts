@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarLine } from '../../data/calendar.types';
-import { bucketByDay, isWeekendDay, lineDay, parseCalView, parseDay, rangeFor, rangeLabel, statusKey, step, visibleDays, visibleLines } from './model';
+import {
+  bucketByDay,
+  inspectionJobs,
+  isWeekendDay,
+  lineDay,
+  parseCalView,
+  parseDay,
+  parseRequestItem,
+  rangeFor,
+  rangeLabel,
+  requestItemId,
+  schedulingLink,
+  statusKey,
+  step,
+  visibleDays,
+  visibleLines,
+} from './model';
 
 const LA = 'America/Los_Angeles';
 const NY = 'America/New_York';
@@ -33,7 +49,6 @@ describe('calendar days', () => {
       '2026-09-28', '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04',
     ]);
     expect(visibleDays('week', '2026-10-04')[0]).toBe('2026-09-28');
-    expect(visibleDays('day', '2026-09-30')).toEqual(['2026-09-30']);
   });
 
   it('Saturday and Sunday are the weekend', () => {
@@ -57,7 +72,6 @@ describe('calendar days', () => {
 
   it('prev / next move by the view', () => {
     expect(step('week', '2026-09-30', 1)).toBe('2026-10-07');
-    expect(step('day', '2026-09-30', -1)).toBe('2026-09-29');
     expect(step('month', '2026-01-31', 1)).toBe('2026-02-28');
   });
 
@@ -69,9 +83,10 @@ describe('calendar days', () => {
     expect(rangeLabel('week', visibleDays('week', '2026-09-30'), '2026-09-30')).toBe('Sep 28 – Oct 4, 2026');
     expect(rangeLabel('week', visibleDays('week', '2026-12-30'), '2026-12-30')).toBe('Dec 28, 2026 – Jan 3, 2027');
     expect(rangeLabel('month', [], '2026-10-15')).toBe('October 2026');
-    expect(parseCalView('month')).toBe('month');
-    expect(parseCalView('nonsense')).toBe('week');
-    expect(parseCalView(undefined)).toBe('week');
+    expect(parseCalView('week')).toBe('week');
+    // The day view became the day under the grid; the month is the default (MDR).
+    expect(parseCalView('day')).toBe('month');
+    expect(parseCalView(undefined)).toBe('month');
   });
 
   it('a day in the address is used only when it is a real day', () => {
@@ -82,7 +97,20 @@ describe('calendar days', () => {
     expect(parseDay(undefined)).toBeNull();
   });
 
+  it('a request opened from the calendar carries its job', () => {
+    const id = requestItemId('11111111-2222-3333-4444-555555555555', 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
+    expect(parseRequestItem(id)).toEqual({ projectId: '11111111-2222-3333-4444-555555555555', requestId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' });
+    expect(parseRequestItem('new')).toBeNull();
+    expect(parseRequestItem('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toBeNull();
+  });
+
+  it('share: the job\'s scheduling page under the app base path', () => {
+    expect(schedulingLink('https://app.example.test', '/', 'job-a')).toBe('https://app.example.test/p/job-a/inspections?view=week');
+    expect(schedulingLink('https://app.example.test', '/suite/', 'job-a')).toBe('https://app.example.test/suite/p/job-a/inspections?view=week');
+  });
+
   it('only lib/status keys get a dot', () => {
+    expect(statusKey('gc_review')).toBe('gc_review');
     expect(statusKey('confirmed')).toBe('confirmed');
     expect(statusKey('made_up')).toBeNull();
     expect(statusKey(null)).toBeNull();
@@ -164,5 +192,16 @@ describe('which lines a person sees', () => {
 
   it('on All my jobs, only jobs with the calendar on', () => {
     expect(ids(visibleLines(lines, ['meetings', 'pours'], jobs, null))).toEqual(['A meeting', 'A pour']);
+  });
+
+  it('inspections come from jobs with both the calendar and inspections on', () => {
+    const field = [
+      { project_id: 'job-a', modules: ['calendar', 'inspections'] },
+      { project_id: 'job-b', modules: ['calendar'] },
+      { project_id: 'job-c', modules: ['inspections'] },
+    ];
+    expect(inspectionJobs(field, null)).toEqual(['job-a']);
+    expect(inspectionJobs(field, 'job-a')).toEqual(['job-a']);
+    expect(inspectionJobs(field, 'job-b')).toEqual([]);
   });
 });

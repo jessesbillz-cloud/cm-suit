@@ -4582,6 +4582,35 @@ export type Database = {
           updated_at: string
         }[]
       }
+      calendar_inspections: {
+        Args: { p_from: string; p_project_id: string; p_to: string }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string
+          company: string
+          duration_kind: string
+          duration_min: number
+          full_detail: boolean
+          helper_id: string
+          id: string
+          is_block: boolean
+          items: string
+          kind: string
+          mine: boolean
+          number: number
+          owner_id: string
+          postpone_count: number
+          postpone_reason: string
+          postpone_until: string
+          request_date: string
+          result: string
+          special_kind: string
+          start_time: string
+          status: string
+          status_key: string
+          version: number
+        }[]
+      }
       calendar_mirror: {
         Args: {
           p_all_day?: boolean

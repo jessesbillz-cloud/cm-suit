@@ -1,5 +1,5 @@
 // Read hooks. Every hook goes through throwIfError; the mock switch lives in isMock() only.
-import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { skipToken, useInfiniteQuery, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { z } from 'zod';
 import { parseLayout, type LayoutChoices } from '../lib/layout';
 import { parseOrgSettings, parseProjectSettings, type ProjectSettings } from '../lib/settings';
@@ -228,15 +228,45 @@ export function useProfile() {
   return useQuery({ queryKey: qk.profile, queryFn: fetchProfile });
 }
 
+async function fetchCapability(projectId: string, cap: string): Promise<boolean> {
+  return isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }));
+}
+
 /** Asks the database (has_capability) — the UI never decides permissions from role names. */
 export function useCapability(projectId: string | null, cap: string) {
   return useQuery({
     queryKey: qk.capability(projectId ?? '', cap),
-    queryFn: projectId
-      ? async () =>
-          isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }))
-      : skipToken,
+    queryFn: projectId ? () => fetchCapability(projectId, cap) : skipToken,
     staleTime: 60_000,
+  });
+}
+
+interface JobsWithCapability {
+  /** undefined until every answer is in. */
+  ids: string[] | undefined;
+  error: Error | null;
+  refetch: () => void;
+}
+
+function jobsWith(results: UseQueryResult<{ projectId: string; has: boolean }>[]): JobsWithCapability {
+  return {
+    ids: results.some((r) => !r.data) ? undefined : results.flatMap((r) => (r.data?.has === true ? [r.data.projectId] : [])),
+    error: results.find((r) => r.error !== null)?.error ?? null,
+    refetch: () => {
+      for (const r of results) if (r.isError) void r.refetch();
+    },
+  };
+}
+
+/** The jobs among these where I hold a capability (has_capability on each). */
+export function useJobsWithCapability(projectIds: readonly string[], cap: string): JobsWithCapability {
+  return useQueries({
+    queries: projectIds.map((id) => ({
+      queryKey: [...qk.capability(id, cap), 'job'],
+      queryFn: async () => ({ projectId: id, has: await fetchCapability(id, cap) }),
+      staleTime: 60_000,
+    })),
+    combine: jobsWith,
   });
 }
 

@@ -36,7 +36,7 @@ interface ChipInput {
 
 /** Mirrors ir_status_key in the database, with the words for each state. */
 export function requestChip(r: ChipInput): Chip {
-  if (r.status === 'gc_review') return { status: 'pending', label: 'GC review' };
+  if (r.status === 'gc_review') return { status: 'gc_review', label: 'GC review' };
   if (r.status === 'returned') return { status: 'blocked', label: 'Returned' };
   if (r.status === 'withdrawn') return { status: 'cancelled', label: 'Withdrawn' };
   if (r.status === 'postponed') return { status: 'postponed', label: 'Postponed' };

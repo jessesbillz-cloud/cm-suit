@@ -4,6 +4,7 @@ import { todayInZone } from '../../lib/dates';
 import { conflictError } from '../errors';
 import type { CalendarRow, FormContext, IrEvent, IrRecipient, IrRequest, IrRowRaw, NewBlock } from '../inspections.types';
 import { SEED_IR } from './boardSeeds';
+import { seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
 import { delay } from './store';
 
@@ -13,9 +14,12 @@ const KINDS = [
   { id: 'kind-concrete', name: 'Concrete' },
   { id: 'kind-rebar', name: 'Reinforcing steel' },
   { id: 'kind-welding', name: 'Welding' },
+  { id: 'kind-soils', name: 'Soils and compaction' },
+  { id: 'kind-masonry', name: 'Masonry' },
+  { id: 'kind-anchors', name: 'Post-installed anchors' },
 ];
 
-interface MockBlock {
+export interface MockBlock {
   id: string;
   version: number;
   project_id: string;
@@ -33,11 +37,19 @@ interface IrState {
   next: Record<string, number>;
 }
 
+/** The start: IR 12 on Sample Job B (a board line points at it) and the calendar's seeded month on both jobs. */
+function seeded(): IrState {
+  const today = todayInZone(TZ);
+  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 })];
+  const next: Record<string, number> = {};
+  for (const r of requests) next[r.project_id] = Math.max(next[r.project_id] ?? 1, r.number + 1);
+  return { requests, events: [], blocks: seedBlocks(today), next };
+}
+
 function read(): IrState {
   const raw = window.sessionStorage.getItem(KEY);
-  // Sample Job B starts with IR 12 (a board line points at it).
-  const empty: IrState = { requests: [SEED_IR], events: [], blocks: [], next: { [SEED_IR.project_id]: SEED_IR.number + 1 } };
-  return raw === null ? empty : { ...empty, ...(JSON.parse(raw) as Partial<IrState>) };
+  if (raw === null) return seeded();
+  return { ...seeded(), ...(JSON.parse(raw) as Partial<IrState>) };
 }
 
 function write(update: (s: IrState) => IrState): IrState {
@@ -58,6 +70,7 @@ function withKind(r: IrRowRaw): IrRequest {
 /** The server's ir_status_key, for the mock. */
 function statusKey(r: IrRowRaw): string {
   if (r.status === 'postponed') return 'postponed';
+  if (r.status === 'gc_review') return 'gc_review';
   if (r.status === 'returned') return 'blocked';
   if (r.result === 'approved' || r.result === 'not_approved') return r.result;
   if (r.status === 'confirmed' && r.helper_id !== null) return 'assigned';
