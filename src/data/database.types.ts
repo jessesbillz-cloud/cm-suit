@@ -5379,11 +5379,7 @@ export type Database = {
         Returns: boolean
       }
       hours_amount_ok: {
-        Args: {
-          p_max: number
-          p_places: number
-          p_value: number
-        }
+        Args: { p_max: number; p_places: number; p_value: number }
         Returns: boolean
       }
       import_subs: {
@@ -5398,10 +5394,7 @@ export type Database = {
         Args: { p_owner: string; p_period: string }
         Returns: Json
       }
-      invoice_snapshot: {
-        Args: { p_period: string }
-        Returns: Json
-      }
+      invoice_snapshot: { Args: { p_period: string }; Returns: Json }
       ir_assign_helper: {
         Args: { p_helper_id?: string; p_request_id: string; p_version: number }
         Returns: {
@@ -8279,11 +8272,7 @@ export type Database = {
         Returns: undefined
       }
       sign_timesheet: {
-        Args: {
-          p_content_hash: string
-          p_org_id: string
-          p_period: string
-        }
+        Args: { p_content_hash: string; p_org_id: string; p_period: string }
         Returns: string
       }
       signed_in_recently: { Args: never; Returns: boolean }
