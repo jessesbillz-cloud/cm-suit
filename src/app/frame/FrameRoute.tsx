@@ -86,3 +86,7 @@ export function AllBidsRoute() {
 export function AllSettingsRoute() {
   return <AllJobsFrame tool="settings" />;
 }
+
+export function AllTimesheetsRoute() {
+  return <AllJobsFrame tool="timesheets" />;
+}

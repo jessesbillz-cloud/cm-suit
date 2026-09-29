@@ -9,6 +9,7 @@ import type { DailyPhotoRow, DailyReportRow, DailySetupRow, EmailResult, SubmitR
 import { DataError, conflictError } from '../errors';
 import * as api from './api';
 import { SEED_DAILY } from './boardSeeds';
+import { HOURS_SEED_NEXT, hoursSeedReports } from './hoursSeeds';
 import { mockUser } from './index';
 import * as jobs from './jobs';
 import { delay } from './store';
@@ -36,9 +37,19 @@ const EMPTY: MockDailies = {
   seq: 0,
 };
 
+/** The starting state, with the mock user's past dailies on the inspection job (hours seeds, before today). */
+function seeded(): MockDailies {
+  const today = todayInZone('America/Los_Angeles');
+  return {
+    ...EMPTY,
+    reports: [...EMPTY.reports, ...hoursSeedReports(mockUser().id, today)],
+    next: { ...EMPTY.next, ...HOURS_SEED_NEXT },
+  };
+}
+
 function read(): MockDailies {
   const raw = window.sessionStorage.getItem(KEY);
-  return raw === null ? { ...EMPTY } : { ...EMPTY, ...(JSON.parse(raw) as Partial<MockDailies>) };
+  return raw === null ? seeded() : { ...seeded(), ...(JSON.parse(raw) as Partial<MockDailies>) };
 }
 
 function write(update: (s: MockDailies) => MockDailies): MockDailies {
@@ -107,6 +118,7 @@ async function makeReport(projectId: string, reportType: string, date: string): 
     submitted_at: null,
     pdf_file_id: null,
     filename: null,
+    hours: null,
   };
   write((m) => ({ ...m, reports: [...m.reports, row] }));
   return id;
@@ -311,4 +323,21 @@ export async function email(id: string): Promise<EmailResult> {
     recipients,
     deliveries: recipients.map((to) => ({ email: to, status: 'test_mode', error: null, mailto: `mailto:${to}` })),
   };
+}
+
+/** The mock user's submitted reports on every job (the hours mock reads them). */
+export function mySubmitted(): DailyReportRow[] {
+  const m = read();
+  const me = mockUser().id;
+  return m.reports.filter((r) => r.author_id === me && r.status === 'submitted' && !m.deleted.includes(r.id));
+}
+
+/** set_daily_hours: the author's submitted report, version-checked; a current report stays current. */
+export async function setHours(id: string, version: number, hours: number): Promise<DailyReportRow> {
+  await delay();
+  const r = live(read(), id);
+  if (!r) throw gone();
+  if (r.status !== 'submitted') throw new DataError('Submit the report first.', '22023', null);
+  const current = r.signed_version === r.version;
+  return update(id, version, { hours, signed_version: current ? r.version + 1 : r.signed_version });
 }

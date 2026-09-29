@@ -21,7 +21,8 @@ type FunctionName =
   | 'ir-send'
   | 'delivery-board'
   | 'key-login'
-  | 'rfis';
+  | 'rfis'
+  | 'timesheets';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

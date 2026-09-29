@@ -7,8 +7,12 @@ import { DailiesItem } from '../../features/dailies/DailiesItem';
 import { DeliveryItem } from '../../features/deliveries/DeliveryItem';
 import { CorrectionItem } from '../../features/corrections/CorrectionItem';
 import { FileItem } from '../../features/files/FileItem';
+import { HoursItem } from '../../features/hours/HoursItem';
+import { CONTRACT_ITEM } from '../../features/hours/model';
 import { InspectionsItem } from '../../features/inspections/InspectionsItem';
 import { RfiItem } from '../../features/rfis/RfiItem';
+import { TimesheetsItem } from '../../features/timesheets/TimesheetsItem';
+import { BILLING_ITEM } from '../../features/timesheets/model';
 import { EmptyState } from '../../ui/States';
 import type { FrameModel } from './useFrameModel';
 import { useIsPhone } from './useIsPhone';
@@ -61,11 +65,13 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   if (tool === 'rfis' && model.loc.projectId !== null) {
     return <RfiItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
   }
+  if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
+  if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
 }
 
 /** The right column's title for an open item. */
-export function itemTitle(tool: Tool): string {
+export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'files') return 'File';
   if (tool === 'board') return 'From the board';
   if (tool === 'bids') return 'Bids';
@@ -75,5 +81,7 @@ export function itemTitle(tool: Tool): string {
   if (tool === 'deliveries') return 'Delivery';
   if (tool === 'corrections') return 'Corrections';
   if (tool === 'rfis') return 'RFI';
+  if (tool === 'hours') return itemId === CONTRACT_ITEM ? 'Contract hours' : 'Hours';
+  if (tool === 'timesheets') return itemId === BILLING_ITEM ? 'Billing' : 'Invoice';
   return 'Item';
 }

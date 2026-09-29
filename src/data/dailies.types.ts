@@ -20,10 +20,11 @@ export type DailyReportRow = Pick<
   | 'submitted_at'
   | 'pdf_file_id'
   | 'filename'
+  | 'hours'
 >;
 
 export const REPORT_COLS =
-  'id, project_id, author_id, report_type, report_date, status, number, header, content, version, signed_at, signed_version, submitted_at, pdf_file_id, filename';
+  'id, project_id, author_id, report_type, report_date, status, number, header, content, version, signed_at, signed_version, submitted_at, pdf_file_id, filename, hours';
 
 export type DailyPhotoRow = Pick<
   Tables<'daily_report_photos'>,

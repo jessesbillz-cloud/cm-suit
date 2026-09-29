@@ -19,7 +19,8 @@ export function formJobRows(): ProjectRow[] {
       address: null,
       timezone: 'America/Los_Angeles',
       stage: 'construction',
-      modules: ['files', 'calendar', 'dailies', 'inspections', 'corrections'],
+      // An inspector company's job: Hours is on (0043).
+      modules: ['files', 'calendar', 'dailies', 'inspections', 'corrections', 'hours'],
       settings: {},
       version: 1,
       job_type: null,

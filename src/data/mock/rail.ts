@@ -8,9 +8,9 @@ import { me, waiting } from './rfis';
 
 /** Synthetic copy of the starting table for the roles the mock users take. */
 const RECOMMENDED: Record<string, readonly string[]> = {
-  project_admin: ['board', 'calendar', 'bids', 'rfis', 'inspections', 'files'],
+  project_admin: ['board', 'calendar', 'bids', 'rfis', 'inspections', 'files', 'hours'],
   pm: ['board', 'calendar', 'rfis', 'inspections', 'files'],
-  inspector: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files'],
+  inspector: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files', 'hours'],
   sub: ['board', 'calendar', 'inspections', 'rfis', 'files'],
   architect: ['board', 'rfis', 'files'],
   bidder: ['bids'],

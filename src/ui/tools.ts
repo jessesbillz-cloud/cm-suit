@@ -2,12 +2,14 @@
 import {
   CalendarDays,
   ClipboardCheck,
+  Clock,
   FileQuestion,
   Folder,
   Gavel,
   ListChecks,
   MessagesSquare,
   NotebookPen,
+  ReceiptText,
   Settings,
   Truck,
   Users,
@@ -27,4 +29,6 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   corrections: { label: 'Corrections', icon: ListChecks },
   people: { label: 'People', icon: Users },
   settings: { label: 'Settings', icon: Settings },
+  hours: { label: 'Hours', icon: Clock },
+  timesheets: { label: 'Timesheets', icon: ReceiptText },
 };

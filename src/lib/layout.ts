@@ -17,6 +17,8 @@ const TOOLS = [
   'corrections',
   'people',
   'settings',
+  'hours',
+  'timesheets',
 ] as const;
 export type Tool = (typeof TOOLS)[number];
 
@@ -32,6 +34,8 @@ export const RAIL_TOOLS = [
   'deliveries',
   'corrections',
   'people',
+  'hours',
+  'timesheets',
 ] as const;
 export type RailTool = (typeof RAIL_TOOLS)[number];
 

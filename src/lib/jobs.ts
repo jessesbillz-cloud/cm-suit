@@ -1,6 +1,6 @@
 // Job and company choices: stages, company kinds and modules. The ONE place these lists and their labels live.
 // The database checks stage and kind (projects.stage, orgs.kind); the modules default is the projects.modules column.
-import { RAIL_TOOLS, type RailTool } from './layout';
+import { RAIL_TOOLS, type RailTool, type Tool } from './layout';
 
 export const STAGES = [
   { value: 'prospect', label: 'Prospect' },
@@ -31,13 +31,19 @@ export const MODULES = [
   { value: 'rfis', label: 'RFIs' },
   { value: 'deliveries', label: 'Deliveries' },
   { value: 'corrections', label: 'Corrections' },
+  // My hours on the job (0043): on for an inspector company's jobs; Timesheets (All my jobs) comes with it.
+  { value: 'hours', label: 'Hours' },
 ] as const satisfies readonly { value: RailTool; label: string }[];
 
 const MODULE_TOOLS: readonly string[] = MODULES.map((m) => m.value);
 
+/** A tool that comes with another tool's module: Timesheets (all my jobs) is there where Hours is. */
+const MODULE_OF: Readonly<Record<string, string>> = { timesheets: 'hours' };
+
 /** Is this tool on for a job with these modules? */
 export function toolIsOn(tool: string, modules: readonly string[]): boolean {
-  return !MODULE_TOOLS.includes(tool) || modules.includes(tool);
+  const module = MODULE_OF[tool] ?? tool;
+  return !MODULE_TOOLS.includes(module) || modules.includes(module);
 }
 
 /** The rail for a job: my rail picks minus the job's switched-off modules. */
@@ -49,9 +55,12 @@ export function railForJob<T extends string>(railItems: readonly T[], modules: r
  * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, and the bids pipeline.
  * The ONE list: the rail and the phone bar there show only these (Settings stays pinned), and the job picker names them.
  */
-export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids'] as const satisfies readonly RailTool[];
+export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids', 'timesheets'] as const satisfies readonly RailTool[];
 
 type AllJobsTool = (typeof ALL_JOBS_TOOLS)[number];
+
+/** Tools that only work across jobs: never on a job's rail (on a job, Timesheets is that job's Hours). */
+const ALL_JOBS_ONLY: readonly string[] = ['timesheets'];
 
 function worksAcrossJobs(tool: string): tool is AllJobsTool {
   return (ALL_JOBS_TOOLS as readonly string[]).includes(tool);
@@ -81,19 +90,37 @@ function splitRail(chosen: readonly string[], on: readonly RailTool[]): RailMode
  * this job (my_recommended_tools). The job's modules decide which tools exist at all; the rest are under More.
  */
 export function jobRail(pins: readonly RailTool[] | null, recommended: readonly string[], modules: readonly string[]): RailModel {
-  return splitRail(pins ?? recommended, railForJob(RAIL_TOOLS, modules));
+  return splitRail(pins ?? recommended, railForJob(RAIL_TOOLS, modules).filter((t) => !ALL_JOBS_ONLY.includes(t)));
 }
 
-/** "All my jobs": the cross-job tools some job of mine has on; my pinned ones on the rail (all of them without pins). */
-export function allJobsRail(pins: readonly RailTool[] | null, jobModules: readonly (readonly string[])[]): RailModel {
-  const on = railForAllJobs(ALL_JOBS_TOOLS, jobModules);
+/** Timesheets are for people who keep hours: my position recommends Hours on some job, or I pinned Hours or Timesheets. */
+function keepsHours(pins: readonly RailTool[] | null, recommended: readonly (readonly string[])[]): boolean {
+  return recommended.some((r) => r.includes('hours')) || (pins ?? []).some((t) => t === 'hours' || t === 'timesheets');
+}
+
+/**
+ * "All my jobs": the cross-job tools some job of mine has on (Timesheets only for people who keep hours, `recommended` =
+ * my recommendation on each job); my pinned ones on the rail (all of them without pins).
+ */
+export function allJobsRail(
+  pins: readonly RailTool[] | null,
+  jobModules: readonly (readonly string[])[],
+  recommended: readonly (readonly string[])[] = [],
+): RailModel {
+  const on = railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => t !== 'timesheets' || keepsHours(pins, recommended));
   return splitRail(pins ?? on, on);
 }
 
-/** Where a tool lands on "All my jobs": itself when it works across jobs (Settings too), else the board. */
+/** Where a tool lands on "All my jobs": itself when it works across jobs (Settings too), a job's Hours on Timesheets, else the board. */
 export function allJobsTool(tool: string): AllJobsTool | 'settings' {
   if (tool === 'settings') return 'settings';
+  if (tool === 'hours') return 'timesheets';
   return worksAcrossJobs(tool) ? tool : 'board';
+}
+
+/** Where a tool lands on a job: itself, except Timesheets (all my jobs), which lands on the job's Hours. */
+export function jobTool(tool: Tool): Tool {
+  return tool === 'timesheets' ? 'hours' : tool;
 }
 
 /** A new job's stage, prefilled from the company kind: contractors start bidding, everyone else is building. */

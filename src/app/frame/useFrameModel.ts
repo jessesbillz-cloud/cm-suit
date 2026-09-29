@@ -6,7 +6,7 @@ import { useMyProjects, useUserLayout } from '../../data/queries';
 import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
 import { useRecommendedTools, useToolCounts } from '../../data/rail.queries';
-import { allJobsRail, allJobsTool, jobRail, type RailModel } from '../../lib/jobs';
+import { allJobsRail, allJobsTool, jobRail, jobTool, type RailModel } from '../../lib/jobs';
 import { pushRecent, type LayoutChoices, type Tool } from '../../lib/layout';
 import { countsByTool } from '../../lib/toolCounts';
 import { useToast } from '../../ui/Toast';
@@ -23,7 +23,13 @@ const ALL_JOBS_PATH = {
   calendar: '/all/calendar',
   bids: '/all/bids',
   settings: '/all/settings',
+  timesheets: '/all/timesheets',
 } as const;
+
+/** "All my jobs" tools that open items in the right column (the board's lines are the default). */
+function allItemTool(tool: Tool): 'calendar' | 'timesheets' | 'board' {
+  return tool === 'calendar' || tool === 'timesheets' ? tool : 'board';
+}
 
 export function useFrameModel(loc: FrameLocation) {
   const navigate = useNavigate();
@@ -45,7 +51,7 @@ export function useFrameModel(loc: FrameLocation) {
   const { rail: railItems, more: moreItems }: RailModel = !choices
     ? { rail: [], more: [] }
     : loc.projectId === null
-      ? allJobsRail(choices.rail_items, projects.map((p) => p.modules))
+      ? allJobsRail(choices.rail_items, projects.map((p) => p.modules), Object.values(recommendedQuery.data ?? {}))
       : jobRail(choices.rail_items, recommendedQuery.data?.[loc.projectId] ?? [], current?.modules ?? []);
   /** What needs me, per tool on this rail (the rest counts on the Board). */
   const counts = countsByTool(countsQuery.data ?? [], [...railItems, ...moreItems]);
@@ -64,7 +70,7 @@ export function useFrameModel(loc: FrameLocation) {
       void navigate({ to: ALL_JOBS_PATH[allJobsTool(tool)] });
       return;
     }
-    void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool } });
+    void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: jobTool(tool) } });
   }
 
   /** Job picker: switching keeps the current tool (SPEC §7.2); "All my jobs" keeps it when it works across jobs. */
@@ -85,7 +91,7 @@ export function useFrameModel(loc: FrameLocation) {
   /** Opens an item in the right column (desktop) or full screen (phone). */
   function openItem(tool: Tool, itemId: string, projectId: string | null = loc.projectId) {
     if (projectId === null) {
-      void navigate({ to: tool === 'calendar' ? '/all/calendar/$itemId' : '/all/board/$itemId', params: { itemId } });
+      void navigate({ to: `/all/${allItemTool(tool)}/$itemId`, params: { itemId } });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool, itemId } });
@@ -95,14 +101,14 @@ export function useFrameModel(loc: FrameLocation) {
   function closeItem() {
     setRightFull(false);
     if (loc.projectId === null) {
-      void navigate({ to: loc.tool === 'calendar' ? '/all/calendar' : '/all/board', search: true });
+      void navigate({ to: `/all/${allItemTool(loc.tool)}`, search: true });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool', params: { projectId: loc.projectId, tool: loc.tool }, search: true });
   }
 
   function itemWindowHref(tool: Tool, itemId: string, projectId: string | null = loc.projectId): string {
-    const base = projectId === null ? `/all/${tool === 'calendar' ? 'calendar' : 'board'}/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
+    const base = projectId === null ? `/all/${allItemTool(tool)}/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
     return `${base}?window=1`;
   }
 

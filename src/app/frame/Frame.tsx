@@ -77,7 +77,7 @@ export function Frame({ model, folderId }: FrameProps) {
           )}
           {showRight ? (
             <RightColumn
-              title={itemOpen ? itemTitle(loc.tool) : loc.tool === 'board' ? 'Today' : 'Board'}
+              title={loc.itemId !== null ? itemTitle(loc.tool, loc.itemId) : loc.tool === 'board' ? 'Today' : 'Board'}
               collapsed={rightCollapsed}
               full={rightFull}
               onToggleCollapsed={() => {

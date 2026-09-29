@@ -125,6 +125,8 @@ export const PUBLIC_TABLES = [
   'testing_superusers', 'testing_role_home',
   // RFIs (0038)
   'rfi_settings', 'rfi_route_steps', 'rfis', 'rfi_steps', 'rfi_events',
+  // Hours, billing and invoices (0043)
+  'job_hours_budgets', 'billing_profiles', 'billing_job_rates', 'invoices',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
