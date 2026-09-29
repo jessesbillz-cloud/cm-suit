@@ -14,7 +14,7 @@ const stateSchema = z
     roles: z.array(z.object({ name: z.string(), label: z.string() })),
   })
   .nullable();
-export type ViewAsState = z.infer<typeof stateSchema>;
+type ViewAsState = z.infer<typeof stateSchema>;
 
 async function fetchState(): Promise<ViewAsState> {
   if (isMock()) return null;
