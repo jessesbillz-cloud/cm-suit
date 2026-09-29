@@ -1,18 +1,21 @@
 // "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (useTaskDone). A task the
 // record itself closes (an RFI: it's done when the RFI moves on) has Open instead of Done. On top, the RFIs someone
-// else is sitting on (late, or not opened for days).
-import { ArrowRight, Check } from 'lucide-react';
+// else is sitting on (late, or not opened for days). One row design for both (NeedsRow).
+import { ArrowRight, Check, CheckCheck, ListTodo } from 'lucide-react';
 import { useOpenTarget } from '../../app/frame/useOpenTarget';
-import { useMyProjects, useTasks } from '../../data/queries';
-import { useRfiWaiting } from '../../data/rfis.queries';
+import { useMyProjects } from '../../data/queries';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { entityTarget } from '../../lib/entityTarget';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
+import { KindSquare } from './KindSquare';
+import { kindIcon } from './lineKind';
+import { NeedsRow } from './NeedsRow';
 import { RfiWaitingLine } from './RfiWaiting';
+import { useNeedsYou } from './useNeedsYou';
 import { useTaskDone } from './useTaskDone';
 import { useProjectZones } from './zones';
 
@@ -31,69 +34,79 @@ interface TaskLineProps {
 /** Task kinds the record closes by itself when it moves on; pressing Done would only hide it. */
 const CLOSED_BY_RECORD = new Set(['rfi']);
 
-function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
+/** Phone: a full-size tap target under the text. */
+const PHONE_TAP = 'max-sm:h-11 max-sm:px-4';
+
+function TaskEnd({ task, busy, onDone }: Omit<TaskLineProps, 'projectName' | 'zone'>) {
   const openTarget = useOpenTarget();
   const target = CLOSED_BY_RECORD.has(task.kind) ? entityTarget(task.entity_type, task.entity_id) : null;
+  if (target) {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={ArrowRight}
+        className={PHONE_TAP}
+        onClick={() => {
+          openTarget(task.project_id, target);
+        }}
+      >
+        Open
+      </Button>
+    );
+  }
+  if (task.requires_signature) return <StatusChip status="pending" label="Needs your signature" />;
   return (
-    <li className="flex items-start gap-3 px-4 py-3" data-testid="needs-you-task">
-      <div className="min-w-0 flex-1">
-        <p className="break-words text-sm text-ink">{task.title}</p>
-        <p className="text-xs text-ink-2">
-          {projectName ? <span>{projectName}</span> : null}
-          {projectName && task.due_at ? <span> &middot; </span> : null}
-          {task.due_at ? <span>Due {formatInZone(task.due_at, zone, 'MMM d')}</span> : null}
-        </p>
-      </div>
-      {target ? (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={ArrowRight}
-          onClick={() => {
-            openTarget(task.project_id, target);
-          }}
-        >
-          Open
-        </Button>
-      ) : task.requires_signature ? (
-        <StatusChip status="pending" label="Needs your signature" />
-      ) : (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={Check}
-          loading={busy}
-          onClick={() => {
-            onDone(task);
-          }}
-        >
-          Done
-        </Button>
-      )}
-    </li>
+    <Button
+      size="sm"
+      variant="secondary"
+      icon={Check}
+      loading={busy}
+      className={PHONE_TAP}
+      onClick={() => {
+        onDone(task);
+      }}
+    >
+      Done
+    </Button>
+  );
+}
+
+function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
+  const due = task.due_at ? `Due ${formatInZone(task.due_at, zone, 'MMM d')}` : '';
+  return (
+    <NeedsRow
+      testId="needs-you-task"
+      icon={kindIcon(task.entity_type, task.entity_id, task.kind, ListTodo)}
+      title={task.title}
+      meta={[projectName ?? '', due].filter((s) => s !== '').join(' · ')}
+      end={<TaskEnd task={task} busy={busy} onDone={onDone} />}
+    />
   );
 }
 
 export function NeedsYou({ projectId }: NeedsYouProps) {
-  const tasks = useTasks(projectId);
-  const waiting = useRfiWaiting();
+  const { tasks, waiting, rfis, count, ready } = useNeedsYou(projectId);
   const projects = useMyProjects();
   const zoneOf = useProjectZones();
   const { done, busyId } = useTaskDone();
 
   const nameOf = (id: string) => (projectId === null ? (projects.data?.find((p) => p.project_id === id)?.name ?? null) : null);
   // RFIs someone else is sitting on come first (late, then not opened), then my tasks, due first.
-  const rfis = (waiting.data ?? []).filter((w) => projectId === null || w.project_id === projectId);
   const now = new Date();
   const loading = tasks.isPending || waiting.isPending;
-  const count = rfis.length + (tasks.data?.length ?? 0);
 
   return (
     <Card title="Needs you" padded={false}>
       {loading ? <LoadingState label="Loading your tasks" /> : null}
       {tasks.isError ? <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} /> : null}
       {waiting.isError ? <ErrorState error={waiting.error} onRetry={() => void waiting.refetch()} title="Waiting RFIs did not load." /> : null}
-      {tasks.isSuccess && waiting.isSuccess && count === 0 ? <EmptyState title="Nothing needs you right now." /> : null}
+      {ready && count === 0 ? (
+        <p className="flex items-center gap-3 px-4 py-3 text-sm text-ink-2">
+          <KindSquare icon={CheckCheck} />
+          Nothing needs you right now.
+        </p>
+      ) : null}
       {!loading && count > 0 ? (
         <ul className="divide-y divide-line">
           {rfis.map((w) => (
