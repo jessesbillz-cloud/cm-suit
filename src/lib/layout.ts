@@ -1,6 +1,7 @@
 // The user_layout schema and its defaults (SPEC §5.1, §7.2). The ONE place layout defaults live.
 // The only layout choices a person has: rail icons, main default, docked panel, collapsed panes, calendar types,
 // notification kinds, recent jobs and the "What's new" line. No dragging, no resizing.
+// The rail: null (the default) = my role's recommendation on each job (roles.recommended_tools, 0040); a list = my pins.
 import { z } from 'zod';
 
 /** Every tool the frame can show in the main area. */
@@ -163,7 +164,8 @@ export function setNotify(on: readonly string[], keys: readonly string[], checke
 const RECENT_LIMIT = 8;
 
 export const LAYOUT_DEFAULTS = {
-  rail_items: [...RAIL_TOOLS] as RailTool[],
+  /** null = use my role's recommendation on each job; a list = my pins, on every job. */
+  rail_items: null as RailTool[] | null,
   main_default: 'board' as RailTool,
   docked_panel: 'board' as DockedPanel,
   collapsed: { rail: false, right: false },
@@ -178,7 +180,11 @@ function isRailTool(v: string): v is RailTool {
   return (RAIL_TOOLS as readonly string[]).includes(v);
 }
 
-type RailChoices = Pick<LayoutChoices, 'rail_items' | 'main_default'>;
+/** The rail as the Settings editor sees it: the tools shown, in order (my pins, or the recommendation I start from). */
+export interface RailChoices {
+  rail_items: RailTool[];
+  main_default: RailTool;
+}
 
 /** Moves a tool one place up (-1) or down (+1) on the rail. The phone bar shows the first ones. */
 export function moveRailItem(items: readonly RailTool[], tool: RailTool, step: -1 | 1): RailTool[] {
@@ -204,9 +210,14 @@ export function showOnRail(c: RailChoices, tool: RailTool, shown: boolean): Rail
 
 /** Unknown values in the row fall back to defaults rather than breaking the frame. */
 const layoutChoicesSchema = z.object({
+  // Known tools, once each; nothing left (or no list) = the recommendation.
   rail_items: z
     .array(z.string())
-    .transform((a) => a.filter(isRailTool))
+    .nullable()
+    .transform((a) => {
+      const known = [...new Set((a ?? []).filter(isRailTool))];
+      return known.length > 0 ? known : null;
+    })
     .catch(LAYOUT_DEFAULTS.rail_items),
   main_default: z.enum(RAIL_TOOLS).catch(LAYOUT_DEFAULTS.main_default),
   docked_panel: z.enum(DOCKED_PANELS).catch(LAYOUT_DEFAULTS.docked_panel),
@@ -240,12 +251,17 @@ export function isTool(v: string): v is Tool {
 const PHONE_TABS = 4;
 
 /**
- * The phone's bottom bar: the first rail tools, with the open tool always among them, then More for the rest and
- * Settings, so every tool is one tap from More and the bar never hides where you are.
+ * The phone's bottom bar: the first rail tools, with the open tool always among them, then More for the rest of the
+ * rail, the job's other tools (the desktop rail's More) and Settings, so every tool is one tap from More and the bar
+ * never hides where you are.
  */
-export function phoneTabs(rail: readonly Tool[], current: Tool): { tabs: Tool[]; more: Tool[] } {
+export function phoneTabs(rail: readonly Tool[], current: Tool, others: readonly Tool[] = []): { tabs: Tool[]; more: Tool[] } {
   const tabs = rail.slice(0, PHONE_TABS);
-  if (current !== 'settings' && rail.includes(current) && !tabs.includes(current)) tabs[PHONE_TABS - 1] = current;
-  const more: Tool[] = [...rail.filter((t) => !tabs.includes(t)), 'settings'];
-  return { tabs, more };
+  const reachable = rail.includes(current) || others.includes(current);
+  if (current !== 'settings' && reachable && !tabs.includes(current)) {
+    if (tabs.length < PHONE_TABS) tabs.push(current);
+    else tabs[PHONE_TABS - 1] = current;
+  }
+  const more: Tool[] = [...rail, ...others].filter((t) => !tabs.includes(t));
+  return { tabs, more: [...more, 'settings'] };
 }

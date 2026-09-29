@@ -45,6 +45,8 @@ export function Frame({ model, folderId }: FrameProps) {
     <div className="flex h-screen bg-page">
       <Rail
         items={model.railItems}
+        more={model.moreItems}
+        counts={model.counts}
         current={loc.tool}
         collapsed={choices.collapsed.rail}
         onSelect={model.selectTool}

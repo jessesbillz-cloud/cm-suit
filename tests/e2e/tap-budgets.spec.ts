@@ -3,6 +3,8 @@
 // Contract with the frontend's e2e mock layer:
 //   - localStorage 'e2e-mock-user' set before load  -> the app starts signed in as that mock user (absent -> signed out);
 //   - the mock user belongs to at least two jobs, and each job has at least one visible file;
+//   - 'pm' has no pins, so the rail is the PM's recommendation (0040): Files and Board on it, Dailies under More
+//     (rail-more, then rail-more-<tool>);
 //   - test ids: job-picker (button), job-picker-option-<n> (menu items, n from 0), rail-files, rail-board,
 //     file-row-download (one per file row), main-area (with data-tool = the current tool);
 //   - 'bidder' as the mock user -> a bidder on job-a: /p/job-a/bids shows the bidder page with addendum 1 issued and
@@ -28,6 +30,17 @@ async function installTapCounter(page: Page, user: string): Promise<void> {
       (window as unknown as ClickWindow).__tapCount += 1;
     }, true);
   }, user);
+}
+
+/** Setup (not counted): opens a tool from the rail, or from More when it is not on the rail. */
+async function openTool(page: Page, tool: string): Promise<void> {
+  const onRail = page.getByTestId(`rail-${tool}`);
+  if ((await onRail.count()) > 0) {
+    await onRail.click();
+    return;
+  }
+  await page.getByTestId('rail-more').click();
+  await page.getByTestId(`rail-more-${tool}`).click();
 }
 
 async function resetTaps(page: Page): Promise<void> {
@@ -76,9 +89,10 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     expect(name, 'download keeps the original filename, not a storage id').not.toMatch(/^[0-9a-f-]{36}$/i);
   });
 
-  for (const tool of ['files', 'board'] as const) {
+  // Dailies sits under More for the PM: switching jobs keeps it all the same.
+  for (const tool of ['files', 'board', 'dailies'] as const) {
     test(`switch job, same tool = 2 clicks (${tool})`, async ({ page }) => {
-      await page.getByTestId(`rail-${tool}`).click(); // setup: open the tool
+      await openTool(page, tool); // setup: open the tool
       const main = page.getByTestId('main-area');
       const picker = page.getByTestId('job-picker');
       await expect(main).toHaveAttribute('data-tool', /.+/);

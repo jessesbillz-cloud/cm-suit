@@ -45,3 +45,8 @@ export function entityTarget(type: string | null, id: string | null): EntityTarg
   if (home.toolOnly) return { tool: home.tool, itemId: null, ...view };
   return id ? { tool: home.tool, itemId: id, ...view } : null;
 }
+
+/** The tool that owns a record type (a task's entity_type), or null when none does. */
+export function entityTool(type: string | null): Tool | null {
+  return type === null ? null : (HOMES[type]?.tool ?? null);
+}

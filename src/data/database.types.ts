@@ -3730,14 +3730,17 @@ export type Database = {
         Row: {
           description: string
           name: string
+          recommended_tools: string[]
         }
         Insert: {
           description?: string
           name: string
+          recommended_tools?: string[]
         }
         Update: {
           description?: string
           name?: string
+          recommended_tools?: string[]
         }
         Relationships: []
       }
@@ -4230,7 +4233,7 @@ export type Database = {
           docked_panel: string
           main_default: string
           notification_kinds: string[]
-          rail_items: string[]
+          rail_items: string[] | null
           recent_project_ids: string[]
           updated_at: string
           user_id: string
@@ -4244,7 +4247,7 @@ export type Database = {
           docked_panel?: string
           main_default?: string
           notification_kinds?: string[]
-          rail_items?: string[]
+          rail_items?: string[] | null
           recent_project_ids?: string[]
           updated_at?: string
           user_id: string
@@ -4258,7 +4261,7 @@ export type Database = {
           docked_panel?: string
           main_default?: string
           notification_kinds?: string[]
-          rail_items?: string[]
+          rail_items?: string[] | null
           recent_project_ids?: string[]
           updated_at?: string
           user_id?: string
@@ -6474,6 +6477,20 @@ export type Database = {
           role: string
           stage: string
           timezone: string
+        }[]
+      }
+      my_recommended_tools: {
+        Args: { p_project_id?: string }
+        Returns: {
+          project_id: string
+          tools: string[]
+        }[]
+      }
+      my_tool_counts: {
+        Args: { p_project_id?: string }
+        Returns: {
+          entity_type: string
+          n: number
         }[]
       }
       next_author_number: {

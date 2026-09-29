@@ -1,12 +1,10 @@
-// The rail in Settings: the tools I show, in my order (the phone bar takes the first ones), then the ones I hide.
-// Up/down buttons move a tool; no dragging. rail_items is the stored order.
+// The rail in Settings: the tools I show, in my order (the phone bar takes the first ones), then the ones under More.
+// Up/down buttons move a tool; no dragging. It starts as my position's tools; any change saves my own list (pins).
 import { ChevronDown, ChevronUp, Smartphone, type LucideIcon } from 'lucide-react';
-import { RAIL_TOOLS, moveRailItem, phoneTabs, showOnRail, type LayoutChoices, type RailTool } from '../../lib/layout';
+import { RAIL_TOOLS, moveRailItem, phoneTabs, showOnRail, type RailChoices, type RailTool } from '../../lib/layout';
 import { Icon } from '../../ui/Icon';
 import { TOOL_META } from '../../ui/tools';
 import { pointAt, type Spot } from './LayoutPreview';
-
-type RailChoices = Pick<LayoutChoices, 'rail_items' | 'main_default'>;
 
 interface RailPickerProps {
   choices: RailChoices;

@@ -1,6 +1,6 @@
 // Job and company choices: stages, company kinds and modules. The ONE place these lists and their labels live.
 // The database checks stage and kind (projects.stage, orgs.kind); the modules default is the projects.modules column.
-import type { RailTool } from './layout';
+import { RAIL_TOOLS, type RailTool } from './layout';
 
 export const STAGES = [
   { value: 'prospect', label: 'Prospect' },
@@ -60,6 +60,34 @@ function worksAcrossJobs(tool: string): tool is AllJobsTool {
 /** The rail on "All my jobs": my picks, in my order, that work across jobs, minus modules no job of mine has on. */
 export function railForAllJobs<T extends string>(railItems: readonly T[], jobModules: readonly (readonly string[])[]): T[] {
   return railItems.filter((t) => worksAcrossJobs(t) && (toolIsOn(t, []) || jobModules.some((m) => toolIsOn(t, m))));
+}
+
+/** A rail: the tools on it, in order, and the rest of what's on under More (one way to reach each tool). */
+export interface RailModel {
+  rail: RailTool[];
+  more: RailTool[];
+}
+
+/** The chosen tools that are on, in the chosen order, once each; never an empty rail. More holds the rest. */
+function splitRail(chosen: readonly string[], on: readonly RailTool[]): RailModel {
+  const rail = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
+  const first = on[0];
+  if (rail.length === 0 && first !== undefined) rail.push(first);
+  return { rail, more: on.filter((t) => !rail.includes(t)) };
+}
+
+/**
+ * The rail on a job (Jesse, Sep 28: lean, by position): my pins when I have them, else my role's recommendation for
+ * this job (my_recommended_tools). The job's modules decide which tools exist at all; the rest are under More.
+ */
+export function jobRail(pins: readonly RailTool[] | null, recommended: readonly string[], modules: readonly string[]): RailModel {
+  return splitRail(pins ?? recommended, railForJob(RAIL_TOOLS, modules));
+}
+
+/** "All my jobs": the cross-job tools some job of mine has on; my pinned ones on the rail (all of them without pins). */
+export function allJobsRail(pins: readonly RailTool[] | null, jobModules: readonly (readonly string[])[]): RailModel {
+  const on = railForAllJobs(ALL_JOBS_TOOLS, jobModules);
+  return splitRail(pins ?? on, on);
 }
 
 /** Where a tool lands on "All my jobs": itself when it works across jobs (Settings too), else the board. */

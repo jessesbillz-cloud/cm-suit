@@ -25,10 +25,16 @@ describe('layout', () => {
     expect(parseLayout(null)).toEqual(LAYOUT_DEFAULTS);
   });
   it('drops unknown rail tools and bad values', () => {
-    const l = parseLayout({ rail_items: ['files', 'nope', 'board'], main_default: 'nope', collapsed: { rail: true, right: 1 } });
+    const l = parseLayout({ rail_items: ['files', 'nope', 'board', 'files'], main_default: 'nope', collapsed: { rail: true, right: 1 } });
     expect(l.rail_items).toEqual(['files', 'board']);
     expect(l.main_default).toBe('board');
     expect(l.collapsed).toEqual({ rail: true, right: false });
+  });
+  it('no pins (null, nothing known, or junk) means the recommendation', () => {
+    expect(LAYOUT_DEFAULTS.rail_items).toBeNull();
+    expect(parseLayout({ rail_items: null }).rail_items).toBeNull();
+    expect(parseLayout({ rail_items: ['nope'] }).rail_items).toBeNull();
+    expect(parseLayout({ rail_items: 'board' }).rail_items).toBeNull();
   });
   it('keeps recent jobs most-recent-first without duplicates', () => {
     expect(pushRecent(['a', 'b', 'c'], 'b')).toEqual(['b', 'a', 'c']);
@@ -44,6 +50,16 @@ describe('layout', () => {
     expect(phoneTabs(rail, 'board')).toEqual({ tabs: ['board', 'files', 'bids', 'calendar'], more: ['dailies', 'inspections', 'settings'] });
     expect(phoneTabs(rail, 'dailies')).toEqual({ tabs: ['board', 'files', 'bids', 'dailies'], more: ['calendar', 'inspections', 'settings'] });
     expect(phoneTabs(rail, 'settings').more).toEqual(['dailies', 'inspections', 'settings']);
+  });
+  it("phone bar: the job's other tools join More; one opened from there takes the last tab", () => {
+    const rail = ['board', 'calendar', 'rfis', 'inspections', 'files'] as const;
+    const others = ['dailies', 'people'] as const;
+    expect(phoneTabs(rail, 'board', others)).toEqual({
+      tabs: ['board', 'calendar', 'rfis', 'inspections'],
+      more: ['files', 'dailies', 'people', 'settings'],
+    });
+    expect(phoneTabs(rail, 'dailies', others).tabs).toEqual(['board', 'calendar', 'rfis', 'dailies']);
+    expect(phoneTabs(['bids'], 'board', ['board', 'files'])).toEqual({ tabs: ['bids', 'board'], more: ['files', 'settings'] });
   });
 });
 

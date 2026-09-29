@@ -95,9 +95,9 @@ values ('c0000000-0000-0000-0000-000000000152', 'b0000000-0000-0000-0000-0000000
         'a0000000-0000-0000-0000-000000000154');
 select ok((select modules @> '{dailies,inspections,deliveries,corrections}' from public.projects
            where id = 'c0000000-0000-0000-0000-000000000152'), 'field tools: a new job under construction has them');
-select ok((select column_default like '%dailies%' from information_schema.columns
-           where table_schema = 'public' and table_name = 'user_layout' and column_name = 'rail_items'),
-  'rail: the default rail has the field tools');
+-- Since 0040 the rail is the role's recommendation (roles.recommended_tools) unless someone pins their own.
+select ok((select recommended_tools @> '{dailies,inspections}' from public.roles where name = 'inspector'),
+  'rail: the field tools are recommended to the field roles');
 
 select * from finish();
 rollback;

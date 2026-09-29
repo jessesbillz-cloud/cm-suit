@@ -79,9 +79,9 @@ select ok((select 'rfis' = any (modules) from public.projects where id = 'c00000
   'module: a job under construction has RFIs');
 select ok((select not ('rfis' = any (modules)) from public.projects where id = 'c0000000-0000-0000-0000-000000000322'),
   'module: a job still bidding does not');
-select ok((select column_default like '%inspections,rfis,deliveries%' from information_schema.columns
-           where table_schema = 'public' and table_name = 'user_layout' and column_name = 'rail_items'),
-  'rail: RFIs come right after Inspections');
+-- Since 0040 the rail is the role's recommendation (roles.recommended_tools) unless someone pins their own.
+select ok((select bool_and('rfis' = any (recommended_tools)) from public.roles where name in ('pm', 'pe', 'sub', 'architect')),
+  'rail: RFIs are recommended to those who write, issue and answer them');
 select results_eq($$ select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'org-logos' $$,
   $$ values (false, 2097152::bigint, array['image/png', 'image/jpeg']) $$, 'org-logos: private, 2 MB, PNG or JPEG');
 
