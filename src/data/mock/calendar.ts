@@ -1,10 +1,13 @@
-// Mock calendar (e2e only): synthetic lines of several kinds and statuses on the two sample jobs, placed in the current
-// week so the default view always has something. Changes live in sessionStorage under their own key.
+// Mock calendar (e2e only): synthetic lines of several kinds and statuses on the two sample jobs, placed around the
+// current week so every view has something, and each job's inspections from the inspections mock (its seeded month).
+// Changes live in sessionStorage under their own key.
 import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import { fromZonedInput, todayInZone } from '../../lib/dates';
-import type { CalendarFeedState, CalendarLine, CalendarLineFields, CalendarRange } from '../calendar.types';
+import type { CalendarFeedState, CalendarInspection, CalendarLine, CalendarLineFields, CalendarRange } from '../calendar.types';
 import { conflictError, DataError } from '../errors';
+import { capability } from './bids';
 import { MOCK_PROJECTS } from './fixtures';
+import * as mockIr from './inspections';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-calendar';
@@ -31,18 +34,30 @@ function write(update: (s: CalendarMock) => CalendarMock): void {
 
 type Seed = [project: string, kind: string, source: string, title: string, day: number, start: string | null, end: string | null, status: string | null];
 
+// Days count from this week's Monday. Inspections are not here: the calendar reads them from the inspections mock.
 const SEEDS: Seed[] = [
-  ['job-a', 'inspections', 'inspection_request', 'Sample footing inspection', 0, '08:00', null, 'confirmed'],
   ['job-a', 'deliveries', 'delivery', 'Sample rebar delivery', 1, '07:00', '08:00', 'pending'],
   ['job-a', 'meetings', 'manual', 'Sample OAC meeting', 2, '10:00', '11:00', null],
   ['job-a', 'my_due', 'correction', 'Sample correction due', 2, null, null, 'pending'],
   ['job-a', 'pours', 'manual', 'Sample slab pour', 3, '06:00', '12:00', null],
-  ['job-a', 'special_inspections', 'inspection_request', 'Sample weld inspection', 4, '09:00', null, 'postponed'],
   ['job-a', 'milestones', 'project_bid_due', 'Bids due', 4, '14:00', null, null],
   ['job-b', 'meetings', 'manual', 'Sample site walk', 1, '13:00', '14:00', null],
   ['job-b', 'deliveries', 'delivery', 'Sample steel delivery', 2, '09:30', null, 'confirmed'],
   ['job-b', 'milestones', 'manual', 'Sample topping out', 3, null, null, null],
-  ['job-b', 'inspections', 'inspection_request', 'Sample shear wall inspection', 3, '11:00', null, 'cancelled'],
+  ['job-a', 'meetings', 'manual', 'Sample OAC meeting', -5, '10:00', '11:00', null],
+  ['job-a', 'deliveries', 'delivery', 'Sample drywall delivery', -3, '06:30', '07:30', 'confirmed'],
+  ['job-b', 'pours', 'manual', 'Sample crane day', -2, null, null, null],
+  ['job-a', 'meetings', 'manual', 'Sample OAC meeting', 9, '10:00', '11:00', null],
+  ['job-b', 'deliveries', 'delivery', 'Sample glazing delivery', 8, '08:00', null, 'pending'],
+  ['job-a', 'milestones', 'manual', 'Sample dry-in', 11, null, null, null],
+  // The construction look-ahead: the week's activities per job.
+  ['job-a', 'lookahead', 'manual', 'Sample level 2 deck: rebar and embeds', 0, null, null, null],
+  ['job-a', 'lookahead', 'manual', 'Sample exterior framing, north side', 1, null, null, null],
+  ['job-a', 'lookahead', 'manual', 'Sample underground plumbing, building B', 3, null, null, null],
+  ['job-b', 'lookahead', 'manual', 'Sample CMU walls, stair core', 0, null, null, null],
+  ['job-b', 'lookahead', 'manual', 'Sample roof deck and fastening', 2, null, null, null],
+  ['job-a', 'lookahead', 'manual', 'Sample level 3 deck pour', 7, null, null, null],
+  ['job-b', 'lookahead', 'manual', 'Sample fire sprinkler rough-in', 8, null, null, null],
 ];
 
 function jobOf(projectId: string): { name: string; timezone: string } {
@@ -145,4 +160,18 @@ export async function rotateFeed(): Promise<string> {
   const count = read().count + 1;
   write((s) => ({ ...s, feedRotatedAt: fromZonedInput(`${todayInZone('UTC')}T12:00`, 'UTC'), count }));
   return `sampleFeedToken${String(count)}`.padEnd(43, 'x');
+}
+
+/** A job's inspections for the month view (calendar_inspections): the inspections mock's lines with each request's
+ *  attachments and postponements, for people who may see them. */
+export async function inspections(projectId: string, from: string, to: string): Promise<Omit<CalendarInspection, 'project_id'>[]> {
+  // As the database: no inspections for me on a job, no rows (not an error).
+  const allowed = await Promise.all(['ir.request', 'ir.view_all', 'ir.decide'].map((cap) => capability(cap)));
+  if (!allowed.includes(true)) return [];
+  const rows = await mockIr.calendar(projectId, from, to);
+  const full = await mockIr.list(projectId, (r) => r.request_date >= from && r.request_date <= to);
+  return rows.map((row) => {
+    const r = row.is_block ? undefined : full.find((x) => x.id === row.id);
+    return { ...row, attachment_ids: r?.attachment_ids ?? [], postpone_count: r?.postpone_count ?? 0 };
+  });
 }

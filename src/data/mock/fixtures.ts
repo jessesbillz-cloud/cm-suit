@@ -1,6 +1,7 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID, SEED_RFI_ID } from './boardSeeds';
+import { IR_SEED_FILES } from './irSeeds';
 
 const TZ = 'America/Los_Angeles';
 
@@ -52,6 +53,7 @@ export const MOCK_FILES: FileRow[] = [
     created_by: 'mock-someone',
   })),
   ...SEED_FILES,
+  ...IR_SEED_FILES,
 ];
 
 const LINE_BASE = Date.parse('2026-09-25T20:00:00Z');

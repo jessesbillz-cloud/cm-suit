@@ -1,4 +1,5 @@
 // Block time (inspectors): a day, all day or from / to, optionally every week. Requesters see it as "Blocked" only.
+// Saved, it closes back to where it was opened (the inspections tool, or the calendar through onDone).
 import { useState } from 'react';
 import { CalendarOff } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -13,7 +14,7 @@ import { FLEXIBLE, TIME_OPTIONS, isDay, minutesOf, requestDay } from './time';
 
 const SLOTS = TIME_OPTIONS.filter((o) => o.value !== FLEXIBLE);
 
-function BlockFields({ job, day }: { job: IrJob; day: string }) {
+function BlockFields({ job, day, onDone }: { job: IrJob; day: string; onDone?: (() => void) | undefined }) {
   const add = useAddBlock();
   const close = useCloseItem(job.id);
   const [date, setDate] = useState(requestDay(day, todayInZone(job.tz)));
@@ -41,7 +42,7 @@ function BlockFields({ job, day }: { job: IrJob; day: string }) {
             weekly,
             until: weekly && until !== '' ? until : null,
           },
-          { onSuccess: close },
+          { onSuccess: onDone ?? close },
         );
       }}
     >
@@ -66,12 +67,12 @@ function BlockFields({ job, day }: { job: IrJob; day: string }) {
   );
 }
 
-export function BlockForm({ projectId }: { projectId: string }) {
+export function BlockForm({ projectId, onDone }: { projectId: string; onDone?: (() => void) | undefined }) {
   const access = useIrAccess(projectId);
   const zone = access.state === 'ready' ? access.job.tz : 'UTC';
   const day = useSelectedDay(todayInZone(zone));
   if (access.state === 'error') return <ErrorState error={access.error} onRetry={access.retry} />;
   if (access.state === 'loading') return <LoadingState label="Loading" />;
   if (!access.can.decide) return <ErrorState error={new Error('Only inspectors block time.')} />;
-  return <BlockFields key={projectId} job={access.job} day={day} />;
+  return <BlockFields key={projectId} job={access.job} day={day} onDone={onDone} />;
 }

@@ -8,7 +8,7 @@ describe('chips', () => {
   it('maps every request state to a lib/status color', () => {
     // [status, result, helper, chip color, chip label]
     const cases: [string, string | null, string | null, string, string][] = [
-      ['gc_review', null, null, 'pending', 'GC review'],
+      ['gc_review', null, null, 'gc_review', 'GC review'],
       ['returned', null, null, 'blocked', 'Returned'],
       ['pending', null, null, 'pending', 'Pending'],
       ['confirmed', null, null, 'confirmed', 'Confirmed'],

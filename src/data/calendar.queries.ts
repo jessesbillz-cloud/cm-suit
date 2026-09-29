@@ -1,7 +1,9 @@
 // Calendar reads (SPEC §7.6). Lines by time range, with each line's job name and time zone; deleted lines never
-// come back. What a person may see is RLS's call ("calendar: audience reads"), never the app's.
-import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
-import type { CalendarFeedState, CalendarLine, CalendarRange } from './calendar.types';
+// come back. What a person may see is RLS's call ("calendar: audience reads"), never the app's. Inspections come from
+// each job's calendar_inspections (0043), live, the way the inspections tool shows them.
+import { keepPreviousData, skipToken, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { z } from 'zod';
+import { calendarInspectionSchema, type CalendarFeedState, type CalendarInspection, type CalendarLine, type CalendarRange } from './calendar.types';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
@@ -79,4 +81,66 @@ async function fetchFeed(): Promise<CalendarFeedState> {
 /** My calendar feed link: null until I make one. */
 export function useCalendarFeed() {
   return useQuery({ queryKey: qk.calendarFeed, queryFn: fetchFeed });
+}
+
+/** Inspections are live: they refresh every 30 seconds while on screen, like the inspections tool. */
+const LIVE_MS = 30_000;
+
+/** One job's answer: its id travels with its lines, so a job with none still counts as loaded. */
+interface JobInspections {
+  projectId: string;
+  rows: CalendarInspection[];
+}
+
+async function fetchInspections(projectId: string, from: string, to: string): Promise<JobInspections> {
+  const rows = isMock()
+    ? await mock.inspections(projectId, from, to)
+    : z
+        .array(calendarInspectionSchema)
+        .parse(throwIfError(await supabase.rpc('calendar_inspections', { p_project_id: projectId, p_from: from, p_to: to })));
+  return { projectId, rows: rows.map((r) => ({ ...r, project_id: projectId })) };
+}
+
+interface CalendarInspections {
+  rows: CalendarInspection[];
+  /** The jobs whose inspections are here: their mirrored inspection lines give way to these. */
+  loaded: ReadonlySet<string>;
+  isPending: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+function combineInspections(results: UseQueryResult<JobInspections>[]): CalendarInspections {
+  const loaded = new Set<string>();
+  const rows: CalendarInspection[] = [];
+  for (const r of results) {
+    if (!r.data) continue;
+    loaded.add(r.data.projectId);
+    rows.push(...r.data.rows);
+  }
+  return {
+    rows,
+    loaded,
+    isPending: results.some((r) => r.isPending),
+    error: results.find((r) => r.error !== null)?.error ?? null,
+    refetch: () => {
+      for (const r of results) if (r.isError) void r.refetch();
+    },
+  };
+}
+
+/**
+ * Each job's inspection requests and blocked time from `from` to `to` (yyyy-MM-dd, both included). A job where I may
+ * not see inspections answers with none. Keyed under the job's inspections prefix, so every IR write refreshes it.
+ */
+export function useCalendarInspections(projectIds: readonly string[], from: string, to: string): CalendarInspections {
+  return useQueries({
+    queries: projectIds.map((id) => ({
+      queryKey: qk.inspectionsPart(id, 'calendar-month', `${from}:${to}`),
+      queryFn: () => fetchInspections(id, from, to),
+      refetchInterval: LIVE_MS,
+      placeholderData: keepPreviousData,
+    })),
+    combine: combineInspections,
+  });
 }

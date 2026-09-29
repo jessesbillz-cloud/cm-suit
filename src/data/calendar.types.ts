@@ -1,5 +1,17 @@
-// Calendar shapes the app reads and writes (SPEC §7.6). Rows derive from the generated types.
+// Calendar shapes the app reads and writes (SPEC §7.6). Rows derive from the generated types; the inspections RPC's
+// answer (typed non-null by the generator) is parsed with zod at the boundary, like ir_calendar's.
+import { z } from 'zod';
 import type { Tables } from './database.types';
+import { calendarRowSchema } from './inspections.types';
+
+/** One line of calendar_inspections (0043): ir_calendar's line plus the request's attachments and postponements. */
+export const calendarInspectionSchema = calendarRowSchema.extend({
+  attachment_ids: z.array(z.string()),
+  postpone_count: z.number(),
+});
+
+/** An inspection line of one job on the month calendar. */
+export type CalendarInspection = z.infer<typeof calendarInspectionSchema> & { project_id: string };
 
 type CalendarEntryRow = Pick<
   Tables<'calendar_entries'>,

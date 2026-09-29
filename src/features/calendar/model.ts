@@ -1,22 +1,35 @@
-// Calendar views (SPEC §7.6): which days show, the time range to load, and the day each line falls on in its OWN
-// job's time zone (SPEC §8.8). Days are calendar days (yyyy-MM-dd); weeks start on Monday.
+// Calendar views (SPEC §7.6; MDR's schedule calendar): which days show, the time range to load, and the day each line
+// falls on in its OWN job's time zone (SPEC §8.8). Days are calendar days (yyyy-MM-dd); weeks start on Monday. The day
+// view became the selected day's detail under the grid (MDR), so the views are Month (the default) and Week.
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, isWeekend, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarLine, CalendarRange } from '../../data/calendar.types';
 import { formatDay, formatInZone, startOfDayInZone } from '../../lib/dates';
 import { toolIsOn } from '../../lib/jobs';
 import { STATUS, type StatusKey } from '../../lib/status';
 
-export const CAL_VIEWS = ['week', 'day', 'month'] as const;
+export const CAL_VIEWS = ['month', 'week'] as const;
 export type CalView = (typeof CAL_VIEWS)[number];
 
-export const VIEW_LABELS: Record<CalView, string> = { week: 'Week', day: 'Day', month: 'Month' };
+export const VIEW_LABELS: Record<CalView, string> = { month: 'Month', week: 'Week' };
 
-/** The right-column item id of the add form. */
+/** Right-column items that are not a line: the add form, blocked time, the feed link. Lines and requests are ids. */
 export const NEW_LINE = 'new';
+export const BLOCK_ITEM = 'block';
+export const SUBSCRIBE_ITEM = 'subscribe';
 
-/** Week is the default in the field. */
+/** A request opened from the calendar: its job travels with it ("All my jobs" has no job in the address). */
+export function requestItemId(projectId: string, requestId: string): string {
+  return `ir.${projectId}.${requestId}`;
+}
+
+export function parseRequestItem(itemId: string): { projectId: string; requestId: string } | null {
+  const m = /^ir\.([^.]+)\.([^.]+)$/.exec(itemId);
+  return m?.[1] && m[2] ? { projectId: m[1], requestId: m[2] } : null;
+}
+
+/** The month is the default (MDR's schedule). */
 export function parseCalView(v: string | undefined): CalView {
-  return CAL_VIEWS.find((x) => x === v) ?? 'week';
+  return CAL_VIEWS.find((x) => x === v) ?? 'month';
 }
 
 const WEEK = { weekStartsOn: 1 } as const;
@@ -42,7 +55,6 @@ function daysBetween(first: Date, last: Date): string[] {
 /** The days a view shows around the anchor day. Month: whole weeks covering the month. */
 export function visibleDays(view: CalView, anchor: string): string[] {
   const a = parseISO(anchor);
-  if (view === 'day') return [anchor];
   if (view === 'week') return daysBetween(startOfWeek(a, WEEK), endOfWeek(a, WEEK));
   return daysBetween(startOfWeek(startOfMonth(a), WEEK), endOfWeek(endOfMonth(a), WEEK));
 }
@@ -54,7 +66,6 @@ export function isWeekendDay(day: string): boolean {
 
 /** Prev / Next. */
 export function step(view: CalView, anchor: string, dir: 1 | -1): string {
-  if (view === 'day') return shiftDay(anchor, dir);
   if (view === 'week') return shiftDay(anchor, 7 * dir);
   return ymd(addMonths(parseISO(anchor), dir));
 }
@@ -113,7 +124,6 @@ export function lineTime(line: Pick<CalendarLine, 'starts_at' | 'timezone' | 'al
 }
 
 export function rangeLabel(view: CalView, days: readonly string[], anchor: string): string {
-  if (view === 'day') return formatDay(anchor, 'EEE, MMM d, yyyy');
   if (view === 'month') return formatDay(anchor, 'MMMM yyyy');
   const first = days[0] ?? anchor;
   const last = days[days.length - 1] ?? anchor;
@@ -125,4 +135,17 @@ export function rangeLabel(view: CalView, days: readonly string[], anchor: strin
 export function statusKey(status: string | null): StatusKey | null {
   if (status === null) return null;
   return (Object.keys(STATUS) as StatusKey[]).find((k) => k === status) ?? null;
+}
+
+/** The jobs whose inspections the calendar shows: this one, or on "All my jobs" every job with the calendar on; each
+ *  with inspections on. */
+export function inspectionJobs(jobs: readonly CalendarJob[], projectId: string | null): string[] {
+  return jobs
+    .filter((p) => (projectId === null || p.project_id === projectId) && toolIsOn('calendar', p.modules) && toolIsOn('inspections', p.modules))
+    .map((p) => p.project_id);
+}
+
+/** Share: the job's scheduling page, where its people request inspections (they sign in through their invite link). */
+export function schedulingLink(origin: string, basePath: string, projectId: string): string {
+  return `${origin}${basePath.replace(/\/+$/, '')}/p/${encodeURIComponent(projectId)}/inspections?view=week`;
 }

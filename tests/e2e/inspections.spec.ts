@@ -1,6 +1,8 @@
 // Inspection scheduling (SPEC §13.2) against the e2e mock. The mock 'pm' holds every capability, so it is both the
 // requester and the inspector here: it sends a request and gets a receipt with the IR number, confirms it from the day
 // view (tap budget §7.9: 2; it takes 1) and records a result. PDFs and email are server-only and not mocked.
+// The mock seeds a month of requests on the sample jobs (the calendar's), keeping 9:00-10:00 today free on job-a, so
+// the new request's number is whatever the database (mock) gives next.
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
 
@@ -33,22 +35,26 @@ test.describe('inspections (SPEC §13.2)', () => {
     await expect(page.getByTestId('ir-company')).toHaveValue('Sample Concrete Co');
     await page.getByTestId('ir-time').selectOption('09:00');
     await page.getByTestId('ir-items').fill('Sample footing rebar at grid A');
-    await expect(page.getByTestId('ir-conflicts')).toContainText('Open day.');
+    // The day's bookings are listed; 9:00 overlaps none of them.
+    const conflicts = page.getByTestId('ir-conflicts');
+    await expect(conflicts.getByRole('listitem').first().or(conflicts.getByText('Open day.'))).toBeVisible();
+    await expect(conflicts).not.toContainText('Overlaps');
     await expect(page.getByTestId('ir-submit')).toBeDisabled();
     await page.getByTestId('ir-ack').check();
     await page.getByTestId('ir-submit').click();
-    await expect(page.getByTestId('ir-receipt-number')).toHaveText('IR 1');
+    await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
+    const n = ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
     await expect(page.getByTestId('ir-receipt')).toContainText('Waiting on the inspector.');
-    await expect(page.getByTestId('ir-entry').first()).toContainText('IR 1');
+    await expect(page.getByTestId('ir-entry').filter({ hasText: new RegExp(`IR ${n} ·`) })).toBeVisible();
 
     // Inspector: the day's queue; Confirm is one tap.
     await page.goto('/p/job-a/inspections?view=day');
-    const row = page.getByTestId('ir-queue-1');
+    const row = page.getByTestId(`ir-queue-${n}`);
     await expect(row).toContainText('Pending');
     await page.evaluate(() => {
       (window as unknown as TapWindow).__taps = 0;
     });
-    await page.getByTestId('ir-confirm-1').click();
+    await page.getByTestId(`ir-confirm-${n}`).click();
     await expect(row).toContainText('Confirmed');
     expect(await page.evaluate(() => (window as unknown as TapWindow).__taps)).toBeLessThanOrEqual(2);
 

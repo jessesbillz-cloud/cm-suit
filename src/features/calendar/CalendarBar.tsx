@@ -1,34 +1,6 @@
-// The calendar's controls in its page header: Prev / Today / Next on the right, Week / Day / Month under the title.
+// The calendar's Prev / Today / Next in its page header (Month / Week is ui/Segments beside it).
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Icon } from '../../ui/Icon';
-import { CAL_VIEWS, VIEW_LABELS, type CalView } from './model';
-
-interface ViewSwitchProps {
-  current: CalView;
-  onPick: (v: CalView) => void;
-}
-
-export function ViewSwitch({ current, onPick }: ViewSwitchProps) {
-  return (
-    <div role="tablist" aria-label="Calendar view" className="inline-flex rounded-lg border border-line bg-card p-0.5 shadow-control">
-      {CAL_VIEWS.map((v) => (
-        <button
-          key={v}
-          type="button"
-          role="tab"
-          aria-selected={v === current}
-          data-testid={`cal-view-${v}`}
-          className={`h-8 rounded-md px-3.5 text-sm ${v === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'}`}
-          onClick={() => {
-            onPick(v);
-          }}
-        >
-          {VIEW_LABELS[v]}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 interface StepProps {
   label: string;
