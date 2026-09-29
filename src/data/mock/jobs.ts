@@ -42,7 +42,13 @@ function projectRows(): ProjectRow[] {
 }
 
 function orgKindOf(orgId: string): string {
+  if (orgId === FORM_ORG.org_id) return FORM_ORG.kind;
   return allOrgs().find((o) => o.org_id === orgId)?.kind ?? 'other';
+}
+
+/** A job's creator (0044 tg_project_created): the inspector who runs it in an inspection company, else project_admin. */
+function creatorRole(orgId: string): string {
+  return orgKindOf(orgId) === 'inspector' ? 'inspector_admin' : 'project_admin';
 }
 
 function allOrgs(): MyOrg[] {
@@ -59,7 +65,7 @@ export async function projects(): Promise<MyProject[]> {
     name: r.name,
     number: r.number ?? '',
     org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? (r.org_id === FORM_ORG.org_id ? FORM_ORG.name : ''),
-    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? 'project_admin',
+    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? creatorRole(r.org_id),
     stage: r.stage,
     timezone: r.timezone,
     modules: r.modules,

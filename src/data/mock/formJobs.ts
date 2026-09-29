@@ -4,7 +4,7 @@
 // names (CLAUDE.md rule 8). The job's name sorts after the Sample Job A/B fixtures in the job picker.
 import type { ProjectRow } from '../types';
 
-export const FORM_ORG = { org_id: 'org-inspect', name: 'Sample Inspection Co' } as const;
+export const FORM_ORG = { org_id: 'org-inspect', name: 'Sample Inspection Co', kind: 'inspector' } as const;
 
 /** The company's settings row (parsed by lib/settings like any other). */
 export const FORM_ORG_SETTINGS: Readonly<Record<string, unknown>> = { report_generator: 'vis_daily' };

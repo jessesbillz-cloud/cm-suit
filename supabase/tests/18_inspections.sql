@@ -61,9 +61,10 @@ select 'b0000000-0000-0000-0000-000000000181', 'c0000000-0000-0000-0000-00000000
 
 -- Capability rows added by 0024.
 select results_eq($$ select role from public.role_permissions where capability = 'ir.gc_approve' order by 1 $$,
-  $$ values ('pm'::text), ('project_admin'), ('superintendent') $$, 'ir.gc_approve: project_admin, pm, superintendent');
+  $$ values ('inspector_admin'::text), ('pm'), ('project_admin'), ('superintendent') $$,
+  'ir.gc_approve: project_admin, pm, superintendent (and the inspector who runs the job, 0044)');
 select results_eq($$ select role from public.role_permissions where capability = 'ir.view_all' order by 1 $$,
-  $$ values ('inspector'::text), ('owner_rep'), ('pe'), ('pm'), ('project_admin'), ('superintendent') $$,
+  $$ values ('inspector'::text), ('inspector_admin'), ('owner_rep'), ('pe'), ('pm'), ('project_admin'), ('superintendent') $$,
   'ir.view_all: the GC team, inspectors and the owner rep');
 
 set local role authenticated;

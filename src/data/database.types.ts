@@ -5390,6 +5390,7 @@ export type Database = {
           updated: number
         }[]
       }
+      inspector_admin_backfill: { Args: never; Returns: number }
       invoice_lines: {
         Args: { p_owner: string; p_period: string }
         Returns: Json
