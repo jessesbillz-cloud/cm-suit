@@ -9,9 +9,13 @@ import { formatInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { TOOL_META } from '../../ui/tools';
+import { BoardLineRow } from './BoardLineRow';
 import { NeedsYou } from './NeedsYou';
+import { useNeedsYou } from './useNeedsYou';
 import { WhatsNew } from './WhatsNew';
 import { useProjectZones } from './zones';
 
@@ -22,39 +26,6 @@ interface BoardProps {
   onOpen: (line: BoardLine) => void;
 }
 
-interface LineProps {
-  line: BoardLine;
-  showJob: boolean;
-  zone: string;
-  selected: boolean;
-  onOpen: (line: BoardLine) => void;
-}
-
-function Line({ line, showJob, zone, selected, onOpen }: LineProps) {
-  return (
-    <li>
-      <button
-        type="button"
-        data-testid="board-line"
-        data-unread={line.unread ? 'true' : undefined}
-        className={`flex w-full items-baseline gap-3 px-4 py-2.5 text-left text-sm ${
-          selected ? 'bg-accent-soft' : 'hover:bg-page'
-        } ${line.unread ? 'font-semibold text-ink' : 'text-ink'}`}
-        onClick={() => {
-          onOpen(line);
-        }}
-      >
-        <time dateTime={line.created_at} className="w-28 shrink-0 text-xs font-normal tabular-nums text-ink-2">
-          {formatInZone(line.created_at, zone, 'MMM d, h:mm a')}
-        </time>
-        {showJob ? <span className="w-36 shrink-0 truncate text-xs font-normal text-ink-2">{line.project_name}</span> : null}
-        <span className="min-w-0 flex-1 break-words">{line.summary}</span>
-        <span className="hidden shrink-0 text-xs font-normal text-ink-3 lg:inline">{humanize(line.kind)}</span>
-      </button>
-    </li>
-  );
-}
-
 /** The newest line per job: read marks use the server's timestamps, never the device clock. */
 function newestPerJob(lines: readonly BoardLine[]): { projectId: string; seenAt: string }[] {
   const newest = new Map<string, string>();
@@ -63,6 +34,16 @@ function newestPerJob(lines: readonly BoardLine[]): { projectId: string; seenAt:
     if (cur === undefined || l.created_at > cur) newest.set(l.project_id, l.created_at);
   }
   return [...newest].map(([projectId, seenAt]) => ({ projectId, seenAt }));
+}
+
+/** The header's one line: "3 need you · 12 new"; parts still loading are left out. */
+function headerMeta(needs: number | null, fresh: number | null): string | undefined {
+  const parts = [
+    needs !== null && needs > 0 ? `${String(needs)} ${needs === 1 ? 'needs' : 'need'} you` : '',
+    fresh !== null && fresh > 0 ? `${String(fresh)} new` : '',
+  ].filter((p) => p !== '');
+  if (parts.length > 0) return parts.join(' · ');
+  return needs === 0 && fresh === 0 ? 'Nothing new' : undefined;
 }
 
 export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardProps) {
@@ -100,10 +81,13 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
   const sinceAt = projectId !== null && seen?.key === projectId ? seen.since : null;
   const since = projectId !== null && sinceAt ? formatInZone(sinceAt, zoneOf(projectId), 'MMM d, h:mm a') : null;
 
+  const needs = useNeedsYou(projectId);
+  const meta = headerMeta(needs.ready ? needs.count : null, feed.isSuccess ? unreadCount : null);
+
   const filter = (
     <select
       aria-label="Filter by type"
-      className="h-8 rounded-md border border-line bg-card px-2 text-sm text-ink"
+      className="h-8 rounded-md border border-line-strong bg-card pl-2.5 pr-8 text-sm text-ink shadow-control"
       value={kind}
       onChange={(e) => {
         setKind(e.target.value);
@@ -119,49 +103,54 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
   );
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
-      <NeedsYou projectId={projectId} />
-      <Card title="Board" actions={filter} padded={false}>
-        {whatsNewEnabled && feed.isSuccess ? (
-          <WhatsNew
-            count={unreadCount}
-            since={since}
-            unreadOnly={unreadOnly}
-            onToggle={() => {
-              setUnreadOnly((v) => !v);
-            }}
-          />
-        ) : null}
-        {feed.isPending ? <LoadingState label="Loading the board" /> : null}
-        {feed.isError ? <ErrorState error={feed.error} onRetry={() => void feed.refetch()} /> : null}
-        {feed.isSuccess && visible.length === 0 ? (
-          <EmptyState
-            title={lines.length === 0 ? 'No activity yet.' : 'Nothing matches this filter.'}
-            hint={lines.length === 0 ? 'Uploads, invites and answers show up here as they happen.' : undefined}
-          />
-        ) : null}
-        {visible.length > 0 ? (
-          <ul className="divide-y divide-line">
-            {visible.map((l) => (
-              <Line
-                key={l.id}
-                line={l}
-                showJob={projectId === null}
-                zone={zoneOf(l.project_id)}
-                selected={l.id === selectedId}
-                onOpen={onOpen}
-              />
-            ))}
-          </ul>
-        ) : null}
-        {feed.hasNextPage ? (
-          <div className="flex justify-center border-t border-line p-3">
-            <Button variant="quiet" loading={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>
-              Show older
-            </Button>
-          </div>
-        ) : null}
-      </Card>
+    <div className="mx-auto max-w-4xl">
+      <PageHeader title={TOOL_META.board.label} icon={TOOL_META.board.icon} meta={meta} />
+      <div className="flex flex-col gap-4">
+        <NeedsYou projectId={projectId} />
+        <Card title="Activity" actions={filter} padded={false}>
+          {whatsNewEnabled && feed.isSuccess ? (
+            <WhatsNew
+              count={unreadCount}
+              since={since}
+              unreadOnly={unreadOnly}
+              onToggle={() => {
+                setUnreadOnly((v) => !v);
+              }}
+            />
+          ) : null}
+          {feed.isPending ? <LoadingState label="Loading the board" /> : null}
+          {feed.isError ? <ErrorState error={feed.error} onRetry={() => void feed.refetch()} /> : null}
+          {feed.isSuccess && visible.length === 0 ? (
+            <EmptyState
+              icon={TOOL_META.board.icon}
+              title={lines.length === 0 ? 'No activity yet.' : 'Nothing matches this filter.'}
+            />
+          ) : null}
+          {visible.length > 0 ? (
+            <ul className="divide-y divide-line">
+              {visible.map((l) => (
+                <BoardLineRow
+                  key={l.id}
+                  line={l}
+                  showJob={projectId === null}
+                  zone={zoneOf(l.project_id)}
+                  selected={l.id === selectedId}
+                  compact={false}
+                  testId="board-line"
+                  onOpen={onOpen}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {feed.hasNextPage ? (
+            <div className="flex justify-center border-t border-line p-3">
+              <Button variant="quiet" loading={feed.isFetchingNextPage} onClick={() => void feed.fetchNextPage()}>
+                Show older
+              </Button>
+            </div>
+          ) : null}
+        </Card>
+      </div>
     </div>
   );
 }
