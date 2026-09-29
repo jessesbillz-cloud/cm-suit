@@ -9,14 +9,42 @@ import { fromZonedInput, toZonedInput } from '../../lib/dates';
 import { MODULES, STAGES } from '../../lib/jobs';
 import { Card } from '../../ui/Card';
 import { CheckField, SelectField, TextField } from '../../ui/Fields';
+import { Icon } from '../../ui/Icon';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { InspectionSettings } from '../inspections/InspectionSettings';
+import { FIELD_ROW, SettingRow } from './SettingRow';
 
 type TextKey = 'name' | 'number' | 'address' | 'job_type';
 
 function textOf(row: ProjectWithSettings, key: TextKey): string {
   return row[key] ?? '';
+}
+
+/** The job's tools, each with its rail icon, in the one MODULES order. */
+function ModuleBoxes({ modules, onChange }: { modules: readonly string[]; onChange: (next: string[]) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-3 lg:grid-cols-4">
+      {MODULES.map((m) => (
+        <label key={m.value} className="flex h-10 cursor-pointer items-center gap-2.5 text-sm text-ink sm:h-9">
+          <input
+            type="checkbox"
+            className="h-4 w-4 shrink-0 accent-accent"
+            checked={modules.includes(m.value)}
+            onChange={(e) => {
+              const on = new Set(modules);
+              if (e.target.checked) on.add(m.value);
+              else on.delete(m.value);
+              onChange(MODULES.map((x) => x.value).filter((v) => on.has(v)));
+            }}
+          />
+          <Icon icon={TOOL_META[m.value].icon} size={16} className="shrink-0 text-ink-2" />
+          {m.label}
+        </label>
+      ))}
+    </div>
+  );
 }
 
 interface JobFieldsProps {
@@ -52,12 +80,12 @@ function JobFields({ row, commit, onProblem }: JobFieldsProps) {
     commit(patch);
   }
 
-  function textField(key: TextKey, label: string, wide = false) {
+  function textField(key: TextKey, label: string) {
     return (
       <TextField
         label={label}
         value={text[key]}
-        className={wide ? 'sm:col-span-2' : ''}
+        className={FIELD_ROW}
         onChange={(v) => {
           setText({ ...text, [key]: v });
         }}
@@ -71,84 +99,79 @@ function JobFields({ row, commit, onProblem }: JobFieldsProps) {
   const bidsOn = row.modules.includes('bids');
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {textField('name', 'Job name', true)}
+    <div className="flex flex-col">
+      {textField('name', 'Job name')}
       {textField('number', 'Job number')}
       <SelectField
         label="Stage"
         value={row.stage}
         options={STAGES}
+        className={FIELD_ROW}
         onChange={(stage) => {
           commit({ stage });
         }}
       />
-      {textField('address', 'Address', true)}
+      {textField('address', 'Address')}
       {textField('job_type', 'Job type')}
       <SelectField
         label="Time zone"
         value={row.timezone}
         options={zones}
+        className={FIELD_ROW}
         onChange={(timezone) => {
           commit({ timezone });
         }}
       />
-      <CheckField
-        label="Prevailing wage"
-        checked={row.prevailing_wage}
-        onChange={(prevailing_wage) => {
-          commit({ prevailing_wage });
-        }}
-      />
-      <CheckField
-        label="DSA job"
-        checked={row.is_dsa}
-        testId="job-dsa"
-        onChange={(is_dsa) => {
-          commit({ is_dsa });
-        }}
-      />
       {bidsOn ? (
-        <>
-          <TextField
-            label="Bid due"
-            type="datetime-local"
-            value={bidDue}
-            onChange={setBidDue}
-            onBlur={() => {
-              if (bidDue !== savedBidDue) commit({ bid_due_at: fromZonedInput(bidDue, row.timezone) });
+        <TextField
+          label="Bid due"
+          type="datetime-local"
+          value={bidDue}
+          className={FIELD_ROW}
+          onChange={setBidDue}
+          onBlur={() => {
+            if (bidDue !== savedBidDue) commit({ bid_due_at: fromZonedInput(bidDue, row.timezone) });
+          }}
+        />
+      ) : null}
+      <SettingRow label="Options">
+        <div className="flex flex-wrap gap-x-6">
+          <CheckField
+            label="Prevailing wage"
+            checked={row.prevailing_wage}
+            onChange={(prevailing_wage) => {
+              commit({ prevailing_wage });
             }}
           />
           <CheckField
-            label="Sealed bids"
-            checked={row.bid_sealed}
-            onChange={(bid_sealed) => {
-              commit({ bid_sealed });
+            label="DSA job"
+            checked={row.is_dsa}
+            testId="job-dsa"
+            onChange={(is_dsa) => {
+              commit({ is_dsa });
             }}
           />
-        </>
-      ) : null}
-      <div className="mt-1 border-t border-line pt-3 sm:col-span-2">
-        <fieldset className="flex flex-col">
-          <legend className="mb-1 text-xs font-medium text-ink-2">Tools on this job</legend>
-          <div className="flex flex-wrap gap-x-5">
-            {MODULES.map((m) => (
-              <CheckField
-                key={m.value}
-                label={m.label}
-                checked={row.modules.includes(m.value)}
-                onChange={(on) => {
-                  const set = new Set(row.modules);
-                  if (on) set.add(m.value);
-                  else set.delete(m.value);
-                  commit({ modules: MODULES.map((x) => x.value).filter((v) => set.has(v)) });
-                }}
-              />
-            ))}
-          </div>
-        </fieldset>
-      </div>
+          {bidsOn ? (
+            <CheckField
+              label="Sealed bids"
+              checked={row.bid_sealed}
+              onChange={(bid_sealed) => {
+                commit({ bid_sealed });
+              }}
+            />
+          ) : null}
+        </div>
+      </SettingRow>
+      <SettingRow label="Tools on this job">
+        <ModuleBoxes
+          modules={row.modules}
+          onChange={(modules) => {
+            commit({ modules });
+          }}
+        />
+      </SettingRow>
       {row.modules.includes('inspections') ? (
-        <div className="border-t border-line pt-3 sm:col-span-2">
+        <div className="pt-3">
           <InspectionSettings row={row} />
         </div>
       ) : null}

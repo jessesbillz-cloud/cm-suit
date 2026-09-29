@@ -21,6 +21,7 @@ import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
+import { TOOL_META } from '../../ui/tools';
 import { useToast } from '../../ui/Toast';
 import { collectDrop } from '../files/collectDrop';
 import { UploadList } from '../files/UploadList';
@@ -136,7 +137,8 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
   );
 
   return (
-    <Card actions={actions} padded={false}>
+    // No header bar at all when there is nothing to put in it.
+    <Card actions={readAll.progress !== null || (canRead && aiOn) || canAdd ? actions : undefined} padded={false}>
       {twoFactor ? (
         <div className="px-4 pt-3">
           <StepUp />
@@ -162,7 +164,7 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
         {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
         {extractions.isError ? <ErrorState error={extractions.error} onRetry={() => void extractions.refetch()} /> : null}
         {subs.data?.length === 0 ? (
-          <EmptyState title="No bids received." hint={canAdd ? 'Drop bid files or a folder here.' : undefined} />
+          <EmptyState title="No bids received." icon={TOOL_META.bids.icon} hint={canAdd ? 'Drop bid files or a folder here.' : undefined} />
         ) : null}
         {subs.data && subs.data.length > 0 ? (
           <BidList

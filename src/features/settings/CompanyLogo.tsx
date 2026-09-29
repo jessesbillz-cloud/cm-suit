@@ -6,6 +6,7 @@ import { messageOf } from '../../data/errors';
 import { useOrgLogo, useRemoveOrgLogo, useUploadOrgLogo } from '../../data/org.mutations';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
+import { SettingRow } from './SettingRow';
 
 export function CompanyLogo({ orgId }: { orgId: string }) {
   const logo = useOrgLogo(orgId);
@@ -16,10 +17,9 @@ export function CompanyLogo({ orgId }: { orgId: string }) {
   const problem = logo.error ?? upload.error ?? remove.error;
 
   return (
-    <div className="flex flex-col gap-1.5" data-testid="company-logo">
-      <span className="text-xs font-medium text-ink-2">Logo</span>
+    <SettingRow label="Logo" testId="company-logo">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex h-16 w-44 items-center justify-center overflow-hidden rounded-md border border-line bg-page">
+        <div className="flex h-16 w-44 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-card-head">
           {logo.isPending || upload.isPending ? <Icon icon={LoaderCircle} size={18} className="animate-spin text-ink-2" label="Loading" /> : null}
           {!logo.isPending && !upload.isPending && url !== null ? (
             <img src={url} alt="Company logo" data-testid="company-logo-image" className="max-h-full max-w-full object-contain p-2" />
@@ -63,10 +63,10 @@ export function CompanyLogo({ orgId }: { orgId: string }) {
         />
       </div>
       {problem ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="mt-1.5 text-sm text-danger">
           {messageOf(problem)}
         </p>
       ) : null}
-    </div>
+    </SettingRow>
   );
 }

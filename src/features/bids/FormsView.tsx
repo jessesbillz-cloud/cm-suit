@@ -8,6 +8,7 @@ import { formatInZone, todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { useDownload } from '../files/useDownload';
 import { FormRow } from './FormRow';
 import { formChip, groupForms, NEW_FORM_ITEM, settledCount } from './forms';
@@ -52,11 +53,11 @@ export function FormsView({ projectId, selectedId, onOpen, project }: FormsViewP
     <Card title={items.length > 0 ? <Progress done={settledCount(items)} total={items.length} /> : undefined} actions={add} padded={false}>
       {forms.isPending ? <LoadingState label="Loading forms" /> : null}
       {forms.isError ? <ErrorState error={forms.error} onRetry={() => void forms.refetch()} /> : null}
-      {forms.data?.items.length === 0 ? <EmptyState title="No forms on this job." /> : null}
+      {forms.data?.items.length === 0 ? <EmptyState title="No forms on this job." icon={TOOL_META.bids.icon} /> : null}
       {groupForms(items).map((g) => (
         <section key={g.timing} aria-label={g.label} data-testid={`forms-group-${g.timing}`}>
-          <header className="flex items-baseline justify-between gap-3 border-b border-line bg-card-head px-4 pb-1.5 pt-3 text-xs">
-            <h3 className="font-semibold uppercase tracking-wide text-ink-2">{g.label}</h3>
+          <header className="flex items-baseline justify-between gap-3 border-b border-line bg-card-head px-4 pb-2 pt-3 text-xs">
+            <h3 className="text-[12px] font-medium uppercase tracking-wide text-ink-3">{g.label}</h3>
             {g.timing === 'with_bid' && project.bid_due_at !== null ? (
               <span className="tabular-nums text-ink-2">Due {formatInZone(project.bid_due_at, project.timezone, 'MMM d, h:mm a')}</span>
             ) : null}

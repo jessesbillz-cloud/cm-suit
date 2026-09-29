@@ -7,6 +7,7 @@ import { useSubs } from '../../data/subs.queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { ImportSubsButton } from './ImportSubsButton';
 import { NEW_SUB_ITEM } from './model';
 import { SubList } from './SubList';
@@ -96,8 +97,8 @@ export function SubsView({ projectId, orgId, selectedId, onOpen }: SubsViewProps
       </div>
       {subs.isPending ? <LoadingState label="Loading subs" /> : null}
       {subs.isError ? <ErrorState error={subs.error} onRetry={() => void subs.refetch()} /> : null}
-      {subs.isSuccess && total === 0 ? <EmptyState title="No subs yet." /> : null}
-      {subs.isSuccess && total > 0 && rows.length === 0 ? <EmptyState title="No match." /> : null}
+      {subs.isSuccess && total === 0 ? <EmptyState title="No subs yet." icon={TOOL_META.bids.icon} /> : null}
+      {subs.isSuccess && total > 0 && rows.length === 0 ? <EmptyState title="No match." icon={TOOL_META.bids.icon} /> : null}
       {rows.length > 0 ? <SubList rows={rows} shown={shown} onMore={more} selectedId={selectedId} onOpen={onOpen} /> : null}
     </Card>
   );

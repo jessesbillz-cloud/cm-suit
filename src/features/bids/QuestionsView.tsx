@@ -3,6 +3,7 @@ import { useBidQuestions } from '../../data/bids.queries';
 import { formatInZone } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { StatusChip } from '../../ui/StatusChip';
 import { BidList } from './BidList';
 import { firstLine, questionChip } from './model';
@@ -21,7 +22,7 @@ export function QuestionsView({ projectId, tz, selectedId, onOpen }: QuestionsVi
     <Card padded={false}>
       {questions.isPending ? <LoadingState label="Loading questions" /> : null}
       {questions.isError ? <ErrorState error={questions.error} onRetry={() => void questions.refetch()} /> : null}
-      {questions.data?.length === 0 ? <EmptyState title="No questions yet." /> : null}
+      {questions.data?.length === 0 ? <EmptyState title="No questions yet." icon={TOOL_META.bids.icon} /> : null}
       {questions.data && questions.data.length > 0 ? (
         <BidList
           testId="question"

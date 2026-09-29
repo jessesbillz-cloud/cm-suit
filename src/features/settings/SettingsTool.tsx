@@ -5,8 +5,11 @@ import { LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { signOut, useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
+import { useMyProjects } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { PageHeader } from '../../ui/PageHeader';
+import { TOOL_META } from '../../ui/tools';
 import { RfiSettingsCard } from '../rfis/RfiSettings';
 import { CalendarSubscriptions } from './CalendarSubscriptions';
 import { CompanySettings } from './CompanySettings';
@@ -55,17 +58,23 @@ function DeviceCard() {
 }
 
 export function SettingsTool({ projectId }: { projectId: string | null }) {
+  const projects = useMyProjects();
+  // The job whose settings lead the page; on "All my jobs", only mine.
+  const job = projects.data?.find((p) => p.project_id === projectId);
   return (
-    <div data-testid="settings" className="mx-auto flex max-w-4xl flex-col gap-5 pb-6">
-      {projectId ? <JobSettings projectId={projectId} /> : null}
-      {projectId ? <RfiSettingsCard projectId={projectId} /> : null}
-      <CompanySettings />
-      <ProfileForm />
-      <LayoutForm />
-      <CalendarSubscriptions />
-      <NotifyTree />
-      <TwoStepCard />
-      <DeviceCard />
+    <div data-testid="settings" className="mx-auto max-w-4xl pb-6">
+      <PageHeader title={TOOL_META.settings.label} icon={TOOL_META.settings.icon} meta={job?.name} />
+      <div className="flex flex-col gap-4">
+        {projectId ? <JobSettings projectId={projectId} /> : null}
+        {projectId ? <RfiSettingsCard projectId={projectId} /> : null}
+        <CompanySettings />
+        <ProfileForm />
+        <LayoutForm />
+        <CalendarSubscriptions />
+        <NotifyTree />
+        <TwoStepCard />
+        <DeviceCard />
+      </div>
     </div>
   );
 }

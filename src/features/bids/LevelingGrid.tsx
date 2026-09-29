@@ -7,6 +7,7 @@ import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/format';
 import { StatusChip } from '../../ui/StatusChip';
 import { flagChip, pwLabel, splitRows, stateLabel } from './leveling';
+import { OPEN_BAR, ROW_HOVER, ROW_OPEN, TH as HEAD } from './rowStyles';
 
 interface LevelingGridProps {
   rows: readonly LevelingRow[];
@@ -18,7 +19,7 @@ interface LevelingGridProps {
   onOpen: (submissionId: string) => void;
 }
 
-const TH = 'px-2 py-2 font-medium';
+const TH = 'px-2 py-2.5 font-medium';
 
 function Flags({ flags }: { flags: readonly FlagRow[] }) {
   if (flags.length === 0) return null;
@@ -46,13 +47,13 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
   const { main, below } = splitRows(rows);
   const nameOf = (id: string | null) => rows.find((r) => r.submission_id === id);
   const rowClass = (r: LevelingRow, dim: boolean) =>
-    `cursor-pointer border-b border-line align-top ${r.submission_id === selectedId ? 'bg-accent-soft' : 'hover:bg-page'} ${dim ? 'text-ink-3' : 'text-ink'}`;
+    `border-b border-line align-top ${r.submission_id === selectedId ? `cursor-pointer ${ROW_OPEN}` : ROW_HOVER} ${dim ? 'text-ink-3' : 'text-ink'}`;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm" data-testid="leveling-grid">
         <thead>
-          <tr className="border-b border-line text-left text-xs text-ink-2">
+          <tr className={`border-b border-line text-left ${HEAD}`}>
             <th className={`${TH} pl-4`}>Bidder</th>
             <th className={`${TH} w-16`}>Date</th>
             {money ? <th className={`${TH} w-28 text-right`}>Base</th> : null}
@@ -68,7 +69,7 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
                 onOpen(r.submission_id);
               }}
             >
-              <td className="whitespace-normal break-words py-2 pl-4 pr-2">
+              <td className={`whitespace-normal break-words py-2.5 pl-4 pr-2 ${r.submission_id === selectedId ? OPEN_BAR : ''}`}>
                 <span className="flex flex-wrap items-center gap-1.5">
                   <span>{r.bidder}</span>
                   {r.submission_id === lowId ? <StatusChip status="confirmed" label="Low" /> : null}
@@ -97,7 +98,7 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
                   onOpen(r.submission_id);
                 }}
               >
-                <td className="whitespace-normal break-words py-2 pl-4 pr-2">
+                <td className={`whitespace-normal break-words py-2.5 pl-4 pr-2 ${r.submission_id === selectedId ? OPEN_BAR : ''}`}>
                   <span className="flex flex-wrap items-center gap-1.5">
                     <span>{r.bidder}</span>
                     <StatusChip status="cancelled" label={stateLabel(r.state)} />

@@ -6,6 +6,7 @@ import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { TOOL_META } from '../../ui/tools';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { BidList } from './BidList';
@@ -51,7 +52,7 @@ export function AddendaView({ projectId, selectedId, onOpen }: AddendaViewProps)
       {addenda.isPending ? <LoadingState label="Loading addenda" /> : null}
       {addenda.isError ? <ErrorState error={addenda.error} onRetry={() => void addenda.refetch()} /> : null}
       {acks.isError ? <ErrorState error={acks.error} onRetry={() => void acks.refetch()} /> : null}
-      {addenda.data?.length === 0 ? <EmptyState title="No addenda yet." /> : null}
+      {addenda.data?.length === 0 ? <EmptyState title="No addenda yet." icon={TOOL_META.bids.icon} /> : null}
       {addenda.data && addenda.data.length > 0 ? (
         <BidList
           testId="addendum"

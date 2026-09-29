@@ -11,14 +11,16 @@ import { SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState } from '../../ui/States';
 import { CompanyLogo } from './CompanyLogo';
+import { FIELD_ROW } from './SettingRow';
 
 function CompanyFields({ org, commit }: { org: MyOrg; commit: (patch: OrgPatch) => void }) {
   const [name, setName] = useState(org.name);
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <>
       <TextField
         label="Company name"
         value={name}
+        className={FIELD_ROW}
         onChange={setName}
         onBlur={() => {
           if (name.trim() !== org.name) commit({ name: name.trim() });
@@ -28,11 +30,12 @@ function CompanyFields({ org, commit }: { org: MyOrg; commit: (patch: OrgPatch) 
         label="Type"
         value={org.kind}
         options={ORG_KINDS}
+        className={FIELD_ROW}
         onChange={(kind) => {
           commit({ kind });
         }}
       />
-    </div>
+    </>
   );
 }
 
@@ -58,8 +61,8 @@ function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
   if (admin.data !== true) return null;
   return (
     <Card title={titled ? org.name : 'Company'} actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
-      <CompanyFields key={org.org_id} org={org} commit={commit} />
-      <div className="mt-4 border-t border-line pt-4">
+      <div className="flex flex-col">
+        <CompanyFields key={org.org_id} org={org} commit={commit} />
         <CompanyLogo orgId={org.org_id} />
       </div>
     </Card>

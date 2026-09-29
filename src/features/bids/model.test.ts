@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { isUnread, nextPackageCode, parseRecipients, parseView, readChip } from './model';
+import { coverageLine, isUnread, nextPackageCode, parseRecipients, parseView, readChip } from './model';
+
+describe('coverageLine', () => {
+  it('counts packages with at least one bid', () => {
+    expect(coverageLine([])).toBe('No packages');
+    expect(coverageLine([{ submitted: 0 }])).toBe('0 of 1 package covered');
+    expect(coverageLine([{ submitted: 2 }, { submitted: 0 }, { submitted: 1 }])).toBe('2 of 3 packages covered');
+  });
+});
 
 describe('readChip / isUnread', () => {
   it('follows the findings first, then the file text', () => {

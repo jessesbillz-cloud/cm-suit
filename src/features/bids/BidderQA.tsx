@@ -9,6 +9,12 @@ import { Card } from '../../ui/Card';
 import { StatusChip } from '../../ui/StatusChip';
 import { questionChip } from './model';
 
+/** A question's number in a small square, like the addenda's. */
+const NUMBER = 'flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg bg-page px-1.5 text-sm font-semibold tabular-nums text-ink-2';
+
+const CONTROL =
+  'rounded-md border border-line-strong bg-card text-sm text-ink shadow-control outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/20';
+
 interface BidderQAProps {
   projectId: string;
   page: BidderPage;
@@ -41,20 +47,20 @@ export function BidderQA({ projectId, page }: BidderQAProps) {
     <Card title="Questions">
       <div className="flex flex-col gap-4">
         {page.answers.length > 0 ? (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-4">
             {page.answers.map((a) => (
-              <li key={a.number} className="text-sm">
-                <p className="break-words font-medium text-ink">
-                  <span className="mr-2 tabular-nums text-ink-2">{a.number}</span>
-                  {a.question_text}
-                </p>
-                <p className="whitespace-pre-wrap break-words text-ink">{a.answer}</p>
+              <li key={a.number} className="flex items-start gap-3 text-sm">
+                <span className={NUMBER}>{a.number}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words font-medium text-ink">{a.question_text}</p>
+                  <p className="mt-0.5 whitespace-pre-wrap break-words leading-6 text-ink-2">{a.answer}</p>
+                </div>
               </li>
             ))}
           </ul>
         ) : null}
         <form
-          className="flex flex-col gap-2"
+          className={`flex flex-col gap-2 ${page.answers.length > 0 ? 'border-t border-line pt-4' : ''}`}
           onSubmit={(e) => {
             e.preventDefault();
             send();
@@ -63,7 +69,7 @@ export function BidderQA({ projectId, page }: BidderQAProps) {
           {page.packages.length > 1 ? (
             <select
               aria-label="Package"
-              className="h-9 rounded-md border border-line bg-card px-2 text-sm text-ink"
+              className={`h-9 px-2 ${CONTROL}`}
               value={packageId}
               onChange={(e) => {
                 setPackageId(e.target.value);
@@ -80,7 +86,7 @@ export function BidderQA({ projectId, page }: BidderQAProps) {
             aria-label="Ask a question"
             placeholder="Ask a question"
             rows={3}
-            className="rounded-md border border-line px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
+            className={`px-2.5 py-2 ${CONTROL}`}
             value={text}
             onChange={(e) => {
               setText(e.target.value);
@@ -96,8 +102,8 @@ export function BidderQA({ projectId, page }: BidderQAProps) {
             {page.my_questions.map((q) => {
               const chip = questionChip(q.status);
               return (
-                <li key={q.id} className="flex items-start gap-2 text-sm">
-                  <span className="w-8 shrink-0 tabular-nums text-ink-2">{q.number}</span>
+                <li key={q.id} className="flex items-center gap-3 text-sm">
+                  <span className={NUMBER}>{q.number}</span>
                   <span className="min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">{q.question}</span>
                   <StatusChip status={chip.status} label={chip.label} />
                 </li>
