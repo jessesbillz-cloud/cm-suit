@@ -5,7 +5,7 @@ import { Ellipsis } from 'lucide-react';
 import { phoneTabs, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { Icon } from '../../ui/Icon';
 import { TOOL_META } from '../../ui/tools';
-import { BrandMark } from '../auth/BrandMark';
+import { BrandMark } from '../../ui/BrandMark';
 
 type SpotArea = 'rail' | 'main' | 'right' | 'whats_new';
 

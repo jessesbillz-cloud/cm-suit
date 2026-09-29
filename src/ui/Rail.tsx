@@ -3,6 +3,7 @@
 // It collapses to a thin strip; nobody drags or resizes it.
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { FUTURE_NAME } from '../lib/brand';
+import { BrandMark } from './BrandMark';
 import type { RailTool, Tool } from '../lib/layout';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
@@ -42,13 +43,11 @@ function RailButton({ tool, active, onSelect }: RailButtonProps) {
   );
 }
 
-/** The product mark: the name's first letter on the accent, until there's a real logo. */
+/** The product mark on top of the rail. */
 function Mark() {
   return (
     <div className="flex h-14 w-full shrink-0 items-center justify-center" title={FUTURE_NAME}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-base font-bold text-white shadow-primary">
-        {FUTURE_NAME.slice(0, 1).toUpperCase()}
-      </span>
+      <BrandMark size="md" />
     </div>
   );
 }

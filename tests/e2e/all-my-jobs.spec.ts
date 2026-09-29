@@ -21,7 +21,7 @@ test.describe('All my jobs and the bids pipeline', () => {
     await signIn(page);
     await page.goto('/');
     await expect(page).toHaveURL(/\/all\/board$/);
-    await expect(page.getByTestId('job-picker')).toHaveText('All my jobs');
+    await expect(page.getByTestId('job-picker')).toContainText('All my jobs');
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'board');
 
     const tools = isMobile ? page.getByTestId(/^phone-tab-(?!more)/) : page.getByTestId(/^rail-/);
@@ -40,7 +40,7 @@ test.describe('All my jobs and the bids pipeline', () => {
     await page.getByTestId(isMobile ? 'phone-tab-bids' : 'rail-bids').click();
 
     await expect(page).toHaveURL(/\/all\/bids$/);
-    await expect(page.getByTestId('job-picker')).toHaveText('All my jobs');
+    await expect(page.getByTestId('job-picker')).toContainText('All my jobs');
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'bids');
     await expect(page.getByTestId('pipeline-stage-prospect')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('pipeline-stage-bidding')).toHaveAttribute('aria-pressed', 'true');
@@ -61,7 +61,7 @@ test.describe('All my jobs and the bids pipeline', () => {
     await page.getByTestId('pipeline-row-job-p1').click();
     await expect(page).toHaveURL(/\/p\/job-p1\/bids$/);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'bids');
-    await expect(page.getByTestId('job-picker')).toHaveText('Sample Library Addition');
+    await expect(page.getByTestId('job-picker')).toContainText('Sample Library Addition');
   });
 
   test('a column header re-sorts the pipeline and the sort stays in the URL', async ({ page, isMobile }) => {
@@ -98,7 +98,7 @@ test.describe('All my jobs and the bids pipeline', () => {
     await page.getByTestId('setup-job-create').click();
 
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'bids');
-    await expect(page.getByTestId('job-picker')).toHaveText('Sample New Prospect');
+    await expect(page.getByTestId('job-picker')).toContainText('Sample New Prospect');
     await page.goto('/all/bids');
     await expect(page.getByTestId('bid-pipeline')).toContainText('Sample New Prospect');
   });

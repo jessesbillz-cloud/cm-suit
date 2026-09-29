@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { FUTURE_NAME } from '../../lib/brand';
 import { Card } from '../../ui/Card';
-import { BrandMark } from './BrandMark';
+import { BrandMark } from '../../ui/BrandMark';
 
 interface PublicShellProps {
   children: ReactNode;

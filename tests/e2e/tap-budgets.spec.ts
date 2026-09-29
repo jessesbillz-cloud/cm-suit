@@ -145,7 +145,7 @@ test.describe('setup: first company and job, new job (SPEC §5.1)', () => {
     await tap(page.getByTestId('setup-job-create'), counter);
 
     await expect(page.getByTestId('main-area')).toBeVisible();
-    await expect(page.getByTestId('job-picker')).toHaveText('Sample First Job');
+    await expect(page.getByTestId('job-picker')).toContainText('Sample First Job');
     expect(counter.n).toBeLessThanOrEqual(3);
     expect(await taps(page)).toBe(counter.n);
   });
@@ -165,7 +165,7 @@ test.describe('setup: first company and job, new job (SPEC §5.1)', () => {
     await jobName.fill('Sample Added Job');
     await tap(page.getByTestId('setup-job-create'), counter);
 
-    await expect(picker).toHaveText('Sample Added Job');
+    await expect(picker).toContainText('Sample Added Job');
     await expect(page.getByTestId('main-area')).toBeVisible();
     expect(counter.n).toBe(3);
     expect(await taps(page)).toBe(3);

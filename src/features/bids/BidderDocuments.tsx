@@ -8,7 +8,7 @@ import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { useDownload } from '../files/useDownload';
-import { fileIcon } from './fileIcon';
+import { fileIcon } from '../../ui/fileIcon';
 
 export function BidderDocuments({ projectId }: { projectId: string }) {
   const docs = useBidDocuments(projectId);
@@ -23,7 +23,7 @@ export function BidderDocuments({ projectId }: { projectId: string }) {
           {docs.data.map((f) => (
             <li key={f.id} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
-                <Icon icon={fileIcon(f.mime, f.original_name)} size={16} />
+                <Icon icon={fileIcon(f.original_name, f.mime)} size={16} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-sm font-medium text-ink">{f.original_name}</span>

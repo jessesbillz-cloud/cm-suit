@@ -1,9 +1,11 @@
 // The product mark: the name's first letter on the accent square, until there's a real logo (the rail's mark too).
-import { FUTURE_NAME } from '../../lib/brand';
+import { FUTURE_NAME } from '../lib/brand';
 
 const SIZES = {
   /** The layout preview's tiny rail. */
   xs: 'h-4 w-4 rounded-[4px] text-[9px]',
+  /** The top of the tool rail. */
+  md: 'h-9 w-9 rounded-lg text-base',
   /** Sign-in and the public pages. */
   lg: 'h-11 w-11 rounded-xl text-lg',
 } as const;

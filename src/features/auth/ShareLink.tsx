@@ -11,7 +11,7 @@ import { openShare, type ShareFolder } from '../../data/links';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
-import { fileIcon } from '../bids/fileIcon';
+import { fileIcon } from '../../ui/fileIcon';
 import { CodeForm, INPUT } from './CodeForm';
 import { PublicPage } from './PublicPage';
 
@@ -33,7 +33,7 @@ function FolderList({ folder, busyId, onDownload }: FolderListProps) {
       {folder.files.map((f) => (
         <li key={f.id} className="flex min-h-[52px] items-center gap-3 px-2 py-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
-            <Icon icon={fileIcon(null, f.original_name)} size={16} />
+            <Icon icon={fileIcon(f.original_name)} size={16} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block break-words text-sm font-medium text-ink">{f.original_name}</span>
@@ -107,7 +107,7 @@ export function ShareLink() {
       <PublicPage title="Your download started">
         <div className="flex flex-col gap-3">
           <p className="flex items-center gap-3 rounded-lg bg-page px-3 py-2.5 text-sm font-medium text-ink">
-            <Icon icon={fileIcon(null, step.filename)} size={18} className="shrink-0 text-ink-2" />
+            <Icon icon={fileIcon(step.filename)} size={18} className="shrink-0 text-ink-2" />
             <span className="min-w-0 break-words">{step.filename}</span>
           </p>
           {error}
