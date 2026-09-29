@@ -169,7 +169,7 @@ export const LAYOUT_DEFAULTS = {
   main_default: 'board' as RailTool,
   docked_panel: 'board' as DockedPanel,
   collapsed: { rail: false, right: false },
-  calendar_types: ['inspections', 'deliveries', 'meetings', 'milestones'] as string[],
+  calendar_types: ['inspections', 'special_inspections', 'deliveries', 'meetings', 'milestones', 'lookahead'] as string[],
   // The quiet set (SPEC §7.8): my tasks, answers to my RFIs, impact claims, my IR results.
   notification_kinds: [...LEGACY_TASKS, 'rfi_answers', 'impact_claims', 'ir_results'] as NotifyKind[],
   recent_project_ids: [] as string[],

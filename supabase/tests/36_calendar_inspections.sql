@@ -1,6 +1,6 @@
 begin;
 select plan(19);
--- Migration 0043: the calendar's inspections. calendar_inspections() is ir_calendar() plus attachments, postponement
+-- Migration 0042: the calendar's inspections. calendar_inspections() is ir_calendar() plus attachments, postponement
 -- count and requester for the rows I may read in full, and no rows (not an error) where I may not see inspections;
 -- "waiting on the GC" is its own status key on the calendar.
 \ir _helpers.psql

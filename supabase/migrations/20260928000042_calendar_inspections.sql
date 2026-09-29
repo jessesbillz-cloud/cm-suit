@@ -1,4 +1,4 @@
--- 0043 The calendar's inspections (SPEC §7.6, §13.2; MDR's schedule calendar, Jesse Sep 28: "migrate my calendar
+-- 0042 The calendar's inspections (SPEC §7.6, §13.2; MDR's schedule calendar, Jesse Sep 28: "migrate my calendar
 -- over"). The month calendar shows every job's requests and blocked time the way ir_calendar() gives them (in full for
 -- my own and for the GC team and inspectors; time, type and color for everyone else's), with what a day's request
 -- card shows besides: its attachments and how often it was postponed.
@@ -96,3 +96,11 @@ end;
 $$;
 revoke execute on function public.calendar_inspections(uuid, date, date) from public, anon;
 grant execute on function public.calendar_inspections(uuid, date, date) to authenticated, service_role;
+
+-- Special inspections and the look-ahead are part of an inspector's calendar (MDR shows them): on by default, and on
+-- for everyone now (staging has only test users).
+alter table public.user_layout alter column calendar_types
+  set default '{inspections,special_inspections,deliveries,meetings,milestones,lookahead}';
+update public.user_layout
+   set calendar_types = array(select distinct t from unnest(calendar_types || '{special_inspections,lookahead}'::text[]) t)
+ where not (calendar_types @> '{special_inspections,lookahead}'::text[]);

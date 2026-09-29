@@ -72,6 +72,7 @@ function icsStatus(status: string | null): string | null {
   switch (status) {
     case 'cancelled': return 'CANCELLED';
     case 'pending':
+    case 'gc_review':
     case 'postponed': return 'TENTATIVE';
     case 'confirmed':
     case 'approved': return 'CONFIRMED';
