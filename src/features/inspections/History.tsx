@@ -17,16 +17,16 @@ export function History({ projectId, requestId, tz }: HistoryProps) {
   const nameOf = (id: string | null) => people.data?.find((p) => p.user_id === id)?.full_name ?? '';
 
   return (
-    <section className="mt-4 border-t border-line pt-3" aria-label="History" data-testid="ir-history">
+    <section className="rounded-lg border border-line px-3 py-2.5" aria-label="History" data-testid="ir-history">
       {events.isPending ? <LoadingState label="Loading history" /> : null}
       {events.isError ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
       {events.data?.length === 0 ? <p className="text-sm text-ink-2">No changes yet.</p> : null}
       {events.data && events.data.length > 0 ? (
-        <ul className="flex flex-col gap-1 text-sm">
+        <ul className="flex flex-col divide-y divide-line text-sm">
           {events.data.map((e) => (
-            <li key={e.id} className="flex flex-wrap gap-x-2">
-              <span className="tabular-nums text-ink-2">{formatInZone(e.created_at, tz, 'MMM d, h:mm a')}</span>
-              <span className="text-ink">{actionLabel(e.action)}</span>
+            <li key={e.id} className="flex flex-wrap gap-x-3 py-1.5">
+              <span className="w-28 shrink-0 tabular-nums text-ink-3">{formatInZone(e.created_at, tz, 'MMM d, h:mm a')}</span>
+              <span className="font-medium text-ink">{actionLabel(e.action)}</span>
               <span className="text-ink-2">{nameOf(e.actor_id)}</span>
             </li>
           ))}

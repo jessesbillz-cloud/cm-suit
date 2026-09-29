@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { earlierDrafts, numberLabel, parseRecipients, reportChip, todayAction } from './model';
+import { earlierDrafts, numberLabel, parseRecipients, reportChip, todayAction, todayMeta } from './model';
+
+describe('todayMeta', () => {
+  it('says the number and due time, or that today is in', () => {
+    expect(todayMeta({ todays: null, next: 12, due: '5:00 PM' })).toBe('Report #12 · due 5:00 PM');
+    expect(todayMeta({ todays: { status: 'draft', number: null, version: 3, signed_version: null }, next: 12, due: null })).toBe('Report #12');
+    expect(todayMeta({ todays: null, next: undefined, due: '5:00 PM' })).toBe('Due 5:00 PM');
+    expect(todayMeta({ todays: null, next: undefined, due: null })).toBeNull();
+    expect(todayMeta({ todays: { status: 'submitted', number: 11, version: 4, signed_version: 4 }, next: 12, due: '5:00 PM' })).toBe(
+      'Submitted today',
+    );
+    expect(todayMeta({ todays: { status: 'submitted', number: 11, version: 5, signed_version: 4 }, next: 12, due: null })).toBe(
+      'Report #11 · changed',
+    );
+  });
+});
 
 describe('todayAction', () => {
   it('reads Start, Continue or Edit submitted', () => {

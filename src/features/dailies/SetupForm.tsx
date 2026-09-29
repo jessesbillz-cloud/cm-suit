@@ -13,9 +13,8 @@ import { CheckField, SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { REMINDER_OPTIONS, WEEK_DAYS, parseRecipients } from './model';
-
-const AREA = 'rounded-md border border-line bg-card px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
+import { Section } from './Section';
+import { INPUT, LABEL } from './styles';
 
 interface DaysFieldProps {
   days: readonly number[];
@@ -35,7 +34,9 @@ function DaysField({ days, onChange }: DaysFieldProps) {
               type="button"
               aria-label={d.name}
               aria-pressed={on}
-              className={`h-9 w-9 rounded-md border text-sm ${on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line text-ink-2'}`}
+              className={`h-10 w-10 rounded-md border text-sm sm:h-9 sm:w-9 ${
+                on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line-strong bg-card text-ink-2 shadow-control hover:text-ink'
+              }`}
               onClick={() => {
                 onChange(on ? days.filter((x) => x !== d.day) : [...days, d.day]);
               }}
@@ -140,87 +141,104 @@ function Form({ projectId, row, preview, next }: FormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4" data-testid="daily-setup">
-      <TextField label="Name" value={draft.label} onChange={(label) => { change({ label }, false); }} onBlur={commit} />
-      <DaysField days={draft.schedule_days} onChange={(schedule_days) => { change({ schedule_days }, true); }} />
-      <div className="flex gap-3">
-        <TextField
-          label="Submit by"
-          type="time"
-          className="w-32"
-          value={draft.submit_by}
-          onChange={(submit_by) => { change({ submit_by }, false); }}
-          onBlur={commit}
-        />
-        <SelectField
-          label="Reminder"
-          className="flex-1"
-          value={String(draft.reminder_minutes)}
-          options={REMINDER_OPTIONS}
-          onChange={(v) => { change({ reminder_minutes: Number(v) }, true); }}
-        />
+    <div className="flex min-h-full flex-col bg-page" data-testid="daily-setup">
+      <header className="flex items-center justify-between gap-3 border-b border-line bg-card px-4 py-3">
+        <h2 className="text-base font-semibold text-ink">Setup</h2>
+        <SaveState pending={save.isPending || start.isPending} saved={save.isSuccess || start.isSuccess} problem={problem} />
+      </header>
+      <div className="flex flex-col gap-3 p-3">
+        <Section title="Schedule">
+          <div className="flex flex-col gap-3">
+            <DaysField days={draft.schedule_days} onChange={(schedule_days) => { change({ schedule_days }, true); }} />
+            <div className="flex gap-3">
+              <TextField
+                label="Submit by"
+                type="time"
+                className="w-32"
+                value={draft.submit_by}
+                onChange={(submit_by) => { change({ submit_by }, false); }}
+                onBlur={commit}
+              />
+              <SelectField
+                label="Reminder"
+                className="min-w-0 flex-1"
+                value={String(draft.reminder_minutes)}
+                options={REMINDER_OPTIONS}
+                onChange={(v) => { change({ reminder_minutes: Number(v) }, true); }}
+              />
+            </div>
+          </div>
+        </Section>
+        <Section title="Report">
+          <div className="flex flex-col gap-3">
+            <TextField label="Name" value={draft.label} onChange={(label) => { change({ label }, false); }} onBlur={commit} />
+            <div className="flex flex-col gap-1">
+              <TextField
+                label="Filename"
+                value={draft.filename_pattern}
+                onChange={(filename_pattern) => { change({ filename_pattern }, false); }}
+                onBlur={commit}
+              />
+              <p className="break-all text-xs text-ink-2" data-testid="daily-filename-preview">{filename}</p>
+            </div>
+            <label className={`${LABEL} w-32`}>
+              Start number
+              <input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                className={`h-9 tabular-nums ${INPUT}`}
+                value={startText ?? (next === undefined ? '' : String(next))}
+                onChange={(e) => { setStartText(e.target.value); }}
+                onBlur={() => {
+                  const n = Number(startText);
+                  if (startText === null || !Number.isInteger(n) || n < 1 || n === next) return;
+                  start.mutate(n, {
+                    onSuccess: () => { setStartText(null); },
+                    onError: (e) => { setProblem(messageOf(e)); },
+                  });
+                }}
+              />
+            </label>
+            <div className="flex items-end gap-3">
+              <SelectField
+                label="Photos per page"
+                className="w-36"
+                value={String(draft.photos_per_page)}
+                options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '4', label: '4' }]}
+                onChange={(v) => { change({ photos_per_page: v === '1' ? 1 : v === '4' ? 4 : 2 }, true); }}
+              />
+              <CheckField label="Signature" checked={draft.signature} onChange={(signature) => { change({ signature }, true); }} />
+            </div>
+            <label className={LABEL}>
+              Standing note
+              <textarea
+                rows={3}
+                className={`py-2 ${INPUT}`}
+                value={draft.standing_note}
+                maxLength={4000}
+                onChange={(e) => { change({ standing_note: e.target.value }, false); }}
+                onBlur={commit}
+              />
+            </label>
+          </div>
+        </Section>
+        <Section title="Send to">
+          <label className={LABEL}>
+            Recipients
+            <textarea
+              rows={3}
+              className={`py-2 ${INPUT}`}
+              value={recipients}
+              onChange={(e) => {
+                setRecipients(e.target.value);
+                change({ recipients: parseRecipients(e.target.value) }, false);
+              }}
+              onBlur={commit}
+            />
+          </label>
+        </Section>
       </div>
-      <TextField
-        label="Filename"
-        value={draft.filename_pattern}
-        onChange={(filename_pattern) => { change({ filename_pattern }, false); }}
-        onBlur={commit}
-      />
-      <p className="-mt-2 break-all text-xs text-ink-2" data-testid="daily-filename-preview">{filename}</p>
-      <label className={`${LABEL} w-32`}>
-        Start number
-        <input
-          type="number"
-          min={1}
-          inputMode="numeric"
-          className="h-9 rounded-md border border-line bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent"
-          value={startText ?? (next === undefined ? '' : String(next))}
-          onChange={(e) => { setStartText(e.target.value); }}
-          onBlur={() => {
-            const n = Number(startText);
-            if (startText === null || !Number.isInteger(n) || n < 1 || n === next) return;
-            start.mutate(n, {
-              onSuccess: () => { setStartText(null); },
-              onError: (e) => { setProblem(messageOf(e)); },
-            });
-          }}
-        />
-      </label>
-      <label className={LABEL}>
-        Recipients
-        <textarea
-          rows={3}
-          className={AREA}
-          value={recipients}
-          onChange={(e) => {
-            setRecipients(e.target.value);
-            change({ recipients: parseRecipients(e.target.value) }, false);
-          }}
-          onBlur={commit}
-        />
-      </label>
-      <div className="flex items-end gap-3">
-        <SelectField
-          label="Photos per page"
-          className="w-36"
-          value={String(draft.photos_per_page)}
-          options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '4', label: '4' }]}
-          onChange={(v) => { change({ photos_per_page: v === '1' ? 1 : v === '4' ? 4 : 2 }, true); }}
-        />
-        <CheckField label="Signature" checked={draft.signature} onChange={(signature) => { change({ signature }, true); }} />
-      </div>
-      <label className={LABEL}>
-        Standing note
-        <textarea
-          rows={3}
-          className={AREA}
-          value={draft.standing_note}
-          maxLength={4000}
-          onChange={(e) => { change({ standing_note: e.target.value }, false); }}
-          onBlur={commit}
-        />
-      </label>
-      <SaveState pending={save.isPending || start.isPending} saved={save.isSuccess || start.isSuccess} problem={problem} />
     </div>
   );
 }

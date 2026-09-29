@@ -135,6 +135,42 @@ export function trackerSteps(r: TrackInput, gcStep: boolean): TrackStep[] {
   return steps;
 }
 
+/** An inspector step card: done, the one to do now, open (can be done any time), or not reached yet. */
+export type CardState = 'done' | 'current' | 'open' | 'todo';
+
+interface StepsInput {
+  status: string;
+  result: string | null;
+  attendance: string | null;
+  ir_file_id: string | null;
+  pdf_stale: boolean;
+  results_sent_at: string | null;
+}
+
+/** Where the inspector is on one request: Confirm → Attendance → Result → IR → Send results. */
+export function inspectorSteps(r: StepsInput): Record<'confirm' | 'attendance' | 'result' | 'pdf' | 'send', CardState> {
+  const waiting = r.status === 'pending' || r.status === 'postponed';
+  const hasPdf = r.ir_file_id !== null && !r.pdf_stale;
+  return {
+    confirm: waiting ? 'current' : 'done',
+    attendance: r.attendance !== null ? 'done' : 'open',
+    result: r.status === 'postponed' ? 'todo' : r.result !== null ? 'done' : r.status === 'pending' ? 'open' : 'current',
+    pdf: r.result === null || (r.status === 'postponed' && r.ir_file_id === null) ? 'todo' : hasPdf ? 'done' : 'current',
+    send: r.status !== 'complete' || !hasPdf ? 'todo' : r.results_sent_at !== null ? 'done' : 'current',
+  };
+}
+
+type MetaRow = ChipInput & { is_block: boolean; full_detail: boolean; status_key: string };
+
+/** The page header's line for today: "Today · 3 requests · 1 pending". */
+export function dayMeta(rows: readonly MetaRow[]): string {
+  const requests = rows.filter((r) => !r.is_block);
+  if (requests.length === 0) return 'Nothing today';
+  const pending = requests.filter((r) => rowChip(r).status === 'pending').length;
+  const count = requests.length === 1 ? '1 request' : `${String(requests.length)} requests`;
+  return pending > 0 ? `Today · ${count} · ${String(pending)} pending` : `Today · ${count}`;
+}
+
 const ACTIONS: Record<string, string> = {
   submit: 'Requested',
   confirm: 'Confirmed',

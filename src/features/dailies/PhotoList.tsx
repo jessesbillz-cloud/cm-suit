@@ -1,7 +1,8 @@
-// The report's photos: time taken, the row it belongs to, a caption (saved on leaving the box), remove with Undo.
-// Upload progress and failed uploads (with Retry) come from the one upload queue.
-import { useState } from 'react';
-import { RotateCw, X } from 'lucide-react';
+// The report's photos as a grid: each tile shows its place on the report, the time taken, the row it belongs to and a
+// caption (saved on leaving the box); remove with Undo. Upload progress and failed uploads (with Retry) come from the
+// one upload queue. The Camera and Upload buttons sit in the header, or above the grid in Field Mode.
+import { useState, type ReactNode } from 'react';
+import { ImageIcon, LoaderCircle, RotateCw, X } from 'lucide-react';
 import { useDailyPhotoUploads, useRemoveDailyPhoto, useSaveDailyPhoto } from '../../data/dailies.mutations';
 import type { DailyPhotoRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
@@ -10,8 +11,10 @@ import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
+import { Section } from './Section';
+import { INPUT } from './styles';
 
-interface PhotoLineProps {
+interface PhotoTileProps {
   projectId: string;
   photo: DailyPhotoRow;
   index: number;
@@ -21,24 +24,37 @@ interface PhotoLineProps {
   onRemove: () => void;
 }
 
-function PhotoLine({ projectId, photo, index, tz, rowLabel, locked, onRemove }: PhotoLineProps) {
+function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, onRemove }: PhotoTileProps) {
   const save = useSaveDailyPhoto(projectId);
   const toast = useToast();
   const [caption, setCaption] = useState(photo.caption);
   const when = photo.taken_at ? formatInZone(photo.taken_at, tz, 'h:mm a') : '';
+  const meta = [when, rowLabel].filter((x) => x !== null && x !== '').join(' · ');
 
   return (
-    <li className="flex items-center gap-2" data-testid="daily-photo">
-      <span className="w-24 shrink-0 text-xs text-ink-2">
-        Photo {index + 1}
-        {when ? ` · ${when}` : ''}
-        {rowLabel ? <span className="block break-words">{rowLabel}</span> : null}
-      </span>
+    <li className="flex min-w-0 flex-col gap-2" data-testid="daily-photo">
+      <div className="relative flex aspect-[4/3] items-center justify-center rounded-lg bg-page text-ink-3 ring-1 ring-inset ring-line">
+        <Icon icon={ImageIcon} size={28} />
+        <span className="absolute left-2 top-2 rounded-md bg-card px-1.5 text-xs font-medium tabular-nums text-ink shadow-control">
+          {index + 1}
+        </span>
+        {locked ? null : (
+          <button
+            type="button"
+            aria-label={`Remove photo ${String(index + 1)}`}
+            className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-card text-ink-2 shadow-control hover:text-danger"
+            onClick={onRemove}
+          >
+            <Icon icon={X} size={16} />
+          </button>
+        )}
+      </div>
+      {meta !== '' ? <p className="break-words text-xs text-ink-2">{meta}</p> : null}
       <input
         aria-label={`Caption for photo ${String(index + 1)}`}
         placeholder="Caption"
         maxLength={500}
-        className="h-9 min-w-0 flex-1 rounded-md border border-line bg-card px-2.5 text-sm text-ink outline-none focus:border-accent disabled:bg-page"
+        className={`h-9 min-w-0 ${INPUT}`}
         value={caption}
         disabled={locked}
         onChange={(e) => {
@@ -56,16 +72,6 @@ function PhotoLine({ projectId, photo, index, tz, rowLabel, locked, onRemove }: 
           );
         }}
       />
-      {locked ? null : (
-        <button
-          type="button"
-          aria-label={`Remove photo ${String(index + 1)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink"
-          onClick={onRemove}
-        >
-          <Icon icon={X} size={18} />
-        </button>
-      )}
     </li>
   );
 }
@@ -76,9 +82,13 @@ interface PhotoListProps {
   rows: readonly WorkRow[];
   tz: string;
   locked: boolean;
+  /** Camera and Upload. */
+  buttons: ReactNode;
+  /** Field Mode: the big buttons go above the grid instead of in the header. */
+  field: boolean;
 }
 
-export function PhotoList({ projectId, photos, rows, tz, locked }: PhotoListProps) {
+export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field }: PhotoListProps) {
   const remove = useRemoveDailyPhoto(projectId);
   const uploads = useDailyPhotoUploads(projectId);
   const toast = useToast();
@@ -108,43 +118,54 @@ export function PhotoList({ projectId, photos, rows, tz, locked }: PhotoListProp
     });
   }
 
-  if (live.length === 0 && sending === 0 && failed.length === 0) return null;
+  const empty = live.length === 0 && sending === 0 && failed.length === 0;
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-ink">Photos</h3>
-      {sending > 0 ? <p className="text-sm text-ink-2" data-testid="photos-uploading">Uploading {sending}</p> : null}
-      {failed.map((f) => (
-        <p key={f.key} role="alert" className="flex items-center gap-2 text-sm text-danger">
-          <span className="min-w-0 flex-1 break-words">
-            {f.name}: {f.error ?? 'Upload failed'}
-          </span>
-          <Button
-            size="sm"
-            icon={RotateCw}
-            onClick={() => {
-              uploads.retry(f.key);
-            }}
-          >
-            Retry
-          </Button>
-        </p>
-      ))}
-      <ul className="flex flex-col gap-2">
-        {live.map((p, i) => (
-          <PhotoLine
-            key={p.id}
-            projectId={projectId}
-            photo={p}
-            index={i}
-            tz={tz}
-            rowLabel={p.row_key ? (rowName.get(p.row_key) ?? null) : null}
-            locked={locked}
-            onRemove={() => {
-              removeLater(p);
-            }}
-          />
-        ))}
-      </ul>
-    </section>
+    <Section title="Photos" count={live.length} actions={field ? undefined : buttons}>
+      {field || !empty ? (
+        <div className="flex flex-col gap-3">
+          {field ? buttons : null}
+          {sending > 0 ? (
+            <p className="flex items-center gap-2 text-sm text-ink-2" data-testid="photos-uploading">
+              <Icon icon={LoaderCircle} size={16} className="animate-spin text-accent" />
+              Uploading {sending}
+            </p>
+          ) : null}
+          {failed.map((f) => (
+            <p key={f.key} role="alert" className="flex items-center gap-2 text-sm text-danger">
+              <span className="min-w-0 flex-1 break-words">
+                {f.name}: {f.error ?? 'Upload failed'}
+              </span>
+              <Button
+                size="sm"
+                icon={RotateCw}
+                onClick={() => {
+                  uploads.retry(f.key);
+                }}
+              >
+                Retry
+              </Button>
+            </p>
+          ))}
+          {live.length > 0 ? (
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-3 gap-y-4">
+              {live.map((p, i) => (
+                <PhotoTile
+                  key={p.id}
+                  projectId={projectId}
+                  photo={p}
+                  index={i}
+                  tz={tz}
+                  rowLabel={p.row_key ? (rowName.get(p.row_key) ?? null) : null}
+                  locked={locked}
+                  onRemove={() => {
+                    removeLater(p);
+                  }}
+                />
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </Section>
   );
 }

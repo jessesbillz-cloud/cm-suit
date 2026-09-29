@@ -23,7 +23,7 @@ export function MoveForm({ row, onDone }: MoveFormProps) {
   });
   const when = whenOf(pick);
   return (
-    <div className="mt-3 flex flex-col gap-3 rounded-md border border-line p-3" data-testid="ir-move">
+    <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-3" data-testid="ir-move">
       <WhenFields value={pick} onChange={setPick} testId="ir-move" />
       <ConflictPreview projectId={row.project_id} when={when} ownId={row.id} />
       {move.isError ? <p className="text-sm text-danger">{messageOf(move.error)}</p> : null}

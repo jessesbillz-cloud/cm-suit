@@ -21,7 +21,7 @@ import { DEFAULT_DURATION, FLEXIBLE, isDay, requestDay, whenOf, type WhenPick } 
 import { WhenFields } from './WhenFields';
 
 const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
-const INPUT = 'rounded-md border border-line bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
+const INPUT = 'rounded-md border border-line-strong bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
 
 interface BodyProps {
   projectId: string;
@@ -71,7 +71,7 @@ function RequestFormBody({ projectId, job, ctx, day }: BodyProps) {
 
   return (
     <form
-      className="flex flex-col gap-3 p-4"
+      className="flex min-h-full flex-col"
       data-testid="ir-form"
       onSubmit={(e) => {
         e.preventDefault();
@@ -85,71 +85,81 @@ function RequestFormBody({ projectId, job, ctx, day }: BodyProps) {
         );
       }}
     >
-      <p className="break-words text-sm text-ink-2">
-        {job.name}
-        {ctx.gc ? ` · GC ${ctx.gc}` : ''}
-        {ctx.inspectors.length > 0 ? ` · Inspector ${ctx.inspectors.join(', ')}` : ''}
-      </p>
-      <label className={LABEL}>
-        Company
-        <input
-          className={`h-9 ${INPUT}`}
-          list="ir-companies"
-          value={company}
-          data-testid="ir-company"
-          onChange={(e) => {
-            setCompany(e.target.value);
-          }}
-        />
-        <datalist id="ir-companies">
-          {ctx.companies.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-      </label>
-      <WhenFields value={when} onChange={setWhen} testId="ir" />
-      <div className="flex flex-wrap items-end gap-3">
-        <ChoiceRow label="Type" options={kindOptions(ctx.ofs)} value={kind} onPick={setKind} testId="ir-kind" />
-        {kind === 'special' ? (
-          <SelectField
-            label="Special inspection"
-            value={special}
-            options={ctx.kinds.map((k) => ({ value: k.id, label: k.name }))}
-            onChange={setSpecial}
-            className="min-w-48 flex-1"
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <p className="break-words rounded-md bg-page px-3 py-2 text-[13px] text-ink-2">
+          {job.name}
+          {ctx.gc ? ` · GC ${ctx.gc}` : ''}
+          {ctx.inspectors.length > 0 ? ` · Inspector ${ctx.inspectors.join(', ')}` : ''}
+        </p>
+        <label className={LABEL}>
+          Company
+          <input
+            className={`h-9 ${INPUT}`}
+            list="ir-companies"
+            value={company}
+            data-testid="ir-company"
+            onChange={(e) => {
+              setCompany(e.target.value);
+            }}
           />
-        ) : null}
+          <datalist id="ir-companies">
+            {ctx.companies.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+        <WhenFields value={when} onChange={setWhen} testId="ir" />
+        <div className="flex flex-wrap items-end gap-3">
+          <ChoiceRow label="Type" options={kindOptions(ctx.ofs)} value={kind} onPick={setKind} testId="ir-kind" />
+          {kind === 'special' ? (
+            <SelectField
+              label="Special inspection"
+              value={special}
+              options={ctx.kinds.map((k) => ({ value: k.id, label: k.name }))}
+              onChange={setSpecial}
+              className="min-w-48 flex-1"
+            />
+          ) : null}
+        </div>
+        <label className={LABEL}>
+          Items to inspect
+          <textarea
+            rows={4}
+            className={`py-2 ${INPUT}`}
+            value={items}
+            data-testid="ir-items"
+            onChange={(e) => {
+              setItems(e.target.value);
+            }}
+          />
+        </label>
+        <AttachmentsField projectId={projectId} label="Photos or PDFs" files={files} onChange={setFiles} onBusy={setUploading} />
+        <ConflictPreview projectId={projectId} when={whenValue} ownId={null} />
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-accent"
+            checked={ack}
+            data-testid="ir-ack"
+            onChange={(e) => {
+              setAck(e.target.checked);
+            }}
+          />
+          <span>24 hours notice (48 for special). I&apos;ll be present, with safe access and plans on site.</span>
+        </label>
+        {submit.isError ? <p className="text-sm text-danger">{messageOf(submit.error)}</p> : null}
       </div>
-      <label className={LABEL}>
-        Items to inspect
-        <textarea
-          rows={4}
-          className={`py-2 ${INPUT}`}
-          value={items}
-          data-testid="ir-items"
-          onChange={(e) => {
-            setItems(e.target.value);
-          }}
-        />
-      </label>
-      <AttachmentsField projectId={projectId} label="Photos or PDFs" files={files} onChange={setFiles} onBusy={setUploading} />
-      <ConflictPreview projectId={projectId} when={whenValue} ownId={null} />
-      <label className="flex items-start gap-2 text-sm text-ink">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 accent-accent"
-          checked={ack}
-          data-testid="ir-ack"
-          onChange={(e) => {
-            setAck(e.target.checked);
-          }}
-        />
-        <span>24 hours notice (48 for special). I&apos;ll be present, with safe access and plans on site.</span>
-      </label>
-      {submit.isError ? <p className="text-sm text-danger">{messageOf(submit.error)}</p> : null}
-      <div className="flex items-center justify-between gap-3">
+      <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-line bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_16px_-12px_rgba(16,24,40,.25)]">
         <span className="text-sm text-ink-2">A request, not a booking.</span>
-        <Button type="submit" variant="primary" icon={Send} disabled={!ready} loading={submit.isPending} data-testid="ir-submit">
+        <Button
+          type="submit"
+          variant="primary"
+          icon={Send}
+          className="h-11 px-6 text-base"
+          disabled={!ready}
+          loading={submit.isPending}
+          data-testid="ir-submit"
+        >
           Request
         </Button>
       </div>

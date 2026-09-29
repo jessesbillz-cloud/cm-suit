@@ -22,7 +22,7 @@ function Picker({ row, people, onSent }: PickerProps) {
   const send = useSendResults();
   const [picked, setPicked] = useState(() => new Set(people.filter((p) => p.preselect).map((p) => p.member_id)));
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-line p-3" data-testid="ir-send-picker">
+    <div className="flex flex-col gap-1 rounded-lg border border-line bg-page/40 p-3" data-testid="ir-send-picker">
       {people.map((p) => (
         <CheckField
           key={p.member_id}
@@ -98,6 +98,7 @@ export function SendStep({ row }: { row: IrRequest }) {
     <div className="flex flex-col gap-2">
       <div>
         <Button
+          variant={open || row.results_sent_at !== null ? 'secondary' : 'primary'}
           icon={Send}
           onClick={() => {
             setOpen(!open);

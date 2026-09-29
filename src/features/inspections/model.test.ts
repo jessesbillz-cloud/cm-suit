@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STATUS } from '../../lib/status';
-import { logTitle, parseView, requestChip, requestCount, rowChip, trackerSteps, viewsFor } from './model';
+import { dayMeta, inspectorSteps, logTitle, parseView, requestChip, requestCount, rowChip, trackerSteps, viewsFor } from './model';
 
 const base = { status: 'pending', result: null, helper_id: null };
 
@@ -64,5 +64,35 @@ describe('views and the log', () => {
     const r = { kind: 'special', company: 'Sample Co', items: '\nSlab pour\nmore', status: 'complete', result: 'approved', ir_special_kinds: { name: 'Concrete' } };
     expect(logTitle(r)).toBe('Special: Concrete · Sample Co · Slab pour (Approved)');
     expect(requestCount([{ postpone_count: 0 }, { postpone_count: 2 }])).toEqual({ requests: 4, postponed: 2 });
+  });
+});
+
+describe('inspector step cards', () => {
+  const row = { status: 'pending', result: null, attendance: null, ir_file_id: null, pdf_stale: false, results_sent_at: null };
+  it('starts on Confirm; Result can be recorded any time; IR and Send wait', () => {
+    expect(inspectorSteps(row)).toEqual({ confirm: 'current', attendance: 'open', result: 'open', pdf: 'todo', send: 'todo' });
+  });
+  it('moves to Result, then the IR, then Send results', () => {
+    expect(inspectorSteps({ ...row, status: 'confirmed', attendance: 'alone' })).toEqual({
+      confirm: 'done', attendance: 'done', result: 'current', pdf: 'todo', send: 'todo',
+    });
+    expect(inspectorSteps({ ...row, status: 'confirmed', result: 'approved' }).pdf).toBe('current');
+    const made = { ...row, status: 'complete', result: 'approved', ir_file_id: 'f1' };
+    expect(inspectorSteps(made)).toMatchObject({ pdf: 'done', send: 'current' });
+    expect(inspectorSteps({ ...made, pdf_stale: true })).toMatchObject({ pdf: 'current', send: 'todo' });
+    expect(inspectorSteps({ ...made, results_sent_at: '2026-09-28T20:00:00Z' }).send).toBe('done');
+  });
+  it('a postponed request is confirmed again first', () => {
+    expect(inspectorSteps({ ...row, status: 'postponed' })).toMatchObject({ confirm: 'current', result: 'todo', pdf: 'todo' });
+  });
+});
+
+describe('dayMeta', () => {
+  const line = { ...base, is_block: false, full_detail: true, status_key: 'pending' };
+  it('counts the day and what is still pending, never blocked time', () => {
+    expect(dayMeta([])).toBe('Nothing today');
+    expect(dayMeta([{ ...line, is_block: true, status_key: 'blocked' }])).toBe('Nothing today');
+    expect(dayMeta([line, { ...line, status: 'confirmed' }, { ...line, status: 'confirmed' }])).toBe('Today · 3 requests · 1 pending');
+    expect(dayMeta([{ ...line, status: 'confirmed' }])).toBe('Today · 1 request');
   });
 });

@@ -12,6 +12,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { TOOL_META } from '../../ui/tools';
 import { GcActions } from './GcActions';
 import { History } from './History';
 import { InspectorPanel } from './InspectorPanel';
@@ -76,12 +77,15 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
       }}
       onOpenWindow={onOpenWindow}
     >
-      <div data-testid="ir-pane">
-        <Tracker steps={trackerSteps(row, job.gcStep)} />
+      <div className="flex flex-col gap-4" data-testid="ir-pane">
+        <div className="rounded-lg bg-page/70 px-1 py-3">
+          <Tracker steps={trackerSteps(row, job.gcStep)} />
+        </div>
         <RequestDetails
           row={row}
           tz={job.tz}
           viewing={download.isPending && download.variables.fileId === undefined}
+          viewIsMain={!can.decide}
           onViewIr={() => {
             view();
           }}
@@ -101,6 +105,6 @@ export function RequestPane({ projectId, requestId, onOpenWindow }: RequestPaneP
   if (access.state === 'error') return <ErrorState error={access.error} onRetry={access.retry} />;
   if (request.isError) return <ErrorState error={request.error} onRetry={() => void request.refetch()} />;
   if (access.state === 'loading' || request.isPending) return <LoadingState label="Loading the inspection" />;
-  if (request.data === null) return <EmptyState title="That inspection isn't here." />;
+  if (request.data === null) return <EmptyState icon={TOOL_META.inspections.icon} title="That inspection isn't here." />;
   return <RequestBody row={request.data} can={access.can} job={access.job} onOpenWindow={onOpenWindow} />;
 }

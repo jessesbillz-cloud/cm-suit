@@ -23,8 +23,9 @@ export function RequesterActions({ row, canMove }: RequesterActionsProps) {
 
   if (row.status === 'withdrawn') {
     return (
-      <div className="mt-4">
+      <div>
         <Button
+          variant="primary"
           icon={Undo2}
           loading={restore.isPending}
           onClick={() => {
@@ -43,8 +44,8 @@ export function RequesterActions({ row, canMove }: RequesterActionsProps) {
   if (row.status === 'complete' || row.result !== null) return null;
 
   return (
-    <div className="mt-4">
-      <div className="flex gap-2">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
         {canMove ? (
           <Button
             icon={CalendarClock}

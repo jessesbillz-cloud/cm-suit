@@ -11,16 +11,17 @@ import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
 
+/**
+ * field: Field Mode's big Camera over Upload. hero: the tool screen's Camera beside the main button (no Upload).
+ * row: a work-log row's camera icon. plain: Camera and Upload side by side.
+ */
+type PhotoButtonsVariant = 'field' | 'hero' | 'row' | 'plain';
+
 interface PhotoButtonsProps {
   projectName: string;
   tz: string;
   onPicked: (picks: PhotoPick[]) => void;
-  /** Field mode and the tool screen: one big Camera button. */
-  big?: boolean | undefined;
-  /** A work-log row: a small camera icon only. */
-  compact?: boolean | undefined;
-  /** Hide Upload (the tool screen offers the camera only). */
-  cameraOnly?: boolean | undefined;
+  variant?: PhotoButtonsVariant | undefined;
   disabled?: boolean | undefined;
   testId?: string | undefined;
 }
@@ -38,7 +39,7 @@ async function prepare(files: File[], projectName: string, tz: string): Promise<
   );
 }
 
-export function PhotoButtons({ projectName, tz, onPicked, big, compact, cameraOnly, disabled, testId }: PhotoButtonsProps) {
+export function PhotoButtons({ projectName, tz, onPicked, variant = 'plain', disabled, testId }: PhotoButtonsProps) {
   const camera = useRef<HTMLInputElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -80,14 +81,14 @@ export function PhotoButtons({ projectName, tz, onPicked, big, compact, cameraOn
     </>
   );
 
-  if (compact) {
+  if (variant === 'row') {
     return (
       <>
         <button
           type="button"
           aria-label="Photo for this row"
           disabled={disabled}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink disabled:text-ink-3"
+          className="flex h-10 w-9 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink disabled:text-ink-3"
           onClick={() => {
             camera.current?.click();
           }}
@@ -99,13 +100,17 @@ export function PhotoButtons({ projectName, tz, onPicked, big, compact, cameraOn
     );
   }
 
+  const field = variant === 'field';
+  const hero = variant === 'hero';
+  const size = variant === 'plain' ? 'sm' : 'md';
   return (
-    <div className={`flex gap-2 ${big ? 'flex-col' : ''}`}>
+    <div className={`flex gap-2 ${field ? 'flex-col' : ''} ${hero ? 'flex-1' : ''}`}>
       <Button
-        variant={big ? 'primary' : 'secondary'}
+        variant={field ? 'primary' : 'secondary'}
         icon={Camera}
+        size={size}
         disabled={disabled}
-        className={big ? 'h-14 w-full text-base' : ''}
+        className={field ? 'h-14 w-full text-base' : hero ? 'h-12 w-full text-base' : ''}
         data-testid={testId}
         onClick={() => {
           camera.current?.click();
@@ -113,11 +118,12 @@ export function PhotoButtons({ projectName, tz, onPicked, big, compact, cameraOn
       >
         Camera
       </Button>
-      {cameraOnly ? null : (
+      {hero ? null : (
         <Button
           icon={ImagePlus}
+          size={size}
           disabled={disabled}
-          className={big ? 'h-11 w-full' : ''}
+          className={field ? 'h-11 w-full' : ''}
           onClick={() => {
             upload.current?.click();
           }}
