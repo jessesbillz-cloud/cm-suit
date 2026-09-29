@@ -6757,6 +6757,22 @@ export type Database = {
         Returns: Json
       }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
+      my_daily_today: {
+        Args: never
+        Returns: {
+          label: string
+          next_number: number
+          number: number
+          project_id: string
+          project_name: string
+          report_id: string
+          report_type: string
+          schedule_days: number[]
+          scheduled_today: boolean
+          status: string
+          today: string
+        }[]
+      }
       my_orgs: {
         Args: never
         Returns: {

@@ -231,6 +231,7 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['invoice_lines', { p_owner: U, p_period: '2026-01-01' }],
   ['invoice_snapshot', { p_period: '2026-01-01' }],
   ['hours_amount_ok', { p_value: 1, p_max: 1, p_places: 1 }],
+  ['my_daily_today', {}],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
