@@ -9,6 +9,8 @@
 //             (rfi_attach_pdf, service role only, so the PDF on an RFI is always one this function made).
 //   pdf:      the RFI as it is now (DRAFT before issue). Rendered and stored again only when something it shows changed
 //             (its key, rfis.pdf_hash; answering changes it), else the stored one. A fresh signed URL either way.
+//   view:     the same PDF for "Full screen": a fresh signed URL without the download header, so the browser's own
+//             viewer shows it and pages through it. Only the RFI's own server-made PDF, through the same gate (logged).
 //   download: a photo, answer file or the PDF of that RFI: rfi_authorize_file() as the caller (who may see the RFI,
 //             the scan rules, logs the download), then a fresh signed URL.
 // Service client (admin_service_key_allowlist.txt): storing and recording the PDF, reading photo, logo and signature
@@ -29,6 +31,7 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('send'), rfi_id: uuid, version: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('issue'), rfi_id: uuid, version: z.number().int().positive() }).strict(),
   z.object({ action: z.literal('pdf'), rfi_id: uuid }).strict(),
+  z.object({ action: z.literal('view'), rfi_id: uuid }).strict(),
   z.object({ action: z.literal('download'), rfi_id: uuid, file_id: uuid }).strict(),
 ]);
 
@@ -130,6 +133,13 @@ async function ensurePdf(client: Db, userId: string, rfiId: string): Promise<{ f
   return { fileId: stored.id, rfi };
 }
 
+/** A short-lived URL the browser shows instead of saving (no download header): the RFI's own PDF only. */
+async function signedViewUrl(service: Db, path: string): Promise<string> {
+  const { data, error } = await service.storage.from('files').createSignedUrl(path, 600);
+  if (error || !data) throw storageError(error ?? { message: 'no signed url' }, 'createSignedUrl');
+  return data.signedUrl;
+}
+
 async function authorized(client: Db, rfiId: string, fileId: string): Promise<Authorized> {
   const rows = await rpc<Authorized[]>(client, 'rfi_authorize_file', { p_rfi_id: rfiId, p_file_id: fileId });
   const f = rows?.[0];
@@ -152,6 +162,13 @@ Deno.serve(handle(async (req) => {
     const f = await authorized(client, body.rfi_id, pdf.fileId);
     const url = await signedDownloadUrl(serviceClient(), 'files', f.storage_path, f.original_name);
     return ok(req, { url, filename: f.original_name });
+  }
+
+  if (body.action === 'view') {
+    const pdf = await ensurePdf(client, user.id, body.rfi_id);
+    const f = await authorized(client, body.rfi_id, pdf.fileId);
+    if (f.mime !== 'application/pdf') throw new HttpError(409, 'The PDF is missing. Try again.');
+    return ok(req, { url: await signedViewUrl(serviceClient(), f.storage_path) });
   }
 
   const row = await loadRfi(client, body.rfi_id);

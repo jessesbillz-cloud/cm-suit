@@ -16,7 +16,7 @@ import {
 import * as api from './api';
 import { MOCK_PEOPLE, MOCK_PROJECTS } from './fixtures';
 import { mockUser } from './index';
-import { DEFAULT_SETTINGS, seedState, type JobRfiSettings, type RfiMockState, type StoredRfi, type StoredStep } from './rfiSeeds';
+import { DEFAULT_SETTINGS, ENGINEER, seedState, type JobRfiSettings, type RfiMockState, type StoredRfi, type StoredStep } from './rfiSeeds';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-rfis';
@@ -61,8 +61,14 @@ export async function capability(cap: string): Promise<boolean> {
   return has(cap);
 }
 
+/** A person's role on the job, as the database keeps it (the mock users, then the sample people). */
+export function roleOf(userId: string): string | null {
+  return WHO[userId.replace(/^mock-user-/, '')]?.role ?? MOCK_PEOPLE.find((p) => p.user_id === userId)?.role ?? null;
+}
+
 export function nameOf(userId: string): string {
   if (userId === 'mock-user-architect') return 'Sample Architect';
+  if (userId === ENGINEER) return 'Sample Engineer';
   return MOCK_PEOPLE.find((p) => p.user_id === userId)?.full_name ?? 'Sample Member';
 }
 
@@ -74,7 +80,8 @@ export function jobSettings(s: RfiMockState, projectId: string): JobRfiSettings 
   return s.settings[projectId] ?? DEFAULT_SETTINGS;
 }
 
-function stepsOf(s: RfiMockState, r: StoredRfi): StoredStep[] {
+/** The RFI's reviewers: its own copy once sent, else the job's route today. */
+export function stepsOf(s: RfiMockState, r: StoredRfi): StoredStep[] {
   return r.status === 'draft' ? jobSettings(s, r.project_id).route : (s.steps[r.id] ?? []);
 }
 
@@ -105,7 +112,7 @@ function holderLabel(s: RfiMockState, r: StoredRfi): string {
   return '';
 }
 
-function visible(s: RfiMockState, r: StoredRfi, m: Me): boolean {
+export function visible(s: RfiMockState, r: StoredRfi, m: Me = me()): boolean {
   if (r.created_by === m.id || has('rfi.sign_issue', m)) return true;
   if (r.status === 'draft') return false;
   if (has('rfi.answer', m) && ['open', 'answered', 'closed'].includes(r.status)) return true;

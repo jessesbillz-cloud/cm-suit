@@ -1,6 +1,7 @@
 // Synthetic RFIs on Sample Job A for the e2e mock and the preview: one of each state the log and the board show
-// (closed, answered with an impact claim, late, not opened, waiting to issue, in review, a draft). Times are relative
-// to when the mock first loads, so "late" and "not opened" always hold. Obviously fake (CLAUDE.md rule 8).
+// (closed, answered with an impact claim, late, not opened, waiting to issue, in review with the inspector, with the PE,
+// with a consultant on its route, a very long title, a draft). Times are relative to when the mock first loads, so
+// "late" and "not opened" always hold. Obviously fake (CLAUDE.md rule 8).
 import type { RfiEventKind, RfiRow } from '../rfis.types';
 import { SEED_RFI_ID } from './boardSeeds';
 
@@ -9,6 +10,8 @@ const SUB = 'mock-user-sub';
 const PM = 'mock-user-pm';
 const INSPECTOR = 'mock-user-inspector';
 const ARCHITECT = 'mock-user-architect';
+/** A consultant named on one RFI's route (a person step). */
+export const ENGINEER = 'mock-user-engineer';
 const DAY = 86_400_000;
 
 export interface StoredRfi extends RfiRow {
@@ -50,6 +53,10 @@ export interface RfiMockState {
 export const DEFAULT_SETTINGS: JobRfiSettings = { answer_days: 7, impact_days: 7, version: 0, route: [] };
 
 const INSPECTOR_STEP: StoredStep = { position: 1, role: 'inspector', user_id: null, label: 'Inspector' };
+const PE_STEP: StoredStep = { position: 1, role: 'pe', user_id: null, label: 'PE' };
+const ENGINEER_STEP: StoredStep = { position: 2, role: null, user_id: ENGINEER, label: 'Sample Engineer' };
+const LONG_TITLE =
+  'Sample membrane termination where the storefront sill, the planter wall and the expansion joint cover meet at the podium slab edge near the east stair, gridline C.4';
 
 function blank(now: number, id: string, title: string, by: string, ago: number): StoredRfi {
   return {
@@ -123,9 +130,29 @@ export function seedState(now: number): RfiMockState {
     ...blank(now, 'mock-rfi-job-a-7', 'Sample ceiling height at lobby', PM, 0.1),
     question: 'Sample question: the reflected ceiling plan and the section disagree on the lobby ceiling height.',
   };
-  const steps = Object.fromEntries([claimed, late, unopened, toIssue, review, closed].map((r) => [r.id, [INSPECTOR_STEP]]));
+  const withPe: StoredRfi = {
+    ...blank(now, 'mock-rfi-job-a-8', 'Sample embed plate size at the canopy columns', SUB, 3),
+    status: 'review', step: 1, question: 'Sample question: the embed plate schedule and the column detail disagree. Which size applies?',
+    sent_at: iso(now - 2 * DAY), held_since: iso(now - 2 * DAY), held_opened_at: iso(now - 1.5 * DAY), version: 2,
+  };
+  const consultant: StoredRfi = {
+    ...blank(now, 'mock-rfi-job-a-9', 'Sample rebar lap length at the shear wall boundary', PM, 4),
+    status: 'review', step: 2, question: 'Sample question: the lap length on S-301 is shorter than the general notes. Which governs?',
+    sent_at: iso(now - 3.6 * DAY), held_since: iso(now - 2.2 * DAY), held_opened_at: iso(now - 2 * DAY), version: 3,
+  };
+  const long: StoredRfi = {
+    ...blank(now, 'mock-rfi-job-a-10', LONG_TITLE, SUB, 6),
+    number: 5, status: 'open', question: 'Sample question: three details meet at this corner and none of them shows the membrane turn-up. How is it terminated?',
+    sent_at: iso(now - 5.6 * DAY), issued_at: iso(now - 3.2 * DAY), due_at: iso(now + 4 * DAY), held_since: iso(now - 3.2 * DAY),
+    held_opened_at: iso(now - 3 * DAY), version: 4,
+  };
+  const steps = {
+    ...Object.fromEntries([claimed, late, unopened, toIssue, review, closed, long].map((r) => [r.id, [INSPECTOR_STEP]])),
+    [withPe.id]: [PE_STEP],
+    [consultant.id]: [INSPECTOR_STEP, ENGINEER_STEP],
+  };
   return {
-    rfis: [closed, claimed, late, unopened, toIssue, review, draft],
+    rfis: [closed, claimed, late, unopened, toIssue, review, draft, withPe, consultant, long],
     steps,
     events: [
       ...issuedTrail(closed.id, SUB, now, 20, 19),
@@ -143,8 +170,17 @@ export function seedState(now: number): RfiMockState {
       ev(review.id, now - 1.2 * DAY, PM, 'created'),
       ev(review.id, now - DAY, PM, 'sent'),
       ev(draft.id, now - 0.1 * DAY, PM, 'created'),
+      ev(withPe.id, now - 3 * DAY, SUB, 'created'),
+      ev(withPe.id, now - 2 * DAY, SUB, 'sent'),
+      ev(consultant.id, now - 4 * DAY, PM, 'created'),
+      ev(consultant.id, now - 3.6 * DAY, PM, 'sent'),
+      ev(consultant.id, now - 2.2 * DAY, INSPECTOR, 'forwarded', 1),
+      ev(long.id, now - 6 * DAY, SUB, 'created'),
+      ev(long.id, now - 5.6 * DAY, SUB, 'sent'),
+      ev(long.id, now - 4.6 * DAY, INSPECTOR, 'forwarded', 1),
+      ev(long.id, now - 3.2 * DAY, PM, 'issued'),
     ],
     settings: { [JOB]: { answer_days: 7, impact_days: 7, version: 1, route: [INSPECTOR_STEP] } },
-    next: { [JOB]: 5 },
+    next: { [JOB]: 6 },
   };
 }

@@ -6,14 +6,17 @@ import { supabase } from './client';
 import { throwIfError } from './errors';
 import { qk } from './keys';
 import { isMock } from './mock';
+import * as mockProgress from './mock/rfiProgress';
 import * as mockRfis from './mock/rfis';
 import {
   rfiDetailSchema,
   rfiListRowSchema,
+  rfiProgressRowSchema,
   rfiSettingsSchema,
   rfiWaitingRowSchema,
   type RfiDetail,
   type RfiListRow,
+  type RfiProgressRow,
   type RfiSettings,
   type RfiWaitingRow,
 } from './rfis.types';
@@ -53,6 +56,17 @@ export function useRfiDetail(projectId: string, rfiId: string) {
       return detail;
     },
   });
+}
+
+async function fetchProgress(projectId: string): Promise<RfiProgressRow[]> {
+  if (isMock()) return mockProgress.progress(projectId);
+  const rows: unknown = throwIfError(await supabase.rpc('rfi_progress', { p_project_id: projectId }));
+  return z.array(rfiProgressRowSchema).parse(rows);
+}
+
+/** Every step of every RFI I may see on the job, with how long each sat there: the log's strips and the pane's. */
+export function useRfiProgress(projectId: string) {
+  return useQuery({ queryKey: qk.rfisPart(projectId, 'progress'), queryFn: () => fetchProgress(projectId) });
 }
 
 async function fetchSettings(projectId: string): Promise<RfiSettings> {

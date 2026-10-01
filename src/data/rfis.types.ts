@@ -158,6 +158,28 @@ export const rfiSettingsSchema = z.object({
 });
 export type RfiSettings = z.infer<typeof rfiSettingsSchema>;
 
+/** A step of an RFI's route on the log's strip: ask (the originator), review, issue, answer (the architect), answered. */
+const RFI_STEP_KINDS = ['ask', 'review', 'issue', 'answer', 'answered'] as const;
+export type RfiStepKind = (typeof RFI_STEP_KINDS)[number];
+
+/**
+ * rfi_progress(p_project_id): one row per step of every RFI the caller may see, in route order. days = whole days it
+ * sat there on the job's clock (0 = under a day; the current step counts to now); null ahead and at the end.
+ */
+export const rfiProgressRowSchema = z.object({
+  rfi_id: z.string(),
+  position: z.number().int(),
+  kind: z.enum(RFI_STEP_KINDS),
+  label: z.string(),
+  person_name: z.string().nullable(),
+  state: routeStateSchema,
+  entered_at: z.string().nullable(),
+  left_at: z.string().nullable(),
+  days: z.number().int().nullable(),
+  due_at: z.string().nullable(),
+});
+export type RfiProgressRow = z.infer<typeof rfiProgressRowSchema>;
+
 const WAITING_REASONS = ['late', 'unopened'] as const;
 
 /** rfi_waiting(): across all my jobs, RFIs I sent or may issue that someone else is sitting on. */
@@ -201,4 +223,6 @@ export type RouteChoice = { role: string } | { user_id: string };
 /** The rfis edge function's answers. */
 export const signResultSchema = z.object({ rfi: rfiRowSchema });
 export const pdfResultSchema = z.object({ url: z.string().url(), filename: z.string().min(1) });
+/** 'view': the same PDF for the browser's own viewer (a fresh signed URL without the download header). */
+export const viewResultSchema = z.object({ url: z.string().url() });
 export const downloadResultSchema = z.object({ url: z.string().url(), filename: z.string().min(1), mime: z.string() });

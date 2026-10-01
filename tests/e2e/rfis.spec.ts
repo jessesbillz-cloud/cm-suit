@@ -1,11 +1,12 @@
 // RFIs (the Sep 28 contract) against the e2e mock. The mock follows the database's rules: a sub writes and signs,
 // the sample route on Sample Job A is one Inspector step, the PM signs and issues (the number comes only then), the
 // architect answers, and the originator claims impact inside the window (amber row, permanent).
-// Mock users: 'sub', 'inspector', 'pm', 'architect'. Sample Job A starts with RFIs 001-004, one waiting to issue, one in
-// review and a draft (src/data/mock/rfiSeeds.ts). Test ids: rfi-new, rfi-title, rfi-question, rfi-send, rfi-row-<no>,
-// rfi-status, rfi-label, rfi-holder, rfi-forward, rfi-issue, rfi-due, rfi-answer-open, rfi-answer-text,
-// rfi-answer-send, rfi-claim, rfi-impact-left, rfi-claim-cost, rfi-claim-confirm, rfi-impact-claimed, rfi-history,
-// rfi-search, needs-you-rfi.
+// Mock users: 'sub', 'inspector', 'pm', 'architect'. Sample Job A starts with RFIs 001-005, one waiting to issue, three
+// in review (with the inspector, the PE, a consultant) and a draft (src/data/mock/rfiSeeds.ts). Test ids: rfi-new,
+// rfi-title, rfi-question, rfi-send, rfi-row-<no>, rfi-strip (cells carry data-state done / current / next),
+// rfi-due-mark, rfi-status, rfi-label, rfi-holder, rfi-forward, rfi-issue, rfi-due, rfi-answer-open, rfi-answer-text,
+// rfi-answer-send, rfi-answer, rfi-claim, rfi-impact-left, rfi-claim-cost, rfi-claim-confirm, rfi-impact-claimed,
+// rfi-head-actions, rfi-history, rfi-search, needs-you-rfi.
 import process from 'node:process';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
@@ -56,6 +57,11 @@ async function tap(locator: Locator, counter: { n: number }): Promise<void> {
   counter.n += 1;
 }
 
+/** The cell of a log row's route strip for the step that has it now. */
+function nowCell(row: Locator): Locator {
+  return row.getByTestId('rfi-strip').locator('[data-state="current"]');
+}
+
 test.describe('RFIs', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
@@ -74,14 +80,18 @@ test.describe('RFIs', () => {
     await expect(right.getByTestId('rfi-status')).toHaveText('In review');
     await expect(right.getByTestId('rfi-label')).toHaveText('Draft');
     await expect(row).toBeVisible();
+    await expect(nowCell(row)).toContainText('Inspector');
+    await expect(row.getByTestId('rfi-strip').locator('[data-state="done"]')).toHaveCount(1);
 
     // Inspector: it is theirs now; they send it on to issue.
     await openAs(page, 'inspector', '/p/job-a/rfis');
+    await expect(nowCell(row)).toContainText('You');
     await row.click();
     await expect(right.getByTestId('rfi-holder')).toContainText('With you');
     await right.getByTestId('rfi-forward').click();
     await expect(right.getByTestId('rfi-status')).toHaveText('To issue');
     await expect(right.getByTestId('rfi-forward')).toHaveCount(0);
+    await expect(nowCell(row)).toContainText('PM / PE');
 
     // PM: signs and issues; the database numbers it and the answer is due.
     await openAs(page, 'pm', '/p/job-a/rfis');
@@ -90,6 +100,8 @@ test.describe('RFIs', () => {
     await expect(right.getByTestId('rfi-status')).toHaveText('Open');
     await expect(right.getByTestId('rfi-label')).toHaveText(/^RFI \d{3}$/);
     await expect(right.getByTestId('rfi-due')).toContainText('Due');
+    await expect(nowCell(row)).toContainText('Architect');
+    await expect(row.getByTestId('rfi-due-mark')).toContainText('Due');
 
     // Architect: answers in the app.
     await openAs(page, 'architect', '/p/job-a/rfis');
@@ -99,6 +111,8 @@ test.describe('RFIs', () => {
     await right.getByTestId('rfi-answer-send').click();
     await expect(right.getByTestId('rfi-status')).toHaveText('Answered');
     await expect(right.getByTestId('rfi-answer')).toContainText('10 in. per the shop drawing');
+    await expect(row.getByTestId('rfi-strip').locator('[data-kind="answered"]')).toHaveAttribute('data-state', 'done');
+    await expect(nowCell(row)).toHaveCount(0);
 
     // Sub: claims impact inside the window; the claim is on the RFI and its row is amber.
     await openAs(page, 'sub', '/p/job-a/rfis');
@@ -111,9 +125,44 @@ test.describe('RFIs', () => {
     await expect(right.getByTestId('rfi-claim')).toHaveCount(0);
     await expect(row).toHaveAttribute('data-impact', 'true');
 
-    await right.getByRole('button', { name: 'History' }).click();
-    const history = right.getByTestId('rfi-history');
+    // History lives in the full view: the RFI alone in its own window, not the right column.
+    await expect(right.getByTestId('rfi-history')).toHaveCount(0);
+    const alone = new URL(page.url());
+    alone.searchParams.set('window', '1');
+    await page.goto(alone.toString());
+    const history = page.getByTestId('rfi-history');
     for (const step of ['Signed & sent', 'Sent on', 'Signed & issued', 'Answered', 'Impact claimed']) await expect(history).toContainText(step);
+  });
+
+  test('each row shows where the RFI is and how long each person has had it; a tap shows the answer at once', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await openAs(page, 'pm', '/p/job-a/rfis');
+    // RFI 004: with the architect for 5 days, nobody has opened it. RFI 003: past its due date (red, never amber).
+    const r4 = page.getByTestId('rfi-row-004');
+    await expect(nowCell(r4)).toContainText('Architect');
+    await expect(nowCell(r4)).toContainText('5d');
+    await expect(r4.getByTestId('rfi-strip').locator('[data-state="done"]')).toHaveCount(3);
+    await expect(page.getByTestId('rfi-row-003').getByTestId('rfi-due-mark')).toHaveAttribute('data-late', 'true');
+    await expect(r4.getByTestId('rfi-due-mark')).not.toHaveAttribute('data-late', 'true');
+    // The one sent on to a consultant: that person has it now.
+    await expect(nowCell(page.getByTestId(/^rfi-row-/).filter({ hasText: 'rebar lap length' }))).toContainText('Engineer');
+    // Long titles are whole: no ellipsis anywhere in the log.
+    await expect(page.getByTestId(/^rfi-row-/).filter({ hasText: 'gridline C.4' })).toBeVisible();
+    if (testInfo.project.name === 'phone') {
+      // The strip fits the phone without scrolling sideways.
+      const fits = await r4.getByTestId('rfi-strip').evaluate((el) => el.scrollWidth <= el.clientWidth);
+      expect(fits).toBe(true);
+    }
+
+    // RFI 002 is answered: one tap, and the question and the architect's answer are both there.
+    await page.getByTestId('rfi-row-002').click();
+    await expect(page.getByTestId('rfi-question-text')).toContainText('Which governs?');
+    await expect(page.getByTestId('rfi-answer')).toContainText('anchors at 16 in. on center');
+    if (testInfo.project.name === 'desktop') {
+      // The log stays put beside it, and the pane's header has exactly its three actions.
+      await expect(page.getByTestId('rfi-row-004')).toBeVisible();
+      await expect(page.getByTestId('right-column').getByTestId('rfi-head-actions').getByRole('button')).toHaveCount(3);
+    }
   });
 
   test('late and not-opened RFIs sit at the top of Needs you and open where they live', async ({ page }) => {

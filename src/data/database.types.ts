@@ -7748,6 +7748,21 @@ export type Database = {
         Returns: string
       }
       rfi_person_name: { Args: { p_person: string }; Returns: string }
+      rfi_progress: {
+        Args: { p_project_id: string }
+        Returns: {
+          days: number
+          due_at: string
+          entered_at: string
+          kind: string
+          label: string
+          left_at: string
+          person_name: string
+          position: number
+          rfi_id: string
+          state: string
+        }[]
+      }
       rfi_role_label: { Args: { p_role: string }; Returns: string }
       rfi_save_settings: {
         Args: {

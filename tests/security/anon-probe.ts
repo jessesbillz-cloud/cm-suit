@@ -247,6 +247,8 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['request_hub_decides', { p_person: U }],
   ['request_link_job', { p_project_id: U, p_token_hash: 'x', p_hub_id: null }],
   ['request_link_token', {}],
+  // The RFI log's route strip (0049)
+  ['rfi_progress', { p_project_id: U }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

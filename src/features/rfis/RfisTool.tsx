@@ -1,12 +1,12 @@
-// RFIs (the Sep 28 contract, SPEC §7.4, §14.1): the log in the main area with one big "New RFI" button; the new form
-// and each RFI open in the right column (full screen on the phone) so the log stays in view. Open / Mine / All, one
-// search box (a number + Enter opens that RFI), click a header to sort; by default what waits on me comes first,
-// then anything late, then anything due, then the newest.
+// RFIs (the Sep 28 contract, SPEC §7.4, §14.1; the log's route strip, Sep 30): the log in the main area with one big
+// "New RFI" button; the new form and each RFI open in the right column (full screen on the phone) so the log stays in
+// view. Open / Mine / All and one search box (a number + Enter opens that RFI). One order: what waits on me first, then
+// anything late, then anything due, then the newest.
 import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useProject } from '../../data/queries';
-import { useRfiList } from '../../data/rfis.queries';
+import { useRfiList, useRfiProgress } from '../../data/rfis.queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
@@ -15,6 +15,7 @@ import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { FILTERS, NEW_ITEM, logSummary, openTarget, visibleRows, type Filter } from './model';
+import { stripsByRfi } from './progress';
 import { RfiLog } from './RfiLog';
 import { useRfiCaps } from './useRfiCaps';
 import { useRfisNav } from './useRfisNav';
@@ -54,6 +55,7 @@ export function RfisTool({ projectId, itemId, isPhone }: RfisToolProps) {
   const nav = useRfisNav(projectId, itemId);
   const { caps, error, retry } = useRfiCaps(projectId);
   const list = useRfiList(projectId);
+  const progress = useRfiProgress(projectId);
   const project = useProject(projectId);
 
   if (error) return <Frame><ErrorState error={error} onRetry={retry} /></Frame>;
@@ -63,7 +65,8 @@ export function RfisTool({ projectId, itemId, isPhone }: RfisToolProps) {
   const now = new Date();
   const tz = project.data.timezone;
   const rows = list.data ?? [];
-  const view = { filter: nav.filter, query: nav.query, sort: nav.sort, userId: user.id };
+  const view = { filter: nav.filter, query: nav.query, userId: user.id };
+  const strips = progress.data ? stripsByRfi(progress.data) : undefined;
   const visible = visibleRows(rows, view, now);
   const open = () => {
     nav.open(NEW_ITEM);
@@ -97,6 +100,7 @@ export function RfisTool({ projectId, itemId, isPhone }: RfisToolProps) {
       <Card padded={false} className="overflow-hidden">
         {list.isPending ? <LoadingState label="Loading RFIs" /> : null}
         {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : null}
+        {list.isSuccess && progress.isError ? <ErrorState error={progress.error} onRetry={() => void progress.refetch()} /> : null}
         {list.isSuccess && rows.length === 0 ? (
           <EmptyState
             icon={META.icon}
@@ -116,16 +120,7 @@ export function RfisTool({ projectId, itemId, isPhone }: RfisToolProps) {
           </p>
         ) : null}
         {visible.length > 0 ? (
-          <RfiLog
-            rows={visible}
-            timeZone={tz}
-            now={now}
-            selectedId={itemId}
-            sort={nav.sort}
-            onSort={nav.setSort}
-            onOpen={nav.open}
-            isPhone={isPhone}
-          />
+          <RfiLog rows={visible} strips={strips} timeZone={tz} now={now} selectedId={itemId} onOpen={nav.open} isPhone={isPhone} />
         ) : null}
       </Card>
     </Frame>

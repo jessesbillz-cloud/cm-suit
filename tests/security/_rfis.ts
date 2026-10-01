@@ -47,6 +47,8 @@ export async function checkRfis(p: RfiProbe): Promise<void> {
     report.check('rfis', `${key}: log has no draft`, !list.some((r) => r['id'] === id), `${list.length} rows`);
     const detail = await p.as(key).rpc('rfi_detail', { p_rfi_id: id });
     report.check('rfis', `${key}: detail refused`, detail.error !== null, detail.error ? detail.error.message : 'returned');
+    const steps = rows(await p.as(key).rpc('rfi_progress', { p_project_id: p.projectId }), `rfi_progress as ${key}`);
+    report.check('rfis', `${key}: route strip has no draft`, !steps.some((r) => r['rfi_id'] === id), `${steps.length} rows`);
   }
 
   const answer = await p.as('architect').rpc('rfi_answer', { p_rfi_id: id, p_version: 1, p_answer: 'probe' });

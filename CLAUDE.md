@@ -77,7 +77,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
     - An amber *row* highlight means "impact claimed" only. Errors use red text or a red banner.
     - **No emojis.** Lucide line icons only where they carry meaning.
     - The fixed frame is rail / main / right column. People can't drag or resize anything.
-    - No expand/collapse boxes inside items, no cut-off titles, no ball-in-court or days-open columns by default.
+    - No expand/collapse boxes inside items, no cut-off titles, no ball-in-court or days-open columns. The RFI log shows each RFI's route strip with the time at each step instead (Jesse, Sep 30).
     - **Fewer words.** Short labels, no explanatory paragraphs on screens, no helper text unless something would fail without it. If a screen needs explaining, simplify the screen.
 16. **No wasted movements.**
     - One way to reach each thing.
