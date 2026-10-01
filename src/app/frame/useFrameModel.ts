@@ -5,10 +5,13 @@ import { useNavigate } from '@tanstack/react-router';
 import { useMyProjects, useUserLayout } from '../../data/queries';
 import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
+import { jobRailChoices, useJobRails } from '../../data/jobRail.queries';
+import { useSaveJobRail } from '../../data/jobRail.mutations';
 import { useRecommendedTools, useToolCounts } from '../../data/rail.queries';
-import { allJobsRail, allJobsTool, jobRail, jobTool, type RailModel } from '../../lib/jobs';
-import { pushRecent, type LayoutChoices, type Tool } from '../../lib/layout';
+import { allJobsTool, jobTool, railModel } from '../../lib/jobs';
+import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { countsByTool } from '../../lib/toolCounts';
+import type { RailJobPart } from '../../ui/Rail';
 import { useToast } from '../../ui/Toast';
 
 export interface FrameLocation {
@@ -37,24 +40,21 @@ export function useFrameModel(loc: FrameLocation) {
   const layoutQuery = useUserLayout();
   const projectsQuery = useMyProjects();
   const recommendedQuery = useRecommendedTools();
+  const jobRailsQuery = useJobRails();
   const countsQuery = useToolCounts(loc.projectId);
   const saveLayout = useSaveLayout();
+  const saveTools = useSaveJobRail((e) => {
+    toast.show({ tone: 'error', message: `Your tools were not saved: ${messageOf(e)}` });
+  });
   const [rightFull, setRightFull] = useState(false);
 
   const choices: LayoutChoices | undefined = layoutQuery.data?.choices;
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.project_id === loc.projectId);
-  /**
-   * The rail: my pins, else my role's recommendation on this job, minus the modules it has switched off; the job's
-   * other tools under More. On "All my jobs", only the cross-job tools.
-   */
-  const { rail: railItems, more: moreItems }: RailModel = !choices
-    ? { rail: [], more: [] }
-    : loc.projectId === null
-      ? allJobsRail(choices.rail_items, projects.map((p) => p.modules), Object.values(recommendedQuery.data ?? {}))
-      : jobRail(choices.rail_items, recommendedQuery.data?.[loc.projectId] ?? [], current?.modules ?? []);
+  /** The rail (lib/jobs railModel): the general tools on top; on a job, its tools in my order and More. */
+  const rail = railModel(loc.projectId, projects, recommendedQuery.data ?? {}, jobRailChoices(jobRailsQuery.data));
   /** What needs me, per tool on this rail (the rest counts on the Board). */
-  const counts = countsByTool(countsQuery.data ?? [], [...railItems, ...moreItems]);
+  const counts = countsByTool(countsQuery.data ?? [], [...rail.general, ...rail.job, ...rail.more]);
 
   function save(patch: Partial<LayoutChoices>) {
     saveLayout.mutate(patch, {
@@ -63,6 +63,41 @@ export function useFrameModel(loc: FrameLocation) {
       },
     });
   }
+
+  /** A new list of tools under the job's name; going back to the recommendation can be undone. */
+  function chooseTools(projectId: string, tools: readonly RailTool[] | null) {
+    const before = jobRailsQuery.data?.[projectId]?.tools ?? null;
+    saveTools(projectId, tools);
+    if (tools !== null || before === null) return;
+    const mine = rail.job;
+    toast.show({
+      message: 'Back to recommended.',
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          saveTools(projectId, mine);
+        },
+      },
+    });
+  }
+
+  /** The picked job's part of the rail (null on All my jobs): its name, my tools there, More, and my choice of them. */
+  const jobPart: RailJobPart | null = current
+    ? {
+        label: current.name,
+        tools: rail.job,
+        more: rail.more,
+        edit: {
+          tools: [...rail.job, ...rail.more],
+          chosen: rail.job,
+          own: (jobRailsQuery.data?.[current.project_id]?.tools ?? null) !== null,
+          onChange: (tools) => {
+            chooseTools(current.project_id, tools);
+          },
+        },
+        version: jobRailsQuery.data?.[current.project_id]?.version ?? null,
+      }
+    : null;
 
   /** On "All my jobs" a tool that needs a job lands on the board, never on some job picked for me. */
   function go(projectId: string | null, tool: Tool) {
@@ -117,10 +152,11 @@ export function useFrameModel(loc: FrameLocation) {
     layoutQuery,
     projectsQuery,
     recommendedQuery,
+    jobRailsQuery,
     choices,
     projects,
-    railItems,
-    moreItems,
+    rail,
+    jobPart,
     counts,
     rightFull,
     setRightFull,

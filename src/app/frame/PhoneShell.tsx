@@ -1,9 +1,12 @@
-// The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. Job picker on top, the person's top tools
-// along the bottom (the rail's order: my pins or my position's tools, each with its count), More for the rest, one
-// screen at a time, items full screen with a back button.
+// The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. Job picker on top; along the bottom the same
+// choice as the desktop rail (lib/jobs phoneRail): Board, Calendar, then the job's tools in my order, each with its
+// count; More for the rest, and on a job "Edit tools" to choose them. One screen at a time, items full screen with a
+// back button.
 import { useState } from 'react';
+import { phoneRail } from '../../lib/jobs';
 import { phoneTabs } from '../../lib/layout';
 import { JobPicker } from '../../ui/JobPicker';
+import { JobToolsEdit } from '../../ui/JobToolsEdit';
 import { ViewAs } from '../../ui/ViewAs';
 import { PanelBack, PanelMoreSheet, PanelScreen, PanelTabBar } from '../../ui/Panel';
 import { TOOL_META } from '../../ui/tools';
@@ -16,14 +19,17 @@ interface PhoneShellProps {
   folderId: string | null;
 }
 
+/** What sits above the tab bar: nothing, the More sheet, or the job's tools to choose. */
+type Sheet = 'none' | 'more' | 'edit';
+
 export function PhoneShell({ model, folderId }: PhoneShellProps) {
-  const { loc, choices } = model;
-  const [moreOpen, setMoreOpen] = useState(false);
+  const { loc, choices, jobPart } = model;
+  const [sheet, setSheet] = useState<Sheet>('none');
   if (!choices) return null;
 
-  const { tabs, more } = phoneTabs(model.railItems, loc.tool, model.moreItems);
+  const { tabs, more } = phoneTabs(phoneRail(model.rail), loc.tool, model.rail.more);
   const pick: typeof model.selectTool = (t) => {
-    setMoreOpen(false);
+    setSheet('none');
     model.selectTool(t);
   };
 
@@ -55,16 +61,41 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
       }
       bottom={
         <>
-          {moreOpen ? <PanelMoreSheet tools={more} current={loc.tool} counts={model.counts} onSelect={pick} /> : null}
+          {sheet === 'more' ? (
+            <PanelMoreSheet
+              tools={more}
+              current={loc.tool}
+              counts={model.counts}
+              onSelect={pick}
+              onEdit={
+                jobPart
+                  ? () => {
+                      setSheet('edit');
+                    }
+                  : undefined
+              }
+            />
+          ) : null}
+          {sheet === 'edit' && jobPart ? (
+            <div data-testid="phone-job-tools" className="max-h-[60dvh] shrink-0 overflow-y-auto border-t border-line bg-card">
+              <p className="break-words px-3 pt-3 text-sm font-semibold text-ink wrap-anywhere">{jobPart.label}</p>
+              <JobToolsEdit
+                {...jobPart.edit}
+                onDone={() => {
+                  setSheet('none');
+                }}
+              />
+            </div>
+          ) : null}
           <PanelTabBar
             tools={tabs}
             current={loc.tool}
             onSelect={pick}
             counts={model.counts}
             moreTools={more}
-            moreOpen={moreOpen}
+            moreOpen={sheet !== 'none'}
             onMore={() => {
-              setMoreOpen(!moreOpen);
+              setSheet(sheet === 'none' ? 'more' : 'none');
             }}
           />
         </>

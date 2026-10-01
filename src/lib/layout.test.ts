@@ -9,7 +9,6 @@ import {
   phoneTabs,
   pushRecent,
   setNotify,
-  showOnRail,
 } from './layout';
 
 const QUIET = ['task_assigned', 'task_signature', 'task_due_soon', 'rfi_answers', 'impact_claims', 'ir_results'];
@@ -24,17 +23,14 @@ describe('layout', () => {
   it('returns the defaults when there is no row', () => {
     expect(parseLayout(null)).toEqual(LAYOUT_DEFAULTS);
   });
-  it('drops unknown rail tools and bad values', () => {
-    const l = parseLayout({ rail_items: ['files', 'nope', 'board', 'files'], main_default: 'nope', collapsed: { rail: true, right: 1 } });
-    expect(l.rail_items).toEqual(['files', 'board']);
+  it('drops bad values', () => {
+    const l = parseLayout({ main_default: 'nope', collapsed: { rail: true, right: 1 } });
     expect(l.main_default).toBe('board');
     expect(l.collapsed).toEqual({ rail: true, right: false });
   });
-  it('no pins (null, nothing known, or junk) means the recommendation', () => {
-    expect(LAYOUT_DEFAULTS.rail_items).toBeNull();
-    expect(parseLayout({ rail_items: null }).rail_items).toBeNull();
-    expect(parseLayout({ rail_items: ['nope'] }).rail_items).toBeNull();
-    expect(parseLayout({ rail_items: 'board' }).rail_items).toBeNull();
+  it('old pins in a saved row are never read (retired in 0051: each job has its own tools)', () => {
+    expect(parseLayout({ rail_items: ['files', 'board'] })).not.toHaveProperty('rail_items');
+    expect(LAYOUT_DEFAULTS).not.toHaveProperty('rail_items');
   });
   it('keeps recent jobs most-recent-first without duplicates', () => {
     expect(pushRecent(['a', 'b', 'c'], 'b')).toEqual(['b', 'a', 'c']);
@@ -77,22 +73,6 @@ describe('rail order', () => {
   it('a moved tool reaches the phone bar', () => {
     const next = moveRailItem(['board', 'files', 'bids', 'calendar', 'dailies'], 'dailies', -1);
     expect(phoneTabs(next, 'board').tabs).toEqual(['board', 'files', 'bids', 'dailies']);
-  });
-  it('shows a tool at the end and hides it again', () => {
-    const c = { rail_items: [...rail], main_default: 'board' as const };
-    expect(showOnRail(c, 'people', true)).toEqual({ rail_items: [...rail, 'people'], main_default: 'board' });
-    expect(showOnRail(c, 'board', true).rail_items).toEqual([...rail]);
-    expect(showOnRail(c, 'files', false)).toEqual({ rail_items: ['board', 'bids', 'calendar'], main_default: 'board' });
-  });
-  it('hiding the tool I open on moves "Opens on" to the first tool left; the rail never goes empty', () => {
-    expect(showOnRail({ rail_items: ['board', 'files'], main_default: 'board' }, 'board', false)).toEqual({
-      rail_items: ['files'],
-      main_default: 'files',
-    });
-    expect(showOnRail({ rail_items: ['files'], main_default: 'files' }, 'files', false)).toEqual({
-      rail_items: ['files'],
-      main_default: 'files',
-    });
   });
 });
 

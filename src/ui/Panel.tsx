@@ -1,9 +1,10 @@
 // Phone primitives (SPEC §7.7): one screen at a time. A top bar with an optional back button, a body that scrolls,
 // and a bottom bar of tools. The phone has its own layout; it never shrinks the desktop frame.
 import type { ReactNode } from 'react';
-import { ChevronLeft, Ellipsis } from 'lucide-react';
+import { ChevronLeft, Ellipsis, Pencil } from 'lucide-react';
 import type { Tool } from '../lib/layout';
 import { countOf, type ToolCounts } from '../lib/toolCounts';
+import { Button } from './Button';
 import { CountBadge } from './CountBadge';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
@@ -114,10 +115,12 @@ interface PanelMoreSheetProps {
   current: Tool;
   counts: ToolCounts;
   onSelect: (tool: Tool) => void;
+  /** On a job: choose which of its tools sit on the bar (the desktop rail's Edit). */
+  onEdit?: (() => void) | undefined;
 }
 
-/** The tools that don't fit on the bar, as big buttons above it, each with its count. */
-export function PanelMoreSheet({ tools, current, counts, onSelect }: PanelMoreSheetProps) {
+/** The tools that don't fit on the bar, as big buttons above it, each with its count; on a job, Edit tools. */
+export function PanelMoreSheet({ tools, current, counts, onSelect, onEdit }: PanelMoreSheetProps) {
   return (
     <div data-testid="phone-more" className="grid shrink-0 grid-cols-3 gap-2 border-t border-line bg-card p-3">
       {tools.map((t) => (
@@ -138,6 +141,11 @@ export function PanelMoreSheet({ tools, current, counts, onSelect }: PanelMoreSh
           <CountBadge n={counts[t] ?? 0} testId={`tool-badge-${t}`} className="absolute left-1/2 top-1.5 ml-2 ring-2 ring-card" />
         </button>
       ))}
+      {onEdit ? (
+        <Button variant="quiet" icon={Pencil} data-testid="phone-more-edit" className="col-span-3 justify-self-end" onClick={onEdit}>
+          Edit tools
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,9 @@
-// Settings > Layout: the rail (which tools, in what order), where the main area opens, what the right column holds,
-// and the "What's new" line (SPEC §7.2). A live sketch shows where each choice lands. Each change saves at once.
-// The rail starts as my position's tools (0040); any change pins my own list, and "Use recommended" goes back.
-import { useState, type ReactNode } from 'react';
-import { RotateCcw } from 'lucide-react';
-import { DOCKED_PANELS, RAIL_TOOLS, type LayoutChoices, type RailTool } from '../../lib/layout';
-import { Button } from '../../ui/Button';
+// Settings > Layout: where the main area opens, what the right column holds, and the "What's new" line (SPEC §7.2). A
+// live sketch shows where each choice lands, with the rail as the frame shows it. Each change saves at once. A job's
+// tools on the rail are chosen on the rail itself (Edit under the job's name, 0051): one way to reach each thing.
+import { useState } from 'react';
+import { ALL_JOBS_TOOLS, type RailModel } from '../../lib/jobs';
+import { DOCKED_PANELS, RAIL_TOOLS, type LayoutChoices } from '../../lib/layout';
 import { Card } from '../../ui/Card';
 import { CheckField, SelectField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
@@ -12,14 +11,16 @@ import { ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { LayoutPreview, pointAt, type Spot } from './LayoutPreview';
 import { LayoutTips } from './LayoutTips';
-import { RailPicker } from './RailPicker';
 import { FIELD_ROW, SettingRow } from './SettingRow';
 import { useLayoutEditor } from './useLayoutEditor';
-import { useRecommendedRail } from './useRecommendedRail';
+import { usePreviewRail } from './usePreviewRail';
 
 type Docked = LayoutChoices['docked_panel'];
 
 const DOCKED_LABELS: Record<Docked, string> = { board: 'Board', none: 'Open item only' };
+
+/** "/" opens All my jobs on one of these (HomeRedirect): the board or the calendar. */
+const OPENS_ON = ALL_JOBS_TOOLS.filter((t) => t === 'board' || t === 'calendar');
 
 function DockedChoice({ value, onPick }: { value: Docked; onPick: (v: Docked) => void }) {
   return (
@@ -43,54 +44,17 @@ function DockedChoice({ value, onPick }: { value: Docked; onPick: (v: Docked) =>
   );
 }
 
-function Group({ label, aside, children }: { label: string; aside?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex min-h-8 items-center justify-between gap-3">
-        <span className="text-sm font-medium text-ink">{label}</span>
-        {aside}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/** Beside "Rail": that it is my position's list, or the way back to it once I've pinned my own. */
-function RailState({ pinned, onReset }: { pinned: boolean; onReset: () => void }) {
-  if (!pinned) {
-    return (
-      <span data-testid="layout-rail-recommended" className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
-        Recommended
-      </span>
-    );
-  }
-  return (
-    <Button size="sm" variant="quiet" icon={RotateCcw} data-testid="layout-rail-use-recommended" onClick={onReset}>
-      Use recommended
-    </Button>
-  );
-}
-
 interface ChoicesProps {
   c: LayoutChoices;
-  /** My position's rail on this job: what the rail shows while I have no pins. */
-  recommended: readonly RailTool[];
+  /** The rail the frame shows here. */
+  rail: RailModel;
   set: (patch: Partial<LayoutChoices>) => void;
 }
 
-function sameSpot(a: Spot | null, b: Spot | null): boolean {
-  return a === b || (a !== null && b !== null && a.area === b.area && a.tool === b.tool);
-}
-
-function LayoutChoicesForm({ c, recommended, set }: ChoicesProps) {
-  const [spot, setSpotState] = useState<Spot | null>(null);
-  // Keeping the same object skips a render on every pointer move.
-  const setSpot = (next: Spot | null) => {
-    setSpotState((prev) => (sameSpot(prev, next) ? prev : next));
-  };
-  const rail = c.rail_items ?? [...recommended];
-  // "Opens on" offers the tools on my rail (and the saved one, if an older layout left it off the rail).
-  const opens = [...rail, ...(rail.includes(c.main_default) ? [] : [c.main_default])].map((t) => ({
+function LayoutChoicesForm({ c, rail, set }: ChoicesProps) {
+  const [spot, setSpot] = useState<Spot | null>(null);
+  // "Opens on": the board or the calendar (and the saved one, if an older layout chose another tool).
+  const opens = [...OPENS_ON, ...(OPENS_ON.some((t) => t === c.main_default) ? [] : [c.main_default])].map((t) => ({
     value: t,
     label: TOOL_META[t].label,
   }));
@@ -99,60 +63,45 @@ function LayoutChoicesForm({ c, recommended, set }: ChoicesProps) {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div className="xl:order-2">
         <div className="xl:sticky xl:top-4">
-          <LayoutPreview choices={{ ...c, rail_items: rail }} more={rail.length < RAIL_TOOLS.length} spot={spot} />
+          <LayoutPreview choices={c} rail={rail} spot={spot} />
         </div>
       </div>
-      <div className="flex min-w-0 flex-col gap-4 xl:order-1">
-        <Group
-          label="Rail"
-          aside={
-            <RailState
-              pinned={c.rail_items !== null}
-              onReset={() => {
-                set({ rail_items: null });
+      {/* Each row sits in the box that lights its spot in the preview; the list draws the lines between them. */}
+      <div className="flex min-w-0 flex-col divide-y divide-line border-t border-line xl:order-1">
+        <div {...pointAt('main', setSpot)}>
+          <SelectField
+            label="Opens on"
+            value={c.main_default}
+            options={opens}
+            className={FIELD_ROW}
+            testId="layout-main-default"
+            onChange={(v) => {
+              const t = RAIL_TOOLS.find((x) => x === v);
+              if (t) set({ main_default: t });
+            }}
+          />
+        </div>
+        <div {...pointAt('right', setSpot)}>
+          <SettingRow label="Right column">
+            <DockedChoice
+              value={c.docked_panel}
+              onPick={(docked_panel) => {
+                set({ docked_panel });
               }}
             />
-          }
-        >
-          <RailPicker choices={{ rail_items: rail, main_default: c.main_default }} onChange={set} onSpot={setSpot} />
-        </Group>
-        {/* Each row sits in the box that lights its spot in the preview; the list draws the lines between them. */}
-        <div className="flex flex-col divide-y divide-line border-t border-line">
-          <div {...pointAt({ area: 'main', tool: null }, setSpot)}>
-            <SelectField
-              label="Opens on"
-              value={c.main_default}
-              options={opens}
-              className={FIELD_ROW}
-              testId="layout-main-default"
-              onChange={(v) => {
-                const t = RAIL_TOOLS.find((x) => x === v);
-                if (t) set({ main_default: t });
+          </SettingRow>
+        </div>
+        <div {...pointAt('whats_new', setSpot)}>
+          <SettingRow label="Board">
+            <CheckField
+              label="What's new line"
+              checked={c.whats_new_enabled}
+              testId="layout-whats-new"
+              onChange={(whats_new_enabled) => {
+                set({ whats_new_enabled });
               }}
             />
-          </div>
-          <div {...pointAt({ area: 'right', tool: null }, setSpot)}>
-            <SettingRow label="Right column">
-              <DockedChoice
-                value={c.docked_panel}
-                onPick={(docked_panel) => {
-                  set({ docked_panel });
-                }}
-              />
-            </SettingRow>
-          </div>
-          <div {...pointAt({ area: 'whats_new', tool: null }, setSpot)}>
-            <SettingRow label="Board">
-              <CheckField
-                label="What's new line"
-                checked={c.whats_new_enabled}
-                testId="layout-whats-new"
-                onChange={(whats_new_enabled) => {
-                  set({ whats_new_enabled });
-                }}
-              />
-            </SettingRow>
-          </div>
+          </SettingRow>
         </div>
       </div>
     </div>
@@ -161,18 +110,16 @@ function LayoutChoicesForm({ c, recommended, set }: ChoicesProps) {
 
 export function LayoutForm({ projectId }: { projectId: string | null }) {
   const { layout, save, set } = useLayoutEditor();
-  const recommended = useRecommendedRail(projectId, layout.data?.choices.recent_project_ids ?? []);
+  const rail = usePreviewRail(projectId);
   return (
     <Card title="Layout" actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={null} />}>
       {/* data-version: the saved row's version, so a test can wait for a save to land. */}
       <div data-testid="layout-card" data-version={layout.data?.version ?? 'none'} className="flex flex-col gap-5">
         <LayoutTips />
-        {layout.isPending || recommended.isPending ? <LoadingState label="Loading your layout" /> : null}
+        {layout.isPending || rail.isPending ? <LoadingState label="Loading your layout" /> : null}
         {layout.isError ? <ErrorState error={layout.error} onRetry={() => void layout.refetch()} /> : null}
-        {recommended.error ? <ErrorState error={recommended.error} onRetry={recommended.refetch} /> : null}
-        {layout.data && recommended.data ? (
-          <LayoutChoicesForm c={layout.data.choices} recommended={recommended.data.rail} set={set} />
-        ) : null}
+        {rail.error ? <ErrorState error={rail.error} onRetry={rail.refetch} /> : null}
+        {layout.data && rail.data ? <LayoutChoicesForm c={layout.data.choices} rail={rail.data} set={set} /> : null}
       </div>
     </Card>
   );

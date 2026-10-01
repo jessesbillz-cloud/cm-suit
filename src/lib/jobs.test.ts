@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { allJobsRail, allJobsTool, defaultStage, isBidStage, jobRail, jobTool, railForAllJobs, railForJob, stageLabel, toolIsOn } from './jobs';
+import {
+  JOB_TOOLS,
+  allJobsTool,
+  defaultStage,
+  isBidStage,
+  jobRail,
+  jobTool,
+  phoneRail,
+  railForAllJobs,
+  railForJob,
+  railModel,
+  showJobTool,
+  stageLabel,
+  toolIsOn,
+} from './jobs';
+
+/** A job being built: every field tool on (0021). */
+const FIELD = ['bids', 'files', 'calendar', 'dailies', 'inspections', 'rfis', 'deliveries', 'corrections'];
 
 describe('jobs', () => {
   it('a switched-off module leaves the rail; board and people always stay', () => {
@@ -25,40 +42,82 @@ describe('jobs', () => {
     expect(allJobsTool('calendar')).toBe('calendar');
     expect(allJobsTool('settings')).toBe('settings');
   });
-  it("a job's rail: my role's recommendation on the job, in its order; the rest of the job's tools under More", () => {
-    const modules = ['files', 'calendar', 'dailies', 'inspections', 'rfis', 'deliveries', 'corrections'];
-    expect(jobRail(null, ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files'], modules)).toEqual({
-      rail: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files'],
-      more: ['rfis', 'deliveries', 'people'],
+  it('All my jobs: only the top, the cross-job tools some job of mine has on', () => {
+    expect(railModel(null, [{ project_id: 'a', modules: ['bids', 'files', 'calendar'] }], {}, {})).toEqual({
+      general: ['board', 'calendar', 'bids'],
+      job: [],
+      more: [],
+    });
+    expect(railModel(null, [{ project_id: 'a', modules: ['files'] }], {}, {})).toEqual({ general: ['board'], job: [], more: [] });
+  });
+  it("a job: the top acts on it; my recommendation there, minus the top, under its name; the rest under More", () => {
+    const rec = { a: ['board', 'calendar', 'rfis', 'inspections', 'files'] };
+    expect(railModel('a', [{ project_id: 'a', modules: FIELD }], rec, {})).toEqual({
+      general: ['board', 'calendar', 'bids'],
+      job: ['rfis', 'inspections', 'files'],
+      more: ['dailies', 'deliveries', 'corrections', 'people'],
     });
   });
-  it("a job's rail: pins win on every job, minus what the job has off; never empty", () => {
-    expect(jobRail(['dailies', 'board', 'bids'], ['board', 'rfis'], ['dailies'])).toEqual({ rail: ['dailies', 'board'], more: ['people'] });
-    expect(jobRail(null, ['nope', 'bids'], ['files'])).toEqual({ rail: ['board'], more: ['files', 'people'] });
-    expect(jobRail(null, [], [])).toEqual({ rail: ['board'], more: ['people'] });
+  it('a job: my own list wins, in my order, on that job only; null is the recommendation', () => {
+    const jobs = [
+      { project_id: 'a', modules: FIELD },
+      { project_id: 'b', modules: FIELD },
+    ];
+    const rec = { a: ['board', 'rfis'], b: ['board', 'rfis'] };
+    const own = { a: ['dailies', 'files'], b: null };
+    expect(railModel('a', jobs, rec, own).job).toEqual(['dailies', 'files']);
+    expect(railModel('a', jobs, rec, own).more).toEqual(['inspections', 'rfis', 'deliveries', 'corrections', 'people']);
+    expect(railModel('b', jobs, rec, own).job).toEqual(['rfis']);
   });
-  it('All my jobs: every cross-job tool some job has on; pins pick which stay on the rail', () => {
-    expect(allJobsRail(null, [['bids', 'files', 'calendar']])).toEqual({ rail: ['board', 'calendar', 'bids'], more: [] });
-    expect(allJobsRail(null, [['files']])).toEqual({ rail: ['board'], more: [] });
-    expect(allJobsRail(['calendar', 'files', 'board'], [['bids', 'calendar']])).toEqual({ rail: ['calendar', 'board'], more: ['bids'] });
+  it("a job: a list naming tools the job has off, or ones on top, shows each tool once; an empty list is a choice", () => {
+    expect(jobRail(['board', 'calendar', 'bids'], ['dailies', 'bids', 'calendar', 'files'], [], ['files', 'bids', 'calendar'])).toEqual({
+      general: ['board', 'calendar', 'bids'],
+      job: ['files'],
+      more: ['people'],
+    });
+    expect(jobRail(['board'], [], ['board', 'rfis'], ['rfis'])).toEqual({ general: ['board'], job: [], more: ['rfis', 'people'] });
   });
   it('tools that are not modules are always on', () => {
     expect(toolIsOn('settings', [])).toBe(true);
     expect(toolIsOn('bids', ['files'])).toBe(false);
   });
-  it('Hours: on where the job has it; Timesheets comes with it and never sits on a job', () => {
-    const modules = ['files', 'dailies', 'hours'];
+  it("Hours: on top (as the job's Hours) for people who keep hours; a job's tool for everyone else", () => {
+    const jobs = [
+      { project_id: 'v', modules: ['files', 'calendar', 'dailies', 'hours'] },
+      { project_id: 'a', modules: FIELD },
+    ];
+    const keeper = { v: ['board', 'dailies', 'hours'], a: ['board'] };
     expect(toolIsOn('hours', ['files'])).toBe(false);
-    expect(toolIsOn('timesheets', modules)).toBe(true);
-    expect(jobRail(null, ['board', 'dailies', 'hours'], modules)).toEqual({ rail: ['board', 'dailies', 'hours'], more: ['files', 'people'] });
-    expect(jobRail(['hours', 'timesheets'], [], modules).rail).toEqual(['hours']);
+    expect(toolIsOn('timesheets', jobs[0]?.modules ?? [])).toBe(true);
+    expect(railModel(null, jobs, keeper, {}).general).toEqual(['board', 'calendar', 'bids', 'timesheets']);
+    expect(railModel('v', jobs, keeper, {})).toEqual({ general: ['board', 'calendar', 'hours'], job: ['dailies'], more: ['files', 'people'] });
+    expect(railModel('a', jobs, keeper, {}).general).toEqual(['board', 'calendar', 'bids']);
+    const pm = { v: ['board', 'files'], a: ['board'] };
+    expect(railModel(null, jobs, pm, {}).general).toEqual(['board', 'calendar', 'bids']);
+    expect(railModel('v', jobs, pm, {})).toEqual({ general: ['board', 'calendar'], job: ['files'], more: ['dailies', 'people', 'hours'] });
   });
-  it('All my jobs: Timesheets for people who keep hours on a job that has Hours', () => {
-    const jobs = [['bids', 'calendar'], ['calendar', 'hours']];
-    expect(allJobsRail(null, jobs, [['board'], ['board', 'hours']]).rail).toEqual(['board', 'calendar', 'bids', 'timesheets']);
-    expect(allJobsRail(null, jobs, [['board'], ['board', 'calendar']]).rail).toEqual(['board', 'calendar', 'bids']);
-    expect(allJobsRail(null, [['calendar']], [['board', 'hours']]).rail).toEqual(['board', 'calendar']);
-    expect(allJobsRail(['board', 'hours'], jobs, [])).toEqual({ rail: ['board'], more: ['calendar', 'bids', 'timesheets'] });
+  it("the phone: Board and Calendar, then the job's tools, then the rest of the top", () => {
+    expect(phoneRail({ general: ['board', 'calendar', 'bids'], job: ['rfis', 'inspections'], more: ['files'] })).toEqual([
+      'board',
+      'calendar',
+      'rfis',
+      'inspections',
+      'bids',
+    ]);
+    expect(phoneRail({ general: ['board', 'calendar', 'bids', 'timesheets'], job: [], more: [] })).toEqual([
+      'board',
+      'calendar',
+      'bids',
+      'timesheets',
+    ]);
+  });
+  it('Edit: a shown tool joins the end, a hidden one goes under More', () => {
+    expect(showJobTool(['rfis'], 'files', true)).toEqual(['rfis', 'files']);
+    expect(showJobTool(['rfis', 'files'], 'files', true)).toEqual(['rfis', 'files']);
+    expect(showJobTool(['rfis', 'files'], 'rfis', false)).toEqual(['files']);
+  });
+  it("job tools: every rail tool but Board, Calendar and Timesheets (the database's job_rail_tools)", () => {
+    expect(JOB_TOOLS).toEqual(['files', 'bids', 'dailies', 'inspections', 'rfis', 'deliveries', 'corrections', 'people', 'hours']);
   });
   it('Hours and Timesheets land on each other between a job and All my jobs', () => {
     expect(allJobsTool('hours')).toBe('timesheets');
