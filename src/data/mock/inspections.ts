@@ -4,7 +4,7 @@ import { todayInZone } from '../../lib/dates';
 import { conflictError } from '../errors';
 import type { CalendarRow, FormContext, IrEvent, IrRecipient, IrRequest, IrRowRaw, NewBlock } from '../inspections.types';
 import { SEED_IR } from './boardSeeds';
-import { seedBlocks, seedRequests } from './irSeeds';
+import { permitJobRequests, seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
 import { delay } from './store';
 
@@ -40,7 +40,7 @@ interface IrState {
 /** The start: IR 12 on Sample Job B (a board line points at it) and the calendar's seeded month on both jobs. */
 function seeded(): IrState {
   const today = todayInZone(TZ);
-  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 })];
+  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 }), ...permitJobRequests(today)];
   const next: Record<string, number> = {};
   for (const r of requests) next[r.project_id] = Math.max(next[r.project_id] ?? 1, r.number + 1);
   return { requests, events: [], blocks: seedBlocks(today), next };
@@ -68,7 +68,7 @@ function withKind(r: IrRowRaw): IrRequest {
 }
 
 /** The server's ir_status_key, for the mock. */
-function statusKey(r: IrRowRaw): string {
+export function statusKey(r: Pick<IrRowRaw, 'status' | 'result' | 'helper_id'>): string {
   if (r.status === 'postponed') return 'postponed';
   if (r.status === 'gc_review') return 'gc_review';
   if (r.status === 'returned') return 'blocked';
@@ -171,7 +171,7 @@ function newRow(a: Record<string, unknown>, number: number): IrRowRaw {
     attendance: null, result: null, result_note: null, result_photo_ids: [], result_at: null, result_by: null,
     helper_report: null, helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null,
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
-    pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null,
+    pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
   };
 }
 
@@ -201,12 +201,16 @@ const CHANGES: Record<string, Change> = {
   ir_claim: (r, _a, me) => (r.owner_id === null ? { owner_id: me } : { helper_id: me }),
   ir_assign_helper: (_r, a) => ({ helper_id: opt(a, 'p_helper_id') }),
   ir_helper_report: (_r, a) => ({ helper_report: opt(a, 'p_report'), helper_note: opt(a, 'p_note') }),
+  // Permits (0052): the permit the request is for.
+  set_request_permit: (_r, a) => ({ permit_id: opt(a, 'p_permit_id') }),
 };
 
 /** The history word the server writes for each RPC. */
 function actionOf(name: string, a: Record<string, unknown>): string {
   if (name === 'ir_gc_decide') return a['p_approve'] === true ? 'gc_approve' : 'gc_return';
-  const map: Record<string, string> = { ir_set_result: 'result', ir_set_attendance: 'attendance', ir_assign_helper: 'helper' };
+  const map: Record<string, string> = {
+    ir_set_result: 'result', ir_set_attendance: 'attendance', ir_assign_helper: 'helper', set_request_permit: 'permit',
+  };
   return map[name] ?? name.replace(/^ir_/, '');
 }
 

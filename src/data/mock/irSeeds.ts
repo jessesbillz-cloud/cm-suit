@@ -6,6 +6,7 @@ import { addDays, format, isWeekend, parseISO } from 'date-fns';
 import type { IrRowRaw } from '../inspections.types';
 import type { FileRow } from '../types';
 import type { MockBlock } from './inspections';
+import { SEED_PERMIT_S1 } from './permitSeeds';
 
 const REQUESTER = 'mock-user-sub';
 const OWNER = 'mock-user-pm';
@@ -99,7 +100,7 @@ function row(job: string, day: string, number: number, i: number, { time, length
     confirm_note: null, attendance: null, result: null, result_note: null, result_photo_ids: [], result_at: null, result_by: null,
     helper_report: null, helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null,
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
-    pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null,
+    pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     ...fields(state, day, job, number, i % 11 === 5),
   };
 }
@@ -127,6 +128,26 @@ export function seedRequests(today: string, firstNumber: Record<string, number>)
     }
   });
   return out;
+}
+
+/**
+ * The fire marshal's inspections on Sample Science Building (the permits mock): an underground hydro done a month ago
+ * and a sprinkler hydro confirmed for this week, both for permit 24-0001; two more requested and not linked yet.
+ */
+export function permitJobRequests(today: string): IrRowRaw[] {
+  const on = (n: number) => format(addDays(parseISO(today), n), 'yyyy-MM-dd');
+  const seeds: [offset: number, state: State, items: string, permit: string | null][] = [
+    [-30, 'done', 'Underground fire service hydro and flush', SEED_PERMIT_S1],
+    [3, 'confirmed', 'Sprinkler hydro, levels 1 and 2', SEED_PERMIT_S1],
+    [6, 'pending', 'Fire alarm device test, level 1', null],
+    [8, 'pending', 'Fire doors and dampers, level 2', null],
+  ];
+  // TYPES[7] is the OFS kind.
+  return seeds.map(([offset, state, items, permit], k) => ({
+    ...row('job-s', on(offset), k + 1, 7, { time: '09:00', length: 120 }, state),
+    items,
+    permit_id: permit,
+  }));
 }
 
 /** Blocked time: a weekly lunch hour on Sample Job A (today's weekday, from two weeks back) and one morning on B. */

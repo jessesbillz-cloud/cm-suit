@@ -88,4 +88,7 @@ export const qk = {
   imagePreview: (fileId: string, via: string) => ['image_preview', fileId, via] as const,
   /** My tools under each job's name on the rail (0051), for all my jobs at once. */
   jobRails: ['user_job_rail'] as const,
+  /** Every permits query (a job's log or my caseload, trackers, one permit, who can be assigned) sits under this prefix. */
+  permits: ['permits'] as const,
+  permitsPart: (part: string, id = '') => ['permits', part, id] as const,
 };

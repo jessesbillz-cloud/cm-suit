@@ -11,7 +11,15 @@ import { RequestLinkPage } from '../features/inspections/RequestLinkPage';
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
-import { AllBidsRoute, AllBoardRoute, AllCalendarRoute, AllSettingsRoute, AllTimesheetsRoute, ProjectToolRoute } from './frame/FrameRoute';
+import {
+  AllBidsRoute,
+  AllBoardRoute,
+  AllCalendarRoute,
+  AllPermitsRoute,
+  AllSettingsRoute,
+  AllTimesheetsRoute,
+  ProjectToolRoute,
+} from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
 import { RootLayout } from './RootLayout';
 
@@ -175,6 +183,15 @@ const allTimesheetsRoute = createRoute({
 });
 const allTimesheetsItemRoute = createRoute({ getParentRoute: () => allTimesheetsRoute, path: '$itemId' });
 
+/** The official's permit caseload across all my jobs (0052): the filter (?view=) and "open in new window". */
+const allPermitsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/all/permits',
+  validateSearch: parseToolSearch,
+  component: AllPermitsRoute,
+});
+const allPermitsItemRoute = createRoute({ getParentRoute: () => allPermitsRoute, path: '$itemId' });
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -191,6 +208,7 @@ const routeTree = rootRoute.addChildren([
   allBidsRoute,
   allSettingsRoute,
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
+  allPermitsRoute.addChildren([allPermitsItemRoute]),
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

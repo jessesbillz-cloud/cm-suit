@@ -2568,6 +2568,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -2619,6 +2620,7 @@ export type Database = {
           owner_id?: string | null
           pdf_postponed?: boolean
           pdf_stale?: boolean
+          permit_id?: string | null
           postpone_count?: number
           postpone_note?: string | null
           postpone_reason?: string | null
@@ -2670,6 +2672,7 @@ export type Database = {
           owner_id?: string | null
           pdf_postponed?: boolean
           pdf_stale?: boolean
+          permit_id?: string | null
           postpone_count?: number
           postpone_note?: string | null
           postpone_reason?: string | null
@@ -2700,6 +2703,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "files"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_requests_permit_id_project_id_fkey"
+            columns: ["permit_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id", "project_id"]
           },
           {
             foreignKeyName: "inspection_requests_project_id_org_id_fkey"
@@ -3166,6 +3176,282 @@ export type Database = {
           table_name?: string
         }
         Relationships: []
+      }
+      permit_comments: {
+        Row: {
+          body: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_cycle: number | null
+          code_ref: string
+          created_at: string
+          created_by: string
+          detail: string
+          id: string
+          number: number
+          org_id: string
+          permit_id: string
+          project_id: string
+          request_key: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          review_id: string
+          sheet: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          body: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_cycle?: number | null
+          code_ref?: string
+          created_at?: string
+          created_by: string
+          detail?: string
+          id?: string
+          number: number
+          org_id: string
+          permit_id: string
+          project_id: string
+          request_key?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          review_id: string
+          sheet?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          body?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_cycle?: number | null
+          code_ref?: string
+          created_at?: string
+          created_by?: string
+          detail?: string
+          id?: string
+          number?: number
+          org_id?: string
+          permit_id?: string
+          project_id?: string
+          request_key?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          review_id?: string
+          sheet?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_comments_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_comments_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "permit_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_reviews: {
+        Row: {
+          created_at: string
+          created_by: string
+          cycle: number
+          id: string
+          kind: string
+          org_id: string
+          outcome: string | null
+          permit_id: string
+          project_id: string
+          received_on: string
+          request_key: string | null
+          returned_on: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          cycle: number
+          id?: string
+          kind: string
+          org_id: string
+          outcome?: string | null
+          permit_id: string
+          project_id: string
+          received_on: string
+          request_key?: string | null
+          returned_on?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          cycle?: number
+          id?: string
+          kind?: string
+          org_id?: string
+          outcome?: string | null
+          permit_id?: string
+          project_id?: string
+          received_on?: string
+          request_key?: string | null
+          returned_on?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_reviews_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_stage_events: {
+        Row: {
+          actor: string | null
+          at: string
+          id: number
+          note: string | null
+          org_id: string
+          permit_id: string
+          prior: Json
+          project_id: string
+          stage: string
+          undone_at: string | null
+          undone_by: string | null
+        }
+        Insert: {
+          actor?: string | null
+          at?: string
+          id?: never
+          note?: string | null
+          org_id: string
+          permit_id: string
+          prior?: Json
+          project_id: string
+          stage: string
+          undone_at?: string | null
+          undone_by?: string | null
+        }
+        Update: {
+          actor?: string | null
+          at?: string
+          id?: never
+          note?: string | null
+          org_id?: string
+          permit_id?: string
+          prior?: Json
+          project_id?: string
+          stage?: string
+          undone_at?: string | null
+          undone_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_stage_events_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permits: {
+        Row: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          agency_numbers?: string[]
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          expires_on?: string | null
+          extensions?: number
+          id?: string
+          issued_on?: string | null
+          kind?: string
+          notes?: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key?: string | null
+          stage?: string
+          stage_since?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          agency_numbers?: string[]
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          expires_on?: string | null
+          extensions?: number
+          id?: string
+          issued_on?: string | null
+          kind?: string
+          notes?: string
+          org_id?: string
+          primary_number?: string
+          project_id?: string
+          request_key?: string | null
+          stage?: string
+          stage_since?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permits_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -5531,6 +5817,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5597,6 +5884,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5684,6 +5972,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5744,6 +6033,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5804,6 +6094,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5864,6 +6155,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5929,6 +6221,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -5995,6 +6288,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6060,6 +6354,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6124,6 +6419,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6195,6 +6491,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6265,6 +6562,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6336,6 +6634,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6396,6 +6695,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6462,6 +6762,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6530,6 +6831,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6606,6 +6908,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6686,6 +6989,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6750,6 +7054,7 @@ export type Database = {
           owner_id: string | null
           pdf_postponed: boolean
           pdf_stale: boolean
+          permit_id: string | null
           postpone_count: number
           postpone_note: string | null
           postpone_reason: string | null
@@ -6910,6 +7215,29 @@ export type Database = {
           version: number
         }[]
       }
+      my_permits: {
+        Args: never
+        Returns: {
+          agency_numbers: string[]
+          assigned_name: string
+          assigned_to: string
+          expires_on: string
+          extensions: number
+          id: string
+          issued_on: string
+          kind: string
+          open_comments: number
+          primary_number: string
+          project_id: string
+          project_name: string
+          review_cycle: number
+          stage: string
+          stage_since: string
+          timezone: string
+          title: string
+          version: number
+        }[]
+      }
       my_projects: {
         Args: never
         Returns: {
@@ -6962,6 +7290,513 @@ export type Database = {
           status: string
           user_id: string
         }[]
+      }
+      permit_check: {
+        Args: {
+          p_kind: string
+          p_notes: string
+          p_numbers: string[]
+          p_primary: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      permit_clean_numbers: {
+        Args: {
+          p_numbers: string[]
+          p_primary: string
+        }
+        Returns: string[]
+      }
+      permit_comment_add: {
+        Args: {
+          p_body: string
+          p_code_ref?: string
+          p_detail?: string
+          p_key?: string
+          p_review_id: string
+          p_sheet?: string
+        }
+        Returns: {
+          body: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_cycle: number | null
+          code_ref: string
+          created_at: string
+          created_by: string
+          detail: string
+          id: string
+          number: number
+          org_id: string
+          permit_id: string
+          project_id: string
+          request_key: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          review_id: string
+          sheet: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_comment_close: {
+        Args: {
+          p_closed?: boolean
+          p_comment_id: string
+          p_version: number
+        }
+        Returns: {
+          body: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_cycle: number | null
+          code_ref: string
+          created_at: string
+          created_by: string
+          detail: string
+          id: string
+          number: number
+          org_id: string
+          permit_id: string
+          project_id: string
+          request_key: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          review_id: string
+          sheet: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_comment_respond: {
+        Args: {
+          p_comment_id: string
+          p_response: string
+          p_version: number
+        }
+        Returns: {
+          body: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_cycle: number | null
+          code_ref: string
+          created_at: string
+          created_by: string
+          detail: string
+          id: string
+          number: number
+          org_id: string
+          permit_id: string
+          project_id: string
+          request_key: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          review_id: string
+          sheet: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_create: {
+        Args: {
+          p_agency_numbers?: string[]
+          p_assigned_to?: string
+          p_key?: string
+          p_kind?: string
+          p_notes?: string
+          p_primary_number: string
+          p_project_id: string
+          p_stage?: string
+          p_title: string
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_cycle: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: number
+      }
+      permit_detail: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: Json
+      }
+      permit_label: {
+        Args: {
+          p_number: string
+        }
+        Returns: string
+      }
+      permit_list: {
+        Args: {
+          p_project_id?: string
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_name: string
+          assigned_to: string
+          expires_on: string
+          extensions: number
+          id: string
+          issued_on: string
+          kind: string
+          open_comments: number
+          primary_number: string
+          project_id: string
+          project_name: string
+          review_cycle: number
+          stage: string
+          stage_since: string
+          timezone: string
+          title: string
+          version: number
+        }[]
+      }
+      permit_lock: {
+        Args: {
+          p_permit_id: string
+          p_version: number
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_move: {
+        Args: {
+          p_note?: string
+          p_permit_id: string
+          p_stage: string
+          p_version: number
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_next_stages: {
+        Args: {
+          p_stage: string
+        }
+        Returns: string[]
+      }
+      permit_number_free: {
+        Args: {
+          p_except: string
+          p_number: string
+          p_project_id: string
+        }
+        Returns: undefined
+      }
+      permit_numbers_ok: {
+        Args: {
+          p_numbers: string[]
+        }
+        Returns: boolean
+      }
+      permit_official_ok: {
+        Args: {
+          p_person: string
+          p_project_id: string
+        }
+        Returns: boolean
+      }
+      permit_officials: {
+        Args: {
+          p_assigned_to: string
+          p_project_id: string
+        }
+        Returns: string[]
+      }
+      permit_people: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: {
+          name: string
+          user_id: string
+        }[]
+      }
+      permit_progress: {
+        Args: {
+          p_permit_id?: string
+          p_project_id?: string
+        }
+        Returns: {
+          days: number
+          entered_at: string
+          left_at: string
+          permit_id: string
+          position: number
+          stage: string
+          state: string
+        }[]
+      }
+      permit_review_close: {
+        Args: {
+          p_outcome: string
+          p_returned_on?: string
+          p_review_id: string
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          cycle: number
+          id: string
+          kind: string
+          org_id: string
+          outcome: string | null
+          permit_id: string
+          project_id: string
+          received_on: string
+          request_key: string | null
+          returned_on: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_review_open: {
+        Args: {
+          p_key?: string
+          p_kind?: string
+          p_permit_id: string
+          p_received_on?: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          cycle: number
+          id: string
+          kind: string
+          org_id: string
+          outcome: string | null
+          permit_id: string
+          project_id: string
+          received_on: string
+          request_key: string | null
+          returned_on: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_stage_label: {
+        Args: {
+          p_stage: string
+        }
+        Returns: string
+      }
+      permit_stage_pos: {
+        Args: {
+          p_stage: string
+        }
+        Returns: number
+      }
+      permit_tell: {
+        Args: {
+          p_kind: string
+          p_people: string[]
+          p_permit: Database["public"]["Tables"]["permits"]["Row"]
+          p_summary: string
+        }
+        Returns: undefined
+      }
+      permit_today: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: string
+      }
+      permit_undo_move: {
+        Args: {
+          p_permit_id: string
+          p_version: number
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_update: {
+        Args: {
+          p_agency_numbers: string[]
+          p_assigned_to: string
+          p_expires_on: string
+          p_extensions: number
+          p_issued_on: string
+          p_kind: string
+          p_notes: string
+          p_permit_id: string
+          p_primary_number: string
+          p_title: string
+          p_version: number
+        }
+        Returns: {
+          agency_numbers: string[]
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          expires_on: string | null
+          extensions: number
+          id: string
+          issued_on: string | null
+          kind: string
+          notes: string
+          org_id: string
+          primary_number: string
+          project_id: string
+          request_key: string | null
+          stage: string
+          stage_since: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permits"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       post_activity: {
         Args: {
@@ -8517,6 +9352,71 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "orgs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_request_permit: {
+        Args: {
+          p_permit_id: string
+          p_request_id: string
+          p_version: number
+        }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
           isOneToOne: true
           isSetofReturn: false
         }
