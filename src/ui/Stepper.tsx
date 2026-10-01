@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 
 export type StepperState = 'done' | 'current' | 'todo' | 'failed';
 
-export interface StepperStep {
+interface StepperStep {
   key: string;
   label: string;
   /** A second line under the label, e.g. how long the step held it ("5d"). */
