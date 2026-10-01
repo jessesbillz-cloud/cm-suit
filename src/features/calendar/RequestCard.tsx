@@ -38,7 +38,7 @@ function Files({ entry }: { entry: IrEntry }) {
           key={id}
           type="button"
           disabled={download.isPending && download.variables.fileId === id}
-          className="inline-flex h-8 max-w-full items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-[13px] text-ink hover:border-line-strong hover:bg-page/60 disabled:opacity-60"
+          className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-md border border-line bg-card px-2.5 py-1 text-left text-[13px] text-ink hover:border-line-strong hover:bg-page/60 disabled:opacity-60"
           onClick={() => {
             if (row.id === null) return;
             download.mutate(
@@ -52,7 +52,7 @@ function Files({ entry }: { entry: IrEntry }) {
           }}
         >
           <Icon icon={Paperclip} size={14} className="shrink-0 text-ink-3" />
-          <span className="break-all">{names.data?.[id] ?? `File ${String(i + 1)}`}</span>
+          <span className="min-w-0 wrap-anywhere">{names.data?.[id] ?? `File ${String(i + 1)}`}</span>
         </button>
       ))}
     </div>
@@ -101,7 +101,7 @@ export function RequestCard({ entry, showJob, selected, done, onOpen }: RequestC
           {opens ? (
             <button
               type="button"
-              className="block break-words text-left text-[15px] font-semibold leading-5 text-ink after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-accent"
+              className="block wrap-anywhere text-left text-[15px] font-semibold leading-5 text-ink after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-accent"
               onClick={() => {
                 onOpen(entry);
               }}

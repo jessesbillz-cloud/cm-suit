@@ -32,23 +32,17 @@ function Flags({ s }: { s: PackageSummary }) {
 }
 
 function MoneyCells({ s }: { s: PackageSummary }) {
-  // No low: no bids, or none priced yet ("No bids" already sits in the Bids column).
-  if (s.low === null) {
-    return (
-      <td className="px-2 py-3 text-ink-3" colSpan={5}>
-        -
-      </td>
-    );
-  }
+  // No low: no bids, or none priced yet ("No bids" already sits in the Bids column). An empty cell, not a dash.
+  if (s.low === null) return <td className="px-2 py-3" colSpan={5} />;
   const spread = s.spread;
   return (
     <>
       <td className="px-2 py-3 text-right font-semibold tabular-nums text-ink">{formatMoney(s.low.base_amount ?? 0)}</td>
       <td className="whitespace-normal break-words px-2 py-3 text-ink">{s.low.bidder}</td>
       <td className="px-2 py-3">{pwLabel(s.low.prevailing_wage)}</td>
-      <td className="px-2 py-3 text-right tabular-nums">{s.high === null ? '-' : formatMoney(s.high)}</td>
+      <td className="px-2 py-3 text-right tabular-nums">{s.high === null ? '' : formatMoney(s.high)}</td>
       <td className={`px-2 py-3 text-right tabular-nums ${spread !== null && spread > SPREAD_WARN ? 'font-semibold text-danger' : ''}`}>
-        {spread === null ? '-' : formatPct(spread)}
+        {spread === null ? '' : formatPct(spread)}
       </td>
     </>
   );

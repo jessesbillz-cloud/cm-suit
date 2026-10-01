@@ -57,9 +57,12 @@ export function DeliveryCard({ delivery: d, tz, size = 'normal', onOpen, selecte
   const body = (
     <>
       <span className={`w-[7.5rem] shrink-0 pt-px text-sm font-semibold tabular-nums sm:w-36 ${tbd ? 'text-ink-3' : 'text-ink'}`}>{timeRange(d, tz)}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block break-words text-sm font-semibold text-ink">{d.company}</span>
-        {d.description !== '' ? <span className="block break-words text-sm text-ink-2">{d.description}</span> : null}
+      {/* Two tight lines: the company and what is coming, then length, number and who posted it. */}
+      <span className="min-w-0 flex-1 wrap-anywhere">
+        <span className="block text-sm">
+          <span className="font-semibold text-ink">{d.company}</span>
+          {d.description !== '' ? <span className="text-ink-2"> · {d.description}</span> : null}
+        </span>
         <span className="mt-0.5 block text-xs tabular-nums text-ink-3">{meta}</span>
       </span>
       {d.standby ? (

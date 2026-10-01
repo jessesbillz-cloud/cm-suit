@@ -80,7 +80,7 @@ function PhoneList({ rows, selectedId, onOpen }: PhoneListProps) {
               }}
             >
               <span className="flex w-full items-start gap-3">
-                <span className="min-w-0 flex-1 whitespace-normal break-words text-[15px] leading-6 text-ink">{r.title}</span>
+                <span className="min-w-0 flex-1 wrap-anywhere text-[15px] leading-6 text-ink">{r.title}</span>
                 <span className="shrink-0 pt-px">
                   <StatusChip status={chip.status} label={chip.label} />
                 </span>
@@ -90,7 +90,7 @@ function PhoneList({ rows, selectedId, onOpen }: PhoneListProps) {
                 {where.map((w) => (
                   <span key={w} className="contents">
                     <span aria-hidden>·</span>
-                    <span className="break-words">{w}</span>
+                    <span className="min-w-0 wrap-anywhere">{w}</span>
                   </span>
                 ))}
               </span>

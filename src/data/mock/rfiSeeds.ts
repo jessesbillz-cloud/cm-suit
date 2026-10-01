@@ -98,8 +98,8 @@ export function seedState(now: number): RfiMockState {
     held_opened_at: iso(now - 3 * DAY), version: 7,
   };
   const late: StoredRfi = {
-    ...blank(now, 'mock-rfi-job-a-3', 'Sample duct conflict with beam at level 2 corridor', PM, 11),
-    number: 3, status: 'open', question: 'Sample question: the supply duct at gridline 4 runs through the beam. Can the duct drop below it?',
+    ...blank(now, 'mock-rfi-job-a-3', 'Sample storm drain connection at interim housing — invert conflicts with existing 8-inch line at grid C', PM, 11),
+    number: 3, status: 'open', question: 'Sample question: the new storm drain invert at grid C is 4 in. below the existing 8-inch line. Can the connection drop?',
     sent_at: iso(now - 10 * DAY), issued_at: iso(now - 9 * DAY), due_at: iso(now - 2 * DAY), held_since: iso(now - 9 * DAY),
     held_opened_at: iso(now - 8 * DAY), version: 4,
   };

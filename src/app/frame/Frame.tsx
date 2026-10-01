@@ -57,7 +57,7 @@ export function Frame({ model, folderId }: FrameProps) {
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-3">
+        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-3">
           <JobPicker
             projects={model.projects}
             recentIds={choices.recent_project_ids}

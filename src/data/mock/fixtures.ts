@@ -54,6 +54,22 @@ export const MOCK_FILES: FileRow[] = [
   })),
   ...SEED_FILES,
   ...IR_SEED_FILES,
+  // Long names prove every list wraps a title instead of cutting it (one with spaces, one with none).
+  ...[
+    '211313_01.4_Fire Sprinkler System Design Package_Sample Co_Rev 2.pdf',
+    'Sample_Level_2_Mechanical_Coordination_Drawing_Set_Rev_14_Combined_For_Review.pdf',
+  ].map((name, i): FileRow => ({
+    id: `job-a-file-long-${String(i + 1)}`,
+    project_id: 'job-a',
+    folder_id: 'job-a-plans',
+    original_name: name,
+    mime: 'application/pdf',
+    size: 3_482_113 * (i + 1),
+    scan_status: 'clean',
+    upload_complete: true,
+    created_at: '2026-09-22T16:00:00Z',
+    created_by: 'mock-someone',
+  })),
 ];
 
 const LINE_BASE = Date.parse('2026-09-25T20:00:00Z');

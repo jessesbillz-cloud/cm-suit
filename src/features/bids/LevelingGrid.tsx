@@ -84,7 +84,7 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
                 </td>
               ) : null}
               <td className="px-2 py-2">{pwLabel(r.prevailing_wage)}</td>
-              <td className="px-2 py-2 tabular-nums">{r.valid_until === null ? '-' : formatDay(r.valid_until, 'M/d/yy')}</td>
+              <td className="px-2 py-2 tabular-nums">{r.valid_until === null ? '' : formatDay(r.valid_until, 'M/d/yy')}</td>
               <td className="whitespace-normal break-words px-2 py-2 text-xs text-ink-2">{r.exclusions.join('; ')}</td>
               <td className="py-2 pl-2 pr-4">
                 <Flags flags={byRow.get(r.submission_id) ?? []} />
@@ -106,10 +106,10 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
                 </td>
                 <td className="px-2 py-2 tabular-nums">{formatDay(r.bid_date, 'M/d/yy')}</td>
                 {money ? (
-                  <td className="px-2 py-2 text-right tabular-nums">{r.base_amount === null ? '-' : formatMoney(r.base_amount)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{r.base_amount === null ? '' : formatMoney(r.base_amount)}</td>
                 ) : null}
                 <td className="px-2 py-2">{pwLabel(r.prevailing_wage)}</td>
-                <td className="px-2 py-2 tabular-nums">{r.valid_until === null ? '-' : formatDay(r.valid_until, 'M/d/yy')}</td>
+                <td className="px-2 py-2 tabular-nums">{r.valid_until === null ? '' : formatDay(r.valid_until, 'M/d/yy')}</td>
                 <td className="whitespace-normal break-words px-2 py-2 text-xs">{by ? `Replaced by ${by.bidder}, ${formatDay(by.bid_date, 'M/d/yy')}` : ''}</td>
                 <td className="py-2 pl-2 pr-4">
                   <Flags flags={byRow.get(r.submission_id) ?? []} />

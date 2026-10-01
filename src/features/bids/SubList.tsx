@@ -11,25 +11,28 @@ function SubLine({ s, selected, onOpen }: { s: SubRow; selected: boolean; onOpen
   const c = mainContact(s);
   const contact = c ? [c.name, c.phone, c.email].filter((x) => x.trim() !== '').join(' · ') : '';
   const chip = licenseChip(s.cslb_status);
+  const phoneLine = [contact, s.trades.join(' '), s.city ?? '', s.cslb_number ?? ''].filter((x) => x !== '').join(' · ');
   return (
     <li>
       <button
         type="button"
         data-testid="sub-row"
         aria-current={selected ? 'true' : undefined}
-        className={`grid min-h-[52px] w-full grid-cols-[minmax(0,1fr)_6rem_7rem_7.5rem] items-center gap-3 px-4 py-2.5 text-left text-sm ${selected ? `${ROW_OPEN} ${OPEN_BAR}` : ROW_HOVER}`}
+        className={`grid min-h-[52px] w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-left text-sm wrap-anywhere sm:grid-cols-[minmax(0,1fr)_6rem_7rem_7.5rem] ${selected ? `${ROW_OPEN} ${OPEN_BAR}` : ROW_HOVER}`}
         onClick={() => {
           onOpen(s.id);
         }}
       >
-        <span className="min-w-0 break-words">
+        <span className="min-w-0">
           <span className="block font-medium text-ink">{s.company}</span>
-          {contact !== '' ? <span className="block break-words text-xs text-ink-2">{contact}</span> : null}
+          {contact !== '' ? <span className="hidden text-xs text-ink-2 sm:block">{contact}</span> : null}
+          {/* Phone: no columns; the contact, trades, city and license number make one line under the company. */}
+          {phoneLine !== '' ? <span className="block text-xs tabular-nums text-ink-2 sm:hidden">{phoneLine}</span> : null}
         </span>
-        <span className="break-words text-xs tabular-nums text-ink-2">{s.trades.join(' ')}</span>
-        <span className="break-words text-xs text-ink-2">{s.city ?? ''}</span>
+        <span className="hidden text-xs tabular-nums text-ink-2 sm:block">{s.trades.join(' ')}</span>
+        <span className="hidden text-xs text-ink-2 sm:block">{s.city ?? ''}</span>
         <span className="flex flex-col items-end gap-1 text-xs tabular-nums text-ink-2">
-          {s.cslb_number ?? ''}
+          <span className="hidden sm:inline">{s.cslb_number ?? ''}</span>
           {chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
         </span>
       </button>

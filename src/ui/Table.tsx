@@ -8,7 +8,8 @@ import { Icon } from './Icon';
 export const TABLE = 'w-full table-fixed border-collapse text-sm';
 export const HEAD_ROW = 'border-b border-line bg-card-head text-left';
 export const TH = 'h-10 px-3 text-[12px] font-medium uppercase tracking-wide text-ink-3';
-export const TD = 'px-3 py-3 align-middle';
+/** A cell. Its text wraps, even a long name with no spaces (a number or date cell adds whitespace-nowrap to stay whole). */
+export const TD = 'px-3 py-3 align-middle wrap-anywhere';
 /** A number or date cell. */
 export const TD_NUM = `${TD} tabular-nums`;
 

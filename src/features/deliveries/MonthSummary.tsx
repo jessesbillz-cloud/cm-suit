@@ -36,8 +36,8 @@ export function MonthSummary({ rows, tz }: MonthSummaryProps) {
                   {list.map((r) => (
                     <li key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink">
                       <span className="w-28 shrink-0 tabular-nums text-ink-2">{timeRange(r, tz)}</span>
-                      <span className="font-medium">{r.company}</span>
-                      <span className="break-words text-ink-2">{r.description}</span>
+                      <span className="min-w-0 wrap-anywhere font-medium">{r.company}</span>
+                      <span className="min-w-0 wrap-anywhere text-ink-2">{r.description}</span>
                       <span className="tabular-nums text-ink-3">#{r.number}</span>
                       {r.standby ? <StandbyChip /> : null}
                     </li>

@@ -57,6 +57,7 @@ function Lines({ count }: { count: number }) {
 
 function Heading({ tool }: { tool: Tool }) {
   return (
+    // eslint-disable-next-line no-restricted-syntax -- a 10px sketch of the layout, not a title: a tool name stays one line
     <p className="flex items-center gap-1 truncate text-[10px] font-semibold leading-3 text-ink">
       <Icon icon={TOOL_META[tool].icon} size={11} className="shrink-0" />
       {TOOL_META[tool].label}
@@ -156,6 +157,7 @@ function TabDot({ tool, active, lit }: DotProps) {
   return (
     <span data-tool={tool} className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-sm py-1 ${tone}`}>
       <Icon icon={TOOL_META[tool].icon} size={14} />
+      {/* eslint-disable-next-line no-restricted-syntax -- a 9px sketch of the phone's tab bar, not a title */}
       <span className="max-w-full truncate text-[9px] leading-[10px]">{TOOL_META[tool].label}</span>
     </span>
   );
