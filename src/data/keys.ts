@@ -86,4 +86,6 @@ export const qk = {
   requestHubPublic: (hubId: string) => ['request_hub_public', hubId] as const,
   /** A photo's short-lived preview URL (0047), per file and where it is opened from (its folder, an RFI, a request). */
   imagePreview: (fileId: string, via: string) => ['image_preview', fileId, via] as const,
+  /** An item's comments (0050), by the record they are on. */
+  comments: (entityType: string, entityId: string) => ['comments', entityType, entityId] as const,
 };

@@ -50,3 +50,17 @@ export function entityTarget(type: string | null, id: string | null): EntityTarg
 export function entityTool(type: string | null): Tool | null {
   return type === null ? null : (HOMES[type]?.tool ?? null);
 }
+
+/** Records people comment on (comments.entity_type, migration 0050). */
+const COMMENT_ENTITIES = ['rfi', 'inspection_request', 'file', 'daily_report', 'correction', 'delivery'] as const;
+export type CommentEntity = (typeof COMMENT_ENTITIES)[number];
+
+/** The record type a tool's items are when they take comments (its one record type at home there), else null. */
+export function commentEntity(tool: Tool): CommentEntity | null {
+  return (
+    COMMENT_ENTITIES.find((type) => {
+      const home = HOMES[type];
+      return home !== undefined && home.tool === tool && home.toolOnly !== true;
+    }) ?? null
+  );
+}

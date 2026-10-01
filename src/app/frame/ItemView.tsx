@@ -1,10 +1,12 @@
-// An opened item: in the right column (desktop), full screen (phone), or alone in its own window (?window=1).
+// An opened item: in the right column (desktop), full screen (phone), or alone in its own window (?window=1). Its full
+// view (expanded to full width, its own window, or the phone) has the item's comments under it; the preview does not.
 import type { Tool } from '../../lib/layout';
 import { BidsItem } from '../../features/bids/BidsItem';
 import { BoardItem } from '../../features/board/BoardItem';
 import { CalendarItem } from '../../features/calendar/CalendarItem';
 import { DailiesItem } from '../../features/dailies/DailiesItem';
 import { DeliveryItem } from '../../features/deliveries/DeliveryItem';
+import { CommentsPanel } from '../../features/comments/CommentsPanel';
 import { CorrectionItem } from '../../features/corrections/CorrectionItem';
 import { FileItem } from '../../features/files/FileItem';
 import { HoursItem } from '../../features/hours/HoursItem';
@@ -15,6 +17,7 @@ import { RfiItem } from '../../features/rfis/RfiItem';
 import { TimesheetsItem } from '../../features/timesheets/TimesheetsItem';
 import { BILLING_ITEM } from '../../features/timesheets/model';
 import { EmptyState } from '../../ui/States';
+import { commentTarget } from './commentTarget';
 import type { FrameModel } from './useFrameModel';
 import { useIsPhone } from './useIsPhone';
 
@@ -26,8 +29,11 @@ interface ItemViewProps {
   standalone: boolean;
 }
 
-export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
-  const isPhone = useIsPhone();
+interface ToolItemProps extends ItemViewProps {
+  isPhone: boolean;
+}
+
+function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   const openWindow = standalone
     ? undefined
     : () => {
@@ -69,6 +75,23 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
+}
+
+export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
+  const isPhone = useIsPhone();
+  const projectId = model.loc.projectId;
+  const full = standalone || isPhone || model.rightFull;
+  const target = full && projectId !== null ? commentTarget(tool, itemId) : null;
+  // One wrapper either way, so going full width never remounts the item. With comments the item takes its own height
+  // and the whole view scrolls; without, it fills the column as before.
+  return (
+    <div className={target === null ? 'h-full' : undefined}>
+      <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
+      {target !== null && projectId !== null ? (
+        <CommentsPanel key={`${target.entityType}:${target.entityId}`} target={{ projectId, ...target }} />
+      ) : null}
+    </div>
+  );
 }
 
 /** The right column's title for an open item. */

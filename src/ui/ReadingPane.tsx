@@ -84,6 +84,7 @@ function Stepper({ onPrev, onNext }: StepperProps) {
 export function ReadingPane(props: ReadingPaneProps) {
   const { eyebrow, number, title, meta, children, attachments = [], actions, onPrev, onNext, onHistory } = props;
   const root = useRef<HTMLElement>(null);
+  const hasBody = (children !== undefined && children !== null && children !== false) || attachments.length > 0 || onHistory !== undefined;
 
   // Focus the pane when the item changes, so the arrow keys work straight away.
   useEffect(() => {
@@ -118,7 +119,8 @@ export function ReadingPane(props: ReadingPaneProps) {
         {onPrev ?? onNext ? <Stepper onPrev={onPrev} onNext={onNext} /> : null}
       </header>
 
-      <div className="flex-1 overflow-auto px-5 py-4 text-sm leading-6 text-ink">
+      {/* An empty body keeps no padding: in a full view (comments under it) it would be a blank band. */}
+      <div className={`flex-1 overflow-auto text-sm leading-6 text-ink ${hasBody ? 'px-5 py-4' : ''}`}>
         {children}
         {attachments.length > 0 ? (
           <ul className="mt-4 flex flex-col gap-2" aria-label="Attachments">
