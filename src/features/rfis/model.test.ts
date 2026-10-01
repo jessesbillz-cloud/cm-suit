@@ -7,7 +7,6 @@ import {
   daysText,
   defaultOrder,
   dueCell,
-  dueLine,
   dueText,
   filterRows,
   impactKinds,
@@ -16,15 +15,12 @@ import {
   matches,
   moveAt,
   neighbors,
-  nextSort,
   notOpened,
   openTarget,
   parseDays,
   parseFilter,
-  parseSort,
   rfiLabel,
   rfiNumber,
-  sortParam,
   statusChip,
   visibleRows,
   waitingText,
@@ -101,8 +97,6 @@ describe('time words', () => {
     expect(dueCell(row({ id: 'a', due_at: '2026-09-28T23:00:00Z' }), TZ, NOW)).toEqual({ text: 'Today', late: false });
     expect(dueCell(row({ id: 'a', status: 'answered', due_at: '2026-09-26T19:00:00Z' }), TZ, NOW)).toEqual({ text: 'Sep 26', late: false });
     expect(dueCell(row({ id: 'a', due_at: null }), TZ, NOW)).toBeNull();
-    expect(dueLine(row({ id: 'a', due_at: '2026-10-03T19:00:00Z' }), TZ, NOW)?.text).toBe('Due Oct 3');
-    expect(dueLine(row({ id: 'a', status: 'closed', due_at: '2026-10-03T19:00:00Z' }), TZ, NOW)).toBeNull();
   });
 
   it('not opened only while someone holds it', () => {
@@ -158,25 +152,10 @@ describe('the log', () => {
     expect(ids(defaultOrder(rows, NOW))).toEqual(['mine', 'late', 'soon', 'later', 'newest', 'draft', 'void', 'closed']);
   });
 
-  it('a header click sorts ascending, then descending, then back to the default order', () => {
-    expect(parseSort(undefined)).toBeNull();
-    expect(parseSort('due.desc')).toEqual({ key: 'due', dir: 'desc' });
-    expect(parseSort('bogus.asc')).toBeNull();
-    expect(nextSort(null, 'number')).toEqual({ key: 'number', dir: 'asc' });
-    expect(nextSort({ key: 'number', dir: 'asc' }, 'number')).toEqual({ key: 'number', dir: 'desc' });
-    expect(nextSort({ key: 'number', dir: 'desc' }, 'number')).toBeNull();
-    expect(nextSort({ key: 'number', dir: 'desc' }, 'title')).toEqual({ key: 'title', dir: 'asc' });
-    expect(sortParam(null)).toBeUndefined();
-    expect(sortParam({ key: 'asked', dir: 'asc' })).toBe('asked.asc');
-  });
-
-  it('sorting by number keeps unnumbered RFIs last either way', () => {
+  it('one order, whatever the filter: what is mine first, never a column sort', () => {
     const view = { filter: 'all' as const, query: '', userId: 'u-me' };
-    const up = ids(visibleRows(rows, { ...view, sort: { key: 'number', dir: 'asc' } }, NOW));
-    const down = ids(visibleRows(rows, { ...view, sort: { key: 'number', dir: 'desc' } }, NOW));
-    expect(up.slice(0, 5)).toEqual(['closed', 'void', 'late', 'later', 'soon']);
-    expect(down.slice(0, 5)).toEqual(['soon', 'later', 'late', 'void', 'closed']);
-    expect(up.slice(5).sort()).toEqual(['draft', 'mine', 'newest']);
+    expect(ids(visibleRows(rows, view, NOW))).toEqual(ids(defaultOrder(rows, NOW)));
+    expect(ids(visibleRows(rows, { ...view, query: 'RFI 4' }, NOW))).toEqual(['later']);
   });
 
   it('one search box: a number in any form, the title or who asked', () => {

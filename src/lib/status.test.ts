@@ -15,4 +15,12 @@ describe('status', () => {
     expect(statusLabel('postponed')).toBe('Postponed');
     expect(statusLabel('gc_review')).toBe('GC review');
   });
+  it('has the route strip and late colors: current filled in the accent, ahead an outline, late red (not amber)', () => {
+    expect(STATUS.step_current.bg).toBe('#2563EB');
+    expect(STATUS.step_current.fg).toBe('#FFFFFF');
+    expect(STATUS.step_ahead.bg).toBe('#FFFFFF');
+    expect(STATUS.step_done.bg).not.toBe(STATUS.step_ahead.bg);
+    expect(STATUS.late.fg).toBe('#DC2626');
+    expect(statusCssVariables()).toContain('--status-step_done-dot:#C9DAFC');
+  });
 });

@@ -1,11 +1,11 @@
-// Where the RFI tool is: the filter (?view=), the sort (?sort=) and the search box (?q=) live in the URL so the log
-// and the reading pane's arrow keys agree on the order; the open RFI (or "new") is the frame's item. Router only.
+// Where the RFI tool is: the filter (?view=) and the search box (?q=) live in the URL so the log and the reading pane's
+// arrow keys agree on what is shown; the open RFI (or "new") is the frame's item, and ?window=1 is the RFI alone in
+// its own window (the full view). Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { parseFilter, parseSort, sortParam, type Filter, type Sort } from './model';
+import { parseFilter, type Filter } from './model';
 
 interface LogSearch {
   view?: string | undefined;
-  sort?: string | undefined;
   q?: string | undefined;
   window?: '1' | undefined;
 }
@@ -13,7 +13,6 @@ interface LogSearch {
 /** What goes back into the URL: only set values (exactOptionalPropertyTypes). */
 interface UrlSearch {
   view?: string;
-  sort?: string;
   q?: string;
   window?: '1';
 }
@@ -21,7 +20,6 @@ interface UrlSearch {
 function clean(s: LogSearch): UrlSearch {
   return {
     ...(s.view && s.view !== 'open' ? { view: s.view } : {}),
-    ...(s.sort ? { sort: s.sort } : {}),
     ...(s.q ? { q: s.q } : {}),
     ...(s.window === '1' ? { window: '1' as const } : {}),
   };
@@ -42,8 +40,9 @@ export function useRfisNav(projectId: string, itemId: string | null) {
 
   return {
     filter: parseFilter(search.view),
-    sort: parseSort(search.sort),
     query: search.q ?? '',
+    /** Alone in its own window: the full view (history shows there). */
+    standalone: search.window === '1',
     open: (id: string) => {
       go(id, search);
     },
@@ -56,9 +55,6 @@ export function useRfisNav(projectId: string, itemId: string | null) {
     },
     setFilter: (f: Filter) => {
       go(itemId, { ...search, view: f }, true);
-    },
-    setSort: (s: Sort) => {
-      go(itemId, { ...search, sort: sortParam(s) }, true);
     },
     setQuery: (q: string) => {
       go(itemId, { ...search, q }, true);

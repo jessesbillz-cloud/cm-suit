@@ -1,151 +1,103 @@
-// The RFI log (SPEC §7.4): number (or Draft), full title (wraps, never cut off), status, asked, due, answered. Click a
-// header to sort (a third click goes back to the default order). Amber row = impact claimed, nothing else. RFIs that
-// wait on me say "Your turn". On the phone: one stacked row per RFI (title, then one line of number, due, turn).
-import type { RfiListRow } from '../../data/rfis.types';
-import { formatInZone } from '../../lib/dates';
-import { StatusChip } from '../../ui/StatusChip';
-import { HEAD_ROW, SortTh, TABLE, TD, TD_NUM, phoneRowClass, rowClass } from '../../ui/Table';
-import { dueCell, dueLine, nextSort, rfiNumber, statusChip, type Sort, type SortKey } from './model';
+// The RFI log (Jesse, Sep 30): two tight lines per RFI. Line 1: the number and the WHOLE title (it wraps, never cut
+// off), the due date at the right (red once late). Line 2: the route strip, where it is and how long each person has
+// had it. A tap opens it in the right column. No columns, no View buttons. Amber row = impact claimed, nothing else.
+import type { RfiListRow, RfiProgressRow } from '../../data/rfis.types';
+import { phoneRowClass } from '../../ui/Table';
+import { rfiNumber, rowNumber } from './model';
+import { dueMark } from './progress';
+import { RouteStrip } from './RouteStrip';
 
 interface RfiLogProps {
   rows: readonly RfiListRow[];
+  /** Each RFI's steps (rfi_progress); undefined while they load. */
+  strips: ReadonlyMap<string, readonly RfiProgressRow[]> | undefined;
   timeZone: string;
   now: Date;
   selectedId: string | null;
-  sort: Sort;
-  onSort: (next: Sort) => void;
   onOpen: (id: string) => void;
   isPhone: boolean;
 }
 
-const COLUMNS: { key: SortKey; title: string; className: string }[] = [
-  { key: 'number', title: 'No.', className: 'w-[4.75rem] pl-4' },
-  { key: 'title', title: 'Title', className: '' },
-  { key: 'status', title: 'Status', className: 'w-[8.5rem]' },
-  { key: 'asked', title: 'Asked', className: 'w-[5.5rem]' },
-  { key: 'due', title: 'Due', className: 'w-28' },
-  { key: 'answered', title: 'Answered', className: 'w-[6.5rem] pr-4' },
-];
-
-function day(v: string | null, tz: string): string {
-  return v === null ? '' : formatInZone(v, tz, 'MMM d');
+interface RowProps {
+  row: RfiListRow;
+  steps: readonly RfiProgressRow[] | undefined;
+  timeZone: string;
+  now: Date;
+  selected: boolean;
+  isPhone: boolean;
+  onOpen: (id: string) => void;
 }
 
-function Header({ sort, onSort }: { sort: Sort; onSort: (next: Sort) => void }) {
+function Right({ row, timeZone, now }: Pick<RowProps, 'row' | 'timeZone' | 'now'>) {
+  if (row.status === 'void') return <span className="text-[13px] text-ink-3">Void</span>;
+  const due = dueMark(row, timeZone, now);
+  if (!due) return null;
   return (
-    <thead>
-      <tr className={HEAD_ROW}>
-        {COLUMNS.map((c) => (
-          <SortTh
-            key={c.key}
-            title={c.title}
-            active={sort?.key === c.key}
-            dir={sort?.dir ?? 'asc'}
-            className={c.className}
-            testId={`rfi-sort-${c.key}`}
-            onSort={() => {
-              onSort(nextSort(sort, c.key));
-            }}
-          />
-        ))}
-      </tr>
-    </thead>
+    <span
+      data-testid="rfi-due-mark"
+      data-late={due.late ? 'true' : undefined}
+      className={`whitespace-nowrap text-[13px] tabular-nums ${due.late ? 'font-semibold' : 'text-ink-2'}`}
+      style={due.late ? { color: 'var(--status-late-fg)' } : undefined}
+    >
+      {due.text}
+    </span>
   );
 }
 
-function YourTurn() {
-  return <span className="text-xs font-semibold text-accent">Your turn</span>;
+function Row({ row, steps, timeZone, now, selected, isPhone, onOpen }: RowProps) {
+  const impact = row.impact_claimed_at !== null;
+  return (
+    <li>
+      <button
+        type="button"
+        data-testid={`rfi-row-${rfiNumber(row.number)}`}
+        data-impact={impact ? 'true' : undefined}
+        aria-current={selected ? 'true' : undefined}
+        className={`${phoneRowClass(selected, impact)} flex flex-col gap-2 ${selected || impact ? '' : 'hover:bg-page/60'} ${isPhone ? '' : 'py-2.5'}`}
+        onClick={() => {
+          onOpen(row.id);
+        }}
+      >
+        <span className="flex w-full items-start gap-3">
+          <span
+            className={`shrink-0 pt-px text-[13px] font-medium tabular-nums leading-6 ${isPhone ? 'w-10' : 'w-12'} ${row.number === null ? 'text-ink-3' : 'text-ink-2'}`}
+          >
+            {rowNumber(row)}
+          </span>
+          <span className={`min-w-0 flex-1 whitespace-normal break-words text-[15px] leading-6 text-ink ${row.is_mine_to_act ? 'font-semibold' : ''}`}>
+            {row.title}
+          </span>
+          <span className="shrink-0 pt-px leading-6">
+            <Right row={row} timeZone={timeZone} now={now} />
+          </span>
+        </span>
+        <span className={`block w-full ${isPhone ? '' : 'pl-[3.75rem]'}`}>
+          {steps ? (
+            <RouteStrip steps={steps} timeZone={timeZone} mine={row.is_mine_to_act} layout={isPhone ? 'stack' : 'line'} />
+          ) : (
+            <span aria-hidden className={`block w-full animate-pulse rounded-[5px] bg-page ${isPhone ? 'h-[34px]' : 'h-6'}`} />
+          )}
+        </span>
+      </button>
+    </li>
+  );
 }
 
-function PhoneList({ rows, timeZone, now, selectedId, onOpen }: Pick<RfiLogProps, 'rows' | 'timeZone' | 'now' | 'selectedId' | 'onOpen'>) {
+export function RfiLog({ rows, strips, timeZone, now, selectedId, onOpen, isPhone }: RfiLogProps) {
   return (
-    <ul className="divide-y divide-line">
-      {rows.map((r) => {
-        const chip = statusChip(r.status);
-        const due = dueLine(r, timeZone, now);
-        const impact = r.impact_claimed_at !== null;
-        return (
-          <li key={r.id} data-impact={impact ? 'true' : undefined}>
-            <button
-              type="button"
-              data-testid={`rfi-row-${rfiNumber(r.number)}`}
-              className={`${phoneRowClass(selectedId === r.id, impact)} flex flex-col gap-1`}
-              onClick={() => {
-                onOpen(r.id);
-              }}
-            >
-              <span className="flex w-full items-start gap-3">
-                <span className={`min-w-0 flex-1 whitespace-normal break-words text-[15px] leading-6 text-ink ${r.is_mine_to_act ? 'font-semibold' : ''}`}>
-                  {r.title}
-                </span>
-                <span className="shrink-0 pt-px">
-                  <StatusChip status={chip.status} label={chip.label} />
-                </span>
-              </span>
-              <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-2">
-                <span className="font-medium tabular-nums">{rfiNumber(r.number)}</span>
-                {due ? (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className={due.late ? 'font-semibold text-danger' : ''}>{due.text}</span>
-                  </>
-                ) : null}
-                {r.is_mine_to_act ? (
-                  <>
-                    <span aria-hidden>·</span>
-                    <YourTurn />
-                  </>
-                ) : null}
-              </span>
-            </button>
-          </li>
-        );
-      })}
+    <ul className="divide-y divide-line" data-testid="rfi-log">
+      {rows.map((r) => (
+        <Row
+          key={r.id}
+          row={r}
+          steps={strips === undefined ? undefined : (strips.get(r.id) ?? [])}
+          timeZone={timeZone}
+          now={now}
+          selected={selectedId === r.id}
+          isPhone={isPhone}
+          onOpen={onOpen}
+        />
+      ))}
     </ul>
-  );
-}
-
-export function RfiLog({ rows, timeZone, now, selectedId, sort, onSort, onOpen, isPhone }: RfiLogProps) {
-  if (isPhone) return <PhoneList rows={rows} timeZone={timeZone} now={now} selectedId={selectedId} onOpen={onOpen} />;
-  return (
-    <table className={TABLE}>
-      <Header sort={sort} onSort={onSort} />
-      <tbody>
-        {rows.map((r) => {
-          const chip = statusChip(r.status);
-          const due = dueCell(r, timeZone, now);
-          const selected = selectedId === r.id;
-          return (
-            <tr
-              key={r.id}
-              data-testid={`rfi-row-${rfiNumber(r.number)}`}
-              data-impact={r.impact_claimed_at !== null ? 'true' : undefined}
-              aria-current={selected ? 'true' : undefined}
-              className={rowClass(selected, r.impact_claimed_at !== null)}
-              onClick={() => {
-                onOpen(r.id);
-              }}
-            >
-              <td className={`${TD_NUM} pl-4 font-medium ${r.number === null ? 'text-ink-3' : 'text-ink-2'}`}>{rfiNumber(r.number)}</td>
-              <td className={`${TD} whitespace-normal break-words text-ink`}>
-                {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
-                <button type="button" className={`text-left ${r.is_mine_to_act ? 'font-semibold' : ''}`}>
-                  {r.title}
-                </button>
-              </td>
-              <td className={TD}>
-                <span className="flex flex-col items-start gap-1">
-                  <StatusChip status={chip.status} label={chip.label} />
-                  {r.is_mine_to_act ? <YourTurn /> : null}
-                </span>
-              </td>
-              <td className={`${TD_NUM} text-ink-2`}>{day(r.sent_at, timeZone)}</td>
-              <td className={`${TD_NUM} ${due?.late === true ? 'font-semibold text-danger' : 'text-ink-2'}`}>{due?.text ?? ''}</td>
-              <td className={`${TD_NUM} pr-4 text-ink-2`}>{day(r.answered_at, timeZone)}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
   );
 }

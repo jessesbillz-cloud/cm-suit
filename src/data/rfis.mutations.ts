@@ -28,6 +28,7 @@ import {
   type RfiRow,
   type RfiSettings,
   type RouteChoice,
+  viewResultSchema,
 } from './rfis.types';
 
 /** What a move needs to name the RFI and check its version. */
@@ -240,6 +241,27 @@ export function useRfiPdf() {
       await saveFile(res.url, res.filename);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ['files'] }),
+  });
+}
+
+/**
+ * "Full screen": the RFI's PDF (made the same way as "PDF") in the browser's own viewer, which pages through it. The
+ * tab is opened by the tap itself (so no pop-up blocker stops it) and sent to a fresh signed URL when the server
+ * answers; on a failure it closes again.
+ */
+export function useRfiPdfView() {
+  return useMutation({
+    mutationFn: async (v: { ref: RfiRef; tab: Window }): Promise<void> => {
+      try {
+        const url = isMock()
+          ? URL.createObjectURL((await mockMoves.pdf(v.ref.id)).blob)
+          : (await callFunction('rfis', { action: 'view', rfi_id: v.ref.id }, viewResultSchema)).url;
+        v.tab.location.replace(url);
+      } catch (e) {
+        v.tab.close();
+        throw e;
+      }
+    },
   });
 }
 

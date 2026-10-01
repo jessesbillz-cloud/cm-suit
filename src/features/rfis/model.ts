@@ -1,5 +1,6 @@
 // RFI screen helpers (the Sep 28 contract, SPEC §7.4): labels, chips (colors from lib/status only), the words for who
 // has it, how long, due and late, the log's filters, order and search, and the impact window. Pure, unit-tested.
+// The route strip's helpers are in progress.ts.
 import type { RfiEventKind, RfiListRow, RfiStatus, RfiWaitingRow } from '../../data/rfis.types';
 import { formatInZone, todayInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -21,6 +22,12 @@ export function rfiLabel(n: number | null): string {
 /** The log's number cell: "004", or "Draft". */
 export function rfiNumber(n: number | null): string {
   return n === null ? 'Draft' : pad(n);
+}
+
+/** A log row's number: "004"; "Draft" while it is one; nothing once sent until issued (the strip says where it is). */
+export function rowNumber(row: Pick<RfiListRow, 'number' | 'status'>): string {
+  if (row.number !== null) return pad(row.number);
+  return row.status === 'draft' ? 'Draft' : '';
 }
 
 interface Chip {
@@ -81,11 +88,6 @@ export function dueCell(row: Pick<RfiListRow, 'status' | 'due_at'>, tz: string, 
   const due = dueText(row.due_at, tz, now);
   if (due.text === 'Due today') return { text: 'Today', late: due.late };
   return due.late ? due : { text: day, late: false };
-}
-
-/** The phone's second line: the due words while the architect has it. */
-export function dueLine(row: Pick<RfiListRow, 'status' | 'due_at'>, tz: string, now: Date): Due | null {
-  return row.status === 'open' && row.due_at !== null ? dueText(row.due_at, tz, now) : null;
 }
 
 const WITH_SOMEONE: readonly RfiStatus[] = ['review', 'issue', 'open'];
@@ -153,27 +155,6 @@ export function filterRows(rows: readonly RfiListRow[], filter: Filter, userId: 
   return [...rows];
 }
 
-const SORT_KEYS = ['number', 'title', 'status', 'asked', 'due', 'answered'] as const;
-export type SortKey = (typeof SORT_KEYS)[number];
-/** null = the default order. */
-export type Sort = { key: SortKey; dir: 'asc' | 'desc' } | null;
-
-export function parseSort(v: string | undefined): Sort {
-  const [key, dir] = (v ?? '').split('.');
-  const k = SORT_KEYS.find((x) => x === key);
-  return k && (dir === 'asc' || dir === 'desc') ? { key: k, dir } : null;
-}
-
-export function sortParam(s: Sort): string | undefined {
-  return s === null ? undefined : `${s.key}.${s.dir}`;
-}
-
-/** A header click: a new column starts ascending, then descending, then back to the default order. */
-export function nextSort(current: Sort, key: SortKey): Sort {
-  if (current?.key !== key) return { key, dir: 'asc' };
-  return current.dir === 'asc' ? { key, dir: 'desc' } : null;
-}
-
 function isLate(r: RfiListRow, now: Date): boolean {
   return r.status === 'open' && r.due_at !== null && Date.parse(r.due_at) < now.getTime();
 }
@@ -205,39 +186,6 @@ export function defaultOrder(rows: readonly RfiListRow[], now: Date): RfiListRow
   });
 }
 
-const COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-const STATUS_ORDER: readonly RfiStatus[] = ['draft', 'review', 'issue', 'open', 'answered', 'closed', 'void'];
-
-function sortValue(r: RfiListRow, key: SortKey): string | number | null {
-  switch (key) {
-    case 'number':
-      return r.number;
-    case 'title':
-      return r.title;
-    case 'status':
-      return STATUS_ORDER.indexOf(r.status);
-    case 'asked':
-      return time(r.sent_at);
-    case 'due':
-      return time(r.due_at);
-    case 'answered':
-      return time(r.answered_at);
-  }
-}
-
-/** Stable; empty values sort last either way; text compares naturally and without case. */
-function sortBy(rows: readonly RfiListRow[], sort: NonNullable<Sort>): RfiListRow[] {
-  const sign = sort.dir === 'asc' ? 1 : -1;
-  return [...rows].sort((a, b) => {
-    const av = sortValue(a, sort.key);
-    const bv = sortValue(b, sort.key);
-    if (av === bv) return 0;
-    if (av === null) return 1;
-    if (bv === null) return -1;
-    return sign * (typeof av === 'number' && typeof bv === 'number' ? av - bv : COLLATOR.compare(String(av), String(bv)));
-  });
-}
-
 /** A number typed as "RFI 4", "rfi-004", "4" or "#4". */
 function numberQuery(query: string): number | null {
   const m = /^(?:rfi[-\s#]*|#)?0*(\d{1,6})$/i.exec(query.trim());
@@ -254,13 +202,12 @@ export function matches(row: RfiListRow, query: string): boolean {
 interface LogView {
   filter: Filter;
   query: string;
-  sort: Sort;
   userId: string;
 }
 
+/** What the log shows, in its one order (the log has no columns to sort by). */
 export function visibleRows(rows: readonly RfiListRow[], view: LogView, now: Date): RfiListRow[] {
-  const shown = filterRows(rows, view.filter, view.userId).filter((r) => matches(r, view.query));
-  return view.sort === null ? defaultOrder(shown, now) : sortBy(shown, view.sort);
+  return defaultOrder(filterRows(rows, view.filter, view.userId).filter((r) => matches(r, view.query)), now);
 }
 
 /** The page header's count line: "6 open · 1 late" (open = not closed or void; late = past due with the architect). */
