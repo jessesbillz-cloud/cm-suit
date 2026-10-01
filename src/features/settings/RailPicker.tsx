@@ -77,7 +77,7 @@ function RailRow({ tool, place, count, onPhone, onShow, onMove, onSpot }: RowPro
         />
         <span className="w-4 shrink-0 text-right text-xs tabular-nums text-ink-3">{shown ? place + 1 : ''}</span>
         <Icon icon={icon} size={18} className={`shrink-0 ${shown ? 'text-ink-2' : 'text-ink-3'}`} />
-        <span className={`truncate text-sm ${shown ? 'text-ink' : 'text-ink-3'}`}>{label}</span>
+        <span className={`min-w-0 text-sm ${shown ? 'text-ink' : 'text-ink-3'}`}>{label}</span>
       </label>
       {onPhone ? <Icon icon={Smartphone} size={14} label="On the phone bar" className="shrink-0 text-accent" /> : null}
       {shown ? (

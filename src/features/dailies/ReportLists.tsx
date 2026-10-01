@@ -87,7 +87,7 @@ function TeamRow({ row, selected, onOpen }: { row: DailyReportRow; selected: boo
         <span className={NUMBER}>#{row.number}</span>
         <span className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center sm:gap-3">
           <span className="font-medium text-ink sm:w-32 sm:shrink-0">{formatDay(row.report_date, 'EEE, MMM d')}</span>
-          <span className="break-words text-[13px] text-ink-2 sm:text-sm">{author}</span>
+          <span className="min-w-0 wrap-anywhere text-[13px] text-ink-2 sm:text-sm">{author}</span>
         </span>
         <StatusChip status={chip.status} label={chip.label} />
       </button>

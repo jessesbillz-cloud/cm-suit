@@ -76,15 +76,16 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
         data-testid="job-picker"
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-11 max-w-[22rem] items-center gap-2 rounded-lg px-2.5 text-left text-ink hover:bg-page"
+        className="flex min-h-11 max-w-[32rem] items-center gap-2 rounded-lg px-2.5 py-1 text-left text-ink hover:bg-page"
         onClick={() => {
           if (open) close();
           else setOpen(true);
         }}
       >
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-[15px] font-semibold">{label}</span>
-          {sub ? <span className="truncate text-xs text-ink-2">{sub}</span> : null}
+        {/* The whole job name, wrapped if it is long; never cut off. */}
+        <span className="flex min-w-0 flex-col leading-tight wrap-anywhere">
+          <span className="text-[15px] font-semibold">{label}</span>
+          {sub ? <span className="text-xs text-ink-2">{sub}</span> : null}
         </span>
         <Icon icon={ChevronDown} size={16} className="shrink-0 text-ink-2" />
       </button>
@@ -92,7 +93,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
         <>
           {/* Backdrop: clicking outside closes the menu without a document listener. */}
           <div className="fixed inset-0 z-30" aria-hidden="true" onClick={close} />
-          <div className="absolute left-0 top-12 z-40 w-80 rounded-card bg-card shadow-pop">
+          <div className="absolute left-0 top-full z-40 mt-1 w-80 rounded-card bg-card shadow-pop">
             <div className="flex items-center gap-2 border-b border-line px-3">
               <Icon icon={Search} size={16} className="text-ink-3" />
               <input
@@ -133,7 +134,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
                       choose(o);
                     }}
                   >
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 wrap-anywhere">
                       <span className="block text-sm text-ink">{o.name}</span>
                       {o.detail ? <span className="block text-xs text-ink-2">{o.detail}</span> : null}
                     </span>

@@ -67,8 +67,8 @@ export function CoverageView({ projectId, selectedId, onOpen }: CoverageViewProp
                     }}
                   >
                     <td className={`py-3 pl-4 pr-2 font-medium tabular-nums text-ink-2 ${open ? OPEN_BAR : ''}`}>{r.code}</td>
-                    <td className="whitespace-normal break-words px-2 py-3 text-ink">
-                      <button type="button" className="text-left font-medium">
+                    <td className="px-2 py-3 text-ink">
+                      <button type="button" className="wrap-anywhere text-left font-medium">
                         {r.name}
                       </button>
                     </td>

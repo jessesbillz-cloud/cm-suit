@@ -38,8 +38,10 @@
     font-family: theme('fontFamily.sans');
     -webkit-text-size-adjust: 100%;
   }
+  /* Text never runs out of its box: a word too long for its line breaks instead (CLAUDE.md rule 15). */
   body {
     @apply bg-page text-ink antialiased;
+    overflow-wrap: break-word;
   }
   /* Every bordered text box gets the same defined edge and focus ring, including the ones features style themselves
      (a transparent box inside a bordered container is left alone). :where() keeps this at zero specificity, so a
@@ -57,5 +59,14 @@
       textarea:not(.bg-transparent):focus
     ) {
     box-shadow: 0 0 0 3px theme(colors.accent.DEFAULT / 18%);
+  }
+}
+
+@layer utilities {
+  /* A title or file name in a list wraps, even one long word with no spaces ("211313_01.4_Fire_Sprinkler..."), inside
+     a button, a table cell or a flex row, where break-words alone lets it run past the row. Never cut a title off
+     (CLAUDE.md rule 15; lint bans truncate, line-clamp and text-ellipsis). Tailwind 4 ships the same utility. */
+  .wrap-anywhere {
+    overflow-wrap: anywhere;
   }
 }

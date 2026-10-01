@@ -37,8 +37,8 @@ export function RightColumn({ title, collapsed, full, onToggleCollapsed, onToggl
       data-testid="right-column"
       className={`flex min-h-0 flex-col border-l border-line bg-card ${full ? 'flex-1' : 'w-right shrink-0'}`}
     >
-      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line pl-4 pr-2">
-        <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-[-0.005em] text-ink">{title}</h2>
+      <div className="flex min-h-14 shrink-0 items-center gap-1 border-b border-line py-2 pl-4 pr-2">
+        <h2 className="min-w-0 flex-1 wrap-anywhere text-[15px] font-semibold tracking-[-0.005em] text-ink">{title}</h2>
         <Button
           size="sm"
           variant="quiet"

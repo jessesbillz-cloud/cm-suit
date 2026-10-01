@@ -1,4 +1,4 @@
-// Folder tree in the main area. Flat data from the database, nested and ordered by folderOrder.
+// Folder tree in the main area. Flat data from the database, nested and ordered by folderOrder. Names wrap, never cut.
 import { Folder, FolderOpen } from 'lucide-react';
 import type { FolderRow } from '../../data/types';
 import { Icon } from '../../ui/Icon';
@@ -31,7 +31,7 @@ export function FolderTree({ folders, selectedId, onSelect }: FolderTreeProps) {
               }}
             >
               <Icon icon={active ? FolderOpen : Folder} size={17} className={`shrink-0 ${active ? 'text-accent' : 'text-ink-3'}`} />
-              <span className="min-w-0 flex-1 break-words">{folder.name}</span>
+              <span className="min-w-0 flex-1 wrap-anywhere">{folder.name}</span>
             </button>
           </li>
         );

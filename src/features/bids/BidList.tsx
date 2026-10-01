@@ -31,18 +31,25 @@ export function BidList({ rows, selectedId, onOpen, testId }: BidListProps) {
               type="button"
               data-testid={`${testId}-row-${r.lead}`}
               aria-current={open ? 'true' : undefined}
-              className={`flex min-h-[52px] w-full items-center gap-3 px-4 py-2.5 text-left text-sm ${open ? `${ROW_OPEN} ${OPEN_BAR}` : ROW_HOVER}`}
+              className={`flex min-h-[52px] w-full items-start gap-3 px-4 py-2.5 text-left text-sm sm:items-center ${open ? `${ROW_OPEN} ${OPEN_BAR}` : ROW_HOVER}`}
               onClick={() => {
                 onOpen(r.id);
               }}
             >
-              <span className="w-12 shrink-0 font-medium tabular-nums text-ink-2">{r.lead}</span>
-              <span className="min-w-0 flex-1 whitespace-normal break-words">
-                <span className="block font-medium text-ink">{r.title}</span>
-                {r.sub ? <span className="block text-xs text-ink-2">{r.sub}</span> : null}
+              <span className="w-10 shrink-0 font-medium tabular-nums text-ink-2 sm:w-12">{r.lead}</span>
+              {/* Desktop: chips and date on the title's line. Phone: one short line under the title. */}
+              <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="min-w-0 flex-1 wrap-anywhere">
+                  <span className="block font-medium text-ink">{r.title}</span>
+                  {r.sub ? <span className="block text-xs text-ink-2">{r.sub}</span> : null}
+                </span>
+                {r.chips || r.meta !== undefined ? (
+                  <span className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap sm:gap-3">
+                    {r.chips ? <span className="flex items-center gap-1.5">{r.chips}</span> : null}
+                    {r.meta !== undefined ? <span className="text-xs tabular-nums text-ink-2 sm:w-24 sm:text-right">{r.meta}</span> : null}
+                  </span>
+                ) : null}
               </span>
-              {r.chips ? <span className="flex shrink-0 items-center gap-1.5">{r.chips}</span> : null}
-              {r.meta !== undefined ? <span className="w-24 shrink-0 text-right text-xs tabular-nums text-ink-2">{r.meta}</span> : null}
             </button>
           </li>
         );

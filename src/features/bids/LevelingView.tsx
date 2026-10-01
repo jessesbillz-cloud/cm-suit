@@ -52,7 +52,7 @@ function Loaded({ projectId, packages, rows, flags, selectedId, onOpen, packageI
   const title = (
     <span className="flex flex-wrap items-center gap-2">
       <span className="tabular-nums text-ink-2">{picked.code}</span>
-      <span>{picked.name}</span>
+      <span className="min-w-0 wrap-anywhere">{picked.name}</span>
       {(byPackage.get(picked.id) ?? []).map((f) => {
         const chip = flagChip(f);
         return <StatusChip key={f.kind} status={chip.status} label={chip.label} />;
@@ -61,8 +61,9 @@ function Loaded({ projectId, packages, rows, flags, selectedId, onOpen, packageI
   );
 
   return (
-    <div className="flex items-start gap-3">
-      <Card padded={false} className="w-60 shrink-0">
+    // Phone: the packages over the grid, so the grid and the package's name get the whole width.
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <Card padded={false} className="sm:w-60 sm:shrink-0">
         <PackagePicker packages={sorted} counts={counts} flagged={flagged} selectedId={picked.id} onPick={onPickPackage} />
       </Card>
       <Card padded={false} className="min-w-0 flex-1" title={title}>

@@ -66,7 +66,7 @@ function Row({ row, onOpen }: { row: PipelineRow; onOpen: (projectId: string) =>
     >
       <td className="py-3 pl-4 pr-3">
         {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
-        <button type="button" className="whitespace-normal break-words text-left font-medium text-ink">
+        <button type="button" className="wrap-anywhere text-left font-medium text-ink">
           {row.name}
         </button>
         {detail ? <span className="block text-xs text-ink-2">{detail}</span> : null}
