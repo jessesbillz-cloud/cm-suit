@@ -3,8 +3,8 @@
 // Contract with the frontend's e2e mock layer:
 //   - localStorage 'e2e-mock-user' set before load  -> the app starts signed in as that mock user (absent -> signed out);
 //   - the mock user belongs to at least two jobs, and each job has at least one visible file;
-//   - 'pm' has no pins, so the rail is the PM's recommendation (0040): Files and Board on it, Dailies under More
-//     (rail-more, then rail-more-<tool>);
+//   - 'pm' has no tools of their own on the job, so the rail is Board on top and the PM's recommendation under the
+//     job (0040, 0051): Files there, Dailies under More (rail-more, then rail-more-<tool>);
 //   - test ids: job-picker (button), job-picker-option-<n> (menu items, n from 0), rail-files, rail-board,
 //     file-row-download (one per file row), main-area (with data-tool = the current tool);
 //   - 'bidder' as the mock user -> a bidder on job-a: /p/job-a/bids shows the bidder page with addendum 1 issued and

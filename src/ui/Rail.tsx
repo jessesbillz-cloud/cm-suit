@@ -1,21 +1,37 @@
-// The rail (SPEC §7.2; Jesse, Sep 28: lean, by position, actionable): the tools for my position on this job (or my
-// pins), each with a count of what needs me there, then More for the job's other tools, Settings pinned at the bottom.
-// A dark navy strip down the whole left edge with the product mark on top, so the white work area reads as the page.
-// It collapses to a thin strip; nobody drags or resizes it.
-import { useState, type KeyboardEvent } from 'react';
-import { ChevronsLeft, ChevronsRight, Ellipsis, type LucideIcon } from 'lucide-react';
+// The rail (SPEC §7.2; Jesse, Oct 1) in two parts. On top, always, the general things: Board and Calendar (and the bids
+// pipeline and timesheets when they apply to me); with no job picked they cover all my jobs, with a job picked they act
+// on it. Under them, only with a job picked: a divider, the job's name, the tools I chose for this job (each with a
+// count of what needs me), More for the job's other tools, and Edit to choose them. Settings is pinned at the bottom.
+// A dark navy strip down the whole left edge with the product mark on top; it collapses to icons only (the job's name
+// becomes a thin divider). Nobody drags or resizes it.
+import { useEffect, useRef, useState } from 'react';
+import { ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
 import { FUTURE_NAME } from '../lib/brand';
 import type { RailTool, Tool } from '../lib/layout';
-import { countOf, type ToolCounts } from '../lib/toolCounts';
+import type { ToolCounts } from '../lib/toolCounts';
 import { BrandMark } from './BrandMark';
-import { CountBadge } from './CountBadge';
 import { Icon } from './Icon';
+import { JobToolsEdit, type JobToolsChoice } from './JobToolsEdit';
+import { RailItem, RailMore } from './RailItem';
 import { TOOL_META } from './tools';
 
-interface RailProps {
-  items: readonly RailTool[];
+/** The picked job's part of the rail. */
+export interface RailJobPart {
+  /** The job's name: the label over its tools. */
+  label: string;
+  /** Under the name, in my order for this job. */
+  tools: readonly RailTool[];
   /** The job's other tools, under More. */
   more: readonly RailTool[];
+  edit: JobToolsChoice;
+  /** My saved list's version (null: none saved), so a test can wait for a save to land. */
+  version: number | null;
+}
+
+interface RailProps {
+  general: readonly RailTool[];
+  /** null on All my jobs. */
+  job: RailJobPart | null;
   counts: ToolCounts;
   current: Tool;
   collapsed: boolean;
@@ -23,114 +39,57 @@ interface RailProps {
   onToggleCollapsed: () => void;
 }
 
-interface RailItemProps {
-  testId: string;
+interface JobEditProps {
   label: string;
-  icon: LucideIcon;
-  count: number;
-  badgeId: string;
-  active: boolean;
-  onClick: () => void;
-  expanded?: boolean | undefined;
+  choice: JobToolsChoice;
 }
 
-/** One place on the rail: icon over a short name, the count at the icon's corner, an accent bar when it's open. */
-function RailItem({ testId, label, icon, count, badgeId, active, onClick, expanded }: RailItemProps) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      aria-current={active ? 'page' : undefined}
-      aria-haspopup={expanded === undefined ? undefined : 'menu'}
-      aria-expanded={expanded}
-      className={`relative flex h-[60px] w-[80px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-colors ${
-        active || expanded ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'
-      }`}
-      onClick={onClick}
-    >
-      {active ? <span aria-hidden="true" className="absolute left-0 top-3 h-9 w-[3px] rounded-r bg-accent" /> : null}
-      <Icon icon={icon} size={22} />
-      <span className="text-[12px] font-medium leading-4">{label}</span>
-      <CountBadge n={count} testId={badgeId} className="absolute left-1/2 top-1 ml-1.5 ring-2 ring-rail" />
-    </button>
-  );
-}
-
-interface RailMoreProps {
-  tools: readonly RailTool[];
-  counts: ToolCounts;
-  current: Tool;
-  onSelect: (tool: Tool) => void;
-}
-
-/** Up / Down move between the menu's tools; Escape closes it. */
-function menuKeys(e: KeyboardEvent<HTMLDivElement>, close: () => void) {
-  if (e.key === 'Escape') {
-    close();
-    return;
-  }
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-  e.preventDefault();
-  const items = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
-  const at = items.findIndex((b) => b === document.activeElement);
-  const next = e.key === 'ArrowDown' ? Math.min(at + 1, items.length - 1) : Math.max(at - 1, 0);
-  items[next]?.focus();
-}
-
-/** More: the job's other tools in a small menu beside the rail. Lit while one of them is open. */
-function RailMore({ tools, counts, current, onSelect }: RailMoreProps) {
+/** Edit, at the end of the job's part: which of the job's tools sit under its name, in a small panel beside the rail. */
+function JobEdit({ label, choice }: JobEditProps) {
   const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) panel.current?.focus();
+  }, [open]);
   const close = () => {
     setOpen(false);
   };
   return (
-    <div className="relative">
-      <RailItem
-        testId="rail-more"
-        label="More"
-        icon={Ellipsis}
-        count={countOf(counts, tools)}
-        badgeId="tool-badge-more"
-        active={tools.some((t) => t === current)}
-        expanded={open}
+    // Full width, so the panel opens just past the rail's edge (like More's menu).
+    <div className="relative mt-0.5 flex w-full shrink-0 justify-center">
+      <button
+        type="button"
+        data-testid="job-rail-edit"
+        aria-label={`Edit ${label} tools`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className={`flex h-7 items-center gap-1 rounded-md px-2.5 text-[12px] font-medium transition-colors ${
+          open ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'
+        }`}
         onClick={() => {
           setOpen(!open);
         }}
-      />
+      >
+        <Icon icon={Pencil} size={12} />
+        Edit
+      </button>
       {open ? (
         <>
-          {/* Backdrop: clicking outside closes the menu without a document listener. */}
+          {/* Backdrop: clicking outside closes the panel without a document listener. */}
           <div className="fixed inset-0 z-30" aria-hidden="true" onClick={close} />
           <div
-            role="menu"
-            aria-label="More tools"
-            data-testid="rail-more-menu"
-            className="absolute left-full top-0 z-40 ml-3 w-56 rounded-card bg-card py-1.5 shadow-pop"
+            ref={panel}
+            role="dialog"
+            aria-label={`${label} tools`}
+            tabIndex={-1}
+            data-testid="job-rail-editor"
+            className="absolute bottom-0 left-full z-40 ml-1 max-h-[calc(100vh-1.5rem)] w-64 overflow-y-auto rounded-card bg-card shadow-pop outline-none"
             onKeyDown={(e) => {
-              menuKeys(e, close);
+              if (e.key === 'Escape') close();
             }}
           >
-            {tools.map((t, i) => (
-              <button
-                key={t}
-                type="button"
-                role="menuitem"
-                autoFocus={i === 0}
-                data-testid={`rail-more-${t}`}
-                aria-current={t === current ? 'page' : undefined}
-                className={`flex h-10 w-full items-center gap-3 px-3.5 text-left text-sm outline-none focus-visible:bg-page ${
-                  t === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-page'
-                }`}
-                onClick={() => {
-                  close();
-                  onSelect(t);
-                }}
-              >
-                <Icon icon={TOOL_META[t].icon} size={18} className={t === current ? 'text-accent' : 'text-ink-2'} />
-                <span className="flex-1">{TOOL_META[t].label}</span>
-                <CountBadge n={counts[t] ?? 0} testId={`tool-badge-${t}`} />
-              </button>
-            ))}
+            <p className="break-words border-b border-line px-3 py-2.5 text-sm font-semibold text-ink wrap-anywhere">{label}</p>
+            <JobToolsEdit {...choice} onDone={close} />
           </div>
         </>
       ) : null}
@@ -138,59 +97,98 @@ function RailMore({ tools, counts, current, onSelect }: RailMoreProps) {
   );
 }
 
-/** The product mark on top of the rail. */
-function Mark() {
+interface ItemsProps {
+  tools: readonly RailTool[];
+  counts: ToolCounts;
+  current: Tool;
+  compact: boolean;
+  onSelect: (tool: Tool) => void;
+}
+
+function Items({ tools, counts, current, compact, onSelect }: ItemsProps) {
   return (
-    <div className="flex h-14 w-full shrink-0 items-center justify-center" title={FUTURE_NAME}>
-      <BrandMark size="md" />
-    </div>
+    <>
+      {tools.map((t) => (
+        <RailItem
+          key={t}
+          testId={`rail-${t}`}
+          label={TOOL_META[t].label}
+          icon={TOOL_META[t].icon}
+          count={counts[t] ?? 0}
+          badgeId={`tool-badge-${t}`}
+          active={t === current}
+          compact={compact}
+          onClick={() => {
+            onSelect(t);
+          }}
+        />
+      ))}
+    </>
   );
 }
 
-export function Rail({ items, more, counts, current, collapsed, onSelect, onToggleCollapsed }: RailProps) {
-  if (collapsed) {
-    const waiting = countOf(counts, [...items, ...more]) > 0;
+interface JobHeadProps {
+  label: string;
+  compact: boolean;
+}
+
+/** Where the job's part starts: a divider and the job's name (wrapped, never cut), or on the collapsed rail a thin line. */
+function JobHead({ label, compact }: JobHeadProps) {
+  if (compact) {
     return (
-      <nav aria-label="Tools" className="flex w-5 shrink-0 flex-col items-center gap-2 bg-rail pt-16">
-        <button
-          type="button"
-          aria-label="Show the tool rail"
-          title="Show the tool rail"
-          className="flex h-8 w-5 items-center justify-center text-rail-ink hover:text-white"
-          onClick={onToggleCollapsed}
-        >
-          <Icon icon={ChevronsRight} size={14} />
-        </button>
-        {waiting ? <span data-testid="tool-waiting" aria-label="Something needs you" role="img" className="h-2 w-2 rounded-full bg-accent" /> : null}
-      </nav>
+      <span
+        aria-hidden="true"
+        title={label}
+        data-testid="job-rail-label"
+        className="my-1.5 h-[3px] w-7 shrink-0 rounded-full bg-rail-ink/50"
+      />
     );
   }
   return (
-    <nav aria-label="Tools" className="flex w-rail shrink-0 flex-col items-center bg-rail pb-2">
-      <Mark />
-      <div className="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto pt-2">
-        {items.map((t) => (
-          <RailItem
-            key={t}
-            testId={`rail-${t}`}
-            label={TOOL_META[t].label}
-            icon={TOOL_META[t].icon}
-            count={counts[t] ?? 0}
-            badgeId={`tool-badge-${t}`}
-            active={t === current}
-            onClick={() => {
-              onSelect(t);
-            }}
-          />
-        ))}
+    <p
+      aria-hidden="true"
+      data-testid="job-rail-label"
+      className="mt-2 w-[80px] shrink-0 text-balance break-words border-t border-rail-line px-1 pb-1 pt-2.5 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-rail-ink wrap-anywhere"
+    >
+      {label}
+    </p>
+  );
+}
+
+export function Rail({ general, job, counts, current, collapsed, onSelect, onToggleCollapsed }: RailProps) {
+  const compact = collapsed;
+  const items = { counts, current, compact, onSelect };
+  return (
+    <nav aria-label="Tools" className={`flex shrink-0 flex-col items-center bg-rail pb-2 ${compact ? 'w-14' : 'w-rail'}`}>
+      <div className="flex h-14 w-full shrink-0 items-center justify-center" title={FUTURE_NAME}>
+        <BrandMark size="md" />
       </div>
-      {more.length > 0 ? (
-        <div className="mt-1 flex w-full justify-center">
-          <RailMore tools={more} counts={counts} current={current} onSelect={onSelect} />
+      <div className="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto pt-2">
+        <Items tools={general} {...items} />
+        {job ? (
+          <>
+            <JobHead label={job.label} compact={compact} />
+            <div
+              role="group"
+              aria-label={job.label}
+              data-testid="job-rail"
+              data-version={job.version ?? 'none'}
+              className="flex w-full flex-col items-center gap-1"
+            >
+              <Items tools={job.tools} {...items} />
+            </div>
+          </>
+        ) : null}
+      </div>
+      {/* More and Edit sit outside the scrolling list, so their panels beside the rail are never clipped. */}
+      {job && job.more.length > 0 ? (
+        <div className="mt-1 flex w-full shrink-0 justify-center">
+          <RailMore tools={job.more} {...items} />
         </div>
       ) : null}
+      {job && !compact ? <JobEdit label={job.label} choice={job.edit} /> : null}
       <div className="flex-1" />
-      <div className="mt-2 flex w-full flex-col items-center gap-1 border-t border-rail-line pt-2">
+      <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-1 border-t border-rail-line pt-2">
         <RailItem
           testId="rail-settings"
           label={TOOL_META.settings.label}
@@ -198,18 +196,19 @@ export function Rail({ items, more, counts, current, collapsed, onSelect, onTogg
           count={0}
           badgeId="tool-badge-settings"
           active={current === 'settings'}
+          compact={compact}
           onClick={() => {
             onSelect('settings');
           }}
         />
         <button
           type="button"
-          aria-label="Collapse the tool rail"
-          title="Collapse the tool rail"
+          aria-label={compact ? 'Show the tool names' : 'Collapse the tool rail'}
+          title={compact ? 'Show the tool names' : 'Collapse the tool rail'}
           className="flex h-7 w-10 items-center justify-center rounded-md text-rail-ink hover:bg-rail-hover hover:text-white"
           onClick={onToggleCollapsed}
         >
-          <Icon icon={ChevronsLeft} size={16} />
+          <Icon icon={compact ? ChevronsRight : ChevronsLeft} size={16} />
         </button>
       </div>
     </nav>

@@ -1,7 +1,7 @@
 // The user_layout schema and its defaults (SPEC §5.1, §7.2). The ONE place layout defaults live.
-// The only layout choices a person has: rail icons, main default, docked panel, collapsed panes, calendar types,
-// notification kinds, recent jobs and the "What's new" line. No dragging, no resizing.
-// The rail: null (the default) = my role's recommendation on each job (roles.recommended_tools, 0040); a list = my pins.
+// The only layout choices a person has: main default, docked panel, collapsed panes, calendar types, notification
+// kinds, recent jobs and the "What's new" line, plus each job's tools on the rail (user_job_rail, 0051, chosen under
+// the job's name). No dragging, no resizing. The old global pins (rail_items) are retired and never read.
 import { z } from 'zod';
 
 /** Every tool the frame can show in the main area. */
@@ -168,8 +168,6 @@ export function setNotify(on: readonly string[], keys: readonly string[], checke
 const RECENT_LIMIT = 8;
 
 export const LAYOUT_DEFAULTS = {
-  /** null = use my role's recommendation on each job; a list = my pins, on every job. */
-  rail_items: null as RailTool[] | null,
   main_default: 'board' as RailTool,
   docked_panel: 'board' as DockedPanel,
   collapsed: { rail: false, right: false },
@@ -180,17 +178,7 @@ export const LAYOUT_DEFAULTS = {
   whats_new_enabled: true,
 };
 
-function isRailTool(v: string): v is RailTool {
-  return (RAIL_TOOLS as readonly string[]).includes(v);
-}
-
-/** The rail as the Settings editor sees it: the tools shown, in order (my pins, or the recommendation I start from). */
-export interface RailChoices {
-  rail_items: RailTool[];
-  main_default: RailTool;
-}
-
-/** Moves a tool one place up (-1) or down (+1) on the rail. The phone bar shows the first ones. */
+/** Moves a tool one place up (-1) or down (+1) in a list (a job's tools on the rail). The phone bar shows the first ones. */
 export function moveRailItem(items: readonly RailTool[], tool: RailTool, step: -1 | 1): RailTool[] {
   const from = items.indexOf(tool);
   const to = from + step;
@@ -200,29 +188,8 @@ export function moveRailItem(items: readonly RailTool[], tool: RailTool, step: -
   return next;
 }
 
-/**
- * Shows a tool (it joins the end of the rail) or hides it. The rail never goes empty, and hiding the tool I land on
- * moves "Opens on" to the first tool left.
- */
-export function showOnRail(c: RailChoices, tool: RailTool, shown: boolean): RailChoices {
-  if (shown) return { rail_items: c.rail_items.includes(tool) ? [...c.rail_items] : [...c.rail_items, tool], main_default: c.main_default };
-  const next = c.rail_items.filter((t) => t !== tool);
-  const first = next[0];
-  if (first === undefined) return { rail_items: [...c.rail_items], main_default: c.main_default };
-  return { rail_items: next, main_default: next.includes(c.main_default) ? c.main_default : first };
-}
-
-/** Unknown values in the row fall back to defaults rather than breaking the frame. */
+/** Unknown values in the row fall back to defaults rather than breaking the frame. Unknown keys (rail_items) drop. */
 const layoutChoicesSchema = z.object({
-  // Known tools, once each; nothing left (or no list) = the recommendation.
-  rail_items: z
-    .array(z.string())
-    .nullable()
-    .transform((a) => {
-      const known = [...new Set((a ?? []).filter(isRailTool))];
-      return known.length > 0 ? known : null;
-    })
-    .catch(LAYOUT_DEFAULTS.rail_items),
   main_default: z.enum(RAIL_TOOLS).catch(LAYOUT_DEFAULTS.main_default),
   docked_panel: z.enum(DOCKED_PANELS).catch(LAYOUT_DEFAULTS.docked_panel),
   collapsed: z

@@ -4486,6 +4486,41 @@ export type Database = {
           },
         ]
       }
+      user_job_rail: {
+        Row: {
+          created_at: string
+          project_id: string
+          tools: string[] | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          project_id: string
+          tools?: string[] | null
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          project_id?: string
+          tools?: string[] | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_job_rail_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_layout: {
         Row: {
           calendar_types: string[]
@@ -6779,6 +6814,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      job_rail_ok: { Args: { p_tools: string[] }; Returns: boolean }
+      job_rail_tools: { Args: never; Returns: string[] }
       jwt_role: { Args: never; Returns: string }
       link_delivery_board: {
         Args: {
@@ -8267,6 +8304,23 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "job_hours_budgets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_job_rail: {
+        Args: { p_project_id: string; p_tools: string[]; p_version?: number }
+        Returns: {
+          created_at: string
+          project_id: string
+          tools: string[] | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_job_rail"
           isOneToOne: true
           isSetofReturn: false
         }

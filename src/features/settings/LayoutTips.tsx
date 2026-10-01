@@ -3,7 +3,7 @@ import { Lightbulb } from 'lucide-react';
 import { Icon } from '../../ui/Icon';
 
 const TIPS = [
-  'Put the tools you use daily first. The phone shows the first four.',
+  "Pick each job's tools with Edit under its name. The phone shows the first ones.",
   'Open on the screen you want to land on.',
   'Keep the right column on Board to see new items while you work.',
   'Subscribe only to what you act on.',

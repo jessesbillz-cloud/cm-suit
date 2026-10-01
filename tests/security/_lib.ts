@@ -129,6 +129,8 @@ export const PUBLIC_TABLES = [
   'job_hours_budgets', 'billing_profiles', 'billing_job_rates', 'invoices',
   // Request link and hub (0046)
   'request_link_log', 'request_hubs',
+  // Each job's tools on the rail (0051)
+  'user_job_rail',
 ] as const;
 
 /** Every storage bucket created by the migrations. */

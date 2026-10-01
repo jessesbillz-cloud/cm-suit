@@ -44,8 +44,8 @@ export function Frame({ model, folderId }: FrameProps) {
   return (
     <div className="flex h-screen bg-page">
       <Rail
-        items={model.railItems}
-        more={model.moreItems}
+        general={model.rail.general}
+        job={model.jobPart}
         counts={model.counts}
         current={loc.tool}
         collapsed={choices.collapsed.rail}

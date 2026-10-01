@@ -46,69 +46,116 @@ export function toolIsOn(tool: string, modules: readonly string[]): boolean {
   return !MODULE_TOOLS.includes(module) || modules.includes(module);
 }
 
-/** The rail for a job: my rail picks minus the job's switched-off modules. */
+/** The tools of a list that a job with these modules has on. */
 export function railForJob<T extends string>(railItems: readonly T[], modules: readonly string[]): T[] {
   return railItems.filter((t) => toolIsOn(t, modules));
 }
 
 /**
- * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, and the bids pipeline.
- * The ONE list: the rail and the phone bar there show only these (Settings stays pinned), and the job picker names them.
+ * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, the bids pipeline and my
+ * timesheets. The ONE list: they are the top of the rail (Jesse, Oct 1: "our big general things"), and the job picker
+ * names them.
  */
 export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids', 'timesheets'] as const satisfies readonly RailTool[];
 
 type AllJobsTool = (typeof ALL_JOBS_TOOLS)[number];
 
-/** Tools that only work across jobs: never on a job's rail (on a job, Timesheets is that job's Hours). */
-const ALL_JOBS_ONLY: readonly string[] = ['timesheets'];
+/** Never under a job's name: Board and Calendar sit on top, Timesheets is All my jobs only. */
+const TOP_ONLY: readonly string[] = ['board', 'calendar', 'timesheets'];
+
+/**
+ * The tools that may sit under a job's name (the database's job_rail_tools(), 0051): every rail tool but the top ones.
+ * A new tool in RAIL_TOOLS (and in job_rail_tools()) joins every job's list here, and its Edit list, by itself.
+ */
+export const JOB_TOOLS: readonly RailTool[] = RAIL_TOOLS.filter((t) => !TOP_ONLY.includes(t));
 
 function worksAcrossJobs(tool: string): tool is AllJobsTool {
   return (ALL_JOBS_TOOLS as readonly string[]).includes(tool);
 }
 
-/** The rail on "All my jobs": my picks, in my order, that work across jobs, minus modules no job of mine has on. */
+/** The tools of a list that work across jobs, minus modules no job of mine has on. */
 export function railForAllJobs<T extends string>(railItems: readonly T[], jobModules: readonly (readonly string[])[]): T[] {
   return railItems.filter((t) => worksAcrossJobs(t) && (toolIsOn(t, []) || jobModules.some((m) => toolIsOn(t, m))));
 }
 
-/** A rail: the tools on it, in order, and the rest of what's on under More (one way to reach each tool). */
+/**
+ * The rail in two parts (Jesse, Oct 1): the general things on top; with a job picked, that job's tools under its name
+ * in my order for the job, then More for the job's other tools. One way to reach each tool.
+ */
 export interface RailModel {
-  rail: RailTool[];
+  /** On All my jobs, the cross-job tools; on a job, the same ones acting on that job (Timesheets is its Hours). */
+  general: RailTool[];
+  /** Under the job's name, in my order. None on All my jobs. */
+  job: RailTool[];
+  /** The job's other tools, under More. */
   more: RailTool[];
 }
 
-/** The chosen tools that are on, in the chosen order, once each; never an empty rail. More holds the rest. */
-function splitRail(chosen: readonly string[], on: readonly RailTool[]): RailModel {
-  const rail = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
-  const first = on[0];
-  if (rail.length === 0 && first !== undefined) rail.push(first);
-  return { rail, more: on.filter((t) => !rail.includes(t)) };
+/** Timesheets are for people who keep hours: my position recommends Hours on some job of mine. */
+function keepsHours(recommended: readonly (readonly string[])[]): boolean {
+  return recommended.some((r) => r.includes('hours'));
+}
+
+/** The top of the rail on All my jobs: the cross-job tools some job of mine has on (Timesheets if I keep hours). */
+function allJobsTop(jobModules: readonly (readonly string[])[], recommended: readonly (readonly string[])[]): RailTool[] {
+  return railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => t !== 'timesheets' || keepsHours(recommended));
 }
 
 /**
- * The rail on a job (Jesse, Sep 28: lean, by position): my pins when I have them, else my role's recommendation for
- * this job (my_recommended_tools). The job's modules decide which tools exist at all; the rest are under More.
+ * A job's rail. Top: the general tools (`top`, from All my jobs) the job has on, acting on the job. Under its name: my
+ * own list for this job (`choice`), else my position's recommendation there (my_recommended_tools), in that order,
+ * minus what sits on top. More: the job's other tools. A list may name tools the job has off; they just don't show.
  */
-export function jobRail(pins: readonly RailTool[] | null, recommended: readonly string[], modules: readonly string[]): RailModel {
-  return splitRail(pins ?? recommended, railForJob(RAIL_TOOLS, modules).filter((t) => !ALL_JOBS_ONLY.includes(t)));
-}
-
-/** Timesheets are for people who keep hours: my position recommends Hours on some job, or I pinned Hours or Timesheets. */
-function keepsHours(pins: readonly RailTool[] | null, recommended: readonly (readonly string[])[]): boolean {
-  return recommended.some((r) => r.includes('hours')) || (pins ?? []).some((t) => t === 'hours' || t === 'timesheets');
-}
-
-/**
- * "All my jobs": the cross-job tools some job of mine has on (Timesheets only for people who keep hours, `recommended` =
- * my recommendation on each job); my pinned ones on the rail (all of them without pins).
- */
-export function allJobsRail(
-  pins: readonly RailTool[] | null,
-  jobModules: readonly (readonly string[])[],
-  recommended: readonly (readonly string[])[] = [],
+export function jobRail(
+  top: readonly RailTool[],
+  choice: readonly string[] | null,
+  recommended: readonly string[],
+  modules: readonly string[],
 ): RailModel {
-  const on = railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => t !== 'timesheets' || keepsHours(pins, recommended));
-  return splitRail(pins ?? on, on);
+  const general = railForJob(
+    top.map((t): RailTool => (t === 'timesheets' ? 'hours' : t)),
+    modules,
+  );
+  const on = railForJob(JOB_TOOLS, modules).filter((t) => !general.includes(t));
+  const chosen = choice ?? recommended;
+  const job = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
+  return { general, job, more: on.filter((t) => !job.includes(t)) };
+}
+
+interface RailJob {
+  project_id: string;
+  modules: readonly string[];
+}
+
+/**
+ * The rail the frame shows: on All my jobs (`projectId` null) only the top; on a job, the top acting on it and the job's
+ * own part. `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none).
+ */
+export function railModel(
+  projectId: string | null,
+  jobs: readonly RailJob[],
+  recommended: Readonly<Record<string, readonly string[]>>,
+  choices: Readonly<Record<string, readonly string[] | null>>,
+): RailModel {
+  const top = allJobsTop(
+    jobs.map((j) => j.modules),
+    jobs.map((j) => recommended[j.project_id] ?? []),
+  );
+  if (projectId === null) return { general: top, job: [], more: [] };
+  const modules = jobs.find((j) => j.project_id === projectId)?.modules ?? [];
+  return jobRail(top, choices[projectId] ?? null, recommended[projectId] ?? [], modules);
+}
+
+/** The phone bar's order (SPEC §7.7): Board and Calendar, then the job's tools, then the rest of the top. */
+export function phoneRail(m: RailModel): RailTool[] {
+  const core: RailTool[] = m.general.filter((t) => t === 'board' || t === 'calendar');
+  return [...core, ...m.job, ...m.general.filter((t) => !core.includes(t))];
+}
+
+/** Shows a tool under the job's name (it joins the end) or takes it off (it goes under More). */
+export function showJobTool(chosen: readonly RailTool[], tool: RailTool, shown: boolean): RailTool[] {
+  if (!shown) return chosen.filter((t) => t !== tool);
+  return chosen.includes(tool) ? [...chosen] : [...chosen, tool];
 }
 
 /** Where a tool lands on "All my jobs": itself when it works across jobs (Settings too), a job's Hours on Timesheets, else the board. */

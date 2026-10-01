@@ -249,6 +249,10 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['request_link_token', {}],
   // The RFI log's route strip (0049)
   ['rfi_progress', { p_project_id: U }],
+  // Each job's tools on the rail (0051)
+  ['save_job_rail', { p_project_id: U, p_tools: ['rfis'] }],
+  ['job_rail_tools', {}],
+  ['job_rail_ok', { p_tools: ['rfis'] }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
