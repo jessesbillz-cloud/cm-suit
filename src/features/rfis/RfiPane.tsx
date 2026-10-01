@@ -128,7 +128,7 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
         isPhone={isPhone}
       />
       <div className="flex flex-1 flex-col gap-3 overflow-auto px-5 py-4 text-sm leading-6 text-ink" data-testid="rfi-pane">
-        <RfiWhere detail={d} steps={steps} timeZone={tz} now={now} layout={nav.standalone && !isPhone ? 'line' : 'stack'} />
+        <RfiWhere detail={d} steps={steps} timeZone={tz} now={now} />
         {progress.isError ? <ErrorState error={progress.error} onRetry={() => void progress.refetch()} /> : null}
         {editingTitle !== null ? (
           <RfiEdit row={d.rfi} photos={d.photos} isPhone={isPhone} onDone={() => { setEditingTitle(null); }} />

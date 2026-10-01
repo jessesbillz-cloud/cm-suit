@@ -3,27 +3,11 @@
 // buttons wait. Pure, unit-tested. The days themselves come from the server (rfi_progress, the job's clock).
 import type { RfiListRow, RfiProgressRow, RfiRow } from '../../data/rfis.types';
 import { formatInZone, todayInZone } from '../../lib/dates';
-import type { StatusKey } from '../../lib/status';
 
 /** Whole days on a step, one way everywhere: "<1d" under a day, else "5d". Nothing for steps ahead or the end. */
 export function daysLabel(days: number | null): string {
   if (days === null) return '';
   return days === 0 ? '<1d' : `${String(days)}d`;
-}
-
-interface CellLook {
-  status: StatusKey;
-  /** Use the status's solid fill (answered: solid green) instead of its tint. */
-  solid: boolean;
-  check: boolean;
-}
-
-/** Done: a check on the pale tint. Has it now: filled in the accent. Ahead: an outline. Reached the end: solid green. */
-export function cellLook(step: Pick<RfiProgressRow, 'kind' | 'state'>): CellLook {
-  if (step.state === 'done') {
-    return step.kind === 'answered' ? { status: 'confirmed', solid: true, check: true } : { status: 'step_done', solid: false, check: true };
-  }
-  return step.state === 'current' ? { status: 'step_current', solid: false, check: false } : { status: 'step_ahead', solid: false, check: false };
 }
 
 /** The cell's words: its label ("You" when the step that has it now is mine) and its time. */

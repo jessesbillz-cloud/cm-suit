@@ -73,7 +73,7 @@ function Row({ row, steps, timeZone, now, selected, isPhone, onOpen }: RowProps)
         </span>
         <span className={`block w-full ${isPhone ? '' : 'pl-[3.75rem]'}`}>
           {steps ? (
-            <RouteStrip steps={steps} timeZone={timeZone} mine={row.is_mine_to_act} layout={isPhone ? 'stack' : 'line'} />
+            <RouteStrip steps={steps} timeZone={timeZone} mine={row.is_mine_to_act} size="sm" />
           ) : (
             <span aria-hidden className={`block w-full animate-pulse rounded-[5px] bg-page ${isPhone ? 'h-[34px]' : 'h-6'}`} />
           )}

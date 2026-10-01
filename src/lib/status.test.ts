@@ -15,12 +15,13 @@ describe('status', () => {
     expect(statusLabel('postponed')).toBe('Postponed');
     expect(statusLabel('gc_review')).toBe('GC review');
   });
-  it('has the route strip and late colors: current filled in the accent, ahead an outline, late red (not amber)', () => {
-    expect(STATUS.step_current.bg).toBe('#2563EB');
-    expect(STATUS.step_current.fg).toBe('#FFFFFF');
+  it('has the tracker colors (the MDR pipeline): done green, has it a gold ring, ahead grey, late red', () => {
+    expect(STATUS.step_done.solid).toBe('#16A34A');
+    expect(STATUS.step_current.dot).toBe('#EAB308');
+    expect(STATUS.step_current.bg).toBe('#FFFFFF');
     expect(STATUS.step_ahead.bg).toBe('#FFFFFF');
-    expect(STATUS.step_done.bg).not.toBe(STATUS.step_ahead.bg);
+    expect(STATUS.step_ahead.dot).not.toBe(STATUS.step_current.dot);
     expect(STATUS.late.fg).toBe('#DC2626');
-    expect(statusCssVariables()).toContain('--status-step_done-dot:#C9DAFC');
+    expect(statusCssVariables()).toContain('--status-step_done-solid:#16A34A');
   });
 });

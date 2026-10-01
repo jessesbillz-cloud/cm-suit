@@ -3,7 +3,7 @@
 // architect answers, and the originator claims impact inside the window (amber row, permanent).
 // Mock users: 'sub', 'inspector', 'pm', 'architect'. Sample Job A starts with RFIs 001-005, one waiting to issue, three
 // in review (with the inspector, the PE, a consultant) and a draft (src/data/mock/rfiSeeds.ts). Test ids: rfi-new,
-// rfi-title, rfi-question, rfi-send, rfi-row-<no>, rfi-strip (cells carry data-state done / current / next),
+// rfi-title, rfi-question, rfi-send, rfi-row-<no>, rfi-strip (steps carry data-state done / current / todo),
 // rfi-due-mark, rfi-status, rfi-label, rfi-holder, rfi-forward, rfi-issue, rfi-due, rfi-answer-open, rfi-answer-text,
 // rfi-answer-send, rfi-answer, rfi-claim, rfi-impact-left, rfi-claim-cost, rfi-claim-confirm, rfi-impact-claimed,
 // rfi-head-actions, rfi-history, rfi-search, needs-you-rfi.

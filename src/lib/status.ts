@@ -14,10 +14,10 @@ export const STATUS = {
   assigned: { label: 'Assigned', fg: '#1E40AF', bg: '#DBEAFE', dot: '#3B82F6', solid: '#2563EB', onSolid: '#FFFFFF' },
   // Waiting on the GC before the inspector sees it (MDR's gray "pending_gc"; 0043 ir_status_key).
   gc_review: { label: 'GC review', fg: '#374151', bg: '#F3F4F6', dot: '#9CA3AF', solid: '#B8C0CC', onSolid: '#1F2937' },
-  // A routed item's strip (RFI log, Sep 30): a step done (a check on a pale accent tint), the step that has it now
-  // (filled in the accent), a step ahead (an empty outline). Answered is `confirmed` (solid green); dot = the edge.
-  step_done: { label: 'Done', fg: '#1E40AF', bg: '#EAF1FE', dot: '#C9DAFC', solid: '#2563EB', onSolid: '#FFFFFF' },
-  step_current: { label: 'Has it', fg: '#FFFFFF', bg: '#2563EB', dot: '#2563EB', solid: '#2563EB', onSolid: '#FFFFFF' },
+  // A routed item's tracker (ui/Stepper; RFI log and inspection requests, MDR's pipeline): a step done (a green dot with
+  // a check), the step that has it now (a gold ring with its number), a step ahead (a grey outline). dot = the ring.
+  step_done: { label: 'Done', fg: '#166534', bg: '#DCFCE7', dot: '#16A34A', solid: '#16A34A', onSolid: '#FFFFFF' },
+  step_current: { label: 'Has it', fg: '#854D0E', bg: '#FFFFFF', dot: '#EAB308', solid: '#EAB308', onSolid: '#422006' },
   step_ahead: { label: 'Ahead', fg: '#6B7280', bg: '#FFFFFF', dot: '#CDD2DA', solid: '#E5E7EB', onSolid: '#374151' },
   // Past its due date: red text (never amber, which means "impact claimed").
   late: { label: 'Late', fg: '#DC2626', bg: '#FEE2E2', dot: '#EF4444', solid: '#DC2626', onSolid: '#FFFFFF' },

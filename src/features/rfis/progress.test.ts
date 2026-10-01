@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RfiProgressRow } from '../../data/rfis.types';
-import { STATUS } from '../../lib/status';
 import { rowNumber } from './model';
-import { cellLook, cellText, cellTitle, daysLabel, dueMark, pdfWait, stripsByRfi } from './progress';
+import { cellText, cellTitle, daysLabel, dueMark, pdfWait, stripsByRfi } from './progress';
 
 const TZ = 'America/Los_Angeles';
 /** Monday Sep 28, 2026, noon in Los Angeles. */
@@ -29,17 +28,6 @@ describe('the route strip', () => {
     expect(daysLabel(0)).toBe('<1d');
     expect(daysLabel(1)).toBe('1d');
     expect(daysLabel(12)).toBe('12d');
-  });
-
-  it('done: a check on the tint; has it now: the accent; ahead: an outline; answered: solid green', () => {
-    expect(cellLook({ kind: 'review', state: 'done' })).toEqual({ status: 'step_done', solid: false, check: true });
-    expect(cellLook({ kind: 'answer', state: 'current' })).toEqual({ status: 'step_current', solid: false, check: false });
-    expect(cellLook({ kind: 'issue', state: 'next' })).toEqual({ status: 'step_ahead', solid: false, check: false });
-    expect(cellLook({ kind: 'answered', state: 'done' })).toEqual({ status: 'confirmed', solid: true, check: true });
-    expect(cellLook({ kind: 'answered', state: 'next' }).status).toBe('step_ahead');
-    for (const s of ['done', 'current', 'next'] as const) expect(Object.keys(STATUS)).toContain(cellLook({ kind: 'ask', state: s }).status);
-    // Never amber: amber is "impact claimed" only.
-    expect(cellLook({ kind: 'answer', state: 'current' }).status).not.toBe('pending');
   });
 
   it('names who has it, "You" when it is mine, with the time', () => {

@@ -12,19 +12,18 @@ interface RfiWhereProps {
   steps: readonly RfiProgressRow[] | undefined;
   timeZone: string;
   now: Date;
-  layout: 'line' | 'stack';
 }
 
-export function RfiWhere({ detail, steps, timeZone, now, layout }: RfiWhereProps) {
+export function RfiWhere({ detail, steps, timeZone, now }: RfiWhereProps) {
   const r = detail.rfi;
   const due = r.status === 'open' && r.due_at !== null ? dueText(r.due_at, timeZone, now) : null;
   const unopened = !detail.is_mine_to_act && notOpened(r);
   return (
     <section className="flex flex-col gap-2" aria-label="Where it is" data-testid="rfi-where">
       {steps ? (
-        <RouteStrip steps={steps} timeZone={timeZone} mine={detail.is_mine_to_act} layout={layout} />
+        <RouteStrip steps={steps} timeZone={timeZone} mine={detail.is_mine_to_act} size="md" />
       ) : (
-        <span aria-hidden className={`block w-full animate-pulse rounded-[5px] bg-page ${layout === 'stack' ? 'h-[34px]' : 'h-6'}`} />
+        <span aria-hidden className="block h-[48px] w-full animate-pulse rounded-[5px] bg-page" />
       )}
       {detail.is_mine_to_act || unopened || due ? (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-2">
