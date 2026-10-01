@@ -72,11 +72,12 @@ export function RouteStrip({ steps, timeZone, mine = false, layout, testId = 'rf
   if (steps.length === 0) return null;
   return (
     // Spans with list roles: the strip also sits inside a log row's button, which takes phrasing content only.
+    // relative: the cells' screen-reader text is absolutely positioned and must stay inside the strip's scroll box.
     <span
       role="list"
       aria-label="Route"
       data-testid={testId}
-      className={`flex w-full min-w-0 overflow-x-auto ${layout === 'stack' ? 'gap-[2px]' : 'gap-[3px]'}`}
+      className={`relative flex w-full min-w-0 overflow-x-auto ${layout === 'stack' ? 'gap-[2px]' : 'gap-[3px]'}`}
     >
       {steps.map((s) => (
         <Cell key={s.position} step={s} timeZone={timeZone} mine={mine} layout={layout} />
