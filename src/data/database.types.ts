@@ -7590,18 +7590,8 @@ export type Database = {
           user_id: string
         }[]
       }
-      permit_approved: {
-        Args: {
-          p_permit_id: string
-        }
-        Returns: Json
-      }
-      permit_approved_root: {
-        Args: {
-          p_project_id: string
-        }
-        Returns: string
-      }
+      permit_approved: { Args: { p_permit_id: string }; Returns: Json }
+      permit_approved_root: { Args: { p_project_id: string }; Returns: string }
       permit_check: {
         Args: {
           p_kind: string
@@ -7613,10 +7603,7 @@ export type Database = {
         Returns: undefined
       }
       permit_clean_numbers: {
-        Args: {
-          p_numbers: string[]
-          p_primary: string
-        }
+        Args: { p_numbers: string[]; p_primary: string }
         Returns: string[]
       }
       permit_comment_add: {
@@ -7660,11 +7647,7 @@ export type Database = {
         }
       }
       permit_comment_close: {
-        Args: {
-          p_closed?: boolean
-          p_comment_id: string
-          p_version: number
-        }
+        Args: { p_closed?: boolean; p_comment_id: string; p_version: number }
         Returns: {
           body: string
           closed_at: string | null
@@ -7697,11 +7680,7 @@ export type Database = {
         }
       }
       permit_comment_respond: {
-        Args: {
-          p_comment_id: string
-          p_response: string
-          p_version: number
-        }
+        Args: { p_comment_id: string; p_response: string; p_version: number }
         Returns: {
           body: string
           closed_at: string | null
@@ -7775,18 +7754,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      permit_cycle: {
-        Args: {
-          p_permit_id: string
-        }
-        Returns: number
-      }
-      permit_detail: {
-        Args: {
-          p_permit_id: string
-        }
-        Returns: Json
-      }
+      permit_cycle: { Args: { p_permit_id: string }; Returns: number }
+      permit_detail: { Args: { p_permit_id: string }; Returns: Json }
       permit_folder_ensure: {
         Args: {
           p_cap: string
@@ -7811,9 +7780,7 @@ export type Database = {
         Returns: string
       }
       permit_items: {
-        Args: {
-          p_items: Json
-        }
+        Args: { p_items: Json }
         Returns: {
           content_hash: string
           ord: number
@@ -7822,16 +7789,9 @@ export type Database = {
           stamped_file_id: string
         }[]
       }
-      permit_label: {
-        Args: {
-          p_number: string
-        }
-        Returns: string
-      }
+      permit_label: { Args: { p_number: string }; Returns: string }
       permit_list: {
-        Args: {
-          p_project_id?: string
-        }
+        Args: { p_project_id?: string }
         Returns: {
           agency_numbers: string[]
           assigned_name: string
@@ -7854,10 +7814,7 @@ export type Database = {
         }[]
       }
       permit_lock: {
-        Args: {
-          p_permit_id: string
-          p_version: number
-        }
+        Args: { p_permit_id: string; p_version: number }
         Returns: {
           agency_numbers: string[]
           approved_folder_id: string | null
@@ -7925,54 +7882,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      permit_next_stages: {
-        Args: {
-          p_stage: string
-        }
-        Returns: string[]
-      }
+      permit_next_stages: { Args: { p_stage: string }; Returns: string[] }
       permit_number_free: {
-        Args: {
-          p_except: string
-          p_number: string
-          p_project_id: string
-        }
+        Args: { p_except: string; p_number: string; p_project_id: string }
         Returns: undefined
       }
-      permit_numbers_ok: {
-        Args: {
-          p_numbers: string[]
-        }
-        Returns: boolean
-      }
+      permit_numbers_ok: { Args: { p_numbers: string[] }; Returns: boolean }
       permit_official_ok: {
-        Args: {
-          p_person: string
-          p_project_id: string
-        }
+        Args: { p_person: string; p_project_id: string }
         Returns: boolean
       }
       permit_officials: {
-        Args: {
-          p_assigned_to: string
-          p_project_id: string
-        }
+        Args: { p_assigned_to: string; p_project_id: string }
         Returns: string[]
       }
       permit_people: {
-        Args: {
-          p_project_id: string
-        }
+        Args: { p_project_id: string }
         Returns: {
           name: string
           user_id: string
         }[]
       }
       permit_progress: {
-        Args: {
-          p_permit_id?: string
-          p_project_id?: string
-        }
+        Args: { p_permit_id?: string; p_project_id?: string }
         Returns: {
           days: number
           entered_at: string
@@ -8052,41 +7984,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      permit_set_folder: {
-        Args: {
-          p_permit_id: string
-        }
-        Returns: string
-      }
-      permit_stage_label: {
-        Args: {
-          p_stage: string
-        }
-        Returns: string
-      }
-      permit_stage_pos: {
-        Args: {
-          p_stage: string
-        }
-        Returns: number
-      }
-      permit_stamp_folders: {
-        Args: {
-          p_permit_id: string
-        }
-        Returns: Json
-      }
-      permit_stamp_mode: {
-        Args: {
-          p_stage: string
-        }
-        Returns: string
-      }
+      permit_set_folder: { Args: { p_permit_id: string }; Returns: string }
+      permit_stage_label: { Args: { p_stage: string }; Returns: string }
+      permit_stage_pos: { Args: { p_stage: string }; Returns: number }
+      permit_stamp_folders: { Args: { p_permit_id: string }; Returns: Json }
+      permit_stamp_mode: { Args: { p_stage: string }; Returns: string }
       permit_stamp_source: {
-        Args: {
-          p_file_id: string
-          p_permit_id: string
-        }
+        Args: { p_file_id: string; p_permit_id: string }
         Returns: {
           mime: string
           original_name: string
@@ -8095,9 +7999,7 @@ export type Database = {
         }[]
       }
       permit_stamp_sources: {
-        Args: {
-          p_permit_id: string
-        }
+        Args: { p_permit_id: string }
         Returns: {
           created_at: string
           folder_id: string
@@ -8117,17 +8019,9 @@ export type Database = {
         }
         Returns: undefined
       }
-      permit_today: {
-        Args: {
-          p_project_id: string
-        }
-        Returns: string
-      }
+      permit_today: { Args: { p_project_id: string }; Returns: string }
       permit_undo_move: {
-        Args: {
-          p_permit_id: string
-          p_version: number
-        }
+        Args: { p_permit_id: string; p_version: number }
         Returns: {
           agency_numbers: string[]
           approved_folder_id: string | null
@@ -9761,11 +9655,7 @@ export type Database = {
         }
       }
       set_request_permit: {
-        Args: {
-          p_permit_id: string
-          p_request_id: string
-          p_version: number
-        }
+        Args: { p_permit_id: string; p_request_id: string; p_version: number }
         Returns: {
           attachment_ids: string[]
           attendance: string | null
