@@ -11,7 +11,9 @@ const irRowSchema = z.object({
   project_id: z.string(),
   number: z.number().int(),
   version: z.number().int(),
-  requested_by: z.string(),
+  /** null: sent through the public request link (0055); requester_name is the visitor's typed name. */
+  requested_by: z.string().nullable(),
+  requester_name: z.string().nullable(),
   company: z.string(),
   request_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   start_time: z.string().nullable(),
@@ -37,9 +39,9 @@ const irRowSchema = z.object({
 });
 export type IrRow = z.infer<typeof irRowSchema>;
 
-const IR_COLS = 'id, org_id, project_id, number, version, requested_by, company, request_date, start_time, duration_kind, ' +
-  'duration_min, kind, items, status, owner_id, result, result_note, result_photo_ids, ir_file_id, content_hash, signed_at, ' +
-  'signed_by, pdf_stale, pdf_postponed, postpone_reason, postpone_note, postpone_until, ir_special_kinds(name)';
+const IR_COLS = 'id, org_id, project_id, number, version, requested_by, requester_name, company, request_date, start_time, ' +
+  'duration_kind, duration_min, kind, items, status, owner_id, result, result_note, result_photo_ids, ir_file_id, content_hash, ' +
+  'signed_at, signed_by, pdf_stale, pdf_postponed, postpone_reason, postpone_note, postpone_until, ir_special_kinds(name)';
 
 /** The request AS THE CALLER (RLS): someone who may not see it gets 404. */
 export async function loadRequest(client: Db, requestId: string): Promise<IrRow> {

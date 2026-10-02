@@ -55,10 +55,12 @@ async function jobOf(client: Db, projectId: string): Promise<Job> {
   return { name: p.name, number: p.number, address: p.address, timezone: p.timezone, gc: org?.name ?? null };
 }
 
-/** Names the caller may see (people_display): the requester's name for the form. */
-async function personName(client: Db, projectId: string, userId: string): Promise<string> {
-  const people = await rpc<{ user_id: string | null; full_name: string }[]>(client, 'people_display', { p_project_id: projectId });
-  return people.find((p) => p.user_id === userId)?.full_name ?? 'Requester';
+/** The requester's name for the form: a member's as the caller may see it (people_display), or the name a visitor
+ *  typed on the public request link (0055). */
+async function requesterName(client: Db, row: IrRow): Promise<string> {
+  if (row.requested_by === null) return row.requester_name ?? 'Requester';
+  const people = await rpc<{ user_id: string | null; full_name: string }[]>(client, 'people_display', { p_project_id: row.project_id });
+  return people.find((p) => p.user_id === row.requested_by)?.full_name ?? 'Requester';
 }
 
 function isPng(b: Uint8Array): boolean {
@@ -113,7 +115,7 @@ async function render(client: Db, service: Db, row: IrRow, signer: Signer, signe
     durationLabel: durationLabel(row),
     typeLabel: typeLabel(row),
     company: row.company,
-    requestedBy: await personName(client, row.project_id, row.requested_by),
+    requestedBy: await requesterName(client, row),
     items: row.items,
     resultLabel: resultLabel(row.result),
     approved: row.result === 'approved',

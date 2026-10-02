@@ -395,8 +395,8 @@ Each one has:
 2. **`share` (permanent file or folder share link):** same code check for recipients who aren't members. After the code, it redirects to a fresh signed URL.
 3. **`delivery-board` (token-gated per project; the super can rotate the token):** post a delivery; view the board and TV mode. Returns board fields only (§13.3).
 4. **`request-link` (token-gated per project QR poster for inspection requests):**
-   - a first-time visitor verifies their email by code;
-   - afterwards they're a `sub` member scoped to requests;
+   - anyone with the link requests with no login: the job's day (time, length, type, color only), the request with up to 3 photos or PDFs, their name, company and phone or email; a private status link shows the tracker and the result (Jesse, Oct 2);
+   - a visitor who wants to see all their requests verifies their email by code and becomes a `requester` member (requests only);
    - the project admin can revoke them.
 5. **`inbound-email` (Resend Inbound `email.received` webhook):** Svix signature (HMAC-SHA256 over id, timestamp and raw body, `RESEND_WEBHOOK_SECRET`) with a 5-minute timestamp window. De-duplicated on the Resend `email_id`.
 6. **`email-events` (delivery, bounce, complaint and open webhook):** same auth. De-duplicated on the webhook's `svix-id`.
@@ -955,7 +955,7 @@ This phase rebuilds **Jesse's MDR processes** (`mdr-processes-to-carry-over`). K
 - **Feeds:** the weekly summary and digest; DSA 151/156 forms on DSA jobs (template-driven); hours rollups (Phase 5).
 
 ### 13.2 Inspection scheduling and IRs
-- **Who requests:** subs, the GC, the super and the PE, as members through their access link. There's also a **QR poster per project** (`request-link`, §6.4); first-time visitors verify by email code.
+- **Who requests:** subs, the GC, the super and the PE, as members through their access link. There's also a **QR poster per project** (`request-link`, §6.4); visitors request with no login, and sign in by email code only to see all their requests.
 - **The requester's calendar:**
   - a live, anonymized view: times and types for everyone, full detail only for their own requests;
   - status colors from §7.1;

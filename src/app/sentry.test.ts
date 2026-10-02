@@ -21,8 +21,9 @@ describe('link secrets never reach Sentry', () => {
     expect(scrubText('/x?apikey=k1&sig=s1&page=2')).toBe(`/x?apikey=${R}&sig=${R}&page=2`);
   });
 
-  it('drops a personal sign-in key from the path', () => {
+  it('drops a sign-in key or a request receipt from the path', () => {
     expect(scrubText('https://app.example.test/k/SampleKey987?x=1')).toBe(`https://app.example.test/k/${R}?x=1`);
+    expect(scrubText('https://app.example.test/r/job-1/s/SampleReceipt123')).toBe(`https://app.example.test/r/job-1/s/${R}`);
   });
 
   it('finds addresses inside free text', () => {

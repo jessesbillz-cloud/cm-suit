@@ -93,7 +93,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         {mine && can.request ? <RequesterActions row={row} canMove={!can.decide} /> : null}
         {can.gcApprove && atGc ? <GcActions row={row} /> : null}
         {can.decide ? <InspectorPanel row={row} me={user.id} jobName={job.name} /> : null}
-        {history ? <History projectId={row.project_id} requestId={row.id} tz={job.tz} /> : null}
+        {history ? <History projectId={row.project_id} requestId={row.id} tz={job.tz} visitor={row.requester_name} /> : null}
       </div>
     </ReadingPane>
   );

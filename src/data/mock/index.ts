@@ -20,6 +20,11 @@ export function mockUser(): AppUser {
   return { id: `mock-user-${who}`, email: `${who}@example.test` };
 }
 
+/** The mock user 'anon' is nobody: the page has no session (a visitor on a public link, signed out). */
+export function mockSignedOut(): boolean {
+  return window.localStorage.getItem(MOCK_USER_KEY) === 'anon';
+}
+
 /** Signing out of the mock clears the switch, so the app returns to the real (signed-out) sign-in screen. */
 export function clearMockUser(): void {
   window.localStorage.removeItem(MOCK_USER_KEY);

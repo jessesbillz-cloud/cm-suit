@@ -106,8 +106,9 @@ export function useGcDecide() {
   );
 }
 
-/** Photos are compressed (lib/compressPhoto); PDFs go as they are; nothing else. */
-async function prepare(file: File): Promise<File> {
+/** Photos are compressed (lib/compressPhoto); PDFs go as they are; nothing else. Members' uploads and the public
+ *  request link's files alike. */
+export async function prepareIrFile(file: File): Promise<File> {
   if (file.type.startsWith('image/')) {
     return new File([await compressPhoto(file)], jpegName(file.name), { type: 'image/jpeg', lastModified: file.lastModified });
   }
@@ -133,7 +134,7 @@ export function useIrUpload(projectId: string) {
       const folderId = await attachmentsFolder(projectId);
       const out: IrUpload[] = [];
       for (const picked of files) {
-        const file = await prepare(picked);
+        const file = await prepareIrFile(picked);
         const signal = new AbortController().signal;
         const { fileId } = await uploadFile({ file, projectId, folderId, userId: user.id, signal, onProgress: () => undefined });
         out.push({ id: fileId, name: file.name });

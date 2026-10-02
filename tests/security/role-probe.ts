@@ -19,7 +19,7 @@ const RUN = randomUUID().slice(0, 8);
 
 const ROLES = [
   'project_admin', 'estimator', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector',
-  'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin',
+  'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin', 'requester',
 ] as const;
 type Role = (typeof ROLES)[number];
 /** Extra users: key -> role they hold (project A unless noted). */
@@ -34,7 +34,7 @@ const MATRIX: Record<string, readonly Role[]> = {
   'bids.submit': ['bidder'],
   'dailies.read_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep', 'inspector_admin'],
   'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'inspector_admin'],
-  'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin', 'inspector_admin'],
+  'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin', 'inspector_admin', 'requester'],
   'ir.decide': ['inspector', 'inspector_admin'],
   'ir.gc_approve': ['project_admin', 'pm', 'superintendent', 'inspector_admin'],
   'ir.view_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep', 'inspector_admin'],
@@ -45,7 +45,7 @@ const MATRIX: Record<string, readonly Role[]> = {
   'rfi.answer': ['architect'],
   'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator', 'inspector_admin'],
   'members.manage': ['project_admin', 'inspector_admin'],
-  'deliveries.view': ROLES.filter((r) => r !== 'bidder'),
+  'deliveries.view': ROLES.filter((r) => r !== 'bidder' && r !== 'requester'),
   'deliveries.post': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'inspector_admin'],
   'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin'],
   'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'inspector_admin'],

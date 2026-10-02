@@ -4,11 +4,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
 import { SessionContext, acceptInvites, type SessionState } from './auth';
 import { messageOf } from './errors';
-import { isMock, mockUser } from './mock';
+import { isMock, mockSignedOut, mockUser } from './mock';
 import { qk } from './keys';
 
 function initialState(): SessionState {
-  if (isMock()) return { status: 'signed_in', user: mockUser(), inviteError: null };
+  if (isMock()) {
+    return mockSignedOut() ? { status: 'signed_out', user: null, inviteError: null } : { status: 'signed_in', user: mockUser(), inviteError: null };
+  }
   return { status: 'loading', user: null, inviteError: null };
 }
 

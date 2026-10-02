@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { forgetLink, hubUrl, rememberLink, rememberedLink, requestLinkKey, requestLinkUrl, shortLinkText } from './requestLink';
+import { forgetLink, hubUrl, rememberLink, rememberedLink, requestLinkKey, requestLinkUrl, shortLinkText, statusLinkUrl } from './requestLink';
 
 const TOKEN = 'Ab-_'.repeat(10) + 'xyz';
 const JOB = '3f2b9c4e-1d2a-4b7c-9e8f-0a1b2c3d4e5f';
@@ -30,6 +30,9 @@ describe('request link addresses', () => {
     expect(requestLinkUrl('https://app.example.test', '/cm-suit/', JOB, TOKEN)).toBe(`https://app.example.test/cm-suit/r/${JOB}?t=${TOKEN}`);
     expect(requestLinkUrl('https://app.example.test', '/', JOB, TOKEN)).toBe(`https://app.example.test/r/${JOB}?t=${TOKEN}`);
     expect(hubUrl('https://app.example.test', '', 'hub-1', TOKEN)).toBe(`https://app.example.test/h/hub-1?t=${TOKEN}`);
+  });
+  it('builds a request\'s private status link', () => {
+    expect(statusLinkUrl('https://app.example.test', '/cm-suit/', JOB, TOKEN)).toBe(`https://app.example.test/cm-suit/r/${JOB}/s/${TOKEN}`);
   });
   it('prints the link without its scheme', () => {
     expect(shortLinkText(`https://app.example.test/r/${JOB}?t=${TOKEN}`)).toBe(`app.example.test/r/${JOB}?t=${TOKEN}`);

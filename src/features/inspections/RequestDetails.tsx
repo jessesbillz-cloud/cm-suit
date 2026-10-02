@@ -1,4 +1,4 @@
-// A request's body: what to inspect, then only the notes that exist (the inspector's note for the GC, a GC return
+// A request's body: who asked through the public link (if they did), what to inspect, then only the notes that exist (the inspector's note for the GC, a GC return
 // reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is one.
 import type { ReactNode } from 'react';
 import { FileText } from 'lucide-react';
@@ -25,12 +25,37 @@ function Note({ label, children, testId }: { label: string; children: ReactNode;
   );
 }
 
+/** A request sent through the public link (0055): who asked, and how to reach them (tap to call or write). */
+function ViaLink({ row }: { row: IrRequest }) {
+  if (row.requester_name === null) return null;
+  return (
+    <Note label="Via link" testId="ir-via-link">
+      <span className="block">
+        {row.requester_name} · {row.company}
+      </span>
+      <span className="flex flex-wrap gap-x-4">
+        {row.requester_phone ? (
+          <a className="font-medium text-accent hover:underline" href={`tel:${row.requester_phone.replace(/[^0-9+]/g, '')}`}>
+            {row.requester_phone}
+          </a>
+        ) : null}
+        {row.requester_email ? (
+          <a className="break-all font-medium text-accent hover:underline" href={`mailto:${row.requester_email}`}>
+            {row.requester_email}
+          </a>
+        ) : null}
+      </span>
+    </Note>
+  );
+}
+
 export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain }: RequestDetailsProps) {
   const result = resultLabel(row.result);
   const attendance = attendanceLabel(row.attendance);
   return (
     <div className="flex flex-col gap-3">
       <div className="divide-y divide-line rounded-lg border border-line">
+        <ViaLink row={row} />
         <Note label="Items">{row.items}</Note>
         {row.gc_note ? <Note label={row.status === 'returned' ? 'Returned' : 'GC note'}>{row.gc_note}</Note> : null}
         {row.confirm_note ? <Note label="Inspector note">{row.confirm_note}</Note> : null}

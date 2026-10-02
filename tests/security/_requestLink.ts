@@ -1,11 +1,14 @@
 /// <reference types="node" />
 // Role probe, the request link and hub (0046, SPEC §6.4 #4): only members.manage makes the job's link; the public open
 // answer is the job name plus the caller's own two facts; a member's visit changes nothing; only people who decide
-// inspections have a hub, and it answers job names and ids only; rotating locks the old link out. Called by
-// role-probe.ts with its seeded job and signed-in clients.
+// inspections have a hub, and it answers job names and ids only; rotating locks the old link out. No-login requests
+// (0055, _requestNoLogin.ts): the outsider's day, a request with a photo and no session, its status link, the inspector
+// sees the contact, a sub sees it anonymized, and a requester reads nothing but requests. Called by role-probe.ts with its
+// seeded job and signed-in clients.
 import { type Client, type Report, rowsOf } from './_lib';
+import { checkNoLogin } from './_requestNoLogin';
 
-export type RequestLinkProbeUser = 'sub' | 'inspector' | 'project_admin' | 'viewer';
+export type RequestLinkProbeUser = 'sub' | 'inspector' | 'project_admin' | 'viewer' | 'requester';
 
 export interface RequestLinkProbe {
   report: Report;
@@ -84,4 +87,5 @@ export async function checkRequestLink(p: RequestLinkProbe): Promise<void> {
   const [oldRes, newRes] = await Promise.all([call(p, open), call(p, { ...open, token: newToken })]);
   report.check('request link', 'rotating locks out the old link (404)', oldRes.status === 404, `status ${oldRes.status}`);
   report.check('request link', 'the new link works (200)', newRes.status === 200, `status ${newRes.status}`);
+  await checkNoLogin(p, newToken);
 }

@@ -2683,7 +2683,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -2735,7 +2738,10 @@ export type Database = {
           postponed_at?: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
           result?: string | null
           result_at?: string | null
           result_by?: string | null
@@ -2787,7 +2793,10 @@ export type Database = {
           postponed_at?: string | null
           project_id?: string
           request_date?: string
-          requested_by?: string
+          requested_by?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
           result?: string | null
           result_at?: string | null
           result_by?: string | null
@@ -2990,6 +2999,32 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ir_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_link_receipts: {
+        Row: {
+          created_at: string
+          request_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          request_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          request_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_link_receipts_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "inspection_requests"
@@ -6208,7 +6243,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6275,7 +6313,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6300,6 +6341,40 @@ export type Database = {
       }
       ir_calendar: {
         Args: { p_from: string; p_project_id: string; p_to: string }
+        Returns: {
+          attendance: string
+          company: string
+          duration_kind: string
+          duration_min: number
+          full_detail: boolean
+          helper_id: string
+          id: string
+          is_block: boolean
+          items: string
+          kind: string
+          mine: boolean
+          number: number
+          owner_id: string
+          postpone_reason: string
+          postpone_until: string
+          request_date: string
+          result: string
+          special_kind: string
+          start_time: string
+          status: string
+          status_key: string
+          version: number
+        }[]
+      }
+      ir_calendar_rows: {
+        Args: {
+          p_decide: boolean
+          p_from: string
+          p_project_id: string
+          p_team: boolean
+          p_to: string
+          p_viewer: string
+        }
         Returns: {
           attendance: string
           company: string
@@ -6363,7 +6438,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6424,7 +6502,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6485,7 +6566,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6546,7 +6630,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6571,6 +6658,10 @@ export type Database = {
       }
       ir_first_status: { Args: { p_project_id: string }; Returns: string }
       ir_folder: {
+        Args: { p_project_id: string; p_which: string }
+        Returns: string
+      }
+      ir_folder_make: {
         Args: { p_project_id: string; p_which: string }
         Returns: string
       }
@@ -6612,7 +6703,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6679,7 +6773,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6745,7 +6842,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6810,7 +6910,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6886,7 +6989,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -6957,7 +7063,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7029,7 +7138,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7090,7 +7202,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7157,7 +7272,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7226,7 +7344,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7303,7 +7424,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7384,7 +7508,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7449,7 +7576,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null
@@ -7539,6 +7669,25 @@ export type Database = {
         }
         Returns: Json
       }
+      link_request_answer: { Args: { p_request_id: string }; Returns: Json }
+      link_request_calendar: {
+        Args: {
+          p_day?: string
+          p_hub_id?: string
+          p_project_id: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      link_request_files: {
+        Args: {
+          p_files: Json
+          p_hub_id: string
+          p_project_id: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
       link_request_hub: {
         Args: { p_hub_id: string; p_token_hash: string }
         Returns: Json
@@ -7556,6 +7705,31 @@ export type Database = {
       }
       link_request_open: {
         Args: { p_hub_id?: string; p_project_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      link_request_status: {
+        Args: { p_project_id: string; p_receipt_hash: string }
+        Returns: Json
+      }
+      link_request_submit: {
+        Args: {
+          p_attachment_ids?: string[]
+          p_company: string
+          p_duration_kind?: string
+          p_duration_min?: number
+          p_email: string
+          p_hub_id: string
+          p_items: string
+          p_kind: string
+          p_name: string
+          p_notice_ack: boolean
+          p_phone: string
+          p_project_id: string
+          p_request_date: string
+          p_special_kind_id?: string
+          p_start_time?: string
+          p_token_hash: string
+        }
         Returns: Json
       }
       log_invoice_pdf: {
@@ -8435,6 +8609,7 @@ export type Database = {
         }[]
       }
       request_link_token: { Args: never; Returns: string }
+      requester_backfill: { Args: never; Returns: number }
       resolve_access_link: {
         Args: { p_link_id: string; p_token_hash: string }
         Returns: {
@@ -9792,7 +9967,10 @@ export type Database = {
           postponed_at: string | null
           project_id: string
           request_date: string
-          requested_by: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
           result: string | null
           result_at: string | null
           result_by: string | null

@@ -6,7 +6,8 @@ function check(ok: boolean, what: string): void {
 }
 
 const ROW: IrRow = {
-  id: 'r1', org_id: 'o1', project_id: 'p1', number: 7, version: 3, requested_by: 'u1', company: 'Sample Concrete Co',
+  id: 'r1', org_id: 'o1', project_id: 'p1', number: 7, version: 3, requested_by: 'u1', requester_name: null,
+  company: 'Sample Concrete Co',
   request_date: '2026-10-01', start_time: '13:30:00', duration_kind: 'timed', duration_min: 90, kind: 'ior',
   items: 'Footing rebar', status: 'confirmed', owner_id: 'u2', result: 'approved', result_note: 'No issues',
   result_photo_ids: [], ir_file_id: null, content_hash: null, signed_at: null, signed_by: null, pdf_stale: false,
