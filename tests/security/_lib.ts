@@ -139,6 +139,8 @@ export const PUBLIC_TABLES = [
   'permit_approved_sets',
   // The server's record of each stamped copy (0054)
   'permit_stamped_copies',
+  // A no-login request's private status link: only its token's hash (0055)
+  'ir_link_receipts',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -166,3 +168,28 @@ export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
   ['board_line_readable', { p_kind: 'comment.added', p_project_id: ZERO_UUID, p_entity_type: 'rfi', p_entity_id: ZERO_UUID }],
   ['folder_server_only', { p_folder_id: ZERO_UUID }],
 ];
+
+/** No-login inspection requests (0055) for the anon probe: the link's SQL surface and its internal helpers. */
+export const REQUEST_NO_LOGIN_RPCS: [string, Record<string, unknown>][] = [
+  ['link_request_calendar', { p_project_id: ZERO_UUID, p_token_hash: 'x', p_hub_id: null, p_day: null }],
+  ['link_request_files', { p_project_id: ZERO_UUID, p_token_hash: 'x', p_hub_id: null, p_files: [] }],
+  ['link_request_submit', {
+    p_project_id: ZERO_UUID, p_token_hash: 'x', p_hub_id: null, p_name: 'probe', p_company: 'probe', p_phone: '5550100000',
+    p_email: null, p_request_date: '2030-01-01', p_kind: 'ior', p_items: 'probe', p_notice_ack: true,
+  }],
+  ['link_request_status', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  ['link_request_answer', { p_request_id: ZERO_UUID }],
+  ['ir_folder_make', { p_project_id: ZERO_UUID, p_which: 'attachments' }],
+  ['ir_calendar_rows', { p_project_id: ZERO_UUID, p_from: '2030-01-01', p_to: '2030-01-01', p_viewer: null, p_team: true, p_decide: true }],
+  ['requester_backfill', {}],
+];
+
+/** The request link's no-login actions, refused without a live token (anon probe cases: what, body, statuses). */
+export function requestNoLoginCases(token: string, projectId: string): [string, Record<string, unknown>, number[]][] {
+  return [
+    ['calendar with an unknown token', { action: 'calendar', project_id: projectId, token }, [404]],
+    ['calendar on a malformed day', { action: 'calendar', project_id: projectId, token, day: 'today' }, [400]],
+    ['status with an unknown receipt', { action: 'status', project_id: projectId, receipt: token }, [404]],
+    ['submit as JSON, not a form', { action: 'submit', project_id: projectId, token, name: 'probe', company: 'probe' }, [400]],
+  ];
+}

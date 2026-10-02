@@ -9,12 +9,14 @@ interface HistoryProps {
   projectId: string;
   requestId: string;
   tz: string;
+  /** Sent through the public link (0055): the visitor's typed name stands for a step with no member behind it. */
+  visitor?: string | null | undefined;
 }
 
-export function History({ projectId, requestId, tz }: HistoryProps) {
+export function History({ projectId, requestId, tz, visitor = null }: HistoryProps) {
   const events = useIrEvents(projectId, requestId);
   const people = usePeopleDisplay(projectId);
-  const nameOf = (id: string | null) => people.data?.find((p) => p.user_id === id)?.full_name ?? '';
+  const nameOf = (id: string | null) => (id === null ? (visitor ?? '') : (people.data?.find((p) => p.user_id === id)?.full_name ?? ''));
 
   return (
     <section className="rounded-lg border border-line px-3 py-2.5" aria-label="History" data-testid="ir-history">

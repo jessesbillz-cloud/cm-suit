@@ -101,6 +101,7 @@ function row(job: string, day: string, number: number, i: number, { time, length
     helper_report: null, helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null,
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
+    requester_name: null, requester_phone: null, requester_email: null,
     ...fields(state, day, job, number, i % 11 === 5),
   };
 }

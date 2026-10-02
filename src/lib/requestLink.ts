@@ -18,6 +18,11 @@ export function hubUrl(origin: string, basePath: string, hubId: string, token: s
   return `${root(origin, basePath)}/h/${encodeURIComponent(hubId)}?t=${encodeURIComponent(token)}`;
 }
 
+/** A request's private status link (0055): /r/<job>/s/<receipt>. Bookmarked or screenshotted by the visitor. */
+export function statusLinkUrl(origin: string, basePath: string, projectId: string, receipt: string): string {
+  return `${root(origin, basePath)}/r/${encodeURIComponent(projectId)}/s/${encodeURIComponent(receipt)}`;
+}
+
 /** The link as printed under the QR code: no scheme. */
 export function shortLinkText(url: string): string {
   return url.replace(/^https?:\/\//, '');

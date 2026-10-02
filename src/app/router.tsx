@@ -20,6 +20,7 @@ import {
   NewJobPage,
   PublicDeliveriesPage,
   RequestLinkPage,
+  RequestStatusPage,
   ShareLinkPage,
   SignInPage,
 } from './lazyPages';
@@ -156,6 +157,8 @@ const requestLinkRoute = createRoute({
   validateSearch: parseRequestLinkSearch,
   component: RequestLinkPage,
 });
+/** A request sent with no login, by its private status link (0055): the tracker and the result line. */
+const requestStatusRoute = createRoute({ getParentRoute: () => rootRoute, path: '/r/$projectId/s/$receipt', component: RequestStatusPage });
 /** One link for all the jobs a person takes inspection requests on. */
 const hubRoute = createRoute({ getParentRoute: () => rootRoute, path: '/h/$hubId', validateSearch: parseAccessSearch, component: HubPage });
 
@@ -211,6 +214,7 @@ const routeTree = rootRoute.addChildren([
   allSettingsRoute,
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
   allPermitsRoute.addChildren([allPermitsItemRoute]),
+  requestStatusRoute,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

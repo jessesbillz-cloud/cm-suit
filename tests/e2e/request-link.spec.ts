@@ -1,6 +1,7 @@
 // The job's request link, the QR sheet and the all-my-jobs link (SPEC §6.4 #4, §13.2) against the e2e mock. The mock
-// 'pm' runs the job and takes requests; the mock 'visitor' is on no job until they join through a link. The mock hands
-// out fixed sample tokens (src/data/mock/requestLink.ts).
+// 'pm' runs the job and takes requests; the mock 'visitor' is on no job until they join through a link (as a requester,
+// 0055; requesting with no login is request-no-login.spec.ts). The mock hands out fixed sample tokens
+// (src/data/mock/requestLink.ts).
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
 
@@ -33,11 +34,14 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await expect(page.getByTestId('hub-url')).toContainText(`/h/${HUB}?t=${HUB_TOKEN}`);
   });
 
-  test('a visitor joins from the link and lands on the request form', async ({ page }) => {
+  test('a visitor who signs in joins as a requester and lands on the request form', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'visitor');
     });
     await page.goto(`/r/job-a?t=${TOKEN}`);
+    // The default is the request with no login (0055); signing in is the secondary path.
+    await expect(page.getByTestId('public-request')).toBeVisible();
+    await page.getByTestId('request-signin').click();
     await expect(page.getByTestId('request-join')).toBeVisible();
     await page.getByLabel('Your name').fill('Sample Foreman');
     await page.getByLabel('Company').fill('Sample Framing Co');
@@ -62,6 +66,6 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await expect(jobs.getByRole('link').first()).toBeVisible();
     await jobs.getByRole('link').first().click();
     await expect(page).toHaveURL(new RegExp(`/r/[^?]+\\?t=${HUB_TOKEN}&h=${HUB}`));
-    await expect(page.getByTestId('request-join')).toBeVisible();
+    await expect(page.getByTestId('public-request')).toBeVisible();
   });
 });

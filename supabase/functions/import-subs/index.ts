@@ -9,7 +9,7 @@ import ExcelJS from 'npm:exceljs@4.4.0';
 import { handle, HttpError, ok } from '../_shared/http.ts';
 import { type Db, must, rpc } from '../_shared/db.ts';
 import { requireCapability, requireUser } from '../_shared/auth.ts';
-import { uuid } from '../_shared/validate.ts';
+import { readForm, uuid } from '../_shared/validate.ts';
 import { cellText, type ImportSub, parseCsv, subsFromTable } from '../_shared/subsImport.ts';
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -23,44 +23,6 @@ const MAIN_SHEET = 'master bid list';
 const TOO_LARGE = 'File too large (10 MB max)';
 
 interface Counts { added: number; updated: number; unchanged: number }
-
-async function readCapped(body: ReadableStream<Uint8Array>, max: number): Promise<Uint8Array<ArrayBuffer>> {
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > max) {
-      await reader.cancel();
-      throw new HttpError(400, TOO_LARGE);
-    }
-    chunks.push(value);
-  }
-  const out = new Uint8Array(total);
-  let at = 0;
-  for (const c of chunks) {
-    out.set(c, at);
-    at += c.byteLength;
-  }
-  return out;
-}
-
-/** The multipart form, read with a hard size cap (a missing or false content-length does not get past it). */
-async function readForm(req: Request): Promise<FormData> {
-  if (req.method !== 'POST') throw new HttpError(400, 'Use POST');
-  const type = req.headers.get('content-type') ?? '';
-  if (!/^multipart\/form-data;/i.test(type)) throw new HttpError(400, 'Send the file as multipart/form-data');
-  if (Number(req.headers.get('content-length') ?? '0') > MAX_BODY_BYTES) throw new HttpError(400, TOO_LARGE);
-  if (!req.body) throw new HttpError(400, 'Empty request');
-  const bytes = await readCapped(req.body, MAX_BODY_BYTES);
-  try {
-    return await new Response(bytes, { headers: { 'content-type': type } }).formData();
-  } catch (e) {
-    throw new HttpError(400, 'Could not read the form', e instanceof Error ? e.message : String(e));
-  }
-}
 
 function isZip(bytes: Uint8Array): boolean {
   return bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
@@ -132,7 +94,7 @@ async function importAll(client: Db, orgId: string, subs: ImportSub[]): Promise<
 
 Deno.serve(handle(async (req) => {
   const { client } = await requireUser(req);
-  const form = await readForm(req);
+  const form = await readForm(req, MAX_BODY_BYTES, TOO_LARGE);
   const projectId = uuid.safeParse(form.get('project_id'));
   if (!projectId.success) throw new HttpError(400, 'project_id is missing or not a uuid');
   const file = form.get('file');

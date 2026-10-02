@@ -2,7 +2,7 @@ begin;
 select plan(62);
 -- SPEC §6.4 #4 / §13.2 (migration 0046): the job's request link and the inspector's hub. Tokens are stored only as
 -- sha256; rotating kills the old one at once (undo for 15 minutes); the link RPCs are service-role only and answer
--- only what the pages show; a visit records a sub invite on that job only and never changes an existing member (a
+-- only what the pages show; a visit records a requester invite (0055) on that job only and never changes an existing member (a
 -- revoked or ended one is refused); the hub lists only its owner's active jobs with the link on where they decide.
 \ir _helpers.psql
 
@@ -119,7 +119,7 @@ select is((select request_token_hash from public.projects where id = 'c0000000-0
   'undo: the old link is back');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- Joining: a sub invite for the proved address, on that job only; an existing member is never changed
+-- Joining: a requester invite (0055) for the proved address, on that job only; an existing member is never changed
 -- ---------------------------------------------------------------------------------------------------------------------
 set local role service_role;
 select pg_temp.login_service();
@@ -134,8 +134,8 @@ reset role;
 select results_eq(
   $$ select project_id, role, status, user_id is null, member_org_id is null from public.project_members
       where invite_email = 'probe+rl-visitor@example.test' $$,
-  $$ values ('c0000000-0000-0000-0000-000000000401'::uuid, 'sub'::text, 'invited'::text, true, true) $$,
-  'join: one invite, role sub, on that job only, waiting for its own sign-in');
+  $$ values ('c0000000-0000-0000-0000-000000000401'::uuid, 'requester'::text, 'invited'::text, true, true) $$,
+  'join: one invite, role requester, on that job only, waiting for its own sign-in');
 select ok(exists (select 1 from public.activity where project_id = 'c0000000-0000-0000-0000-000000000401' and kind = 'member.joined'
                   and audience_capability = 'members.manage' and summary = 'Sample Visitor (Sample Framing) joined from the request link'),
   'join: a board line for whoever manages people');
@@ -179,7 +179,7 @@ select results_eq(
       order by 1 $$,
   $$ values ('probe+rl-ended@example.test'::text, 'sub'::text, 'active'::text), ('probe+rl-invited@example.test', 'viewer', 'invited'),
             ('probe+rl-pm@example.test', 'pm', 'active'), ('probe+rl-revoked@example.test', 'sub', 'revoked'),
-            ('probe+rl-visitor@example.test', 'sub', 'active') $$,
+            ('probe+rl-visitor@example.test', 'requester', 'active') $$,
   'join: every existing row is exactly as it was (no downgrade, no second row, a revoke sticks)');
 select ok(not exists (select 1 from public.project_members
                        where invite_email in ('probe+rl-stranger@example.test', 'probe+rl-noname@example.test')),
@@ -226,8 +226,8 @@ select is(public.link_request_join('c0000000-0000-0000-0000-000000000402', pg_te
 reset role;
 select results_eq(
   $$ select project_id, role, invited_by from public.project_members where invite_email = 'probe+rl-hubvisitor@example.test' $$,
-  $$ values ('c0000000-0000-0000-0000-000000000402'::uuid, 'sub'::text, 'a0000000-0000-0000-0000-000000000401'::uuid) $$,
-  'hub: the invite is a sub on that job, invited by the hub''s owner');
+  $$ values ('c0000000-0000-0000-0000-000000000402'::uuid, 'requester'::text, 'a0000000-0000-0000-0000-000000000401'::uuid) $$,
+  'hub: the invite is a requester on that job, invited by the hub''s owner');
 
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000401');

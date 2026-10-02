@@ -93,4 +93,8 @@ export const qk = {
   /** Every permits query (a job's log or my caseload, trackers, one permit, who can be assigned) sits under this prefix. */
   permits: ['permits'] as const,
   permitsPart: (part: string, id = '') => ['permits', part, id] as const,
+  /** The public request page's day (0055), opened with the job's token or a hub's (`via`); '' = the job's today. */
+  requestLinkDay: (projectId: string, via: string, day: string) => ['request_link_public', projectId, 'day', via, day] as const,
+  /** A request's private status link (0055), by its receipt. */
+  requestStatus: (projectId: string, receipt: string) => ['request_status', projectId, receipt] as const,
 };

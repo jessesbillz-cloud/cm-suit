@@ -4,7 +4,7 @@
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY. Exits non-zero on any failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
-import { BUCKETS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, Report, ZERO_UUID, errText, makeClient, requireEnv, rowsOf } from './_lib';
+import { BUCKETS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, REQUEST_NO_LOGIN_RPCS, Report, ZERO_UUID, errText, makeClient, requestNoLoginCases, requireEnv, rowsOf } from './_lib';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -298,7 +298,7 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['permit_officials', { p_project_id: U, p_assigned_to: U }],
   ['permit_tell', { p_permit: {}, p_kind: 'probe', p_summary: 'probe', p_people: [] }],
   // Permit stamp (0053): listed in _lib.ts, this file being at its line limit.
-  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS,
+  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS, ...REQUEST_NO_LOGIN_RPCS,
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
@@ -486,7 +486,7 @@ async function probeRequestLink(): Promise<void> {
     ['malformed token', { action: 'open', project_id: randomUUID(), token: 'short' }, [400]],
     ['join without a session', { action: 'join', project_id: randomUUID(), token, name: 'probe', company: 'probe' }, [401]],
     ['join naming an address', { action: 'join', project_id: randomUUID(), token, name: 'probe', company: 'probe', email: 'probe@example.test' }, [400]],
-    ['no rotate action', { action: 'rotate', project_id: randomUUID(), token }, [400]],
+    ['no rotate action', { action: 'rotate', project_id: randomUUID(), token }, [400]], ...requestNoLoginCases(token, randomUUID()),
   ];
   for (const [what, body, expected] of cases) {
     await report.guard('function', `request-link: ${what}`, async () => {

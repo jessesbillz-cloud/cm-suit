@@ -8,6 +8,9 @@ export const FIELD_AREA = `rounded-lg border border-line-strong bg-card px-3 py-
 export const FIELD_LABEL = 'flex flex-col gap-1.5 text-[13px] font-medium text-ink-2';
 const CONTROL = FIELD_CONTROL;
 const LABEL = FIELD_LABEL;
+/** Field screens on a phone (the public request page): 48px controls and 16px text, which phones don't zoom into. */
+const CONTROL_LARGE = FIELD_CONTROL.replace('h-10', 'h-12').replace('text-sm', 'text-base');
+export const FIELD_AREA_LARGE = FIELD_AREA.replace('text-sm', 'text-base');
 
 interface TextFieldProps {
   label: string;
@@ -21,16 +24,18 @@ interface TextFieldProps {
   maxLength?: number | undefined;
   testId?: string | undefined;
   className?: string | undefined;
+  /** 48px, 16px text (field screens on a phone). */
+  large?: boolean | undefined;
 }
 
 export function TextField(props: TextFieldProps) {
-  const { label, value, onChange, onBlur, type = 'text', autoFocus, autoComplete, maxLength, testId, className = '' } = props;
+  const { label, value, onChange, onBlur, type = 'text', autoFocus, autoComplete, maxLength, testId, className = '', large = false } = props;
   return (
     <label className={`${LABEL} ${className}`}>
       {label}
       <input
         type={type}
-        className={CONTROL}
+        className={large ? CONTROL_LARGE : CONTROL}
         value={value}
         autoFocus={autoFocus}
         autoComplete={autoComplete ?? 'off'}
@@ -52,14 +57,16 @@ interface SelectFieldProps {
   onChange: (value: string) => void;
   testId?: string | undefined;
   className?: string | undefined;
+  /** 48px, 16px text (field screens on a phone). */
+  large?: boolean | undefined;
 }
 
-export function SelectField({ label, value, options, onChange, testId, className = '' }: SelectFieldProps) {
+export function SelectField({ label, value, options, onChange, testId, className = '', large = false }: SelectFieldProps) {
   return (
     <label className={`${LABEL} ${className}`}>
       {label}
       <select
-        className={CONTROL}
+        className={large ? CONTROL_LARGE : CONTROL}
         value={value}
         data-testid={testId}
         onChange={(e) => {

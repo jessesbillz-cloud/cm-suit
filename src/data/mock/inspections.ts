@@ -172,6 +172,7 @@ function newRow(a: Record<string, unknown>, number: number): IrRowRaw {
     helper_report: null, helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null,
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
+    requester_name: null, requester_phone: null, requester_email: null,
   };
 }
 
@@ -255,4 +256,19 @@ export async function removeBlock(id: string): Promise<void> {
 /** The mock attachments folder (the uploader's mock branch records the file). */
 export function folder(projectId: string): string {
   return `${projectId}-inspection-requests`;
+}
+
+/** A request sent through the public link with no login (0055): numbered like any, no member behind it, the visitor's
+ *  name, phone and email on the row. `a` takes ir_submit's argument names. */
+export async function addLinkRequest(a: Record<string, unknown>, who: { name: string; phone: string; email: string }): Promise<IrRowRaw> {
+  await delay();
+  const projectId = opt(a, 'p_project_id') ?? '';
+  const number = read().next[projectId] ?? 1;
+  const row: IrRowRaw = {
+    ...newRow(a, number), requested_by: null, created_by: null, requester_name: who.name,
+    requester_phone: who.phone === '' ? null : who.phone, requester_email: who.email === '' ? null : who.email.toLowerCase(),
+  };
+  write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
+    events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: null, created_at: row.created_at }] }));
+  return row;
 }

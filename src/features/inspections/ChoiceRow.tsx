@@ -6,11 +6,17 @@ interface ChoiceRowProps<T extends string> {
   label: string;
   testId?: string | undefined;
   disabled?: boolean | undefined;
+  /** Full width, 44px choices (field screens on a phone). */
+  large?: boolean | undefined;
 }
 
-export function ChoiceRow<T extends string>({ options, value, onPick, label, testId, disabled }: ChoiceRowProps<T>) {
+export function ChoiceRow<T extends string>({ options, value, onPick, label, testId, disabled, large = false }: ChoiceRowProps<T>) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap rounded-md border border-line bg-card p-0.5">
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className={`flex-wrap rounded-md border border-line bg-card p-0.5 ${large ? 'flex w-full' : 'inline-flex'}`}
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -19,7 +25,7 @@ export function ChoiceRow<T extends string>({ options, value, onPick, label, tes
           aria-checked={o.value === value}
           disabled={disabled}
           data-testid={testId ? `${testId}-${o.value}` : undefined}
-          className={`h-8 rounded px-3 text-sm disabled:cursor-not-allowed ${
+          className={`rounded px-3 disabled:cursor-not-allowed ${large ? 'h-11 flex-1 text-base' : 'h-8 text-sm'} ${
             o.value === value ? 'bg-accent-soft font-medium text-accent' : 'text-ink-2 hover:text-ink'
           }`}
           onClick={() => {

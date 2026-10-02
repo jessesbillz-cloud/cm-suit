@@ -1,5 +1,5 @@
 // Pages outside the frame load on first use: sign-in, first-time setup and new job, and the public links (access,
-// share, delivery, request, hub, testing sign-in). A signed-in person never downloads them; someone opening a link
+// share, delivery, request, a request's status, hub, testing sign-in). A signed-in person never downloads them; someone opening a link
 // downloads only that page. Until a page's code is in, the usual loading line shows.
 import { Suspense, type ComponentType } from 'react';
 import { lazyRouteComponent } from '@tanstack/react-router';
@@ -18,6 +18,9 @@ const RequestLink = lazyRouteComponent(() =>
   import('../features/inspections/RequestLinkPage').then((m) => ({ default: m.RequestLinkPage })),
 );
 const Hub = lazyRouteComponent(() => import('../features/inspections/HubPage').then((m) => ({ default: m.HubPage })));
+const RequestStatus = lazyRouteComponent(() =>
+  import('../features/inspections/RequestStatusPage').then((m) => ({ default: m.RequestStatusPage })),
+);
 
 function Page({ part: Part }: { part: ComponentType }) {
   return (
@@ -57,4 +60,8 @@ export function RequestLinkPage() {
 
 export function HubPage() {
   return <Page part={Hub} />;
+}
+
+export function RequestStatusPage() {
+  return <Page part={RequestStatus} />;
 }

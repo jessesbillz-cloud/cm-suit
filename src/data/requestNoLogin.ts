@@ -1,0 +1,105 @@
+// Inspection requests from the request link with no login (SPEC §6.4 #4, migration 0055). No session: everything goes
+// through the public request-link function, which answers the outsider's day (time, length, type, color), takes the
+// request with its photos / PDFs as one multipart form, and answers a request's status by its private receipt.
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+import { callFunction } from './functions';
+import type { CalendarRow } from './inspections.types';
+import { prepareIrFile } from './inspections.mutations';
+import { qk } from './keys';
+import { isMock } from './mock';
+import * as mock from './mock/requestNoLogin';
+import type { LinkKey } from './requestLink.types';
+import {
+  publicDaySchema,
+  requestFactsSchema,
+  submittedSchema,
+  type PublicDay,
+  type PublicRequestInput,
+  type RequestFacts,
+  type Submitted,
+} from './requestNoLogin.types';
+
+function linkBody(key: LinkKey) {
+  return { project_id: key.projectId, token: key.token, ...(key.hubId === null ? {} : { hub_id: key.hubId }) };
+}
+
+interface OutsiderRow {
+  start_time: string | null;
+  duration_kind: string;
+  duration_min: number | null;
+  kind: string;
+  status_key: string;
+}
+
+/** An outsider's line as the app's calendar row: no id, number, company or items (the day list is one component). */
+function asCalendarRow(r: OutsiderRow, day: string): CalendarRow {
+  return {
+    id: null, number: null, version: null, full_detail: false, mine: false, is_block: r.kind === 'block', request_date: day,
+    start_time: r.start_time, duration_kind: r.duration_kind, duration_min: r.duration_min, kind: r.kind, special_kind: null,
+    status: r.status_key, status_key: r.status_key, result: null, attendance: null, company: null, items: null, owner_id: null,
+    helper_id: null, postpone_reason: null, postpone_until: null,
+  };
+}
+
+async function fetchDay(key: LinkKey, day: string | null): Promise<PublicDay> {
+  const raw = isMock()
+    ? await mock.day(key, day)
+    : await callFunction('request-link', { action: 'calendar', ...linkBody(key), ...(day === null ? {} : { day }) }, publicDaySchema);
+  return { ...raw, rows: raw.rows.map((r) => asCalendarRow(r, raw.day)) };
+}
+
+/** The job's request day for anyone with the link (null = the job's today), and the form's choices. A dead link
+ *  rejects with FunctionError 404. Live while on screen, like the app's calendar. */
+export function usePublicDay(key: LinkKey, day: string | null) {
+  return useQuery({
+    queryKey: qk.requestLinkDay(key.projectId, key.hubId ?? 'job', day ?? ''),
+    queryFn: () => fetchDay(key, day),
+    retry: false,
+    refetchInterval: 60_000,
+    // Changing the day keeps the last day's rows on screen until the new ones arrive.
+    placeholderData: keepPreviousData,
+  });
+}
+
+async function send(key: LinkKey, v: PublicRequestInput): Promise<Submitted> {
+  if (isMock()) return mock.submit(key, v);
+  const form = new FormData();
+  form.append('payload', JSON.stringify({
+    action: 'submit',
+    ...linkBody(key),
+    name: v.contact.name.trim(),
+    company: v.contact.company.trim(),
+    phone: v.contact.phone.trim(),
+    email: v.contact.email.trim(),
+    date: v.date,
+    time: v.startTime,
+    duration_kind: v.durationKind,
+    duration_min: v.durationMin,
+    kind: v.kind,
+    special_kind_id: v.kind === 'special' ? v.specialKindId : null,
+    items: v.items.trim(),
+    notice_ack: true,
+  }));
+  for (const picked of v.files) {
+    const file = await prepareIrFile(picked);
+    form.append('file', file, file.name);
+  }
+  return callFunction('request-link', form, submittedSchema);
+}
+
+/** Sends the request: the receipt (the number the database gave, the tracker's facts, the status link's token). */
+export function useSubmitPublicRequest(key: LinkKey) {
+  return useMutation({ mutationFn: (v: PublicRequestInput) => send(key, v) });
+}
+
+/** A request sent through the link, by its private receipt (the status link). A wrong one rejects with 404. */
+export function useRequestStatus(projectId: string, receipt: string) {
+  return useQuery({
+    queryKey: qk.requestStatus(projectId, receipt),
+    queryFn: (): Promise<RequestFacts> =>
+      isMock()
+        ? mock.status(projectId, receipt)
+        : callFunction('request-link', { action: 'status', project_id: projectId, receipt }, requestFactsSchema),
+    retry: false,
+  });
+}

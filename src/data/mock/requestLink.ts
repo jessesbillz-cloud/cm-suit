@@ -4,7 +4,7 @@
 import { FunctionError } from '../functions';
 import type { HubAnswer, HubState, JoinAnswer, LinkKey, MadeHub, MadeLink, OpenAnswer, RequestLinkState } from '../requestLink.types';
 import { MOCK_PROJECTS } from './fixtures';
-import { mockUser } from './index';
+import { mockSignedOut, mockUser } from './index';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-request-link';
@@ -44,7 +44,8 @@ function openJobs(): { project_id: string; name: string }[] {
   return MOCK_PROJECTS.filter((p) => p.modules.includes('inspections')).map((p) => ({ project_id: p.project_id, name: p.name }));
 }
 
-function jobFor(key: LinkKey): { project_id: string; name: string } {
+/** The sample job a link opens, or the 404 the function answers. */
+export function jobFor(key: LinkKey): { project_id: string; name: string } {
   const ok = key.hubId === null ? key.token === MOCK_TOKEN : key.hubId === MOCK_HUB_ID && key.token === MOCK_HUB_TOKEN;
   const job = openJobs().find((j) => j.project_id === key.projectId);
   if (!ok || !job) throw new FunctionError(404, 'not_found', NOT_ACTIVE, null, null);
@@ -86,7 +87,8 @@ export async function rotateHub(): Promise<MadeHub> {
 export async function open(key: LinkKey): Promise<OpenAnswer> {
   await delay();
   const job = jobFor(key);
-  const member = !isVisitor() || read().joined.includes(job.project_id);
+  // No session (the mock user 'anon') is never a member: the no-login form shows.
+  const member = !mockSignedOut() && (!isVisitor() || read().joined.includes(job.project_id));
   return { project_name: job.name, member, can_request: member };
 }
 
