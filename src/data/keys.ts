@@ -88,4 +88,6 @@ export const qk = {
   imagePreview: (fileId: string, via: string) => ['image_preview', fileId, via] as const,
   /** My tools under each job's name on the rail (0051), for all my jobs at once. */
   jobRails: ['user_job_rail'] as const,
+  /** An item's comments (0050), by the record they are on. */
+  comments: (entityType: string, entityId: string) => ['comments', entityType, entityId] as const,
 };

@@ -253,6 +253,18 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['save_job_rail', { p_project_id: U, p_tools: ['rfis'] }],
   ['job_rail_tools', {}],
   ['job_rail_ok', { p_tools: ['rfis'] }],
+  // Comments (0050): the item gates, the comments gate, the RPCs and the internal helpers
+  ['ir_may_see', { p_project_id: U, p_requested_by: U }],
+  ['file_may_see', { p_project_id: U, p_created_by: U, p_folder_id: U }],
+  ['daily_may_see', { p_project_id: U, p_author_id: U, p_status: 'submitted' }],
+  ['correction_may_see', { p_project_id: U }],
+  ['delivery_may_see', { p_project_id: U }],
+  ['comment_target_readable', { p_project_id: U, p_entity_type: 'rfi', p_entity_id: U }],
+  ['comment_list', { p_project_id: U, p_entity_type: 'rfi', p_entity_id: U }],
+  ['add_comment', { p_project_id: U, p_entity_type: 'rfi', p_entity_id: U, p_body: 'probe' }],
+  ['edit_comment', { p_comment_id: U, p_version: 1, p_body: 'probe' }],
+  ['comment_check_body', { p_body: 'probe' }],
+  ['comment_tell', { p_project_id: U, p_entity_type: 'rfi', p_entity_id: U, p_kind: 'probe', p_what: 'probe' }],
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

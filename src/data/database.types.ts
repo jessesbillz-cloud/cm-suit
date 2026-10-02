@@ -1265,6 +1265,113 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_edits: {
+        Row: {
+          body: string
+          comment_id: string
+          id: string
+          org_id: string
+          project_id: string
+          replaced_at: string
+          replaced_by: string | null
+          version: number
+          written_at: string
+        }
+        Insert: {
+          body: string
+          comment_id: string
+          id?: string
+          org_id: string
+          project_id: string
+          replaced_at?: string
+          replaced_by?: string | null
+          version: number
+          written_at: string
+        }
+        Update: {
+          body?: string
+          comment_id?: string
+          id?: string
+          org_id?: string
+          project_id?: string
+          replaced_at?: string
+          replaced_by?: string | null
+          version?: number
+          written_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_edits_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_edits_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          edited_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          org_id: string
+          project_id: string
+          request_key: string | null
+          seq: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          edited_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          org_id: string
+          project_id: string
+          request_key?: string | null
+          seq?: never
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          org_id?: string
+          project_id?: string
+          request_key?: string | null
+          seq?: never
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       correction_history: {
         Row: {
           action: string
@@ -4594,6 +4701,36 @@ export type Database = {
         Args: { p_addendum_id: string }
         Returns: undefined
       }
+      add_comment: {
+        Args: {
+          p_body: string
+          p_entity_id: string
+          p_entity_type: string
+          p_key?: string
+          p_project_id: string
+        }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          edited_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          org_id: string
+          project_id: string
+          request_key: string | null
+          seq: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_daily_photo: {
         Args: {
           p_caption: string
@@ -4958,6 +5095,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      comment_check_body: { Args: { p_body: string }; Returns: string }
+      comment_list: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_project_id: string
+        }
+        Returns: Json
+      }
+      comment_target_readable: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_project_id: string
+        }
+        Returns: boolean
+      }
+      comment_tell: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_kind: string
+          p_project_id: string
+          p_what: string
+        }
+        Returns: undefined
+      }
       complete_task: {
         Args: { p_task_id: string; p_version: number }
         Returns: {
@@ -5001,6 +5165,7 @@ export type Database = {
         Returns: boolean
       }
       correction_label: { Args: { p_number: number }; Returns: string }
+      correction_may_see: { Args: { p_project_id: string }; Returns: boolean }
       correction_photo_folder: {
         Args: { p_project_id: string }
         Returns: string
@@ -5218,6 +5383,10 @@ export type Database = {
         }
         Returns: string
       }
+      daily_may_see: {
+        Args: { p_author_id: string; p_project_id: string; p_status: string }
+        Returns: boolean
+      }
       daily_note_ir: { Args: { p_request_id: string }; Returns: undefined }
       daily_own_report: {
         Args: { p_report_id: string }
@@ -5390,6 +5559,7 @@ export type Database = {
         Args: { p_created_by: string; p_project_id: string }
         Returns: boolean
       }
+      delivery_may_see: { Args: { p_project_id: string }; Returns: boolean }
       delivery_overlaps: {
         Args: {
           p_duration: number
@@ -5398,6 +5568,30 @@ export type Database = {
           p_starts_at: string
         }
         Returns: boolean
+      }
+      edit_comment: {
+        Args: { p_body: string; p_comment_id: string; p_version: number }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          edited_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          org_id: string
+          project_id: string
+          request_key: string | null
+          seq: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       enqueue_job: {
         Args: {
@@ -5416,6 +5610,14 @@ export type Database = {
           p_settings_if_new?: Json
         }
         Returns: string
+      }
+      file_may_see: {
+        Args: {
+          p_created_by: string
+          p_folder_id: string
+          p_project_id: string
+        }
+        Returns: boolean
       }
       file_storage_path: {
         Args: {
@@ -6153,6 +6355,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      ir_may_see: {
+        Args: { p_project_id: string; p_requested_by: string }
+        Returns: boolean
       }
       ir_member_decides: {
         Args: { p_member: string; p_project_id: string }

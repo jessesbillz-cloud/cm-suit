@@ -131,6 +131,8 @@ export const PUBLIC_TABLES = [
   'request_link_log', 'request_hubs',
   // Each job's tools on the rail (0051)
   'user_job_rail',
+  // Comments (0050)
+  'comments', 'comment_edits',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
