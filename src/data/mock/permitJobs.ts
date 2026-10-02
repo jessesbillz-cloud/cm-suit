@@ -1,7 +1,7 @@
 // Two synthetic jobs for the permits mock (CLAUDE.md rule 8: obviously fake): "Sample Science Building", which every
 // mock user is on, and "Sample Library Annex", which only the fire / building official ('ahj') is on, so the official's
-// caseload spans two jobs. The official is on nothing else. Each job has an "Approved plans" folder (the approved set
-// the permit page links to). Names sort after the other sample jobs in the job picker.
+// caseload spans two jobs. The official is on nothing else. Each job has plan PDFs to stamp and an "Approved plans"
+// folder holding the stamped sets (mock/permitStamp). Names sort after the other sample jobs in the job picker.
 import type { FileRow, FolderRow, ProjectRow } from '../types';
 import { mockUser } from './index';
 
@@ -58,40 +58,58 @@ export function permitJobZone(projectId: string): string {
   return JOBS.find((j) => j.id === projectId)?.timezone ?? TZ;
 }
 
-/** Plans, Specs, Approved plans and Reports on each permit job. */
-export const PERMIT_JOB_FOLDERS: FolderRow[] = JOBS.flatMap((j) =>
-  (
-    [
-      ['plans', 'plans', 'Plans', 10],
-      ['specs', 'specs', 'Specs', 20],
-      ['approved', 'plans', 'Approved plans', 25],
-      ['reports', 'reports', 'Reports', 50],
-    ] as const
-  ).map(([suffix, kind, name, sort]): FolderRow => ({
-    id: `${j.id}-${suffix}`,
-    project_id: j.id,
-    parent_id: null,
-    name,
-    kind,
-    view_only: false,
-    proprietary: false,
-    sort,
-    ai_reads: kind !== 'reports',
-    version: 1,
-    file_count: null,
-  })),
-);
+function folder(id: string, projectId: string, parentId: string | null, name: string, kind: string, sort: number): FolderRow {
+  return {
+    id, project_id: projectId, parent_id: parentId, name, kind, view_only: false, proprietary: false, sort,
+    ai_reads: kind !== 'reports', version: 1, file_count: null,
+  };
+}
 
-/** One stamped set in each job's Approved plans. */
-export const PERMIT_JOB_FILES: FileRow[] = JOBS.map((j, i) => ({
-  id: `${j.id}-approved-1`,
-  project_id: j.id,
-  folder_id: `${j.id}-approved`,
-  original_name: `Sample Approved Set ${i === 0 ? '24-0001' : '25-0102'}.pdf`,
+/**
+ * Plans, Specs, Approved plans (made by the first stamp on a real job) and Reports on each permit job, and the
+ * folders of the stamped sets seeded in mock/permitStamp: 24-0001 (with its Superseded set) and 25-0102.
+ */
+export const PERMIT_JOB_FOLDERS: FolderRow[] = [
+  ...JOBS.flatMap((j) =>
+    (
+      [
+        ['plans', 'plans', 'Plans', 10],
+        ['specs', 'specs', 'Specs', 20],
+        ['approved', 'approved_plans', 'Approved plans', 25],
+        ['reports', 'reports', 'Reports', 50],
+      ] as const
+    ).map(([suffix, kind, name, sort]) => folder(`${j.id}-${suffix}`, j.id, null, name, kind, sort)),
+  ),
+  folder('mock-permit-s1-folder', SCIENCE_JOB, `${SCIENCE_JOB}-approved`, '24-0001', 'approved_plans', 100),
+  folder('mock-permit-s1-superseded', SCIENCE_JOB, 'mock-permit-s1-folder', 'Superseded', 'approved_plans', 900),
+  folder('mock-permit-t1-folder', LIBRARY_JOB, `${LIBRARY_JOB}-approved`, '25-0102', 'approved_plans', 100),
+];
+
+type FileSeed = [id: string, job: string, folderId: string, name: string, size: number];
+
+/** Plan PDFs to stamp, and the stamped copies of the seeded sets (mock/permitStamp has their records). */
+const FILE_SEEDS: FileSeed[] = [
+  ['job-s-plan-a101', SCIENCE_JOB, `${SCIENCE_JOB}-plans`, 'Sample A-101 Floor Plan.pdf', 4_812_330],
+  ['job-s-plan-a201', SCIENCE_JOB, `${SCIENCE_JOB}-plans`, 'Sample A-201 Elevations.pdf', 3_204_117],
+  ['job-s-plan-s101', SCIENCE_JOB, `${SCIENCE_JOB}-plans`, 'Sample S-101 Foundation Plan.pdf', 2_911_408],
+  ['job-s-plan-fp1', SCIENCE_JOB, `${SCIENCE_JOB}-plans`, 'Sample FP-1 Fire Sprinkler Plan.pdf', 1_877_052],
+  ['job-s-spec-21', SCIENCE_JOB, `${SCIENCE_JOB}-specs`, 'Sample Specs Division 21.pdf', 912_554],
+  ['job-t-plan-a101', LIBRARY_JOB, `${LIBRARY_JOB}-plans`, 'Sample A-101 Annex Plan.pdf', 5_102_221],
+  ['mock-stamped-s1-1a', SCIENCE_JOB, 'mock-permit-s1-superseded', 'Sample A-101 Floor Plan - Approved 24-0001.pdf', 4_830_112],
+  ['mock-stamped-s1-2a', SCIENCE_JOB, 'mock-permit-s1-folder', 'Sample A-101 Floor Plan - Approved 24-0001.pdf', 4_833_908],
+  ['mock-stamped-s1-2b', SCIENCE_JOB, 'mock-permit-s1-folder', 'Sample A-201 Elevations - Approved 24-0001.pdf', 3_219_440],
+  ['mock-stamped-t1-1a', LIBRARY_JOB, 'mock-permit-t1-folder', 'Sample A-101 Annex Plan - Approved 25-0102.pdf', 5_120_009],
+];
+
+export const PERMIT_JOB_FILES: FileRow[] = FILE_SEEDS.map(([id, job, folderId, name, size]) => ({
+  id,
+  project_id: job,
+  folder_id: folderId,
+  original_name: name,
   mime: 'application/pdf',
-  size: 18_204_113,
+  size,
   scan_status: 'clean',
   upload_complete: true,
   created_at: '2026-06-02T16:00:00Z',
-  created_by: 'mock-user-ahj',
+  created_by: id.startsWith('mock-stamped') ? 'mock-user-ahj' : 'mock-user-pm',
 }));

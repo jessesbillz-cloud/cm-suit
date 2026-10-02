@@ -16,7 +16,7 @@
 // Service client (admin_service_key_allowlist.txt): storing and recording the PDF, reading photo, logo and signature
 // bytes from private storage, and signing download URLs; each only after the caller-run checks above.
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
-import { type Db, must, rpc, serviceClient, signedDownloadUrl, storageError } from '../_shared/db.ts';
+import { type Db, must, rpc, serviceClient, signedDownloadUrl, signedViewUrl, storageError } from '../_shared/db.ts';
 import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
@@ -131,13 +131,6 @@ async function ensurePdf(client: Db, userId: string, rfiId: string): Promise<{ f
   });
   const rfi = await rpc<Row>(service, 'rfi_attach_pdf', { p_rfi_id: r.id, p_file_id: stored.id, p_content_hash: key });
   return { fileId: stored.id, rfi };
-}
-
-/** A short-lived URL the browser shows instead of saving (no download header): the RFI's own PDF only. */
-async function signedViewUrl(service: Db, path: string): Promise<string> {
-  const { data, error } = await service.storage.from('files').createSignedUrl(path, 600);
-  if (error || !data) throw storageError(error ?? { message: 'no signed url' }, 'createSignedUrl');
-  return data.signedUrl;
 }
 
 async function authorized(client: Db, rfiId: string, fileId: string): Promise<Authorized> {

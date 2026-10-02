@@ -23,7 +23,8 @@ type FunctionName =
   | 'key-login'
   | 'rfis'
   | 'timesheets'
-  | 'request-link';
+  | 'request-link'
+  | 'permit-stamp';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

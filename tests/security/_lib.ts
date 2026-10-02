@@ -135,9 +135,29 @@ export const PUBLIC_TABLES = [
   'comments', 'comment_edits',
   // Permits (0052)
   'permits', 'permit_stage_events', 'permit_reviews', 'permit_comments',
+  // Permit stamp (0053)
+  'permit_approved_sets',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
 export const BUCKETS = ['files', 'signatures', 'inbound', 'fixtures', 'org-logos'] as const;
 
 export const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
+
+/** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
+export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
+  ['permit_stamp_folders', { p_permit_id: ZERO_UUID }],
+  ['permit_stamp_source', { p_permit_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  ['permit_stamp_sources', { p_permit_id: ZERO_UUID }],
+  ['permit_record_stamped_set', { p_permit_id: ZERO_UUID, p_version: 1, p_items: [] }],
+  ['permit_approved', { p_permit_id: ZERO_UUID }],
+  ['permit_stamp_mode', { p_stage: 'in_review' }],
+  ['permit_items', { p_items: [] }],
+  ['permit_folder_make', { p_project_id: ZERO_UUID, p_parent_id: ZERO_UUID, p_name: 'probe', p_kind: 'approved_plans', p_sort: 1 }],
+  ['permit_folder_ensure', {
+    p_project_id: ZERO_UUID, p_parent_id: ZERO_UUID, p_kind: 'approved_plans', p_name: 'probe', p_sort: 1, p_cap: null,
+    p_read: false, p_write: false,
+  }],
+  ['permit_approved_root', { p_project_id: ZERO_UUID }],
+  ['permit_set_folder', { p_permit_id: ZERO_UUID }],
+];

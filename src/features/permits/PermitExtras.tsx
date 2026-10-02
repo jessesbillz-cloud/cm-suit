@@ -1,34 +1,8 @@
-// The permit page's last two pieces: the approved set (a link to the job's folder for approved plans or permits, when
-// there is one; no viewer of our own) and, in the full view only, the stage history (who moved it and when; an undone
-// move shows struck through).
-import { useNavigate } from '@tanstack/react-router';
-import { FolderCheck } from 'lucide-react';
+// The permit page's last piece, in the full view only: the stage history (who moved it and when; an undone move shows
+// struck through).
 import type { PermitEvent } from '../../data/permits.types';
-import { useFolders } from '../../data/queries';
 import { formatInZone } from '../../lib/dates';
-import { Icon } from '../../ui/Icon';
-import { approvedFolder, stageLabel } from './model';
-
-export function ApprovedSet({ projectId }: { projectId: string }) {
-  const navigate = useNavigate();
-  const folders = useFolders(projectId);
-  if (folders.isError) return <p className="text-sm text-danger">The approved set did not load.</p>;
-  const folder = approvedFolder(folders.data ?? []);
-  if (!folder) return null;
-  return (
-    <button
-      type="button"
-      data-testid="permit-approved-set"
-      className="flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2.5 text-left text-sm font-medium text-ink hover:bg-page"
-      onClick={() => {
-        void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: 'files' }, search: { folder: folder.id } });
-      }}
-    >
-      <Icon icon={FolderCheck} size={16} className="text-accent" />
-      {folder.name}
-    </button>
-  );
-}
+import { stageLabel } from './model';
 
 export function PermitHistory({ events, timeZone }: { events: readonly PermitEvent[]; timeZone: string }) {
   return (

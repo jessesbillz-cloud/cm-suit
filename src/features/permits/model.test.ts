@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PermitListRow, PermitStep } from '../../data/permits.types';
 import {
-  approvedFolder,
   byNumber,
   expiry,
   inFilter,
@@ -112,11 +111,6 @@ describe('the permit page', () => {
     expect(expiry({ expires_on: '2026-09-30', stage: 'issued' }, TZ, now)).toEqual({ date: 'Sep 30, 2026', late: true });
     // Late on Oct 1 in Los Angeles, not yet at 6 PM there on Sep 30 (01:00 UTC on Oct 1).
     expect(expiry({ expires_on: '2026-09-30', stage: 'issued' }, TZ, new Date('2026-10-01T01:00:00Z'))?.late).toBe(false);
-  });
-  it('the approved set: the job folder named for approved plans or permits', () => {
-    expect(approvedFolder([{ name: 'Plans' }, { name: 'Approved plans' }])?.name).toBe('Approved plans');
-    expect(approvedFolder([{ name: 'OSFM permits' }])?.name).toBe('OSFM permits');
-    expect(approvedFolder([{ name: 'Plans' }, { name: 'Specs' }])).toBeNull();
   });
   it('other numbers typed in one box', () => {
     expect(splitNumbers(' 25-0002, 24-0772 ;; 25-5343 ')).toEqual(['25-0002', '24-0772', '25-5343']);

@@ -85,6 +85,14 @@ export async function signedDownloadUrl(service: Db, bucket: string, path: strin
   return data.signedUrl;
 }
 
+/** A short-lived URL the browser shows instead of saving (no download header): an official PDF in its own viewer
+ *  (an RFI's "Full screen", a permit's stamped sheets), always after the caller-run gate. */
+export async function signedViewUrl(service: Db, path: string): Promise<string> {
+  const { data, error } = await service.storage.from('files').createSignedUrl(path, 600);
+  if (error || !data) throw storageError(error ?? { message: 'no signed url' }, 'createSignedUrl');
+  return data.signedUrl;
+}
+
 /** A short-lived signed URL to show an image in the app (a preview, not a download). Served as an attachment, so the
  *  URL opened on its own saves the file instead of rendering it; an <img> shows it either way. */
 export async function signedPreviewUrl(service: Db, bucket: string, path: string, ttlSeconds: number): Promise<string> {
