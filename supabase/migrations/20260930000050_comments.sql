@@ -7,7 +7,7 @@
 --   text here whenever the body changes, whoever changes it. Append-only.
 -- * Who may read a comment: whoever may read the item it is on. ONE function asks that, comment_target_readable(),
 --   and it asks each item's own read gate. Those gates are now one function per item type, and each item table's
---   SELECT policy is recreated here (same rule as before) to call the same function, so the item and its comments can
+--   SELECT policy is altered here (same rule as before) to call the same function, so the item and its comments can
 --   never drift apart: rfi_may_see (0038, unchanged), ir_may_see, file_may_see, daily_may_see, correction_may_see,
 --   delivery_may_see.
 -- * Who may write: an active member who may read the item and holds comments.write (every role except bidder and
@@ -79,21 +79,17 @@ as $$
   select public.has_capability(p_project_id, 'deliveries.view');
 $$;
 
--- The same rules as 0005 / 0023 / 0024 / 0025 / 0026, now through the one gate each.
-drop policy "inspection_requests: requester or team reads" on public.inspection_requests;
-create policy "inspection_requests: requester or team reads" on public.inspection_requests for select to authenticated
+-- The same rules as 0005 / 0023 / 0024 / 0025 / 0026, now through the one gate each (changed in place: the policy is
+-- never missing, not even inside this migration).
+alter policy "inspection_requests: requester or team reads" on public.inspection_requests
   using (deleted_at is null and public.ir_may_see(project_id, requested_by));
-drop policy "files: readable" on public.files;
-create policy "files: readable" on public.files for select to authenticated
+alter policy "files: readable" on public.files
   using (deleted_at is null and public.file_may_see(project_id, created_by, folder_id));
-drop policy "daily_reports: author or read_all" on public.daily_reports;
-create policy "daily_reports: author or read_all" on public.daily_reports for select to authenticated
+alter policy "daily_reports: author or read_all" on public.daily_reports
   using (deleted_at is null and public.daily_may_see(project_id, author_id, status));
-drop policy "corrections: viewers read" on public.corrections;
-create policy "corrections: viewers read" on public.corrections for select to authenticated
+alter policy "corrections: viewers read" on public.corrections
   using (deleted_at is null and public.correction_may_see(project_id));
-drop policy "deliveries: viewers read" on public.deliveries;
-create policy "deliveries: viewers read" on public.deliveries for select to authenticated
+alter policy "deliveries: viewers read" on public.deliveries
   using (public.delivery_may_see(project_id));
 
 -- ---------------------------------------------------------------------------
