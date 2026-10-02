@@ -3284,6 +3284,89 @@ export type Database = {
         }
         Relationships: []
       }
+      permit_approved_sets: {
+        Row: {
+          content_hash: string
+          created_at: string
+          id: string
+          note: string | null
+          org_id: string
+          permit_id: string
+          position: number
+          project_id: string
+          set_no: number
+          source_file_id: string
+          stamped_at: string
+          stamped_by: string
+          stamped_file_id: string
+          superseded_at: string | null
+          superseded_by: number | null
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          org_id: string
+          permit_id: string
+          position: number
+          project_id: string
+          set_no: number
+          source_file_id: string
+          stamped_at: string
+          stamped_by: string
+          stamped_file_id: string
+          superseded_at?: string | null
+          superseded_by?: number | null
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          org_id?: string
+          permit_id?: string
+          position?: number
+          project_id?: string
+          set_no?: number
+          source_file_id?: string
+          stamped_at?: string
+          stamped_by?: string
+          stamped_file_id?: string
+          superseded_at?: string | null
+          superseded_by?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_approved_sets_permit_id_project_id_fkey"
+            columns: ["permit_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "permit_approved_sets_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "permit_approved_sets_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_approved_sets_stamped_file_id_fkey"
+            columns: ["stamped_file_id"]
+            isOneToOne: true
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permit_comments: {
         Row: {
           body: string
@@ -3486,6 +3569,7 @@ export type Database = {
       permits: {
         Row: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string
@@ -3508,6 +3592,7 @@ export type Database = {
         }
         Insert: {
           agency_numbers?: string[]
+          approved_folder_id?: string | null
           assigned_to?: string | null
           created_at?: string
           created_by: string
@@ -3530,6 +3615,7 @@ export type Database = {
         }
         Update: {
           agency_numbers?: string[]
+          approved_folder_id?: string | null
           assigned_to?: string | null
           created_at?: string
           created_by?: string
@@ -3551,6 +3637,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "permits_approved_folder_id_fkey"
+            columns: ["approved_folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "permits_project_id_org_id_fkey"
             columns: ["project_id", "org_id"]
@@ -7497,6 +7590,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      permit_approved: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: Json
+      }
+      permit_approved_root: {
+        Args: {
+          p_project_id: string
+        }
+        Returns: string
+      }
       permit_check: {
         Args: {
           p_kind: string
@@ -7642,6 +7747,7 @@ export type Database = {
         }
         Returns: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string
@@ -7681,6 +7787,41 @@ export type Database = {
         }
         Returns: Json
       }
+      permit_folder_ensure: {
+        Args: {
+          p_cap: string
+          p_kind: string
+          p_name: string
+          p_parent_id: string
+          p_project_id: string
+          p_read: boolean
+          p_sort: number
+          p_write: boolean
+        }
+        Returns: string
+      }
+      permit_folder_make: {
+        Args: {
+          p_kind: string
+          p_name: string
+          p_parent_id: string
+          p_project_id: string
+          p_sort: number
+        }
+        Returns: string
+      }
+      permit_items: {
+        Args: {
+          p_items: Json
+        }
+        Returns: {
+          content_hash: string
+          ord: number
+          source_file_id: string
+          stamped_at: string
+          stamped_file_id: string
+        }[]
+      }
       permit_label: {
         Args: {
           p_number: string
@@ -7719,6 +7860,7 @@ export type Database = {
         }
         Returns: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string
@@ -7755,6 +7897,7 @@ export type Database = {
         }
         Returns: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string
@@ -7840,6 +7983,15 @@ export type Database = {
           state: string
         }[]
       }
+      permit_record_stamped_set: {
+        Args: {
+          p_items: Json
+          p_note?: string
+          p_permit_id: string
+          p_version: number
+        }
+        Returns: Json
+      }
       permit_review_close: {
         Args: {
           p_outcome: string
@@ -7900,6 +8052,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      permit_set_folder: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: string
+      }
       permit_stage_label: {
         Args: {
           p_stage: string
@@ -7911,6 +8069,44 @@ export type Database = {
           p_stage: string
         }
         Returns: number
+      }
+      permit_stamp_folders: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: Json
+      }
+      permit_stamp_mode: {
+        Args: {
+          p_stage: string
+        }
+        Returns: string
+      }
+      permit_stamp_source: {
+        Args: {
+          p_file_id: string
+          p_permit_id: string
+        }
+        Returns: {
+          mime: string
+          original_name: string
+          size: number
+          storage_path: string
+        }[]
+      }
+      permit_stamp_sources: {
+        Args: {
+          p_permit_id: string
+        }
+        Returns: {
+          created_at: string
+          folder_id: string
+          folder_kind: string
+          folder_name: string
+          id: string
+          name: string
+          size: number
+        }[]
       }
       permit_tell: {
         Args: {
@@ -7934,6 +8130,7 @@ export type Database = {
         }
         Returns: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string
@@ -7977,6 +8174,7 @@ export type Database = {
         }
         Returns: {
           agency_numbers: string[]
+          approved_folder_id: string | null
           assigned_to: string | null
           created_at: string
           created_by: string

@@ -159,3 +159,7 @@ verify_jwt = true
 # the visitor's own session (the email code), checked with requireUser. ---
 [functions.request-link]
 verify_jwt = false
+
+# --- Permits: the official stamps the plans and issues the permit (signed; one PDF per request) ---
+[functions.permit-stamp]
+verify_jwt = true

@@ -128,8 +128,10 @@ export async function setFolderAiReads(folderId: string, aiReads: boolean, versi
   return next.version;
 }
 
+/** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test. */
 function allFiles(): FileRow[] {
-  return [...MOCK_FILES, ...readMock().files];
+  const saved = readMock().files;
+  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved];
 }
 
 export async function files(folderId: string): Promise<FileRow[]> {

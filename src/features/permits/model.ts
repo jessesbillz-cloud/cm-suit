@@ -1,7 +1,7 @@
 // Permit words and pure helpers: the stages in order with OSFM's status codes (so the official recognizes them), kinds,
-// review outcomes, the log's filters and order, the tracker's cells, the move buttons' words, the expiry and where the
-// approved set lives. The database owns the order and the allowed moves (permit_next_stages); this file only names
-// them. Unit-tested in model.test.ts.
+// review outcomes, the log's filters and order, the tracker's cells, the move buttons' words and the expiry. The
+// database owns the order and the allowed moves (permit_next_stages); this file only names them. Unit-tested in
+// model.test.ts.
 import type { PermitListRow, PermitStep } from '../../data/permits.types';
 import { formatDay, formatInZone, todayInZone } from '../../lib/dates';
 import type { StepperState } from '../../ui/Stepper';
@@ -184,11 +184,6 @@ interface Expiry {
 export function expiry(p: { expires_on: string | null; stage: string }, tz: string, now: Date): Expiry | null {
   if (p.expires_on === null || !ISSUED.includes(p.stage)) return null;
   return { date: formatDay(p.expires_on, 'MMM d, yyyy'), late: p.expires_on < todayInZone(tz, now) };
-}
-
-/** The job's folder for the approved set: one named for approved plans or permits. */
-export function approvedFolder<T extends { name: string }>(folders: readonly T[]): T | null {
-  return folders.find((f) => /approved|permit/i.test(f.name)) ?? null;
 }
 
 /** Other numbers typed in one box, split on commas or semicolons. */
