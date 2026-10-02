@@ -12,8 +12,10 @@ grant all on ids to public;
 create function pg_temp.rid(p_k text) returns uuid language sql stable as $$ select v from ids where k = p_k $$;
 create function pg_temp.ver(p_k text) returns int language sql volatile security definer as $$
   select p.version from public.permits p where p.id = (select v from ids where k = p_k) $$;
--- A copy the server stamped for the official, waiting in the job's "Stamping" folder (what storeGeneratedPdf writes).
-create function pg_temp.stamped(p_k text, p_name text) returns uuid language plpgsql volatile security definer as $$
+-- A copy the server stamped for the official, waiting in the job's "Stamping" folder (what storeGeneratedPdf writes),
+-- and, given its original and permit, the server's record of it (what permit-stamp writes with the service key, 0054).
+create function pg_temp.stamped(p_k text, p_name text, p_src text default null, p_permit text default null)
+returns uuid language plpgsql volatile security definer as $$
 declare v uuid := gen_random_uuid(); fo public.folders;
 begin
   select * into fo from public.folders where project_id = 'c0000000-0000-0000-0000-000000000461' and kind = 'stamping';
@@ -22,12 +24,18 @@ begin
   values (v, fo.org_id, fo.project_id, fo.id, public.file_storage_path(fo.project_id, fo.id, v, p_name), p_name,
           'application/pdf', 1000, repeat('b', 64), 'clean', 'none', true, 'a0000000-0000-0000-0000-000000000462');
   insert into ids values (p_k, v);
+  if p_src is not null then
+    insert into public.permit_stamped_copies (stamped_file_id, permit_id, source_file_id, source_sha256, permit_number,
+                                              stamped_by, stamped_at, content_hash)
+    select v, p.id, pg_temp.rid(p_src), repeat('c', 64), p.primary_number, 'a0000000-0000-0000-0000-000000000462', now(),
+           repeat(substr(md5(p_k), 1, 1), 64)
+      from public.permits p where p.id = pg_temp.rid(p_permit);
+  end if;
   return v;
 end $$;
--- One item of a set: the original, the stamped copy, its hash, stamped now.
-create function pg_temp.item(p_src text, p_out text) returns jsonb language sql stable as $$
-  select jsonb_build_object('source_file_id', pg_temp.rid(p_src), 'stamped_file_id', pg_temp.rid(p_out),
-                            'content_hash', repeat(substr(md5(p_out), 1, 1), 64), 'stamped_at', now()) $$;
+-- The stamped copies of a set, in the order picked.
+create function pg_temp.set_of(variadic p_k text[]) returns uuid[] language sql stable as $$
+  select array_agg(pg_temp.rid(k) order by o) from unnest(p_k) with ordinality as t (k, o) $$;
 create function pg_temp.lines(p_permit text, p_kind text) returns int language sql volatile security definer as $$
   select count(*)::int from public.activity where entity_id = pg_temp.rid(p_permit) and kind = p_kind $$;
 create function pg_temp.downloads(p_file text) returns int language sql volatile security definer as $$
@@ -99,11 +107,11 @@ select ok(not has_table_privilege('anon', 'public.permit_approved_sets', 'SELECT
   'anon reads nothing; signed in: read only, written by the RPC');
 select is_empty($$ select f from unnest(array[
     'public.permit_stamp_folders(uuid)', 'public.permit_stamp_source(uuid, uuid)', 'public.permit_stamp_sources(uuid)',
-    'public.permit_record_stamped_set(uuid, integer, jsonb, text)', 'public.permit_approved(uuid)']) f
+    'public.permit_record_stamped_set(uuid, integer, uuid[], text)', 'public.permit_approved(uuid)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or not has_function_privilege('authenticated', f, 'EXECUTE') $$,
   'grants: the stamp functions are for signed-in people, never anon');
 select is_empty($$ select f from unnest(array[
-    'public.permit_stamp_mode(text)', 'public.permit_items(jsonb)', 'public.permit_folder_make(uuid, uuid, text, text, integer)',
+    'public.permit_stamp_mode(text)', 'public.permit_folder_make(uuid, uuid, text, text, integer)',
     'public.permit_folder_ensure(uuid, uuid, text, text, integer, text, boolean, boolean)',
     'public.permit_approved_root(uuid)', 'public.permit_set_folder(uuid)']) f
    where has_function_privilege('authenticated', f, 'EXECUTE') $$, 'grants: the helpers are internal');
@@ -184,32 +192,31 @@ select throws_ok($$ select * from public.permit_stamp_source(pg_temp.rid('B'), p
 -- ---------------------------------------------------------------------------------------------------------------
 -- Recording the set: the official only, signed in just now, at the version they saw, server-made copies only
 -- ---------------------------------------------------------------------------------------------------------------
-select pg_temp.stamped('T1', 'Sample A-101 - Approved 24-0001.pdf');
-select pg_temp.stamped('T2', 'Sample A-201 - Approved 24-0001.pdf');
+select pg_temp.stamped('T1', 'Sample A-101 - Approved 24-0001.pdf', 'S1', 'A');
+select pg_temp.stamped('T2', 'Sample A-201 - Approved 24-0001.pdf', 'S2', 'A');
+select pg_temp.stamped('TO', 'Sample other job - Approved 24-0001.pdf', 'SO', 'A');
 select pg_temp.login('a0000000-0000-0000-0000-000000000464');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('S1', 'T1'))) $$, '42501', 'forbidden', 'a PM can''t record a set');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T1')) $$,
+  '42501', 'forbidden', 'a PM can''t record a set');
 select pg_temp.login_stale('a0000000-0000-0000-0000-000000000462');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('S1', 'T1'))) $$, '42501', null, 'an old sign-in must sign in again');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T1')) $$,
+  '42501', null, 'an old sign-in must sign in again');
 select pg_temp.login('a0000000-0000-0000-0000-000000000462');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A') - 1,
-  jsonb_build_array(pg_temp.item('S1', 'T1'))) $$, '40001', null, 'a stale version is refused');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('S1', 'S2'))) $$, '22023', 'A stamped file is missing. Stamp it again.',
-  'a "stamped" file that the server didn''t make is refused');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('S1', 'T1'), pg_temp.item('S1', 'T2'))) $$, '22023', 'Each file once.', 'each file once');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('SO', 'T1'))) $$, '22023', null, 'an original from another job is refused');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('B'), pg_temp.ver('B'),
-  jsonb_build_array(pg_temp.item('S1', 'T1'))) $$, '22023', 'This permit can''t be stamped now.', 'nor a draft''s set');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), '[]') $$, '22023',
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A') - 1, pg_temp.set_of('T1')) $$,
+  '40001', null, 'a stale version is refused');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('S2')) $$,
+  '22023', 'A stamped file is missing. Stamp it again.', 'a "stamped" file that the server didn''t make is refused');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T1', 'T1')) $$,
+  '22023', 'Each file once.', 'each file once');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('TO')) $$,
+  '22023', null, 'an original from another job is refused');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('B'), pg_temp.ver('B'), pg_temp.set_of('T1')) $$,
+  '22023', 'This permit can''t be stamped now.', 'nor a draft''s set');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), '{}') $$, '22023',
   'Pick the files to stamp.', 'an empty set is refused');
 
 select is((select array[(x ->> 'set_no'), (x ->> 'files'), (x ->> 'issued'), (x -> 'permit' ->> 'stage')]
-             from public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-                    jsonb_build_array(pg_temp.item('S1', 'T1'), pg_temp.item('S2', 'T2'))) x),
+             from public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T1', 'T2')) x),
   array['1', '2', 'true', 'issued'], 'the official records the set: set 1, two files, issued');
 select is((select array[stage, issued_on::text, expires_on::text] from public.permits where id = pg_temp.rid('A')),
   array['issued', (now() at time zone 'America/Los_Angeles')::date::text,
@@ -238,8 +245,7 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000466');
 select is((select count(*)::int from public.activity where kind = 'permit.approved_set'), 0, 'a sub doesn''t');
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000462');
-select is((public.permit_record_stamped_set(pg_temp.rid('A'), 1,
-             jsonb_build_array(pg_temp.item('S1', 'T1'), pg_temp.item('S2', 'T2'))) ->> 'set_no'), '1',
+select is((public.permit_record_stamped_set(pg_temp.rid('A'), 1, pg_temp.set_of('T1', 'T2')) ->> 'set_no'), '1',
   'the same set again returns the first answer (even at an old version)');
 select is(array[(select count(*)::int from public.permit_approved_sets where permit_id = pg_temp.rid('A')),
                 pg_temp.lines('A', 'permit.approved_set')], array[2, 1], 'and records nothing twice');
@@ -251,13 +257,12 @@ select throws_ok($$ update public.files set deleted_at = now() where id = pg_tem
 -- ---------------------------------------------------------------------------------------------------------------
 -- A revision: the stage stays, the earlier set is superseded
 -- ---------------------------------------------------------------------------------------------------------------
-select pg_temp.stamped('T3', 'Sample FP-1 - Approved 24-0001.pdf');
-select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-  jsonb_build_array(pg_temp.item('S3', 'T3'), pg_temp.item('S1', 'T1'))) $$, '22023',
-  'Some of these files are already recorded.', 'a recorded file can''t go into another set');
+select pg_temp.stamped('T3', 'Sample FP-1 - Approved 24-0001.pdf', 'S3', 'A');
+select throws_ok($$ select public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T3', 'T1')) $$,
+  '22023', 'Some of these files are already recorded.', 'a recorded file can''t go into another set');
 select is((select array[(x ->> 'set_no'), (x ->> 'issued'), (x -> 'permit' ->> 'stage')]
-             from public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'),
-                    jsonb_build_array(pg_temp.item('S3', 'T3')), 'Sample revision 1') x),
+             from public.permit_record_stamped_set(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.set_of('T3'),
+                    'Sample revision 1') x),
   array['2', 'false', 'issued'], 'a revised set: set 2, the permit stays issued');
 select is((select array_agg(coalesce(superseded_by::text, 'current') order by set_no, position)
              from public.permit_approved_sets where permit_id = pg_temp.rid('A')),

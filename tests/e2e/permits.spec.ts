@@ -7,7 +7,8 @@
 // (data-stage), permit-row-steps and permit-steps (steps carry data-state done / current / todo / failed and data-kind,
 // the stage), permit-stage, permit-move, permit-move-menu, permit-move-<stage>, permit-review-open,
 // permit-review-<cycle>, permit-comment-sheet, permit-comment-body, permit-comment-add, permit-comment-<no>,
-// permit-comment-answer, permit-comment-response, permit-comment-send, permit-comment-response-text, permit-filter-<f>,
+// permit-comment-answer, permit-comment-response, permit-comment-send, permit-comment-response-text,
+// permit-comment-earlier, permit-filter-<f>,
 // permit-inspection, permit-history.
 import process from 'node:process';
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -82,6 +83,13 @@ test.describe('permits', () => {
     await pmComment.getByTestId('permit-comment-response').fill('Sample answer: heads added on FP-2.');
     await pmComment.getByTestId('permit-comment-send').click();
     await expect(pmComment.getByTestId('permit-comment-response-text')).toContainText('heads added on FP-2');
+    await expect(pmComment.getByTestId('permit-comment-earlier')).toHaveCount(0);
+    // A new answer never wipes the one before: it stays under it.
+    await pmComment.getByTestId('permit-comment-answer').click();
+    await pmComment.getByTestId('permit-comment-response').fill('Sample answer: heads added on FP-2 and FP-3.');
+    await pmComment.getByTestId('permit-comment-send').click();
+    await expect(pmComment.getByTestId('permit-comment-response-text')).toContainText('FP-2 and FP-3');
+    await expect(pmComment.getByTestId('permit-comment-earlier')).toContainText('Sample answer: heads added on FP-2.');
     await expect(row).toHaveAttribute('data-stage', 'in_review');
   });
 

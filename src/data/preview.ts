@@ -1,7 +1,8 @@
 // Photo previews: the ONE way the app gets a picture to show (ui/Thumb). A short-lived signed URL for an IMAGE the
 // person may see, from the download function's 'preview' action: authorize_preview (migration 0047) asks the same gate
 // the download of that file asks (its folder, or the RFI or inspection request it is opened through), answers for
-// images only, and is not logged as a download. Cached for less time than the URL lives.
+// images only, and is not a download (no download line; a 'file.preview' audit line, 0054). Cached for less time than
+// the URL lives.
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { DataError } from './errors';
@@ -15,8 +16,8 @@ export type PreviewVia = { rfiId: string } | { requestId: string };
 
 const previewSchema = z.object({ url: z.string().url() });
 
-/** The URL lives 15 minutes (supabase/functions/_shared/images.ts); the cache hands it out for 12. */
-const FRESH_MS = 12 * 60_000;
+/** The URL lives 10 minutes (supabase/functions/_shared/images.ts); the cache hands it out for 8. */
+const FRESH_MS = 8 * 60_000;
 
 function viaBody(via: PreviewVia | undefined): { rfi_id?: string; request_id?: string } {
   if (via === undefined) return {};

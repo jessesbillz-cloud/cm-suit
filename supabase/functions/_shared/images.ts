@@ -2,8 +2,9 @@
 // authorize_preview() (migration 0047) already refuses anything else; the download function checks again before it
 // signs, so a preview URL is never handed out for a PDF, a plan or a bid.
 
-/** A preview URL lives 15 minutes; the app caches it for less (src/data/preview.ts). */
-export const PREVIEW_TTL_SECONDS = 900;
+/** A preview URL lives 10 minutes, like a download URL (db.ts signedDownloadUrl); the app caches it for less
+ *  (src/data/preview.ts). */
+export const PREVIEW_TTL_SECONDS = 600;
 
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 const IMAGE_NAME = /\.(jpe?g|png|webp|heic|heif)$/i;

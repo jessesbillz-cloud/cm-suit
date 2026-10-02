@@ -1,5 +1,5 @@
-// Comments on an item (migration 0050): what comment_list returns, parsed at the boundary. The database decides who
-// reads (whoever may read the item) and who writes (can_write); the UI only shows it.
+// Comments on an item (migrations 0050, 0054): what comment_list returns, parsed at the boundary. The database decides
+// who reads (whoever may write comments and read the item: can_read) and who writes (can_write); the UI only shows it.
 import { z } from 'zod';
 import type { CommentEntity } from '../lib/entityTarget';
 
@@ -18,8 +18,10 @@ const commentSchema = z.object({
 });
 export type CommentRow = z.infer<typeof commentSchema>;
 
-/** comment_list(p_project_id, p_entity_type, p_entity_id): oldest first. */
+/** comment_list(p_project_id, p_entity_type, p_entity_id): oldest first. can_read false (a bidder, a viewer): no
+ *  comments section at all. */
 export const commentListSchema = z.object({
+  can_read: z.boolean(),
   can_write: z.boolean(),
   comments: z.array(commentSchema),
 });

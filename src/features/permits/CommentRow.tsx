@@ -1,6 +1,6 @@
 // One review comment as a tight block: its number, sheet · detail · code reference and open / closed on one line, the
-// comment, then the design team's answer right under it. The design team answers an open comment in place; the official
-// closes it (or opens it again), with Undo.
+// comment, then the design team's answer right under it, and any answer it replaced under that (kept, 0054). The design
+// team answers an open comment in place; the official closes it (or opens it again), with Undo.
 import { useState } from 'react';
 import { Check, MessageSquareReply, RotateCcw, Send } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -29,6 +29,7 @@ export function CommentRow({ projectId, comment: c, canRespond, canManage }: Com
   const [answering, setAnswering] = useState(false);
   const [text, setText] = useState(c.response ?? '');
   const open = c.status === 'open';
+  const earlier = c.earlier_answers ?? [];
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
   };
@@ -80,6 +81,16 @@ export function CommentRow({ projectId, comment: c, canRespond, canManage }: Com
           <span className="font-medium text-ink-2">{c.responded_by_name ?? 'Design team'}: </span>
           {c.response}
         </p>
+      ) : null}
+      {earlier.length > 0 && !answering ? (
+        <ol aria-label="Earlier answers" data-testid="permit-comment-earlier" className="flex flex-col gap-1 border-l-2 border-line pl-3">
+          {earlier.map((e, i) => (
+            <li key={`${e.at ?? 'answer'}-${String(i)}`} className="whitespace-pre-wrap break-words text-[13px] leading-5 text-ink-2">
+              <span className="font-medium">{e.by_name ?? 'Design team'}: </span>
+              {e.response}
+            </li>
+          ))}
+        </ol>
       ) : null}
       {answering ? (
         <div className="flex flex-col gap-2">

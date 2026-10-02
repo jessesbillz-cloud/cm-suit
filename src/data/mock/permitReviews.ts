@@ -1,6 +1,7 @@
 // e2e mock of permit reviews and comments (0052), with the database's rules: one open review at a time (the first is
 // the initial review, later ones backchecks), comments only on the open review and numbered per permit, answers by
-// the design team (permits.respond) while open, close / reopen by the official (the latest cycle), and naming the
+// the design team (permits.respond) while open (a replaced answer stays on the comment), close / reopen by the
+// official (the latest cycle), and naming the
 // permit an inspection request is for (through the inspections mock, so the request carries it like the real row).
 import { conflictError } from '../errors';
 import type { PermitComment, PermitReview } from '../permits.types';
@@ -111,7 +112,13 @@ export async function commentRespond(id: string, version: number, response: stri
     if (c.response === response.trim()) return null;
     if (c.status !== 'open') throw fail('This comment is closed.');
     if (response.trim() === '') throw fail('Add the answer.');
-    return { ...c, response: response.trim(), responded_by: mockUser().id, responded_at: new Date().toISOString(), version: c.version + 1 };
+    // The earlier answer stays on the comment (0054).
+    const earlier = c.response === null ? (c.earlier_answers ?? [])
+      : [...(c.earlier_answers ?? []), { response: c.response, by_name: nameOf(c.responded_by), at: c.responded_at }];
+    return {
+      ...c, response: response.trim(), responded_by: mockUser().id, responded_at: new Date().toISOString(),
+      earlier_answers: earlier, version: c.version + 1,
+    };
   });
 }
 

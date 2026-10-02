@@ -67,6 +67,34 @@ export async function rpc<T>(client: Db, fn: string, args: Record<string, unknow
   return data as T;
 }
 
+const VISITOR_SAFE = new Set(['22023', '42501']);
+
+/**
+ * dbError for the public endpoints (SPEC §6.4), whose callers are anyone: a refusal our SQL wrote for people (22023,
+ * 42501: plain words) keeps its message, never Postgres' details; Postgres' own wording ("permission denied for
+ * table ...") and every other error is logged here and answered with a generic message.
+ */
+export function publicDbError(error: PgErrorLike, context: string): HttpError {
+  const status = pgStatus(error.code);
+  if (status >= 500) return new HttpError(500, `${context}: ${error.code ?? '?'} ${error.message}`);
+  if (VISITOR_SAFE.has(error.code ?? '') && !/^permission denied/i.test(error.message)) {
+    return new HttpError(status, error.message);
+  }
+  console.warn(`${context}: ${error.code ?? '?'} ${error.message}`, error.details ?? '');
+  if (status === 404) return new HttpError(404, 'Not found');
+  if (status === 403) return new HttpError(403, 'Not allowed');
+  if (status === 409) return new HttpError(409, 'Try again.');
+  if (status === 401) return new HttpError(401, 'Sign in required');
+  return new HttpError(400, 'This request could not be completed.');
+}
+
+/** rpc() for the public endpoints: errors through publicDbError. */
+export async function publicRpc<T>(client: Db, fn: string, args: Record<string, unknown> = {}): Promise<T> {
+  const { data, error } = await client.rpc(fn, args);
+  if (error) throw publicDbError(error, `rpc ${fn}`);
+  return data as T;
+}
+
 /** Unwraps a table query result and throws on `{ error }`. */
 export function must<T>(res: { data: T | null; error: PgErrorLike | null }, context: string): T {
   if (res.error) throw dbError(res.error, context);

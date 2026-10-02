@@ -1,5 +1,6 @@
-// e2e mock of comments (migration 0050): the same rules as the database. Anyone but a bidder writes; only the author
-// edits, version-checked, and the earlier text is kept; a repeat of the same send adds nothing; nothing deletes.
+// e2e mock of comments (migrations 0050, 0054): the same rules as the database. Anyone but a bidder or a viewer reads
+// and writes (they see no comments at all); only the author edits, version-checked, and the earlier text is kept; a
+// repeat of the same send adds nothing; nothing deletes.
 // State lives in sessionStorage, never module state. Seeded with two synthetic comments on Sample Job A's RFI 002.
 import type { CommentList, CommentTarget } from '../comments.types';
 import { COMMENT_MAX } from '../comments.types';
@@ -91,11 +92,18 @@ function checkBody(body: string): string {
   return v;
 }
 
+/** Bidders and viewers hold no comments.write, so they neither read nor write comments. */
+function commenter(userId: string): boolean {
+  return userId !== 'mock-user-bidder' && userId !== 'mock-user-viewer';
+}
+
 export async function list(t: CommentTarget): Promise<CommentList> {
   await delay();
   const me = mockUser().id;
+  if (!commenter(me)) return { can_read: false, can_write: false, comments: [] };
   return {
-    can_write: me !== 'mock-user-bidder',
+    can_read: true,
+    can_write: true,
     comments: read()
       .comments.filter((c) => onItem(c, t))
       .map((c) => {
@@ -119,7 +127,7 @@ export async function list(t: CommentTarget): Promise<CommentList> {
 export async function add(t: CommentTarget, body: string, key: string): Promise<void> {
   await delay();
   const me = mockUser().id;
-  if (me === 'mock-user-bidder') throw new DataError("You don't have access to that.", '42501', null);
+  if (!commenter(me)) throw new DataError("You don't have access to that.", '42501', null);
   const s = read();
   if (s.comments.some((c) => c.author_id === me && c.request_key === key)) return;
   const v = checkBody(body);

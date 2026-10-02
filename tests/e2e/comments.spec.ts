@@ -1,6 +1,6 @@
 // Comments on any item (migration 0050) against the e2e mock: they show in an item's full view (its own window,
 // expanded to full width, or the phone), never in the right-column preview. A comment is permanent: its author can
-// edit it, the earlier text stays readable under it, and there is no delete. A bidder reads but cannot write.
+// edit it, the earlier text stays readable under it, and there is no delete. A bidder (or a viewer) sees no comments.
 // Sample Job A's RFI 002 starts with two comments, one of them edited (src/data/mock/comments.ts). Test ids: comments,
 // comment, comment-body, comment-meta, comment-earlier, comment-edit, comment-edit-input, comment-save, comment-input,
 // comment-send, comments-empty.
@@ -67,9 +67,10 @@ test.describe('comments', () => {
     await expect(page.getByTestId('comments-empty')).toHaveCount(0);
   });
 
-  test('a bidder reads comments but gets no box', async ({ page }) => {
+  test('a bidder sees the file but no comments at all', async ({ page }) => {
     await signIn(page, 'bidder', `${FILE}?window=1`);
-    await expect(page.getByTestId('comments')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await expect(page.getByTestId('comments')).toHaveCount(0);
     await expect(page.getByTestId('comment-input')).toHaveCount(0);
   });
 });

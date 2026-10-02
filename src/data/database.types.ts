@@ -3292,13 +3292,16 @@ export type Database = {
           note: string | null
           org_id: string
           permit_id: string
+          permit_number: string | null
           position: number
           project_id: string
           set_no: number
           source_file_id: string
+          source_sha256: string | null
           stamped_at: string
           stamped_by: string
           stamped_file_id: string
+          stamped_sha256: string | null
           superseded_at: string | null
           superseded_by: number | null
         }
@@ -3309,13 +3312,16 @@ export type Database = {
           note?: string | null
           org_id: string
           permit_id: string
+          permit_number?: string | null
           position: number
           project_id: string
           set_no: number
           source_file_id: string
+          source_sha256?: string | null
           stamped_at: string
           stamped_by: string
           stamped_file_id: string
+          stamped_sha256?: string | null
           superseded_at?: string | null
           superseded_by?: number | null
         }
@@ -3326,13 +3332,16 @@ export type Database = {
           note?: string | null
           org_id?: string
           permit_id?: string
+          permit_number?: string | null
           position?: number
           project_id?: string
           set_no?: number
           source_file_id?: string
+          source_sha256?: string | null
           stamped_at?: string
           stamped_by?: string
           stamped_file_id?: string
+          stamped_sha256?: string | null
           superseded_at?: string | null
           superseded_by?: number | null
         }
@@ -3377,6 +3386,7 @@ export type Database = {
           created_at: string
           created_by: string
           detail: string
+          earlier_answers: Json
           id: string
           number: number
           org_id: string
@@ -3401,6 +3411,7 @@ export type Database = {
           created_at?: string
           created_by: string
           detail?: string
+          earlier_answers?: Json
           id?: string
           number: number
           org_id: string
@@ -3425,6 +3436,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           detail?: string
+          earlier_answers?: Json
           id?: string
           number?: number
           org_id?: string
@@ -3562,6 +3574,64 @@ export type Database = {
             columns: ["permit_id"]
             isOneToOne: false
             referencedRelation: "permits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permit_stamped_copies: {
+        Row: {
+          content_hash: string
+          created_at: string
+          permit_id: string
+          permit_number: string
+          source_file_id: string
+          source_sha256: string
+          stamped_at: string
+          stamped_by: string
+          stamped_file_id: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          permit_id: string
+          permit_number: string
+          source_file_id: string
+          source_sha256: string
+          stamped_at: string
+          stamped_by: string
+          stamped_file_id: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          permit_id?: string
+          permit_number?: string
+          source_file_id?: string
+          source_sha256?: string
+          stamped_at?: string
+          stamped_by?: string
+          stamped_file_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permit_stamped_copies_permit_id_fkey"
+            columns: ["permit_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_stamped_copies_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permit_stamped_copies_stamped_file_id_fkey"
+            columns: ["stamped_file_id"]
+            isOneToOne: true
+            referencedRelation: "files"
             referencedColumns: ["id"]
           },
         ]
@@ -5380,6 +5450,15 @@ export type Database = {
           unread: boolean
         }[]
       }
+      board_line_readable: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_kind: string
+          p_project_id: string
+        }
+        Returns: boolean
+      }
       calendar_feed_lines: {
         Args: { p_token_hash: string }
         Returns: {
@@ -5482,6 +5561,14 @@ export type Database = {
           p_project_id: string
         }
         Returns: Json
+      }
+      comment_readable: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_project_id: string
+        }
+        Returns: boolean
       }
       comment_target_readable: {
         Args: {
@@ -6056,6 +6143,7 @@ export type Database = {
         Args: { p_name: string; p_parent_id: string; p_project_id: string }
         Returns: boolean
       }
+      folder_server_only: { Args: { p_folder_id: string }; Returns: boolean }
       has_capability: {
         Args: { p_cap: string; p_project_id: string }
         Returns: boolean
@@ -7779,16 +7867,6 @@ export type Database = {
         }
         Returns: string
       }
-      permit_items: {
-        Args: { p_items: Json }
-        Returns: {
-          content_hash: string
-          ord: number
-          source_file_id: string
-          stamped_at: string
-          stamped_file_id: string
-        }[]
-      }
       permit_label: { Args: { p_number: string }; Returns: string }
       permit_list: {
         Args: { p_project_id?: string }
@@ -7917,9 +7995,9 @@ export type Database = {
       }
       permit_record_stamped_set: {
         Args: {
-          p_items: Json
           p_note?: string
           p_permit_id: string
+          p_stamped_file_ids: string[]
           p_version: number
         }
         Returns: Json
