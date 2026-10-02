@@ -1,5 +1,5 @@
 // `deno test --config supabase/functions/deno.json supabase/functions/_shared/permitStamp_test.ts`
-import { STAMP_MAX_BYTES, approvedName, looksLikePdf, stampHash, tooLargeMessage } from './permitStamp.ts';
+import { STAMP_MAX_BYTES, approvedName, looksLikePdf, stampHash, stampRecord, tooLargeMessage } from './permitStamp.ts';
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error(`failed: ${what}`);
@@ -9,6 +9,7 @@ const FACTS = {
   permitId: '00000000-0000-4000-8000-000000000001',
   permitNumber: '24-0001',
   sourceFileId: '00000000-0000-4000-8000-000000000002',
+  sourceSha256: 'c'.repeat(64),
   stampedBy: '00000000-0000-4000-8000-000000000003',
   stampedAt: '2026-10-01T17:05:00.000Z',
 };
@@ -22,6 +23,23 @@ Deno.test('permit stamp: the hash is the same for the same facts and changes wit
     const other = k === 'stampedAt' ? '2026-10-01T17:05:01.000Z' : `${FACTS[k]}x`;
     check(h !== (await stampHash({ ...FACTS, [k]: other })), `${k} changes it`);
   }
+});
+
+Deno.test('permit stamp: the hash binds the original\'s bytes', async () => {
+  const h = await stampHash(FACTS);
+  check(h !== (await stampHash({ ...FACTS, sourceSha256: 'd'.repeat(64) })), 'another original, another hash');
+});
+
+Deno.test('permit stamp: the server\'s record holds exactly what the hash covers', async () => {
+  const hash = await stampHash(FACTS);
+  const r = stampRecord({ ...FACTS, stampedAt: '2026-10-01T10:05:00-07:00' }, '00000000-0000-4000-8000-000000000009', hash);
+  check(r.stamped_file_id === '00000000-0000-4000-8000-000000000009' && r.content_hash === hash, 'the copy and its hash');
+  check(r.stamped_at === FACTS.stampedAt, 'the instant, in UTC');
+  const again = await stampHash({
+    permitId: r.permit_id, permitNumber: r.permit_number, sourceFileId: r.source_file_id, sourceSha256: r.source_sha256,
+    stampedBy: r.stamped_by, stampedAt: r.stamped_at,
+  });
+  check(again === hash, 'the hash can be checked again from the record alone');
 });
 
 Deno.test('permit stamp: the stamped copy keeps its name, plus " - Approved <number>.pdf"', () => {

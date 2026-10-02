@@ -35,9 +35,14 @@ export function useRecordSet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: { permit: PermitRef; stamped: readonly StampedFile[] }): Promise<RecordResult> => {
-      const items = v.stamped.map((s) => ({ source_file_id: s.source_file_id, stamped_file_id: s.stamped_file_id, stamped_at: s.stamped_at }));
-      if (isMock()) return mockStamp.record(v.permit, items);
-      return callFunction('permit-stamp', { action: 'record', permit_id: v.permit.id, version: v.permit.version, items }, recordResultSchema);
+      if (isMock()) return mockStamp.record(v.permit, v.stamped);
+      // The copies alone: the server keeps what each one is (its original, time, hash), never the browser (0054).
+      const ids = v.stamped.map((s) => s.stamped_file_id);
+      return callFunction(
+        'permit-stamp',
+        { action: 'record', permit_id: v.permit.id, version: v.permit.version, stamped_file_ids: ids },
+        recordResultSchema,
+      );
     },
     onSettled: (_r, _e, v) =>
       Promise.all([

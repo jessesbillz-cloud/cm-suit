@@ -70,7 +70,8 @@ timesheets
 # the caller's own session (requireUser); rate-limited per IP and per token.
 request-link
 # Reads the original PDF's bytes from private storage, stores the stamped copy (storeGeneratedPdf: storage + files row)
-# in the job's server-only "Stamping" folder, and signs view URLs; the permit is read as the user, and
+# in the job's server-only "Stamping" folder with the server's record of it (permit_stamped_copies, service role only),
+# and signs view URLs; the permit is read as the user, and
 # requireCapability('permits.manage'), the signing re-confirmation, permit_stamp_source() (authorize_download inside),
 # permit_record_stamped_set() or permit_approved() run as the user first.
 permit-stamp

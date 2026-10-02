@@ -1,5 +1,6 @@
-// The official's approval stamp on a permit's plans (migration 0053, permit-stamp): the record's content hash, the
-// stamped copy's filename and the size limit. Pure, unit-tested in permitStamp_test.ts.
+// The official's approval stamp on a permit's plans (migrations 0053, 0054; permit-stamp): the record's content hash,
+// the server's record of a stamped copy, the stamped copy's filename and the size limit. Pure, unit-tested in
+// permitStamp_test.ts.
 import { buildFilename } from './buildFilename.ts';
 import { contentHash } from './crypto.ts';
 
@@ -17,26 +18,55 @@ export function tooLargeMessage(bytes: number): string {
   return `Too large to stamp here (${String(Math.ceil(bytes / (1024 * 1024)))} MB). Split the set or ask us.`;
 }
 
-/** What one stamped sheet asserts: who approved which original for which permit, and when. */
+/** What one stamped sheet asserts: who approved which original (its very bytes) for which permit, and when. */
 export interface StampFacts {
   permitId: string;
   permitNumber: string;
   sourceFileId: string;
+  /** sha256 of the original's bytes as the server read them to stamp. */
+  sourceSha256: string;
   stampedBy: string;
   /** ISO instant the stamp was made (its day, in the job's zone, is printed on it). */
   stampedAt: string;
 }
 
-/** SPEC §6.9 content hash of one stamped sheet: the same facts always give the same hash, at stamping and recording. */
+/** SPEC §6.9 content hash of one stamped sheet (printed on every page): the same facts always give the same hash. */
 export function stampHash(f: StampFacts): Promise<string> {
   return contentHash({
     kind: 'permit_approval',
     permit_id: f.permitId,
     permit_number: f.permitNumber,
     source_file_id: f.sourceFileId,
+    source_sha256: f.sourceSha256,
     stamped_by: f.stampedBy,
     stamped_at: new Date(f.stampedAt).toISOString(),
   });
+}
+
+/** The server's record of one stamped copy (permit_stamped_copies, migration 0054): exactly the facts the hash covers,
+ *  which permit_record_stamped_set copies onto the approved set. The copy's own sha256 is on its files row. */
+export interface StampRecord {
+  stamped_file_id: string;
+  permit_id: string;
+  source_file_id: string;
+  source_sha256: string;
+  permit_number: string;
+  stamped_by: string;
+  stamped_at: string;
+  content_hash: string;
+}
+
+export function stampRecord(f: StampFacts, stampedFileId: string, hash: string): StampRecord {
+  return {
+    stamped_file_id: stampedFileId,
+    permit_id: f.permitId,
+    source_file_id: f.sourceFileId,
+    source_sha256: f.sourceSha256,
+    permit_number: f.permitNumber,
+    stamped_by: f.stampedBy,
+    stamped_at: new Date(f.stampedAt).toISOString(),
+    content_hash: hash,
+  };
 }
 
 /** "A-101 Floor Plan.pdf" + "24-0001" -> "A-101 Floor Plan - Approved 24-0001.pdf". */

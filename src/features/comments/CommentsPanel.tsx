@@ -1,6 +1,6 @@
 // Comments under an item in its full view (expanded, its own window, or the phone; never the right-column preview).
-// A permanent record (migration 0050): oldest first, edits keep the earlier text, nothing deletes. Whoever may read the
-// item reads them; the box shows when I may write.
+// A permanent record (migration 0050): oldest first, edits keep the earlier text, nothing deletes. Whoever may write
+// comments and read the item reads them (0054); for anyone else (a bidder, a viewer) there is no section at all.
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useComments } from '../../data/comments.queries';
 import type { CommentList, CommentTarget } from '../../data/comments.types';
@@ -47,6 +47,7 @@ export function CommentsPanel({ target }: CommentsPanelProps) {
   const q = useComments(target);
   const zoneOf = useProjectZones();
   const count = q.data?.comments.length ?? 0;
+  if (q.data?.can_read === false) return null;
 
   return (
     <section aria-label="Comments" data-testid="comments" className="border-t border-line bg-card px-5 pb-5 pt-4">

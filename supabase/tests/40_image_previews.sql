@@ -2,7 +2,8 @@ begin;
 select plan(32);
 -- Photo previews (migration 0047): authorize_preview answers exactly what the download gate of the same file answers
 -- (folder access, view-only, infected, the pending-scan rule; RFI privacy through the RFI; a request's own files through
--- the request), then refuses anything that is not an image, and never writes a download line or audit event.
+-- the request), then refuses anything that is not an image, and never writes a download line or download audit event
+-- (0054 adds a 'file.preview' audit line: 47_security_fixes.sql).
 \ir _helpers.psql
 
 create temp table ids (k text primary key, v uuid);

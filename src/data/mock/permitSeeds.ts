@@ -5,6 +5,7 @@
 // addendum still a draft; on Sample Library Annex (the official's other job) one just issued and one accepted.
 import { addMonths, format, parseISO } from 'date-fns';
 import { todayInZone } from '../../lib/dates';
+import type { EarlierAnswer } from '../permits.types';
 
 export const OFFICIAL = 'mock-user-ahj';
 export const OFFICIAL_2 = 'mock-ahj-2';
@@ -71,6 +72,8 @@ export interface StoredComment {
   response: string | null;
   responded_by: string | null;
   responded_at: string | null;
+  /** Answers a later one replaced (0054). */
+  earlier_answers?: EarlierAnswer[];
   status: 'open' | 'closed';
   closed_cycle: number | null;
   version: number;

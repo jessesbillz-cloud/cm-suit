@@ -22,6 +22,6 @@ Deno.test('previews: never anything else', () => {
   check(!isPreviewImage('image/jpeg', 'photo.jpg.html'), 'the name must end in an image type');
 });
 
-Deno.test('previews: short-lived', () => {
-  check(PREVIEW_TTL_SECONDS > 0 && PREVIEW_TTL_SECONDS <= 3600, 'at most an hour');
+Deno.test('previews: a preview URL lives 10 minutes, like a download URL (SPEC §6.5)', () => {
+  check(PREVIEW_TTL_SECONDS === 600, 'ten minutes');
 });

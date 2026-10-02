@@ -3,8 +3,9 @@
 // Download: authorize_download(), called with the USER client so it sees auth.uid(), checks folder access, view-only
 // and the scan status, then writes the downloads row and the audit event.
 // Preview (action 'preview'): authorize_preview() as the user asks the same gate (the file's folder, or the RFI or
-// inspection request it is opened through), is not logged as a download, and answers only for images. The image is
-// checked again here before signing, and the URL lives PREVIEW_TTL_SECONDS.
+// inspection request it is opened through), is not a download (no download line; it writes a 'file.preview' audit
+// line, 0054), and answers only for images. The image is checked again here before signing, and the URL lives
+// PREVIEW_TTL_SECONDS (10 minutes, like a download's).
 // The service client is used for one thing only: signing the URL, because users have no storage SELECT policy
 // (every URL goes through these gates). Listed in admin_service_key_allowlist.txt for that reason.
 import { handle, HttpError, ok } from '../_shared/http.ts';

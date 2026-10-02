@@ -10,6 +10,7 @@ import { FUTURE_NAME } from '../lib/brand';
 import { statusCssVariables } from '../lib/status';
 import { ToastProvider } from '../ui/Toast';
 import { router } from './router';
+import { scrubBreadcrumb, scrubEvent } from './sentry';
 import './styles.css';
 
 const dsn = import.meta.env.VITE_SENTRY_DSN;
@@ -20,6 +21,9 @@ if (dsn) {
     // No user data in breadcrumbs beyond what Sentry needs; replays are off.
     sendDefaultPii: false,
     tracesSampleRate: 0,
+    // Link tokens and sign-in secrets never leave the page (sentry.ts).
+    beforeSend: scrubEvent,
+    beforeBreadcrumb: scrubBreadcrumb,
   });
 }
 

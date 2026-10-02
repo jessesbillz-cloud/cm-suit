@@ -62,6 +62,10 @@ export const permitStepSchema = z.object({
 });
 export type PermitStep = z.infer<typeof permitStepSchema>;
 
+/** An answer a later one replaced (another responder's, or a reword), kept on the comment (0054), oldest first. */
+const earlierAnswerSchema = z.object({ response: z.string(), by_name: z.string().nullable(), at: z.string().nullable() });
+export type EarlierAnswer = z.infer<typeof earlierAnswerSchema>;
+
 export const permitCommentSchema = z.object({
   id: z.string(),
   review_id: z.string(),
@@ -73,6 +77,7 @@ export const permitCommentSchema = z.object({
   response: z.string().nullable(),
   responded_at: z.string().nullable(),
   responded_by_name: z.string().nullable().optional(),
+  earlier_answers: z.array(earlierAnswerSchema).optional(),
   status: z.enum(['open', 'closed']),
   closed_cycle: z.number().int().nullable(),
   version: z.number().int(),

@@ -137,6 +137,8 @@ export const PUBLIC_TABLES = [
   'permits', 'permit_stage_events', 'permit_reviews', 'permit_comments',
   // Permit stamp (0053)
   'permit_approved_sets',
+  // The server's record of each stamped copy (0054)
+  'permit_stamped_copies',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -149,10 +151,9 @@ export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
   ['permit_stamp_folders', { p_permit_id: ZERO_UUID }],
   ['permit_stamp_source', { p_permit_id: ZERO_UUID, p_file_id: ZERO_UUID }],
   ['permit_stamp_sources', { p_permit_id: ZERO_UUID }],
-  ['permit_record_stamped_set', { p_permit_id: ZERO_UUID, p_version: 1, p_items: [] }],
+  ['permit_record_stamped_set', { p_permit_id: ZERO_UUID, p_version: 1, p_stamped_file_ids: [] }],
   ['permit_approved', { p_permit_id: ZERO_UUID }],
   ['permit_stamp_mode', { p_stage: 'in_review' }],
-  ['permit_items', { p_items: [] }],
   ['permit_folder_make', { p_project_id: ZERO_UUID, p_parent_id: ZERO_UUID, p_name: 'probe', p_kind: 'approved_plans', p_sort: 1 }],
   ['permit_folder_ensure', {
     p_project_id: ZERO_UUID, p_parent_id: ZERO_UUID, p_kind: 'approved_plans', p_name: 'probe', p_sort: 1, p_cap: null,
@@ -160,4 +161,8 @@ export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
   }],
   ['permit_approved_root', { p_project_id: ZERO_UUID }],
   ['permit_set_folder', { p_permit_id: ZERO_UUID }],
+  // The security fixes (0054): the comment read gate, the board's comment gate, the server's part of Approved plans.
+  ['comment_readable', { p_project_id: ZERO_UUID, p_entity_type: 'rfi', p_entity_id: ZERO_UUID }],
+  ['board_line_readable', { p_kind: 'comment.added', p_project_id: ZERO_UUID, p_entity_type: 'rfi', p_entity_id: ZERO_UUID }],
+  ['folder_server_only', { p_folder_id: ZERO_UUID }],
 ];
