@@ -23,6 +23,7 @@ const HOMES: Record<string, Home> = {
   inspection_request: { tool: 'inspections' },
   correction: { tool: 'corrections' },
   rfi: { tool: 'rfis' },
+  permit: { tool: 'permits' },
   daily_report: { tool: 'dailies' },
   addendum: { tool: 'bids', view: 'addenda' },
   bid_question: { tool: 'bids', view: 'questions' },

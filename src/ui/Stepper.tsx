@@ -2,7 +2,8 @@
 // status pipeline. Small round dots on a thin line, a short label (and a time) under each. Done: a green dot with a
 // check, and the line into the next step turns green once that step is reached. Has it now: a ringed dot with its
 // number. Ahead: a grey outline with its number. Failed (not approved, returned): red with a cross. Colors from
-// lib/status only. Used by the RFI route strip and the inspection request tracker.
+// lib/status only. Used by the RFI route strip, the inspection request tracker and the permit tracker (which may split
+// its stages over two rows: the second row numbers on from the first).
 import type { CSSProperties } from 'react';
 import { Check, X } from 'lucide-react';
 import { Icon } from './Icon';
@@ -27,6 +28,8 @@ interface StepperProps {
   size?: 'sm' | 'md' | undefined;
   label?: string | undefined;
   testId?: string | undefined;
+  /** The first step's number (a tracker split over two rows numbers on). */
+  start?: number | undefined;
 }
 
 const KEY: Record<StepperState, string> = { done: 'step_done', current: 'step_current', todo: 'step_ahead', failed: 'late' };
@@ -64,7 +67,7 @@ function lineColor(state: StepperState): string {
   return state === 'failed' ? `var(--status-late-dot)` : `var(--status-step_done-solid)`;
 }
 
-export function Stepper({ steps, size = 'md', label = 'Progress', testId }: StepperProps) {
+export function Stepper({ steps, size = 'md', label = 'Progress', testId, start = 1 }: StepperProps) {
   if (steps.length === 0) return null;
   const top = size === 'sm' ? 'top-[9px]' : 'top-[11px]';
   return (
@@ -83,7 +86,7 @@ export function Stepper({ steps, size = 'md', label = 'Progress', testId }: Step
             {i > 0 ? (
               <span aria-hidden="true" className={`absolute right-1/2 h-0.5 w-full -translate-y-1/2 ${top}`} style={{ background: lineColor(s.state) }} />
             ) : null}
-            <Dot state={s.state} n={i + 1} size={size} />
+            <Dot state={s.state} n={start + i} size={size} />
             <span className={`break-words px-0.5 leading-[13px] ${size === 'sm' ? 'text-[10.5px]' : 'text-[11.5px]'} ${text}`} style={{ color }}>
               {s.label}
               {s.sub ? <span className="block font-normal tabular-nums opacity-90">{s.sub}</span> : null}

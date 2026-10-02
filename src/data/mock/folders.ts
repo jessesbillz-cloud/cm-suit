@@ -2,6 +2,7 @@
 // folders a real one of that company kind would, and turning DSA on adds the DSA folders once.
 import type { FolderRow } from '../types';
 import { MOCK_PROJECTS } from './fixtures';
+import { PERMIT_JOB_FOLDERS } from './permitJobs';
 import { readMock } from './store';
 
 type Applies = 'both' | 'dsa' | 'non_dsa';
@@ -55,8 +56,11 @@ function fromTemplates(projectId: string, orgKind: string, applies: readonly App
     }));
 }
 
-/** The fixture jobs belong to a GC; each also has an old "Emailed in" folder with nothing in it (the tree hides it). */
-export const MOCK_FOLDERS: FolderRow[] = MOCK_PROJECTS.flatMap((p) => [
+/**
+ * The fixture jobs belong to a GC; each also has an old "Emailed in" folder with nothing in it (the tree hides it). The
+ * permit jobs' folders come last.
+ */
+export const MOCK_FOLDERS: FolderRow[] = [...MOCK_PROJECTS.flatMap((p) => [
   ...fromTemplates(p.project_id, 'gc', ['both', 'non_dsa']),
   {
     id: `${p.project_id}-inbound`,
@@ -71,7 +75,7 @@ export const MOCK_FOLDERS: FolderRow[] = MOCK_PROJECTS.flatMap((p) => [
     version: 1,
     file_count: 0,
   },
-]);
+]), ...PERMIT_JOB_FOLDERS];
 
 /** A new mock job's folders. */
 export function newJobFolders(projectId: string, orgKind: string, isDsa: boolean): FolderRow[] {

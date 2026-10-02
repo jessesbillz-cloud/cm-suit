@@ -1,4 +1,5 @@
-// What fills the main area for each tool. The board, calendar and bids (the pipeline) also work for "All my jobs",
+// What fills the main area for each tool. The board, calendar, bids (the pipeline) and permits (the official's
+// caseload) also work for "All my jobs",
 // and Timesheets is only there; the rest need a job. A tool the job has switched off (projects.modules) shows a one-line note instead.
 import { useNavigate } from '@tanstack/react-router';
 import { toolIsOn } from '../../lib/jobs';
@@ -14,6 +15,7 @@ import { FilesTool } from '../../features/files/FilesTool';
 import { HoursTool } from '../../features/hours/HoursTool';
 import { InspectionsTool } from '../../features/inspections/InspectionsTool';
 import { PeopleTool } from '../../features/people/PeopleTool';
+import { PermitsTool } from '../../features/permits/PermitsTool';
 import { RfisTool } from '../../features/rfis/RfisTool';
 import { SettingsTool } from '../../features/settings/SettingsTool';
 import { TimesheetsTool } from '../../features/timesheets/TimesheetsTool';
@@ -109,6 +111,9 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'rfis':
       if (projectId === null) return <NeedsJob what="RFIs" />;
       return <RfisTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'permits':
+      // All my jobs: every permit I may read across my jobs (the official's caseload).
+      return <PermitsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
     case 'hours':
       if (projectId === null) return <NeedsJob what="hours" />;
       return <HoursTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;

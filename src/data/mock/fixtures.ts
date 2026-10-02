@@ -2,6 +2,7 @@
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID, SEED_RFI_ID } from './boardSeeds';
 import { IR_SEED_FILES } from './irSeeds';
+import { PERMIT_JOB_FILES } from './permitJobs';
 
 const TZ = 'America/Los_Angeles';
 
@@ -54,6 +55,7 @@ export const MOCK_FILES: FileRow[] = [
   })),
   ...SEED_FILES,
   ...IR_SEED_FILES,
+  ...PERMIT_JOB_FILES,
   // Long names prove every list wraps a title instead of cutting it (one with spaces, one with none).
   ...[
     '211313_01.4_Fire Sprinkler System Design Package_Sample Co_Rev 2.pdf',

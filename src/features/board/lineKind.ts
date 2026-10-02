@@ -15,6 +15,7 @@ const EVENT_TOOL: Record<string, Tool> = {
   delivery: 'deliveries',
   correction: 'corrections',
   rfi: 'rfis',
+  permit: 'permits',
   daily: 'dailies',
 };
 

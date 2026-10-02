@@ -29,6 +29,8 @@ export const MODULES = [
   { value: 'dailies', label: 'Dailies' },
   { value: 'inspections', label: 'Inspections' },
   { value: 'rfis', label: 'RFIs' },
+  // For the fire / building official (0052): on for jobs being built.
+  { value: 'permits', label: 'Permits' },
   { value: 'deliveries', label: 'Deliveries' },
   { value: 'corrections', label: 'Corrections' },
   // My hours on the job (0043): on for an inspector company's jobs; Timesheets (All my jobs) comes with it.
@@ -52,11 +54,11 @@ export function railForJob<T extends string>(railItems: readonly T[], modules: r
 }
 
 /**
- * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, the bids pipeline and my
- * timesheets. The ONE list: they are the top of the rail (Jesse, Oct 1: "our big general things"), and the job picker
- * names them.
+ * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, the bids pipeline, the
+ * official's permit caseload and my timesheets. The ONE list: they are the top of the rail (Jesse, Oct 1: "our big
+ * general things"), and the job picker names them.
  */
-export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids', 'timesheets'] as const satisfies readonly RailTool[];
+export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids', 'permits', 'timesheets'] as const satisfies readonly RailTool[];
 
 type AllJobsTool = (typeof ALL_JOBS_TOOLS)[number];
 
@@ -91,14 +93,21 @@ export interface RailModel {
   more: RailTool[];
 }
 
-/** Timesheets are for people who keep hours: my position recommends Hours on some job of mine. */
-function keepsHours(recommended: readonly (readonly string[])[]): boolean {
-  return recommended.some((r) => r.includes('hours'));
+/**
+ * Tools on top only for the positions they are for: Timesheets for people who keep hours (my position recommends Hours
+ * on some job of mine), Permits for the official whose position recommends it (everyone else finds a job's Permits
+ * under its name or More).
+ */
+const TOP_FOR: Readonly<Record<string, string>> = { timesheets: 'hours', permits: 'permits' };
+
+function recommendedSomewhere(tool: string, recommended: readonly (readonly string[])[]): boolean {
+  const needs = TOP_FOR[tool];
+  return needs === undefined || recommended.some((r) => r.includes(needs));
 }
 
-/** The top of the rail on All my jobs: the cross-job tools some job of mine has on (Timesheets if I keep hours). */
+/** The top of the rail on All my jobs: the cross-job tools some job of mine has on (Timesheets, Permits: see TOP_FOR). */
 function allJobsTop(jobModules: readonly (readonly string[])[], recommended: readonly (readonly string[])[]): RailTool[] {
-  return railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => t !== 'timesheets' || keepsHours(recommended));
+  return railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => recommendedSomewhere(t, recommended));
 }
 
 /**

@@ -93,3 +93,7 @@ export function AllSettingsRoute() {
 export function AllTimesheetsRoute() {
   return <AllJobsFrame tool="timesheets" />;
 }
+
+export function AllPermitsRoute() {
+  return <AllJobsFrame tool="permits" />;
+}

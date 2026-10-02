@@ -13,6 +13,7 @@ import { HoursItem } from '../../features/hours/HoursItem';
 import { CONTRACT_ITEM } from '../../features/hours/model';
 import { InspectionsItem } from '../../features/inspections/InspectionsItem';
 import { SHARE_ITEM } from '../../features/inspections/model';
+import { PermitItem } from '../../features/permits/PermitItem';
 import { RfiItem } from '../../features/rfis/RfiItem';
 import { TimesheetsItem } from '../../features/timesheets/TimesheetsItem';
 import { BILLING_ITEM } from '../../features/timesheets/model';
@@ -72,6 +73,9 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   if (tool === 'rfis' && model.loc.projectId !== null) {
     return <RfiItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
   }
+  if (tool === 'permits') {
+    return <PermitItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
+  }
   if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
@@ -105,6 +109,7 @@ export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'deliveries') return 'Delivery';
   if (tool === 'corrections') return 'Corrections';
   if (tool === 'rfis') return 'RFI';
+  if (tool === 'permits') return 'Permit';
   if (tool === 'hours') return itemId === CONTRACT_ITEM ? 'Contract hours' : 'Hours';
   if (tool === 'timesheets') return itemId === BILLING_ITEM ? 'Billing' : 'Invoice';
   return 'Item';

@@ -52,7 +52,7 @@ export const SEED_IR: IrRowRaw = {
   result_photo_ids: [], result_at: '2026-09-25T18:30:00Z', result_by: INSPECTOR, helper_report: null, helper_note: null,
   helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null, postponed_at: null, postpone_count: 0,
   ir_file_id: 'job-b-ir-12', content_hash: null, signed_at: '2026-09-25T19:00:00Z', signed_by: INSPECTOR, pdf_stale: false,
-  pdf_postponed: false, results_sent_at: null, summary: null,
+  pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
 };
 
 /** CN-004: open, with one photo; the next correction on the job is CN-005. */

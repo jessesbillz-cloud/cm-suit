@@ -90,4 +90,7 @@ export const qk = {
   jobRails: ['user_job_rail'] as const,
   /** An item's comments (0050), by the record they are on. */
   comments: (entityType: string, entityId: string) => ['comments', entityType, entityId] as const,
+  /** Every permits query (a job's log or my caseload, trackers, one permit, who can be assigned) sits under this prefix. */
+  permits: ['permits'] as const,
+  permitsPart: (part: string, id = '') => ['permits', part, id] as const,
 };

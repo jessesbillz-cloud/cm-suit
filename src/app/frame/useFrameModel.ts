@@ -27,11 +27,12 @@ const ALL_JOBS_PATH = {
   bids: '/all/bids',
   settings: '/all/settings',
   timesheets: '/all/timesheets',
+  permits: '/all/permits',
 } as const;
 
 /** "All my jobs" tools that open items in the right column (the board's lines are the default). */
-function allItemTool(tool: Tool): 'calendar' | 'timesheets' | 'board' {
-  return tool === 'calendar' || tool === 'timesheets' ? tool : 'board';
+function allItemTool(tool: Tool): 'calendar' | 'timesheets' | 'permits' | 'board' {
+  return tool === 'calendar' || tool === 'timesheets' || tool === 'permits' ? tool : 'board';
 }
 
 export function useFrameModel(loc: FrameLocation) {

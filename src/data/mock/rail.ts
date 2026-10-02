@@ -15,6 +15,7 @@ const RECOMMENDED: Record<string, readonly string[]> = {
   sub: ['board', 'calendar', 'inspections', 'rfis', 'files'],
   architect: ['board', 'rfis', 'files'],
   bidder: ['bids'],
+  ahj: ['board', 'calendar', 'permits', 'inspections', 'files'],
 };
 
 const ALWAYS_ON = ['board', 'people'];

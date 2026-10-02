@@ -6,6 +6,7 @@ import { MOCK_DEFAULT_MODULES, MOCK_ORGS, MOCK_PROJECTS, mockProfile, NEWCOMER_I
 import { missingDsaFolders, newJobFolders } from './folders';
 import { FORM_ORG, FORM_ORG_SETTINGS, formJobRows } from './formJobs';
 import { mockUser } from './index';
+import { PERMIT_ORG, isOfficial, permitJobRole, permitJobRows } from './permitJobs';
 import { pipelineJobRows } from './pipelineJobs';
 import { delay, readMock, writeMock } from './store';
 
@@ -33,12 +34,24 @@ function fixtureRow(p: MyProject): ProjectRow {
   };
 }
 
-/** Fixture rows (with this test's edits) plus the jobs made in this test. */
+/** Fixture rows (with this test's edits) plus the jobs made in this test. The fire / building official is on the permit jobs only. */
+function fixtureRows(): ProjectRow[] {
+  if (isNewcomer()) return [];
+  if (isOfficial()) return permitJobRows();
+  return [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows(), ...formJobRows(), ...permitJobRows()];
+}
+
 function projectRows(): ProjectRow[] {
   const saved = readMock().projects;
-  const fixtures = isNewcomer() ? [] : [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows(), ...formJobRows()];
+  const fixtures = fixtureRows();
   const base = fixtures.map((r) => saved.find((x) => x.id === r.id) ?? r);
   return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
+}
+
+/** The companies the mock user is not in but works for on a job. */
+function orgName(orgId: string): string {
+  if (orgId === FORM_ORG.org_id) return FORM_ORG.name;
+  return orgId === PERMIT_ORG.org_id ? PERMIT_ORG.name : '';
 }
 
 function orgKindOf(orgId: string): string {
@@ -64,8 +77,8 @@ export async function projects(): Promise<MyProject[]> {
     project_id: r.id,
     name: r.name,
     number: r.number ?? '',
-    org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? (r.org_id === FORM_ORG.org_id ? FORM_ORG.name : ''),
-    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? creatorRole(r.org_id),
+    org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? orgName(r.org_id),
+    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? permitJobRole(r.id) ?? creatorRole(r.org_id),
     stage: r.stage,
     timezone: r.timezone,
     modules: r.modules,

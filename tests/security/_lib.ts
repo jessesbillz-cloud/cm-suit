@@ -133,6 +133,8 @@ export const PUBLIC_TABLES = [
   'user_job_rail',
   // Comments (0050)
   'comments', 'comment_edits',
+  // Permits (0052)
+  'permits', 'permit_stage_events', 'permit_reviews', 'permit_comments',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
