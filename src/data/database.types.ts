@@ -7712,6 +7712,7 @@ export type Database = {
           created_at: string
           created_by: string
           detail: string
+          earlier_answers: Json
           id: string
           number: number
           org_id: string
@@ -7745,6 +7746,7 @@ export type Database = {
           created_at: string
           created_by: string
           detail: string
+          earlier_answers: Json
           id: string
           number: number
           org_id: string
@@ -7778,6 +7780,7 @@ export type Database = {
           created_at: string
           created_by: string
           detail: string
+          earlier_answers: Json
           id: string
           number: number
           org_id: string
@@ -7866,6 +7869,16 @@ export type Database = {
           p_sort: number
         }
         Returns: string
+      }
+      permit_items_retired_0054: {
+        Args: { p_items: Json }
+        Returns: {
+          content_hash: string
+          ord: number
+          source_file_id: string
+          stamped_at: string
+          stamped_file_id: string
+        }[]
       }
       permit_label: { Args: { p_number: string }; Returns: string }
       permit_list: {
@@ -7998,6 +8011,15 @@ export type Database = {
           p_note?: string
           p_permit_id: string
           p_stamped_file_ids: string[]
+          p_version: number
+        }
+        Returns: Json
+      }
+      permit_record_stamped_set_retired_0054: {
+        Args: {
+          p_items: Json
+          p_note?: string
+          p_permit_id: string
           p_version: number
         }
         Returns: Json
