@@ -1,12 +1,13 @@
 // The desktop frame (SPEC §7.2): the rail down the left, then the top bar (job picker) over main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
-import { DockedBoard } from '../../features/board/DockedBoard';
-import { TodayPanel } from '../../features/board/TodayPanel';
+import { Suspense } from 'react';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
+import { LoadingState } from '../../ui/States';
 import { ViewAs } from '../../ui/ViewAs';
 import { ItemView, itemTitle } from './ItemView';
+import { DockedBoard, preloadTool, TodayPanel } from './lazyTools';
 import { ToolView } from './ToolView';
 import type { FrameModel } from './useFrameModel';
 
@@ -21,14 +22,22 @@ interface DockedProps {
 
 /** The docked panel: the board beside every other tool; beside the board itself, what's on today (never the board twice). */
 function Docked({ model }: DockedProps) {
-  if (model.loc.tool === 'board') return <TodayPanel projectId={model.loc.projectId} />;
+  if (model.loc.tool === 'board') {
+    return (
+      <Suspense fallback={<LoadingState label="Loading today" />}>
+        <TodayPanel projectId={model.loc.projectId} />
+      </Suspense>
+    );
+  }
   return (
-    <DockedBoard
-      projectId={model.loc.projectId}
-      onOpen={(line) => {
-        model.openItem('board', line.id);
-      }}
-    />
+    <Suspense fallback={<LoadingState label="Loading the board" />}>
+      <DockedBoard
+        projectId={model.loc.projectId}
+        onOpen={(line) => {
+          model.openItem('board', line.id);
+        }}
+      />
+    </Suspense>
   );
 }
 
@@ -50,6 +59,9 @@ export function Frame({ model, folderId }: FrameProps) {
         current={loc.tool}
         collapsed={choices.collapsed.rail}
         onSelect={model.selectTool}
+        onPreload={(tool) => {
+          preloadTool(tool, loc.projectId !== null);
+        }}
         onToggleCollapsed={() => {
           model.save({
             collapsed: { ...choices.collapsed, rail: !choices.collapsed.rail },

@@ -5,9 +5,13 @@ import type { AppUser } from '../types';
 
 const MOCK_USER_KEY = 'e2e-mock-user';
 
+/** Fixed when the app is built: false in every real build. */
+const MOCK_BUILD = import.meta.env.VITE_E2E_MOCK === 'true';
+
+// One expression on purpose: the bundler can then see isMock() is always false in a real build and leaves every
+// mock module (fixtures, seeds) out of what users download. Two `return`s would hide that.
 export function isMock(): boolean {
-  if (import.meta.env.VITE_E2E_MOCK !== 'true') return false;
-  return window.localStorage.getItem(MOCK_USER_KEY) !== null;
+  return MOCK_BUILD && window.localStorage.getItem(MOCK_USER_KEY) !== null;
 }
 
 /** The signed-in mock user, derived from the localStorage value (e.g. 'pm'). Synthetic by construction. */

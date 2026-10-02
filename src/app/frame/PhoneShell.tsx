@@ -4,13 +4,14 @@
 // back button.
 import { useState } from 'react';
 import { phoneRail } from '../../lib/jobs';
-import { phoneTabs } from '../../lib/layout';
+import { phoneTabs, type Tool } from '../../lib/layout';
 import { JobPicker } from '../../ui/JobPicker';
 import { JobToolsEdit } from '../../ui/JobToolsEdit';
 import { ViewAs } from '../../ui/ViewAs';
 import { PanelBack, PanelMoreSheet, PanelScreen, PanelTabBar } from '../../ui/Panel';
 import { TOOL_META } from '../../ui/tools';
 import { ItemView } from './ItemView';
+import { preloadTool } from './lazyTools';
 import { ToolView } from './ToolView';
 import type { FrameModel } from './useFrameModel';
 
@@ -31,6 +32,9 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
   const pick: typeof model.selectTool = (t) => {
     setSheet('none');
     model.selectTool(t);
+  };
+  const preload = (t: Tool) => {
+    preloadTool(t, loc.projectId !== null);
   };
 
   if (loc.itemId !== null) {
@@ -94,7 +98,10 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
             counts={model.counts}
             moreTools={more}
             moreOpen={sheet !== 'none'}
+            onPreload={preload}
             onMore={() => {
+              // Opening More starts loading its tools' code, so the tap on one doesn't wait.
+              if (sheet === 'none') more.forEach(preload);
               setSheet(sheet === 'none' ? 'more' : 'none');
             }}
           />

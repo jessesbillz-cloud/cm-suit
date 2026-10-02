@@ -6,7 +6,7 @@ import { formatInZone, todayInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
 
 /** The right-column item that is not a row (rows are uuids). */
-export const NEW_ITEM = 'new';
+export { NEW_ITEM } from '../../lib/itemIds';
 
 const DAY = 86_400_000;
 

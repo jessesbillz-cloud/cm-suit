@@ -2,7 +2,6 @@
 //   1. register the files row (the database picks the id and the storage path)
 //   2. TUS upload to that path, resuming a previous attempt when there is one
 //   3. mark upload_complete and queue the virus scan (idempotent: scan_file:<file_id>)
-import { Upload } from 'tus-js-client';
 import { z } from 'zod';
 import { SUPABASE_KEY, SUPABASE_URL, accessToken, supabase } from './client';
 import { DataError, throwIfError, throwIfErrorMaybe, toDataError } from './errors';
@@ -67,7 +66,9 @@ async function registerFile(a: UploadArgs): Promise<Registered> {
   return registeredSchema.parse(row);
 }
 
-function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void> {
+async function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void> {
+  // The TUS client loads with the first upload, not with the app.
+  const { Upload } = await import('tus-js-client');
   return new Promise((resolve, reject) => {
     const upload = new Upload(file, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,

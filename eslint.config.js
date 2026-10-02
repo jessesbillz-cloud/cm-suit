@@ -75,6 +75,25 @@ export default tseslint.config(
     rules: { 'no-restricted-syntax': 'off' },
   },
   {
+    // Speed: a tool's code loads when it is first used (src/app/frame/lazyTools.ts, src/app/lazyPages.tsx). The frame,
+    // ui, lib and data never import a feature's code, or that tool would ride along in everyone's first download.
+    files: ['src/app/**', 'src/ui/**', 'src/lib/**', 'src/data/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/features/**'],
+              allowTypeImports: true,
+              message: 'Load tools through src/app/frame/lazyTools.ts or src/app/lazyPages.tsx; shared bits belong in src/lib.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['worker/**', 'scripts/**', 'tests/**'],
     rules: { 'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }], 'no-console': 'off' },
   },

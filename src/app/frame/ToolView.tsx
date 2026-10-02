@@ -1,27 +1,31 @@
 // What fills the main area for each tool. The board, calendar, bids (the pipeline) and permits (the official's
 // caseload) also work for "All my jobs",
 // and Timesheets is only there; the rest need a job. A tool the job has switched off (projects.modules) shows a one-line note instead.
+// Each tool's code loads on first use (lazyTools); until it has, the main area shows the usual loading line.
+import { Suspense } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toolIsOn } from '../../lib/jobs';
 import type { Tool } from '../../lib/layout';
-import { Board } from '../../features/board/Board';
-import { BidPipeline } from '../../features/bids/BidPipeline';
-import { BidsTool } from '../../features/bids/BidsTool';
-import { CalendarTool } from '../../features/calendar/CalendarTool';
-import { CorrectionsTool } from '../../features/corrections/CorrectionsTool';
-import { DailiesTool } from '../../features/dailies/DailiesTool';
-import { DeliveriesTool } from '../../features/deliveries/DeliveriesTool';
-import { FilesTool } from '../../features/files/FilesTool';
-import { HoursTool } from '../../features/hours/HoursTool';
-import { InspectionsTool } from '../../features/inspections/InspectionsTool';
-import { PeopleTool } from '../../features/people/PeopleTool';
-import { PermitsTool } from '../../features/permits/PermitsTool';
-import { RfisTool } from '../../features/rfis/RfisTool';
-import { SettingsTool } from '../../features/settings/SettingsTool';
-import { TimesheetsTool } from '../../features/timesheets/TimesheetsTool';
 import { Card } from '../../ui/Card';
-import { EmptyState } from '../../ui/States';
+import { EmptyState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import {
+  BidPipeline,
+  BidsTool,
+  Board,
+  CalendarTool,
+  CorrectionsTool,
+  DailiesTool,
+  DeliveriesTool,
+  FilesTool,
+  HoursTool,
+  InspectionsTool,
+  PeopleTool,
+  PermitsTool,
+  RfisTool,
+  SettingsTool,
+  TimesheetsTool,
+} from './lazyTools';
 import type { FrameModel } from './useFrameModel';
 
 interface ToolViewProps {
@@ -47,7 +51,7 @@ function ToolOff({ tool }: { tool: Tool }) {
   );
 }
 
-export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
+function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
   const navigate = useNavigate();
   const { projectId, itemId } = model.loc;
   const job = model.projects.find((p) => p.project_id === projectId);
@@ -121,4 +125,12 @@ export function ToolView({ model, tool, folderId, isPhone }: ToolViewProps) {
       // Mine across every job (All my jobs); a job's own hours are its Hours tool.
       return <TimesheetsTool itemId={itemId} isPhone={isPhone} />;
   }
+}
+
+export function ToolView(props: ToolViewProps) {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ToolScreen {...props} />
+    </Suspense>
+  );
 }

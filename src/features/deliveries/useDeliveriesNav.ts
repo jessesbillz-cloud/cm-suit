@@ -15,7 +15,7 @@ export function parseDay(v: string | undefined): string | null {
 }
 
 /** The item id of the post form in the right column. */
-export const NEW_ITEM = 'new';
+export { NEW_ITEM } from '../../lib/itemIds';
 
 export function useDeliveriesNav(projectId: string) {
   const navigate = useNavigate();

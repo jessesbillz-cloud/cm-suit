@@ -1,7 +1,6 @@
 // App entry: providers, the one-time status color variables, Sentry when configured.
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import * as Sentry from '@sentry/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { SessionProvider } from '../data/SessionProvider';
@@ -9,17 +8,27 @@ import { UploadQueueProvider } from '../data/UploadQueue';
 import { FUTURE_NAME } from '../lib/brand';
 import { statusCssVariables } from '../lib/status';
 import { ToastProvider } from '../ui/Toast';
+import { ErrorBoundary } from './ErrorBoundary';
 import { router } from './router';
 import './styles.css';
 
+// Sentry loads beside the app, never in front of the first screen, and only when a DSN is set.
 const dsn = import.meta.env.VITE_SENTRY_DSN;
-if (dsn) {
-  Sentry.init({
-    dsn,
-    environment: import.meta.env.MODE,
-    // No user data in breadcrumbs beyond what Sentry needs; replays are off.
-    sendDefaultPii: false,
-    tracesSampleRate: 0,
+const sentry = dsn
+  ? import('./sentry').then(
+      (m) => m.startSentry(dsn, import.meta.env.MODE),
+      (e: unknown) => {
+        console.error('Sentry did not load; errors are not reported', e);
+        return null;
+      },
+    )
+  : null;
+
+/** A render error caught by the app's boundary goes to Sentry with its component stack, as Sentry's own boundary did. */
+function reportRenderError(error: unknown, componentStack: string): void {
+  void sentry?.then((report) => {
+    if (report) report(error, componentStack);
+    else console.error(error);
   });
 }
 
@@ -56,7 +65,7 @@ if (!rootEl) throw new Error('index.html is missing #root');
 
 createRoot(rootEl).render(
   <StrictMode>
-    <Sentry.ErrorBoundary fallback={<p className="p-6 text-sm text-danger">Something broke. Reload the page to try again.</p>}>
+    <ErrorBoundary onError={reportRenderError}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <SessionProvider>
@@ -66,6 +75,6 @@ createRoot(rootEl).render(
           </SessionProvider>
         </ToastProvider>
       </QueryClientProvider>
-    </Sentry.ErrorBoundary>
+    </ErrorBoundary>
   </StrictMode>,
 );

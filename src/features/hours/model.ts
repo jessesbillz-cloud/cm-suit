@@ -13,7 +13,7 @@ export const HOURS_VIEWS: readonly { value: HoursView; label: string }[] = [
 ];
 
 /** The right column's contract hours form (a report id opens that day). */
-export const CONTRACT_ITEM = 'contract';
+export { CONTRACT_ITEM } from '../../lib/itemIds';
 
 /** MDR's prompt after submit: 0 / 2 / 4 / 6 / 8, or another number. */
 export const PRESET_HOURS = [0, 2, 4, 6, 8] as const;

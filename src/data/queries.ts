@@ -1,5 +1,14 @@
 // Read hooks. Every hook goes through throwIfError; the mock switch lives in isMock() only.
-import { skipToken, useInfiniteQuery, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import {
+  infiniteQueryOptions,
+  skipToken,
+  useInfiniteQuery,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import { z } from 'zod';
 import { parseLayout, type LayoutChoices } from '../lib/layout';
 import { parseOrgSettings, parseProjectSettings, type ProjectSettings } from '../lib/settings';
@@ -15,10 +24,13 @@ import type { ActivityRow, BoardLine, FileRow, FolderRow, MyOrg, Person, Profile
 
 const BOARD_PAGE = 50;
 
+/** My jobs. Every tool reads it, so it stays fresh 5 minutes (switching tools doesn't refetch it); my own changes to
+ *  jobs refetch it at once. */
 export function useMyProjects() {
   return useQuery({
     queryKey: qk.myProjects,
     queryFn: async () => (isMock() ? mockJobs.projects() : throwIfError(await supabase.rpc('my_projects'))),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -69,14 +81,33 @@ async function fetchBoard(projectId: string | null, before: string | null): Prom
   return throwIfError(await supabase.rpc('board_feed', args));
 }
 
-/** The message board, newest first, paged back forever by created_at. projectId null = all my jobs. */
-export function useBoardFeed(projectId: string | null) {
-  return useInfiniteQuery({
+function boardFeedOptions(projectId: string | null) {
+  return infiniteQueryOptions({
     queryKey: qk.board(projectId),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => fetchBoard(projectId, pageParam),
     getNextPageParam: (last: BoardLine[]) => (last.length < BOARD_PAGE ? undefined : last[last.length - 1]?.created_at),
   });
+}
+
+/** The message board, newest first, paged back forever by created_at. projectId null = all my jobs. */
+export function useBoardFeed(projectId: string | null) {
+  return useInfiniteQuery(boardFeedOptions(projectId));
+}
+
+/**
+ * Starts the board's lines together with the frame's own first queries, so they don't wait for those to finish
+ * (one round trip less on the first screen). Fresh lines are not fetched again.
+ */
+export function usePrefetchBoardFeed(projectId: string | null, wanted: boolean): void {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!wanted) return;
+    qc.infiniteQuery(boardFeedOptions(projectId)).catch(() => {
+      // Not lost: the failure stays on the query, and the board fetches again when it mounts and shows any error
+      // there, with Try again.
+    });
+  }, [qc, projectId, wanted]);
 }
 
 async function fetchActivity(id: string): Promise<ActivityRow | null> {

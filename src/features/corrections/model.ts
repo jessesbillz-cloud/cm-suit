@@ -14,8 +14,7 @@ import {
 import type { StatusKey } from '../../lib/status';
 
 /** Right-column items that are not a row (rows are uuids). */
-export const NEW_ITEM = 'new';
-export const PROGRESS_ITEM = 'progress';
+export { NEW_ITEM, PROGRESS_ITEM } from '../../lib/itemIds';
 
 /** CN-001 ... CN-999, then CN-1000. The same rule as correction_label() in the database. */
 export function cnLabel(n: number): string {

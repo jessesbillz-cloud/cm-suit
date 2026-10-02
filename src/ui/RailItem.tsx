@@ -19,14 +19,18 @@ interface RailItemProps {
   compact: boolean;
   onClick: () => void;
   expanded?: boolean | undefined;
+  /** Pointer over it or focus on it: start loading the tool's code, so the click doesn't wait. */
+  onPreload?: (() => void) | undefined;
 }
 
 /** Icon over a short name (or the icon alone), the count at the icon's corner, an accent bar when it's open. */
-export function RailItem({ testId, label, icon, count, badgeId, active, compact, onClick, expanded }: RailItemProps) {
+export function RailItem({ testId, label, icon, count, badgeId, active, compact, onClick, expanded, onPreload }: RailItemProps) {
   return (
     <button
       type="button"
       data-testid={testId}
+      onPointerEnter={onPreload}
+      onFocus={onPreload}
       title={compact ? label : undefined}
       aria-current={active ? 'page' : undefined}
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
@@ -70,10 +74,12 @@ interface RailMoreProps {
   current: Tool;
   compact: boolean;
   onSelect: (tool: Tool) => void;
+  /** Opening the menu starts loading its tools' code. */
+  onPreload?: ((tool: Tool) => void) | undefined;
 }
 
 /** More: the job's other tools in a small menu beside the rail. Lit while one of them is open. */
-export function RailMore({ tools, counts, current, compact, onSelect }: RailMoreProps) {
+export function RailMore({ tools, counts, current, compact, onSelect, onPreload }: RailMoreProps) {
   const [open, setOpen] = useState(false);
   const close = () => {
     setOpen(false);
@@ -90,6 +96,7 @@ export function RailMore({ tools, counts, current, compact, onSelect }: RailMore
         compact={compact}
         expanded={open}
         onClick={() => {
+          if (!open && onPreload) for (const t of tools) onPreload(t);
           setOpen(!open);
         }}
       />
