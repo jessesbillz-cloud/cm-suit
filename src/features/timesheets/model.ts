@@ -4,7 +4,7 @@ import { detectZone, todayInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
 
 /** The right column's billing form (an invoice id opens that invoice). */
-export const BILLING_ITEM = 'billing';
+export { BILLING_ITEM } from '../../lib/itemIds';
 
 export const INVOICE_STATUSES: readonly { value: InvoiceStatus; label: string }[] = [
   { value: 'draft', label: 'Draft' },

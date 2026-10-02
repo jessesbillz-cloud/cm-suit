@@ -47,6 +47,8 @@ interface PanelTabBarProps {
   /** Shown when there are more tools than the bar holds: a More button. */
   onMore?: (() => void) | undefined;
   moreOpen?: boolean | undefined;
+  /** A finger on a tab (or focus): start loading its tool's code before the tap lands. */
+  onPreload?: ((tool: Tool) => void) | undefined;
 }
 
 interface TabButtonProps {
@@ -57,13 +59,16 @@ interface TabButtonProps {
   count: number;
   active: boolean;
   onClick: () => void;
+  onPreload?: (() => void) | undefined;
 }
 
-function TabButton({ testId, badgeId, label, icon, count, active, onClick }: TabButtonProps) {
+function TabButton({ testId, badgeId, label, icon, count, active, onClick, onPreload }: TabButtonProps) {
   return (
     <button
       type="button"
       data-testid={testId}
+      onPointerEnter={onPreload}
+      onFocus={onPreload}
       aria-current={active ? 'page' : undefined}
       className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs ${active ? 'text-accent' : 'text-ink-2'}`}
       onClick={onClick}
@@ -75,7 +80,7 @@ function TabButton({ testId, badgeId, label, icon, count, active, onClick }: Tab
   );
 }
 
-export function PanelTabBar({ tools, current, onSelect, counts, moreTools, onMore, moreOpen = false }: PanelTabBarProps) {
+export function PanelTabBar({ tools, current, onSelect, counts, moreTools, onMore, moreOpen = false, onPreload }: PanelTabBarProps) {
   return (
     <nav
       aria-label="Tools"
@@ -93,6 +98,9 @@ export function PanelTabBar({ tools, current, onSelect, counts, moreTools, onMor
           onClick={() => {
             onSelect(t);
           }}
+          onPreload={onPreload && (() => {
+            onPreload(t);
+          })}
         />
       ))}
       {onMore ? (

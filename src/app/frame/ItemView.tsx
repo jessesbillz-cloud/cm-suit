@@ -1,24 +1,26 @@
 // An opened item: in the right column (desktop), full screen (phone), or alone in its own window (?window=1). Its full
 // view (expanded to full width, its own window, or the phone) has the item's comments under it; the preview does not.
+// Item code loads on first use (lazyTools), with the usual loading line meanwhile.
+import { Suspense } from 'react';
 import type { Tool } from '../../lib/layout';
-import { BidsItem } from '../../features/bids/BidsItem';
-import { BoardItem } from '../../features/board/BoardItem';
-import { CalendarItem } from '../../features/calendar/CalendarItem';
-import { DailiesItem } from '../../features/dailies/DailiesItem';
-import { DeliveryItem } from '../../features/deliveries/DeliveryItem';
-import { CommentsPanel } from '../../features/comments/CommentsPanel';
-import { CorrectionItem } from '../../features/corrections/CorrectionItem';
-import { FileItem } from '../../features/files/FileItem';
-import { HoursItem } from '../../features/hours/HoursItem';
-import { CONTRACT_ITEM } from '../../features/hours/model';
-import { InspectionsItem } from '../../features/inspections/InspectionsItem';
-import { SHARE_ITEM } from '../../features/inspections/model';
-import { PermitItem } from '../../features/permits/PermitItem';
-import { RfiItem } from '../../features/rfis/RfiItem';
-import { TimesheetsItem } from '../../features/timesheets/TimesheetsItem';
-import { BILLING_ITEM } from '../../features/timesheets/model';
-import { EmptyState } from '../../ui/States';
+import { BILLING_ITEM, CONTRACT_ITEM, SHARE_ITEM } from '../../lib/itemIds';
+import { EmptyState, LoadingState } from '../../ui/States';
 import { commentTarget } from './commentTarget';
+import {
+  BidsItem,
+  BoardItem,
+  CalendarItem,
+  CommentsPanel,
+  CorrectionItem,
+  DailiesItem,
+  DeliveryItem,
+  FileItem,
+  HoursItem,
+  InspectionsItem,
+  PermitItem,
+  RfiItem,
+  TimesheetsItem,
+} from './lazyTools';
 import type { FrameModel } from './useFrameModel';
 import { useIsPhone } from './useIsPhone';
 
@@ -90,9 +92,13 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   // and the whole view scrolls; without, it fills the column as before.
   return (
     <div className={target === null ? 'h-full' : undefined}>
-      <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
+      <Suspense fallback={<LoadingState />}>
+        <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
+      </Suspense>
       {target !== null && projectId !== null ? (
-        <CommentsPanel key={`${target.entityType}:${target.entityId}`} target={{ projectId, ...target }} />
+        <Suspense fallback={<LoadingState label="Loading comments" />}>
+          <CommentsPanel key={`${target.entityType}:${target.entityId}`} target={{ projectId, ...target }} />
+        </Suspense>
       ) : null}
     </div>
   );

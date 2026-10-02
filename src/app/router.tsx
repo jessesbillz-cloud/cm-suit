@@ -1,13 +1,5 @@
 // Code-based routes (TanStack Router). App flow goes through the router only (CLAUDE.md rule 10).
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
-import { AccessLink } from '../features/auth/AccessLink';
-import { KeyLogin } from '../features/auth/KeyLogin';
-import { ShareLink } from '../features/auth/ShareLink';
-import { SignIn } from '../features/auth/SignIn';
-import { NewJobPage } from '../features/setup/NewJobPage';
-import { PublicDeliveries } from '../features/deliveries/PublicDeliveries';
-import { HubPage } from '../features/inspections/HubPage';
-import { RequestLinkPage } from '../features/inspections/RequestLinkPage';
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
@@ -21,6 +13,16 @@ import {
   ProjectToolRoute,
 } from './frame/FrameRoute';
 import { HomeRedirect } from './HomeRedirect';
+import {
+  AccessLinkPage,
+  HubPage,
+  KeyLoginPage,
+  NewJobPage,
+  PublicDeliveriesPage,
+  RequestLinkPage,
+  ShareLinkPage,
+  SignInPage,
+} from './lazyPages';
 import { RootLayout } from './RootLayout';
 
 interface ToolSearch {
@@ -91,17 +93,17 @@ function NotFound() {
 const rootRoute = createRootRoute({ component: RootLayout, notFoundComponent: NotFound });
 
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomeRedirect });
-const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signin', component: SignIn });
+const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: '/signin', component: SignInPage });
 const newJobRoute = createRoute({ getParentRoute: () => rootRoute, path: '/new-job', validateSearch: parseNewJobSearch, component: NewJobPage });
 const accessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/a/$linkId',
   validateSearch: parseAccessSearch,
-  component: AccessLink,
+  component: AccessLinkPage,
 });
-const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: '/s/$shareLinkId', component: ShareLink });
+const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: '/s/$shareLinkId', component: ShareLinkPage });
 /** Personal sign-in link, testing only (docs/decisions.md 0036). */
-const keyLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/k/$key', component: KeyLogin });
+const keyLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/k/$key', component: KeyLoginPage });
 
 const toolRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -139,7 +141,7 @@ const deliveryLinkRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/d/$projectId',
   validateSearch: parseDeliveryLinkSearch,
-  component: PublicDeliveries,
+  component: PublicDeliveriesPage,
 });
 
 /** The job's inspection request link (SPEC §6.4 #4): its token, and the hub's id when opened from a hub. */

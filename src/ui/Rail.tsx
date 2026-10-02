@@ -36,6 +36,8 @@ interface RailProps {
   current: Tool;
   collapsed: boolean;
   onSelect: (tool: Tool) => void;
+  /** Hover or focus on a tool: start loading its code. */
+  onPreload?: ((tool: Tool) => void) | undefined;
   onToggleCollapsed: () => void;
 }
 
@@ -103,9 +105,10 @@ interface ItemsProps {
   current: Tool;
   compact: boolean;
   onSelect: (tool: Tool) => void;
+  onPreload?: ((tool: Tool) => void) | undefined;
 }
 
-function Items({ tools, counts, current, compact, onSelect }: ItemsProps) {
+function Items({ tools, counts, current, compact, onSelect, onPreload }: ItemsProps) {
   return (
     <>
       {tools.map((t) => (
@@ -121,6 +124,9 @@ function Items({ tools, counts, current, compact, onSelect }: ItemsProps) {
           onClick={() => {
             onSelect(t);
           }}
+          onPreload={onPreload && (() => {
+            onPreload(t);
+          })}
         />
       ))}
     </>
@@ -155,9 +161,9 @@ function JobHead({ label, compact }: JobHeadProps) {
   );
 }
 
-export function Rail({ general, job, counts, current, collapsed, onSelect, onToggleCollapsed }: RailProps) {
+export function Rail({ general, job, counts, current, collapsed, onSelect, onPreload, onToggleCollapsed }: RailProps) {
   const compact = collapsed;
-  const items = { counts, current, compact, onSelect };
+  const items = { counts, current, compact, onSelect, onPreload };
   return (
     <nav aria-label="Tools" className={`flex shrink-0 flex-col items-center bg-rail pb-2 ${compact ? 'w-14' : 'w-rail'}`}>
       <div className="flex h-14 w-full shrink-0 items-center justify-center" title={FUTURE_NAME}>
@@ -200,6 +206,9 @@ export function Rail({ general, job, counts, current, collapsed, onSelect, onTog
           onClick={() => {
             onSelect('settings');
           }}
+          onPreload={onPreload && (() => {
+            onPreload('settings');
+          })}
         />
         <button
           type="button"

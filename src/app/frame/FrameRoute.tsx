@@ -1,11 +1,14 @@
 // Route components for /p/$projectId/$tool(/$itemId) and "All my jobs": /all/board(/$itemId), /all/calendar(/$itemId),
 // /all/bids and /all/settings. They pick the desktop frame, the phone shell, or the single-item window (?window=1), after
-// the layout and job list have loaded.
+// the layout and job list have loaded. The open tool's code starts loading right away, alongside those queries.
+import { useEffect } from 'react';
 import { getRouteApi, useParams, useSearch } from '@tanstack/react-router';
+import { usePrefetchBoardFeed } from '../../data/queries';
 import { isTool, type Tool } from '../../lib/layout';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { Frame } from './Frame';
 import { ItemView } from './ItemView';
+import { preloadDocked, preloadTool } from './lazyTools';
 import { PhoneShell } from './PhoneShell';
 import { useFrameModel, type FrameLocation } from './useFrameModel';
 import { useIsPhone } from './useIsPhone';
@@ -21,6 +24,16 @@ interface FrameSwitchProps {
 function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   const model = useFrameModel(loc);
   const isPhone = useIsPhone();
+  const onJob = loc.projectId !== null;
+  const docked = !isPhone && !windowMode;
+  useEffect(() => {
+    preloadTool(loc.tool, onJob);
+    if (docked) preloadDocked(loc.tool);
+  }, [loc.tool, onJob, docked]);
+  // The board's lines show as the main area, or docked beside another tool (desktop, no item open, panel on).
+  const choices = model.choices;
+  const dockedBoard = docked && loc.itemId === null && (!choices || (choices.docked_panel !== 'none' && !choices.collapsed.right));
+  usePrefetchBoardFeed(loc.projectId, (loc.tool === 'board' && !windowMode) || dockedBoard);
 
   if (model.layoutQuery.isPending || model.projectsQuery.isPending || model.recommendedQuery.isPending || model.jobRailsQuery.isPending) {
     return <LoadingState label="Opening your jobs" />;

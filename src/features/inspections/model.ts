@@ -16,11 +16,8 @@ export function parseView(v: string | undefined, allowed: readonly IrView[]): Ir
   return hit ?? allowed[0] ?? 'week';
 }
 
-/** Right-column items that are forms, not requests (requests are uuids). */
-export const NEW_ITEM = 'new';
-export const BLOCK_ITEM = 'block';
-/** The job's request link and QR sheet (members.manage). */
-export const SHARE_ITEM = 'share';
+/** Right-column items that are forms, not requests (requests are uuids); SHARE_ITEM is the request link and QR sheet. */
+export { BLOCK_ITEM, NEW_ITEM, SHARE_ITEM } from '../../lib/itemIds';
 
 /** The IR PDF's filename (lib/buildFilename pattern). */
 export const IR_FILENAME = 'IR {#} {Project} {MM-DD-YYYY}.pdf';

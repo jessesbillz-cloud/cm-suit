@@ -3,7 +3,7 @@ import type { DailyReportRow } from '../../data/dailies.types';
 import type { StatusKey } from '../../lib/status';
 
 /** The right column's item for the setup screen (any other item id is a report). */
-export const SETUP_ITEM = 'setup';
+export { SETUP_ITEM } from '../../lib/itemIds';
 
 type TodayAction = 'start' | 'continue' | 'edit';
 
