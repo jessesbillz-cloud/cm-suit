@@ -102,9 +102,17 @@ test.describe('OFS request with revs from the link, no login', () => {
     await expect(status.getByTestId('markup-clear')).toBeEnabled();
   });
 
-  test('a job without revs keeps the typed request', async ({ page }) => {
+  test('a job without revs keeps the typed request; Special picks its kind from buttons', async ({ page }) => {
     await page.goto(`/r/job-a?t=${TOKEN}`);
     await expect(page.getByTestId('public-items')).toBeVisible();
     await expect(page.getByTestId('rev-picker')).toHaveCount(0);
+    await page.getByTestId('public-kind-special').click();
+    const masonry = page.getByTestId('public-special-kind-masonry');
+    await expect(masonry).toHaveAttribute('aria-pressed', 'false');
+    await masonry.click();
+    await expect(masonry).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('public-special-kind-concrete').click();
+    await expect(masonry).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('public-special-kind-concrete')).toHaveAttribute('aria-pressed', 'true');
   });
 });

@@ -13,7 +13,6 @@ import { useSubmitOfs } from '../../data/revs.mutations';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
-import { SelectField } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { listsWithWalls, prefillPick, requestPlan, statusIndex, type RevPick } from '../revs/revPick';
 import { AttachmentsField } from './AttachmentsField';
@@ -22,6 +21,7 @@ import { ConflictPreview } from './ConflictPreview';
 import { IrMap } from './IrMap';
 import { OfsFields, type OfsRevs } from './OfsFields';
 import { Receipt } from './Receipt';
+import { SpecialPick } from './SpecialPick';
 import { useOpenRequest, useSelectedDay } from './useInspectionsNav';
 import { useIrAccess, type IrJob } from './useIrAccess';
 import { DEFAULT_DURATION, FLEXIBLE, isDay, requestDay, whenOf, type WhenPick } from './time';
@@ -63,7 +63,7 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
   const [when, setWhen] = useState<WhenPick>({ date: requestDay(day, ctx.today), time: FLEXIBLE, duration: DEFAULT_DURATION });
   const [company, setCompany] = useState(ctx.my_company ?? ctx.companies[0] ?? '');
   const [kind, setKind] = useState<IrKind>(linked ? 'ofs' : 'ior');
-  const [special, setSpecial] = useState(ctx.kinds[0]?.id ?? '');
+  const [special, setSpecial] = useState('');
   const [items, setItems] = useState('');
   const [pick, setPick] = useState<RevPick>(revs?.start ?? { listId: null, areaIds: [], itemIds: [] });
   const [sheet, setSheet] = useState<string | null>(null);
@@ -155,18 +155,8 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
           </datalist>
         </label>
         <WhenFields value={when} onChange={setWhen} testId="ir" />
-        <div className="flex flex-wrap items-end gap-3">
-          <ChoiceRow label="Type" options={kindOptions(ctx.ofs)} value={kind} onPick={setKind} testId="ir-kind" />
-          {kind === 'special' ? (
-            <SelectField
-              label="Special inspection"
-              value={special}
-              options={ctx.kinds.map((k) => ({ value: k.id, label: k.name }))}
-              onChange={setSpecial}
-              className="min-w-48 flex-1"
-            />
-          ) : null}
-        </div>
+        <ChoiceRow label="Type" options={kindOptions(ctx.ofs)} value={kind} onPick={setKind} testId="ir-kind" large />
+        {kind === 'special' ? <SpecialPick kinds={ctx.kinds} value={special} onChange={setSpecial} testId="ir-special" /> : null}
         {plan !== null && revs !== null ? (
           <OfsFields projectId={projectId} revs={revs} pick={pick} onPick={setPick} sheet={sheet} onSheet={setSheet} date={when.date} />
         ) : (

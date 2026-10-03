@@ -15,7 +15,7 @@ import { usePublicRevs } from '../../data/requestNoLoginRevs';
 import { contactReady, rememberContact, rememberedContact } from '../../lib/requestContact';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { FIELD_AREA_LARGE, FIELD_LABEL, SelectField } from '../../ui/Fields';
+import { FIELD_AREA_LARGE, FIELD_LABEL } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { listsWithWalls, prefillPick, requestPlan, statusIndex, type RevPick } from '../revs/revPick';
 import { ChoiceRow } from './ChoiceRow';
@@ -27,6 +27,7 @@ import { PublicMap } from './PublicMap';
 import { PublicOfsFields } from './PublicOfsFields';
 import { PublicReceipt } from './PublicReceipt';
 import { PublicRequestShell } from './PublicRequestShell';
+import { SpecialPick } from './SpecialPick';
 import { DEFAULT_DURATION, FLEXIBLE, isDay, whenOf, type WhenPick } from './time';
 import { WhenFields } from './WhenFields';
 
@@ -63,7 +64,7 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
   const [when, setWhen] = useState<WhenPick>({ date: today, time: FLEXIBLE, duration: DEFAULT_DURATION });
   // A job with walls to pick takes OFS requests first.
   const [kind, setKind] = useState<IrKind>(revs !== null ? 'ofs' : 'ior');
-  const [special, setSpecial] = useState(first.kinds[0]?.id ?? '');
+  const [special, setSpecial] = useState('');
   const [items, setItems] = useState('');
   const [pick, setPick] = useState<RevPick>(() =>
     revs !== null ? prefillPick(revs.setup, statusIndex(revs.status)) : { listId: null, areaIds: [], itemIds: [] },
@@ -123,16 +124,7 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
       <Card title="What">
         <div className="flex flex-col gap-3">
           <ChoiceRow label="Type" options={kindOptions(first.ofs)} value={kind} onPick={setKind} testId="public-kind" large />
-          {kind === 'special' ? (
-            <SelectField
-              label="Special inspection"
-              value={special}
-              options={first.kinds.map((k) => ({ value: k.id, label: k.name }))}
-              onChange={setSpecial}
-              testId="public-special"
-              large
-            />
-          ) : null}
+          {kind === 'special' ? <SpecialPick kinds={first.kinds} value={special} onChange={setSpecial} testId="public-special" /> : null}
           {plan !== null && revs !== null ? (
             <PublicOfsFields revs={revs} pick={pick} onPick={setPick} sheet={sheet} onSheet={setSheet} date={when.date} />
           ) : (
