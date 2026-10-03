@@ -105,4 +105,10 @@ export const qk = {
   irMap: (requestId: string) => ['ir_map', requestId] as const,
   /** A request map's sheet: a short-lived signed URL (ir-map 'sheet'), per request and sheet file. */
   sheetUrl: (requestId: string, sheetFileId: string) => ['sheet_url', requestId, sheetFileId] as const,
+  /** The public request page's walls and their status (0057), opened with the job's token or a hub's (`via`). */
+  requestLinkRevs: (projectId: string, via: string) => ['request_link_public', projectId, 'revs', via] as const,
+  /** A link request's map, and its sheet's short-lived URL, by the private receipt (0057). */
+  publicMap: (projectId: string, receipt: string) => ['request_status', projectId, receipt, 'map'] as const,
+  publicSheetUrl: (projectId: string, receipt: string, sheetFileId: string) =>
+    ['request_status', projectId, receipt, 'sheet', sheetFileId] as const,
 };

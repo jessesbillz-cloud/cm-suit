@@ -68,6 +68,11 @@ timesheets
 # Public endpoint §6.4 #4: the request link and the inspector's hub. Tokens are checked by service-role-only SQL
 # (link_request_*), which answers the job name / the hub's job names and records a sub invite only for the address of
 # the caller's own session (requireUser); rate-limited per IP and per token.
+# Revs from the link (0057): a request's private receipt is checked by service-role-only SQL (link_request_map*) before
+# the function reads that request's sheet row and bytes, the signer's signature image, the job's name and zone and the
+# map's ir_maps row, gets the Reports folder (ir_folder_make), stores the map (storeGeneratedPdf, the one ensureMap of
+# _shared/irMapFile.ts), records it (ir_map_attach) and signs URLs for that sheet and map only; rate-limited per receipt
+# and per IP.
 request-link
 # Reads the original PDF's bytes from private storage, stores the stamped copy (storeGeneratedPdf: storage + files row)
 # in the job's server-only "Stamping" folder with the server's record of it (permit_stamped_copies, service role only),

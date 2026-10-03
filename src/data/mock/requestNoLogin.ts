@@ -1,13 +1,15 @@
 // Mock no-login inspection requests (0055) for e2e: the same rules the request-link function and link_request_* apply,
 // in short form. The outsider's day comes from the mock calendar with everything but time, length, type and color left
 // out; a request goes into the mock inspections store with no member behind it (the inspector sees it like any other);
-// receipts live in sessionStorage under their own key, like the rest of the mock.
+// receipts live in sessionStorage under their own key, like the rest of the mock. The revs request and a request's map
+// by its receipt (0057) are mock/requestNoLoginRevs, on the receipts kept here.
 import { FunctionError } from '../functions';
 import type { IrRequest, IrRowRaw } from '../inspections.types';
 import type { LinkKey } from '../requestLink.types';
 import type { PublicDayAnswer, PublicRequestInput, RequestFacts, Submitted } from '../requestNoLogin.types';
 import { addUploadedFile } from './api';
 import { MOCK_PROJECTS } from './fixtures';
+import { permitJobName } from './permitJobs';
 import { addLinkRequest, calendar, folder, formContext, request } from './inspections';
 import { jobFor } from './requestLink';
 import { delay } from './store';
@@ -26,7 +28,7 @@ function newReceipt(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function refuse(status: number, message: string): FunctionError {
+export function refuse(status: number, message: string): FunctionError {
   return new FunctionError(status, status === 404 ? 'not_found' : 'bad_request', message, null, null);
 }
 
@@ -43,9 +45,14 @@ export async function day(key: LinkKey, picked: string | null): Promise<PublicDa
   return { today: ctx.today, day: d, ofs: ctx.ofs, kinds: ctx.kinds, rows };
 }
 
+/** The job's name, a sample job or the fire marshal's. */
+export function jobName(projectId: string): string {
+  return MOCK_PROJECTS.find((p) => p.project_id === projectId)?.name ?? permitJobName(projectId);
+}
+
 function facts(projectId: string, r: IrRowRaw | IrRequest, special: string | null): RequestFacts {
   return {
-    project_name: MOCK_PROJECTS.find((p) => p.project_id === projectId)?.name ?? '',
+    project_name: jobName(projectId),
     number: r.number, request_date: r.request_date, start_time: r.start_time, duration_kind: r.duration_kind,
     duration_min: r.duration_min, kind: r.kind, special_kind: special, status: r.status, result: r.result,
     result_note: r.result_note, gc_step: false,
@@ -69,16 +76,27 @@ export async function submit(key: LinkKey, v: PublicRequestInput): Promise<Submi
     },
     { name: v.contact.name.trim(), phone: v.contact.phone.trim(), email: v.contact.email.trim() },
   );
+  const special = (await formContext(key.projectId)).kinds.find((k) => k.id === row.special_kind_id)?.name ?? null;
+  return submitted(key.projectId, row, special);
+}
+
+/** The answer to a request just made: its facts and a new receipt (kept, like the database keeps its hash). */
+export function submitted(projectId: string, row: IrRowRaw, special: string | null): Submitted {
   const receipt = newReceipt();
   window.sessionStorage.setItem(KEY, JSON.stringify({ ...receipts(), [receipt]: row.id }));
-  const special = (await formContext(key.projectId)).kinds.find((k) => k.id === row.special_kind_id)?.name ?? null;
-  return { ...facts(key.projectId, row, special), receipt };
+  return { ...facts(projectId, row, special), receipt };
+}
+
+/** The request a receipt opens on its job, or the function's 404. */
+export async function receiptRequest(projectId: string, receipt: string): Promise<IrRequest> {
+  const id = receipts()[receipt];
+  const row = id === undefined ? null : await request(id);
+  if (!row || row.project_id !== projectId) throw refuse(404, GONE);
+  return row;
 }
 
 export async function status(projectId: string, receipt: string): Promise<RequestFacts> {
   await delay();
-  const id = receipts()[receipt];
-  const row = id === undefined ? null : await request(id);
-  if (!row || row.project_id !== projectId) throw refuse(404, GONE);
+  const row = await receiptRequest(projectId, receipt);
   return facts(projectId, row, row.ir_special_kinds?.name ?? null);
 }

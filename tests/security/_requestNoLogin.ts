@@ -1,7 +1,8 @@
 /// <reference types="node" />
 // Role probe, no-login inspection requests (0055, SPEC §6.4 #4): with no session, the link answers the outsider's day
 // (time, length, type, color) and takes a request with a photo; the receipt opens the status link (the tracker's facts
-// and the result line only); a wrong token or receipt is a 404; the inspector reads the visitor's contact on the row, a
+// and the result line only) and that request's map (none here: no walls); the job's walls come with their status only
+// (0057); a wrong token or receipt is a 404; the inspector reads the visitor's contact on the row, a
 // sub sees the request only anonymized, and a requester (the role a link visitor gets when they sign in) reads no
 // folders, no people but themselves and no RFIs. Called from _requestLink.ts with the job's live token.
 import { type Client, type Report, rowsOf } from './_lib';
@@ -81,6 +82,18 @@ export async function checkNoLogin(p: NoLoginProbe, token: string): Promise<void
   report.check('no login', 'status link: the tracker facts only (200)', status.status === 200 && keysOf(facts) === FACT_KEYS, keysOf(facts));
   const stranger = await post(p, { action: 'status', project_id: p.projectId, receipt: 'B'.repeat(43) });
   report.check('no login', 'status with a wrong receipt (404)', stranger.status === 404, `status ${stranger.status}`);
+
+  // Revs from the link (0057): the walls with their status only; a request without walls has no map.
+  const revs = await post(p, { action: 'revs', project_id: p.projectId, token });
+  const walls = (await revs.json()) as Record<string, unknown>;
+  report.check('no login', 'revs: lists, revs, items, walls and status (200)',
+    revs.status === 200 && keysOf(walls) === 'areas,items,lists,revs,status', `status ${revs.status} ${keysOf(walls)}`);
+  const cells = Array.isArray(walls['status']) ? (walls['status'] as unknown[]) : [];
+  report.check('no login', 'revs: a status row is the wall, the item and the status only',
+    cells.every((r) => keysOf(r) === 'area_id,item_id,status'), `${cells.length} rows`);
+  const map = await post(p, { action: 'map', project_id: p.projectId, receipt: receipt['receipt'] });
+  const noMap = JSON.stringify(await map.json());
+  report.check('no login', 'map: a request without walls has none (200)', map.status === 200 && noMap === '{"map":null}', noMap.slice(0, 80));
 
   const seen = rows(await p.as('inspector').from('inspection_requests')
     .select('requested_by, requester_name, requester_phone, attachment_ids').eq('project_id', p.projectId).eq('items', items), 'inspector row');

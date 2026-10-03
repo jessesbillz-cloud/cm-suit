@@ -5,6 +5,7 @@ import { FunctionError } from '../functions';
 import type { HubAnswer, HubState, JoinAnswer, LinkKey, MadeHub, MadeLink, OpenAnswer, RequestLinkState } from '../requestLink.types';
 import { MOCK_PROJECTS } from './fixtures';
 import { mockSignedOut, mockUser } from './index';
+import { permitJobRows } from './permitJobs';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-request-link';
@@ -39,9 +40,12 @@ function decides(): boolean {
   return !isVisitor() && mockUser().id !== 'mock-user-bidder';
 }
 
-/** The sample jobs taking requests (Inspections on). */
+/** The sample jobs taking requests (Inspections on), and the fire marshal's sample job (OFS and Revs, 0057). */
 function openJobs(): { project_id: string; name: string }[] {
-  return MOCK_PROJECTS.filter((p) => p.modules.includes('inspections')).map((p) => ({ project_id: p.project_id, name: p.name }));
+  return [
+    ...MOCK_PROJECTS.filter((p) => p.modules.includes('inspections')).map((p) => ({ project_id: p.project_id, name: p.name })),
+    ...permitJobRows().filter((j) => j.modules.includes('inspections')).map((j) => ({ project_id: j.id, name: j.name })),
+  ];
 }
 
 /** The sample job a link opens, or the 404 the function answers. */
