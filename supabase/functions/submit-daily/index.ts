@@ -5,7 +5,8 @@
 // ('dailies.write') → the version the person saw → signing re-confirmation (signedInRecently, else 403
 // reauth_required) → content hash → begin_daily_submit AS THE CALLER (numbers the report on its first signing, records
 // the hash; refuses if the content or photos moved) → the PDF from the saved content (the work log's
-// pdf/dailyReport.ts, or the report's company form, e.g. pdf/vis.ts, SPEC §8.3; then the ONE stamp) → storeGeneratedPdf
+// pdf/dailyReport.ts, the superintendent's or foreman's daily pdf/gcDaily.ts, or a company form, e.g. pdf/vis.ts,
+// SPEC §8.3; then the ONE stamp) → storeGeneratedPdf
 // into Reports/<author> → finish_daily_submit (service role) marks it submitted. Nothing before the finish marks the
 // report submitted; if storing or finishing fails, the new file is taken back out and the call fails loudly.
 //
@@ -33,8 +34,9 @@ import {
   type DailySettings,
   parseDailySettings,
 } from '../_shared/dailies.ts';
-import { dailyValues, formIdOf, lockedValues, REPORT_FORMS, type ReportFormId } from '../_shared/reportForms.ts';
-import { buildDailyReportPdf, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
+import { dailyValues, formIdOf, formOf, lockedValues, REPORT_FORMS, type ReportFormId } from '../_shared/reportForms.ts';
+import { buildDailyReportPdf, type DailyPdfPhoto, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
+import { buildFormDailyPdf } from '../_shared/pdf/gcDaily.ts';
 import { buildVisPdf, FormFitError, VIS_SIGNATURE_AT, visDate, visPhotoTime } from '../_shared/pdf/vis.ts';
 import { stampSignature, type StampSpot } from '../_shared/pdf/stamp.ts';
 
@@ -159,22 +161,40 @@ interface RenderInput {
   inspector: string;
 }
 
-/** The PDF (before the signature) and where its signature goes: the work log's corner, or a company form's line. */
+/** The photos as the work log and the built-in forms print them: caption, the job and the time taken, the row. */
+function stampedPhotos(i: RenderInput, rowLabel: (key: string) => string | null): DailyPdfPhoto[] {
+  const { header } = i;
+  return i.photos.map(({ photo: p, bytes, mime }) => ({
+    bytes, mime, caption: p.caption,
+    stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
+    rowLabel: p.row_key ? rowLabel(p.row_key) : null,
+  }));
+}
+
+/** The PDF (before the signature) and where its signature goes: the last page's corner, or a company form's line. */
 async function render(form: ReportFormId | null, i: RenderInput): Promise<{ bytes: Uint8Array; at: StampSpot | undefined }> {
   const { header, content, settings } = i;
   if (form === null) {
     const rows = new Map(content.work.map((w) => [w.key, w.company.trim()]));
     const bytes = await buildDailyReportPdf({
       header, number: i.number, dateLabel: dayLabel(i.report.report_date), content, photosPerPage: settings.photos_per_page,
-      photos: i.photos.map(({ photo: p, bytes, mime }) => ({
-        bytes, mime, caption: p.caption,
-        stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
-        rowLabel: p.row_key ? rows.get(p.row_key) || null : null,
-      })),
+      photos: stampedPhotos(i, (key) => rows.get(key) || null),
     });
     return { bytes, at: undefined };
   }
   switch (form) {
+    // The forms made of fields and tables (the superintendent's and the foreman's daily): the corner, like the work log.
+    case 'gc_daily':
+    case 'foreman_daily': {
+      const f = REPORT_FORMS[form];
+      const bytes = await buildFormDailyPdf({
+        form: f, header, number: i.number, dateLabel: dayLabel(i.report.report_date),
+        day: dailyValues(f, content.fields, content.standing_note), tables: content.tables,
+        inspections: content.inspections.map((e) => e.text), photosPerPage: settings.photos_per_page,
+        photos: stampedPhotos(i, () => null),
+      });
+      return { bytes, at: undefined };
+    }
     case 'vis_daily': {
       const f = REPORT_FORMS[form];
       const bytes = await buildVisPdf({
@@ -266,8 +286,10 @@ Deno.serve(handle(async (req) => {
 
   const signer = profile.full_name.trim() || header.author_name;
   const renderInput = { client, service, report, header, content, settings, photos: photoBytes, inspector: signer };
-  // A company form doesn't print the number: it is rendered (and any problem refused) before a number is used.
-  const early = form === null ? null : await renderOr400(form, { ...renderInput, number: report.number ?? 0 });
+  // A form that doesn't print the number (VIS) is rendered, and any problem refused, before a number is used.
+  const early = form === null || formOf(report.report_type)?.numbered
+    ? null
+    : await renderOr400(form, { ...renderInput, number: report.number ?? 0 });
 
   const hash = await hashOf(report, photos, jobValues);
   const begun = await rpc<Report>(client, 'begin_daily_submit', {

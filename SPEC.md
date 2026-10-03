@@ -927,7 +927,7 @@ This phase rebuilds **Jesse's MDR processes** (`mdr-processes-to-carry-over`). K
 
 ### 13.1 Daily reports (anyone who writes them)
 - **Setup** (per member and project, each role with its own template):
-  - the template: learned (§8.3), a company generator (e.g. VIS), or a work-log form;
+  - the template: learned (§8.3), a company generator (e.g. VIS), the built-in superintendent's or foreman's daily (the role's default), or a work-log form;
   - schedule days, "submit by" time and reminder lead time;
   - filename pattern and start number, recipients;
   - digital signature (on by default); AI photo descriptions and proofread (off by default);
