@@ -2,7 +2,9 @@
 //
 // Rules this file enforces:
 //   - The system prompt is the task's prompt file, verbatim. No document, email, bid or request text ever goes there.
-//   - Untrusted text goes ONLY into the user turn, as escaped <document source="…" untrusted="true"> blocks.
+//   - Untrusted text goes ONLY into the user turn, as escaped <document source="…" untrusted="true"> blocks. A file the
+//     model must see (a photo or a PDF, readSchedule) goes in the user turn too, as an attachment between the same
+//     untrusted markers.
 //   - The model returns JSON that is validated with the task's zod schema. No tools, no side effects: callers save the
 //     result as a draft that a person confirms.
 //   - Every call is logged to ai_calls (task, model, tokens, latency, project, user) with the caller's service client.
@@ -16,6 +18,7 @@ import { env } from './env.ts';
 import { type Db, dbError } from './db.ts';
 import { z } from './validate.ts';
 import { PROMPT as EXTRACT_BID_PROMPT } from './prompts/extractBid.ts';
+import { PROMPT as READ_SCHEDULE_PROMPT } from './prompts/readSchedule.ts';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -23,12 +26,20 @@ const ANTHROPIC_VERSION = '2023-06-01';
 /** Task name → prompt markdown (must start with a version header, e.g. `<!-- version: 3 -->`). */
 export const promptRegistry: Readonly<Record<string, string>> = Object.freeze({
   extractBid: EXTRACT_BID_PROMPT,
+  readSchedule: READ_SCHEDULE_PROMPT,
 });
 
 export interface UntrustedDocument {
   /** Where the text came from, e.g. "email:<message-id>" or "file:<file-id>#p3". */
   source: string;
   text: string;
+}
+
+/** A file the model reads as it is: an image, or a PDF (base64, as the Messages API takes them). */
+export interface UntrustedAttachment {
+  source: string;
+  mediaType: string;
+  base64: string;
 }
 
 export interface TaskDef<TIn, TOut> {
@@ -38,7 +49,7 @@ export interface TaskDef<TIn, TOut> {
   maxTokens: number;
   output: z.ZodType<TOut>;
   /** Trusted, code-authored framing for the user turn plus the untrusted documents. */
-  buildUserTurn(input: TIn): { instructions: string; documents: UntrustedDocument[] };
+  buildUserTurn(input: TIn): { instructions: string; documents: UntrustedDocument[]; attachments?: UntrustedAttachment[] };
 }
 
 export interface TaskContext {
@@ -67,6 +78,26 @@ function promptFor(name: string, prompts: Readonly<Record<string, string>>): str
   if (!text) throw new HttpError(500, `AI prompt not registered: ${name}`);
   if (!/^\s*(<!--\s*)?version:\s*\S+/i.test(text)) throw new HttpError(500, `AI prompt ${name} has no version header`);
   return text;
+}
+
+type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image' | 'document'; source: { type: 'base64'; media_type: string; data: string } };
+
+/** The user turn: text alone, or the text then each attachment between untrusted markers. */
+function userContent(text: string, attachments: readonly UntrustedAttachment[]): string | ContentBlock[] {
+  if (attachments.length === 0) return text;
+  return [
+    { type: 'text', text },
+    ...attachments.flatMap((a): ContentBlock[] => {
+      const pdf = a.mediaType === 'application/pdf';
+      return [
+        { type: 'text', text: `<document source="${escapeAttr(a.source)}" untrusted="true" kind="${pdf ? 'pdf' : 'image'}">` },
+        { type: pdf ? 'document' : 'image', source: { type: 'base64', media_type: a.mediaType, data: a.base64 } },
+        { type: 'text', text: '</document>' },
+      ];
+    }),
+  ];
 }
 
 /** The first complete top-level JSON object in the model's reply (tolerates a ```json fence or trailing prose). */
@@ -128,7 +159,10 @@ export async function runTask<TIn, TOut>(task: TaskDef<TIn, TOut>, input: TIn, c
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': ANTHROPIC_VERSION },
-      body: JSON.stringify({ model, max_tokens: task.maxTokens, system, messages: [{ role: 'user', content: userText }] }),
+      body: JSON.stringify({
+        model, max_tokens: task.maxTokens, system,
+        messages: [{ role: 'user', content: userContent(userText, turn.attachments ?? []) }],
+      }),
       signal: AbortSignal.timeout(120_000),
     });
     reply = (await res.json()) as AnthropicReply;

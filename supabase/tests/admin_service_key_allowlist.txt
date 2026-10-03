@@ -94,3 +94,7 @@ meeting-signin
 # (storeGeneratedPdf: storage + files row), records it (safety_meeting_attach, service-only) and signs a library topic's
 # download URL; safety_meeting_close / safety_meeting_sheet and safety_topic_file run as the user first.
 safety-meeting
+# Schedule imports (0062): downloads the uploaded file's bytes from private storage and writes the ai_calls log of a
+# PDF or photo read (readSchedule); requireCapability('schedule.manage'), the file lookup and schedule_import_draft
+# (which checks the file is in the job's Schedule folder) run as the user.
+schedule-import

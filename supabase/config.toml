@@ -178,3 +178,7 @@ verify_jwt = false
 # --- Safety: close a meeting and make its sign-in sheet PDF; a library topic's PDF ---
 [functions.safety-meeting]
 verify_jwt = true
+
+# --- Schedule: read an uploaded schedule (XER, Project XML, CSV, PDF or photo) into a draft version (0062) ---
+[functions.schedule-import]
+verify_jwt = true

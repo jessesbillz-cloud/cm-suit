@@ -41,7 +41,7 @@ select is_empty($$ select name from public.roles
                        or cardinality(recommended_tools) <> (select count(distinct t) from unnest(recommended_tools) t) $$,
   'every role has a lean rail: 1 to 8 tools (Revs shows only on OFS jobs), none twice');
 select is_empty($$ select name from public.roles
-                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,revs,rfis,permits,deliveries,corrections,safety,people,hours}' $$,
+                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,revs,rfis,permits,deliveries,corrections,safety,schedule,people,hours}' $$,
   'recommendations name only rail tools');
 select is_empty($$ select name from public.roles where 'board' = any (recommended_tools) and recommended_tools[1] <> 'board' $$,
   'Board comes first wherever it is recommended');
@@ -82,7 +82,7 @@ set local role authenticated;
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000344');
 select is((select tools from public.my_recommended_tools('c0000000-0000-0000-0000-000000000341')),
-  '{board,bids,calendar,files,rfis,inspections}'::text[], 'two roles on one job: the lists merge, earliest place first');
+  '{board,bids,calendar,files,schedule,rfis,inspections}'::text[], 'two roles on one job: the lists merge, earliest place first');
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000345');
 select is_empty($$ select * from public.my_recommended_tools('c0000000-0000-0000-0000-000000000341') $$,
