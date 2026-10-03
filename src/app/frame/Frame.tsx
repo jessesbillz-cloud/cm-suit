@@ -1,6 +1,7 @@
 // The desktop frame (SPEC §7.2): the rail down the left, then the top bar (job picker) over main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
 import { Suspense } from 'react';
+import { opensInMain } from '../../lib/itemIds';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
@@ -45,10 +46,12 @@ export function Frame({ model, folderId }: FrameProps) {
   const { loc, choices } = model;
   if (!choices) return null;
 
-  const itemOpen = loc.itemId !== null;
+  // An item that is a page of its own (a Revs wall) fills the main area; the right column keeps its docked panel.
+  const itemInMain = loc.itemId !== null && opensInMain(loc.tool, loc.itemId);
+  const itemOpen = loc.itemId !== null && !itemInMain;
   const showRight = itemOpen || choices.docked_panel !== 'none';
   const rightCollapsed = !itemOpen && choices.collapsed.right;
-  const rightFull = showRight && !rightCollapsed && model.rightFull;
+  const rightFull = showRight && !rightCollapsed && model.rightFull && !itemInMain;
 
   return (
     <div className="flex h-screen bg-page">
@@ -89,7 +92,7 @@ export function Frame({ model, folderId }: FrameProps) {
           )}
           {showRight ? (
             <RightColumn
-              title={loc.itemId !== null ? itemTitle(loc.tool, loc.itemId) : loc.tool === 'board' ? 'Today' : 'Board'}
+              title={itemOpen && loc.itemId !== null ? itemTitle(loc.tool, loc.itemId) : loc.tool === 'board' ? 'Today' : 'Board'}
               collapsed={rightCollapsed}
               full={rightFull}
               onToggleCollapsed={() => {
@@ -105,7 +108,7 @@ export function Frame({ model, folderId }: FrameProps) {
               }}
               onCloseItem={itemOpen ? model.closeItem : undefined}
             >
-              {loc.itemId !== null ? (
+              {itemOpen && loc.itemId !== null ? (
                 <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone={false} />
               ) : (
                 <Docked model={model} />

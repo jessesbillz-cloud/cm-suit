@@ -1,11 +1,10 @@
 // Revs worked out for the screens (Jesse, Oct 2: "anyone can see what's left on each wall at any time"). Every wall
 // needs every item of its list's revs; rev_status gives each wall x item one status (na, passed, requested, failed,
-// open). Here: each rev's place on a wall's tracker (ui/Stepper), the next items to ask for on a wall, the end-of-job
-// rollup (what is still open, and where), the walls by list and level, and the chip for each status (lib/status).
+// open). Here: a wall's revs with their items' statuses, what is still to ask for, the end-of-job rollup (what is
+// still open, and where), the walls by list and level, and the chip for each status (lib/status).
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
-import type { StepperState } from '../../ui/Stepper';
 
 type CellStatus = RevStatusRow['status'];
 
@@ -44,19 +43,7 @@ export function cellOf(index: StatusIndex, areaId: string, itemId: string): RevS
   );
 }
 
-/**
- * A rev's place on a wall's tracker: done when every item that isn't N/A passed (a rev that is all N/A is done), the
- * current one when an item is requested, failed when an item failed and none is requested, else ahead.
- */
-export function revState(statuses: readonly CellStatus[]): StepperState {
-  const needed = statuses.filter((s) => s !== 'na');
-  if (needed.every((s) => s === 'passed')) return 'done';
-  if (needed.includes('requested')) return 'current';
-  if (needed.includes('failed')) return 'failed';
-  return 'todo';
-}
-
-export interface WallCell {
+interface WallCell {
   item: RevItem;
   cell: RevStatusRow;
 }
@@ -64,59 +51,18 @@ export interface WallCell {
 export interface WallRev {
   rev: Rev;
   cells: WallCell[];
-  state: StepperState;
 }
 
-/** A wall's revs (its list's, by number), each with its items' statuses and its place on the tracker. */
+/** A wall's revs (its list's, by number), each with its items' statuses. */
 export function wallRevs(setup: RevSetup, index: StatusIndex, area: RevArea): WallRev[] {
   return setup.revs
     .filter((r) => r.list_id === area.list_id)
-    .map((rev) => {
-      const cells = setup.items.filter((i) => i.rev_id === rev.id).map((item) => ({ item, cell: cellOf(index, area.id, item.id) }));
-      return { rev, cells, state: revState(cells.map((c) => c.cell.status)) };
-    });
-}
-
-/** A rev's name for a tracker label: the separating dashes dropped ("HOW - Cavity" -> "HOW Cavity"; "In-Wall" stays). */
-export function revLabel(name: string): string {
-  return name.replace(/\s+[-–—]\s*|\s*[-–—]\s+/g, ' ').trim();
-}
-
-interface RevStep {
-  key: string;
-  label: string;
-  state: StepperState;
-  title: string;
-  kind: string;
-}
-
-/** The tracker's steps: one per rev, the rev's short name under its dot, "2 of 3 passed" on hover. */
-export function revSteps(revs: readonly WallRev[]): RevStep[] {
-  return revs.map(({ rev, cells, state }) => {
-    const needed = cells.filter((c) => c.cell.status !== 'na');
-    const passed = needed.filter((c) => c.cell.status === 'passed').length;
-    return {
-      key: rev.id,
-      label: revLabel(rev.name),
-      state,
-      kind: String(rev.number),
-      title: `Rev ${String(rev.number)} ${rev.name}: ${String(passed)} of ${String(needed.length)} passed`,
-    };
-  });
+    .map((rev) => ({ rev, cells: setup.items.filter((i) => i.rev_id === rev.id).map((item) => ({ item, cell: cellOf(index, area.id, item.id) })) }));
 }
 
 /** Still to ask for: never asked, or failed (a failed item is asked again). */
-function askable(s: CellStatus): boolean {
+export function canAsk(s: CellStatus): boolean {
   return s === 'open' || s === 'failed';
-}
-
-/** What a request for this wall asks for next: up to 3 items, from the earliest rev with items left to ask for. */
-export function nextItems(revs: readonly WallRev[], max = 3): RevItem[] {
-  for (const r of revs) {
-    const open = r.cells.filter((c) => askable(c.cell.status)).map((c) => c.item);
-    if (open.length > 0) return open.slice(0, max);
-  }
-  return [];
 }
 
 /** Not done yet on a wall: open, failed, or asked for and waiting on a result. */
@@ -197,7 +143,7 @@ export function irLine(cell: RevStatusRow, timeZone: string): string | null {
 /** A manager marks N/A an item that is still to ask for, and clears an N/A. Passed and requested items keep theirs. */
 export function naToggle(status: CellStatus): 'mark' | 'clear' | null {
   if (status === 'na') return 'clear';
-  return askable(status) ? 'mark' : null;
+  return canAsk(status) ? 'mark' : null;
 }
 
 interface LevelGroup {

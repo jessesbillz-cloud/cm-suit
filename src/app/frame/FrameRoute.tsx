@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { getRouteApi, useParams, useSearch } from '@tanstack/react-router';
 import { usePrefetchBoardFeed } from '../../data/queries';
+import { opensInMain } from '../../lib/itemIds';
 import { isTool, type Tool } from '../../lib/layout';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { Frame } from './Frame';
@@ -30,9 +31,9 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
     preloadTool(loc.tool, onJob);
     if (docked) preloadDocked(loc.tool);
   }, [loc.tool, onJob, docked]);
-  // The board's lines show as the main area, or docked beside another tool (desktop, no item open, panel on).
+  // The board's lines show as the main area, or docked beside another tool (desktop, no item in the right column, panel on).
   const choices = model.choices;
-  const dockedBoard = docked && loc.itemId === null && (!choices || (choices.docked_panel !== 'none' && !choices.collapsed.right));
+  const dockedBoard = docked && (loc.itemId === null || opensInMain(loc.tool, loc.itemId)) && (!choices || (choices.docked_panel !== 'none' && !choices.collapsed.right));
   usePrefetchBoardFeed(loc.projectId, (loc.tool === 'board' && !windowMode) || dockedBoard);
 
   if (model.layoutQuery.isPending || model.projectsQuery.isPending || model.recommendedQuery.isPending || model.jobRailsQuery.isPending) {
