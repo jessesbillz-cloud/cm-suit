@@ -1,22 +1,23 @@
-// A request map's marks save themselves (ir_map_save): each change waits a moment for the next stroke, then saves; saves
-// go one at a time, each carrying the version the last one left. A failure is loud (a toast, and a red line with Try
-// again); someone else's change in between (a version miss) offers Reload instead. Leaving the screen doesn't drop a
-// change: its timer still fires. Picking another sheet saves at once and clears the marks drawn on the old one; Undo
-// puts the sheet and the marks back.
+// A request map saves itself, for a member (ir_map_save) and a link visitor (map_save) alike: the caller hands in its
+// save. Each change waits a moment for the next one, then saves; saves go one at a time, each carrying the version the
+// last one left. A failure is loud (a toast, and a red line with Try again); someone else's change in between (a version
+// miss) offers Reload instead. Leaving the screen doesn't drop a change: its timer still fires. Another sheet saves at
+// once and starts on its page 1; another page waits like a mark. Either clears the marks drawn on the old one, and Undo
+// puts the sheet, the page and the marks back.
 import { useEffect, useRef, useState } from 'react';
 import { DataError, messageOf } from '../../data/errors';
-import { useSaveIrMap } from '../../data/revs.mutations';
-import type { IrMapContext } from '../../data/revs.types';
+import { FunctionError } from '../../data/functions';
 import type { Stroke } from '../../lib/markup';
 import { useToast } from '../../ui/Toast';
+import type { Drawn, MapView, SaveMap } from './mapView';
 
 const WAIT_MS = 600;
 
 type Phase = 'idle' | 'waiting' | 'saving' | 'saved' | 'error';
 
 interface Pending {
-  /** The latest marks not sent yet. */
-  next: Stroke[] | null;
+  /** The latest drawing not sent yet. */
+  next: Drawn | null;
   running: boolean;
   timer: number | undefined;
   /** The map's version the next save carries. */
@@ -24,10 +25,11 @@ interface Pending {
 }
 
 interface MapAutosave {
-  /** What the sheet shows: my marks while they save, else the saved ones. */
-  strokes: Stroke[];
+  /** What the map shows: my drawing while it saves, else the saved one. */
+  drawn: Drawn;
   change: (strokes: Stroke[]) => void;
   setSheet: (fileId: string) => void;
+  setPage: (page: number) => void;
   /** A change waiting or saving. */
   busy: boolean;
   saved: boolean;
@@ -36,22 +38,23 @@ interface MapAutosave {
   fix: { label: string; run: () => void } | null;
 }
 
-const isConflict = (e: unknown) => e instanceof DataError && e.code === '40001';
+/** Someone else saved the map in between (the database's version miss; the link function answers it as 409). */
+const isConflict = (e: unknown) => (e instanceof DataError && e.code === '40001') || (e instanceof FunctionError && e.status === 409);
 
-export function useMapAutosave(ctx: IrMapContext, reload: () => void): MapAutosave {
-  const save = useSaveIrMap();
+export function useMapAutosave(view: MapView, save: SaveMap, reload: () => void): MapAutosave {
   const toast = useToast();
-  const [draft, setDraft] = useState<Stroke[] | null>(null);
+  const [draft, setDraft] = useState<Drawn | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<unknown>(null);
-  const pending = useRef<Pending>({ next: null, running: false, timer: undefined, version: ctx.version });
-  const requestId = ctx.request_id;
+  const pending = useRef<Pending>({ next: null, running: false, timer: undefined, version: view.version });
 
   // Nothing waiting or saving: the next save carries the version the server has now.
   useEffect(() => {
     const p = pending.current;
-    if (!p.running && p.next === null && p.timer === undefined) p.version = ctx.version;
-  }, [ctx.version]);
+    if (!p.running && p.next === null && p.timer === undefined) p.version = view.version;
+  }, [view.version]);
+
+  const drawn: Drawn = draft ?? { sheetFileId: view.sheetFileId, page: view.page, strokes: view.strokes };
 
   async function flush(): Promise<void> {
     const p = pending.current;
@@ -61,12 +64,11 @@ export function useMapAutosave(ctx: IrMapContext, reload: () => void): MapAutosa
     p.running = true;
     setPhase('saving');
     try {
-      for (let strokes = p.next; strokes !== null; strokes = p.next) {
+      for (let next = p.next; next !== null; next = p.next) {
         p.next = null;
-        const row = await save.mutateAsync({ requestId, version: p.version, strokes, sheetFileId: null, page: null });
-        p.version = row.version;
+        p.version = await save({ ...next, version: p.version });
       }
-      // Saved as drawn: the map's own (just updated) marks are mine now.
+      // Saved as drawn: the map's own (just updated) drawing is mine now.
       setDraft(null);
       setPhase('saved');
       setError(null);
@@ -79,69 +81,51 @@ export function useMapAutosave(ctx: IrMapContext, reload: () => void): MapAutosa
     }
   }
 
-  function change(strokes: Stroke[]): void {
+  /** Shows `next` at once and saves it now or after the short wait. */
+  function put(next: Drawn, now: boolean): void {
     const p = pending.current;
-    setDraft(strokes);
-    setPhase('waiting');
-    p.next = strokes;
+    setDraft(next);
+    p.next = next;
     window.clearTimeout(p.timer);
+    p.timer = undefined;
+    if (now) {
+      void flush();
+      return;
+    }
+    setPhase('waiting');
     p.timer = window.setTimeout(() => {
       void flush();
     }, WAIT_MS);
   }
 
-  function putSheet(fileId: string, strokes: Stroke[], undo: { sheet: string; strokes: Stroke[] } | null): void {
-    const p = pending.current;
-    // Marks still waiting were drawn on the other sheet: the sheet's own marks replace them.
-    window.clearTimeout(p.timer);
-    p.timer = undefined;
-    p.next = null;
-    p.running = true;
-    setPhase('saving');
-    save.mutate(
-      { requestId, version: p.version, strokes, sheetFileId: fileId, page: null },
-      {
-        onSuccess: (row) => {
-          p.version = row.version;
-          setDraft(null);
-          setPhase('saved');
-          setError(null);
-          if (undo !== null) {
-            toast.show({
-              message: 'Sheet changed. Marks cleared.',
-              action: {
-                label: 'Undo',
-                onClick: () => {
-                  putSheet(undo.sheet, undo.strokes, null);
-                },
-              },
-            });
-          }
-        },
-        onError: (e) => {
-          setPhase('error');
-          setError(e);
-          toast.show({ tone: 'error', message: `Sheet not changed: ${messageOf(e)}` });
-        },
-        onSettled: () => {
-          p.running = false;
+  /** Another sheet or page: the marks drawn on the old one mean nothing there. Undo brings all of it back. */
+  function move(next: Drawn, now: boolean, message: string): void {
+    const before = drawn;
+    put(next, now);
+    if (before.strokes.length === 0) return;
+    toast.show({
+      message,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          put(before, true);
         },
       },
-    );
+    });
   }
 
-  const strokes = draft ?? ctx.strokes;
   const busy = phase === 'waiting' || phase === 'saving';
-  const conflict = isConflict(error);
 
   return {
-    strokes,
-    change,
-    // Marks drawn on another sheet mean nothing on this one; Undo brings the old sheet and its marks back.
+    drawn,
+    change: (strokes) => {
+      put({ ...drawn, strokes }, false);
+    },
     setSheet: (fileId) => {
-      if (busy || fileId === ctx.sheet_file_id) return;
-      const old = ctx.sheet_file_id;
-      putSheet(fileId, [], old !== null && strokes.length > 0 ? { sheet: old, strokes } : null);
+      if (fileId !== drawn.sheetFileId) move({ sheetFileId: fileId, page: 1, strokes: [] }, true, 'Sheet changed. Marks cleared.');
+    },
+    setPage: (page) => {
+      if (page !== drawn.page) move({ ...drawn, page, strokes: [] }, false, 'Page changed. Marks cleared.');
     },
     busy,
     saved: phase === 'saved',
@@ -149,7 +133,7 @@ export function useMapAutosave(ctx: IrMapContext, reload: () => void): MapAutosa
     fix:
       phase !== 'error'
         ? null
-        : conflict
+        : isConflict(error)
           ? {
               label: 'Reload',
               run: () => {
@@ -163,8 +147,7 @@ export function useMapAutosave(ctx: IrMapContext, reload: () => void): MapAutosa
           : {
               label: 'Try again',
               run: () => {
-                pending.current.next = strokes;
-                void flush();
+                put(drawn, true);
               },
             },
   };

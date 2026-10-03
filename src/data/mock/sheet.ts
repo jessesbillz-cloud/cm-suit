@@ -1,5 +1,6 @@
-// e2e mock of a request map's sheet: a synthetic plan sheet (grid lines with bubbles, walls, room tags, a title block),
-// written as a one-page PDF and handed out as a data: URL. 36 x 24 in like a real plan sheet. Nothing real in it.
+// e2e mock of a request map's sheet: a synthetic plan set (grid lines with bubbles, walls, room tags, a title block),
+// one page per level like a set kept as one PDF, handed out as a data: URL. 36 x 24 in like a real plan sheet. Nothing
+// real in it.
 
 const W = 2592;
 const H = 1728;
@@ -9,6 +10,8 @@ const GRID_X0 = 260;
 const GRID_DX = 300;
 const GRID_Y0 = 260;
 const GRID_DY = 300;
+/** The set's pages: one floor plan per level. */
+const LEVELS = [1, 2, 3];
 
 const n = (v: number) => String(Math.round(v * 100) / 100);
 
@@ -27,7 +30,7 @@ function text(x: number, y: number, size: number, s: string): string {
   return `BT /F1 ${String(size)} Tf ${n(x)} ${n(y)} Td (${s}) Tj ET`;
 }
 
-function content(): string {
+function content(level: number): string {
   const out: string[] = ['0.2 0.2 0.2 RG 0.2 0.2 0.2 rg', '3 w 36 36 2520 1656 re S'];
   const right = GRID_X0 + GRID_DX * (COLS.length - 1);
   const top = H - GRID_Y0;
@@ -64,24 +67,34 @@ function content(): string {
   }
   for (let i = 0; i < COLS.length - 1; i += 1) {
     const cx = GRID_X0 + i * GRID_DX + GRID_DX / 2;
-    out.push(text(cx - 62, top - 140, 22, `ROOM 2${String(i + 1).padStart(2, '0')}`));
-    out.push(text(cx - 62, bottom + 140, 22, `ROOM 2${String(i + 11)}`));
+    out.push(text(cx - 62, top - 140, 22, `ROOM ${String(level)}${String(i + 1).padStart(2, '0')}`));
+    out.push(text(cx - 62, bottom + 140, 22, `ROOM ${String(level)}${String(i + 11)}`));
   }
   out.push(text(GRID_X0 + 40, top - 2 * GRID_DY + 24, 22, 'CORRIDOR'));
   // Title block.
   out.push('3 w 2196 36 m 2196 1692 l S', '2196 330 m 2556 330 l S');
-  out.push(text(2226, 270, 30, 'SAMPLE JOB A'), text(2226, 220, 22, 'LEVEL 02 FLOOR PLAN'), text(2226, 90, 90, 'A-201'));
+  out.push(
+    text(2226, 270, 30, 'SAMPLE JOB A'),
+    text(2226, 220, 22, `LEVEL 0${String(level)} FLOOR PLAN`),
+    text(2226, 90, 90, `A-10${String(level)}`),
+  );
   return out.join('\n');
 }
 
 function pdf(): string {
-  const stream = content();
+  // Objects: 1 catalog, 2 pages, 3 font, then each page and its content stream.
+  const pageRef = (k: number) => 4 + 2 * k;
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${String(W)} ${String(H)}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /Pages /Kids [${LEVELS.map((_, k) => `${String(pageRef(k))} 0 R`).join(' ')}] /Count ${String(LEVELS.length)} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
-    `<< /Length ${String(stream.length)} >>\nstream\n${stream}\nendstream`,
+    ...LEVELS.flatMap((level, k) => {
+      const stream = content(level);
+      return [
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${String(W)} ${String(H)}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${String(pageRef(k) + 1)} 0 R >>`,
+        `<< /Length ${String(stream.length)} >>\nstream\n${stream}\nendstream`,
+      ];
+    }),
   ];
   let body = '%PDF-1.4\n';
   const offsets: number[] = [];

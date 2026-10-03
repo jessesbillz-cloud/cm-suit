@@ -3,8 +3,9 @@
 // on. Undo, and Clear (which Undo brings back). Read-only shows the sheet, the marks and the legend.
 //
 // No data fetching here: the caller passes a fresh signed URL of the sheet (src/data/sheetUrl.ts useSheetUrl) and saves
-// what onChange hands back (the whole list of strokes after every change).
-import { useCallback, useState, type KeyboardEvent } from 'react';
+// what onChange hands back (the whole list of strokes after every change). `onPages` hears the PDF's page count once it
+// is open (a plan set kept as one PDF: the caller's page picker); another page starts a new Undo history.
+import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { useToast } from '../../../ui/Toast';
 import {
@@ -24,15 +25,28 @@ interface SheetMarkupProps {
   items: MarkupItem[];
   readOnly: boolean;
   onChange: (strokes: Stroke[]) => void;
+  onPages?: ((pages: number) => void) | undefined;
 }
 
-export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange }: SheetMarkupProps) {
-  const { sheet, retry } = useSheetPage(sheetUrl, page);
+export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange, onPages }: SheetMarkupProps) {
+  const { sheet, pages, retry } = useSheetPage(sheetUrl, page);
   const toast = useToast();
   const [picked, setPicked] = useState<MarkupColor | null>(items[0]?.color ?? null);
   const [moving, setMoving] = useState(false);
   const [past, setPast] = useState<Stroke[][]>([]);
+  const [pastOf, setPastOf] = useState(`${sheetUrl}#${String(page)}`);
   const [renderError, setRenderError] = useState<Error | null>(null);
+
+  // Undo steps back through the marks of this page only.
+  const shown = `${sheetUrl}#${String(page)}`;
+  if (pastOf !== shown) {
+    setPastOf(shown);
+    setPast([]);
+  }
+
+  useEffect(() => {
+    if (pages !== null) onPages?.(pages);
+  }, [pages, onPages]);
 
   const pen = readOnly || moving || !items.some((it) => it.color === picked) ? null : picked;
   const aspect = sheet.status === 'ready' ? sheet.aspect : 1;
