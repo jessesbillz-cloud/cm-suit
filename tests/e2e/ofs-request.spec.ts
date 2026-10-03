@@ -1,7 +1,7 @@
 // The OFS request on a job with revs (0056) against the e2e mock (job-s, Sample Science Building): a link from Revs
-// prefills the walls and items, three items at most (OSFM: three colors on a sheet), the map opens right after sending
-// and one stroke saves itself; then the deputy fails one wall (a reason first) and passes the rest. The map PDF and
-// its download are server-only, so Make map here only marks the map as made.
+// prefills the wall and item buttons (ui/ChipPick: aria-pressed), three items at most (OSFM: three colors on a sheet),
+// the map opens right after sending and one stroke saves itself; then the deputy fails one wall (a reason first) and
+// passes the rest. The map PDF and its download are server-only, so Make map here only marks the map as made.
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
 
@@ -27,15 +27,15 @@ test.describe('OFS request with revs', () => {
     await page.goto(`/p/job-s/inspections/new?areas=${WALLS.join(',')}&items=${ITEMS.join(',')}`);
     await expect(page.getByTestId('rev-picker')).toBeVisible();
     await expect(page.getByTestId('ir-kind-ofs')).toHaveAttribute('aria-checked', 'true');
-    for (const w of WALLS) await expect(page.getByTestId(`rev-wall-${w}`)).toBeChecked();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-1')).not.toBeChecked();
+    for (const w of WALLS) await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('rev-wall-mock-rev-area-1')).toHaveAttribute('aria-pressed', 'false');
 
-    // The first three items in list order; a fourth can't be picked until one comes off.
-    for (const i of ITEMS.slice(0, 3)) await expect(page.getByTestId(`rev-item-${i}`)).toHaveAttribute('aria-checked', 'true');
+    // The first three items in list order; a fourth (in any rev) can't be picked until one comes off.
+    for (const i of ITEMS.slice(0, 3)) await expect(page.getByTestId(`rev-item-${i}`)).toHaveAttribute('aria-pressed', 'true');
     const fourth = page.getByTestId('rev-item-mock-rev-item-3-4');
-    await expect(fourth).toHaveAttribute('aria-checked', 'false');
+    await expect(fourth).toHaveAttribute('aria-pressed', 'false');
     await expect(fourth).toBeDisabled();
-    await expect(page.getByTestId('rev-items-count')).toHaveText('3 of 3');
+    await expect(page.getByTestId('rev-item-mock-rev-item-6-1')).toBeDisabled();
     await page.getByTestId('rev-item-mock-rev-item-3-3').click();
     await expect(fourth).toBeEnabled();
     await page.getByTestId('rev-item-mock-rev-item-3-3').click();
@@ -93,8 +93,8 @@ test.describe('OFS request with revs', () => {
     await page.goto('/p/job-s/inspections/new?areas=mock-rev-area-1,mock-rev-area-2&items=mock-rev-item-0-1,mock-rev-item-1-3');
     const tow = page.getByTestId('rev-item-mock-rev-item-0-1');
     await expect(tow).toBeDisabled();
-    await expect(tow).toHaveAttribute('aria-checked', 'false');
-    await expect(tow).toContainText('Done');
-    await expect(page.getByTestId('rev-item-mock-rev-item-1-3')).toHaveAttribute('aria-checked', 'true');
+    await expect(tow).toHaveAttribute('aria-pressed', 'false');
+    await expect(tow).toHaveAttribute('data-done', 'true');
+    await expect(page.getByTestId('rev-item-mock-rev-item-1-3')).toHaveAttribute('aria-pressed', 'true');
   });
 });

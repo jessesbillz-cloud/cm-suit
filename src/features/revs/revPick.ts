@@ -1,7 +1,7 @@
 // The revs request picker's rules (RevPicker): a list's walls by level and its items by rev; what each item still needs
-// on the picked walls (open, done = passed or N/A, requested, failed); the items and walls the request carries once the
-// database leaves out what is done (ir_ofs_cells), their colors (1..3 in list order, as the database gives them), and
-// the map's "what" and title. Pure; tested in revPick.test.ts.
+// on the picked walls (open, done = passed or N/A, requested, failed) and the one state its button shows; the items and
+// walls the request carries once the database leaves out what is done (ir_ofs_cells), their colors (1..3 in list order,
+// as the database gives them), and the map's "what" and title. Pure; tested in revPick.test.ts.
 import type { RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { mapTitle, type MarkupColor } from '../../lib/markup';
 
@@ -68,7 +68,7 @@ export function itemsByRev(setup: RevSetup, listId: string | null): RevGroup[] {
     .filter((g) => g.items.length > 0);
 }
 
-export interface ItemNeed {
+interface ItemNeed {
   /** Picked walls that still need it (not passed, not N/A). */
   open: number;
   /** Picked walls where it passed or is N/A. */
@@ -97,6 +97,16 @@ export function itemNeed(index: StatusIndex, itemId: string, areaIds: readonly s
 /** Passed or N/A on every picked wall: nothing left to ask for, so it can't be picked. */
 export function isDone(need: ItemNeed): boolean {
   return need.open === 0 && need.done > 0;
+}
+
+/** What an item's button shows on the picked walls: done (not pickable), already asked for, failed last time, or open. */
+export type ItemState = 'done' | 'requested' | 'failed' | 'open';
+
+export function itemState(index: StatusIndex, itemId: string, areaIds: readonly string[]): ItemState {
+  const need = itemNeed(index, itemId, areaIds);
+  if (isDone(need)) return 'done';
+  if (need.requested > 0) return 'requested';
+  return need.failed > 0 ? 'failed' : 'open';
 }
 
 interface RequestItem {
@@ -156,13 +166,10 @@ export function sheetCount(walls: readonly RevArea[]): number {
   return new Set(walls.flatMap((a) => (a.sheet_file_id === null ? [] : [a.sheet_file_id]))).size;
 }
 
-/** Walls on or off. Items no picked wall needs any more drop off: they would leave nothing to inspect. */
-export function toggleWalls(setup: RevSetup, index: StatusIndex, pick: RevPick, areaIds: readonly string[], on: boolean): RevPick {
-  const set = new Set(pick.areaIds);
-  for (const id of areaIds) {
-    if (on) set.add(id);
-    else set.delete(id);
-  }
+/** The picked walls (kept in their setup order). Items no picked wall needs any more drop off: they would leave nothing
+ *  to inspect. */
+export function pickWalls(setup: RevSetup, index: StatusIndex, pick: RevPick, areaIds: readonly string[]): RevPick {
+  const set = new Set(areaIds);
   const next = setup.areas.filter((a) => set.has(a.id)).map((a) => a.id);
   const itemIds = next.length === 0 ? pick.itemIds : pick.itemIds.filter((i) => itemNeed(index, i, next).open > 0);
   return { ...pick, areaIds: next, itemIds };

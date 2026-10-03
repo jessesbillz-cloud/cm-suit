@@ -1,71 +1,42 @@
-// The request picker's walls: grouped by level, any number, "All" per level. 44 px rows; names wrap, never cut.
-import { useId } from 'react';
-import { FIELD_LABEL } from '../../ui/Fields';
+// The request picker's walls, the way My Daily Reports lays out a Special inspection's kinds: one button per wall that
+// just says which wall (its callout: a room number or a descriptive name), by level under a thin level label. Any
+// number; a tap picks, a second tap drops. Names wrap, never cut.
+import { ChipPick } from '../../ui/ChipPick';
 import type { LevelGroup } from './revPick';
+
+/** The thin label over a group of buttons (a level, a rev). */
+export const GROUP_LABEL = 'text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3';
 
 interface RevWallsProps {
   groups: readonly LevelGroup[];
   picked: readonly string[];
-  onToggle: (areaIds: string[], on: boolean) => void;
+  /** Every picked wall after a tap. */
+  onChange: (areaIds: string[]) => void;
 }
 
-export function RevWalls({ groups, picked, onToggle }: RevWallsProps) {
-  const set = new Set(picked);
-  const labelId = useId();
+export function RevWalls({ groups, picked, onChange }: RevWallsProps) {
   return (
-    <div role="group" aria-labelledby={labelId} className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span id={labelId} className={FIELD_LABEL}>
-          Walls
-        </span>
-        {picked.length > 0 ? (
-          <span className="text-xs tabular-nums text-ink-2" data-testid="rev-walls-count">
-            {picked.length}
-          </span>
-        ) : null}
-      </div>
-      <div className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card shadow-control">
-        {groups.map((g) => {
-          const all = g.areas.every((a) => set.has(a.id));
-          return (
-            <div key={g.level} role="group" aria-label={g.level}>
-              <div className="flex min-h-10 items-center justify-between gap-2 bg-card-head pl-3 pr-1">
-                <span className="text-[13px] font-semibold text-ink">{g.level}</span>
-                <button
-                  type="button"
-                  className="h-9 rounded-md px-3 text-[13px] font-medium text-accent hover:bg-accent-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                  onClick={() => {
-                    onToggle(
-                      g.areas.map((a) => a.id),
-                      !all,
-                    );
-                  }}
-                >
-                  {all ? 'None' : 'All'}
-                </button>
-              </div>
-              <ul>
-                {g.areas.map((a) => (
-                  <li key={a.id} className="border-t border-line first:border-t-0">
-                    <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2 text-sm text-ink hover:bg-page/60">
-                      <input
-                        type="checkbox"
-                        className="h-[18px] w-[18px] shrink-0 accent-accent"
-                        checked={set.has(a.id)}
-                        data-testid={`rev-wall-${a.id}`}
-                        onChange={(e) => {
-                          onToggle([a.id], e.target.checked);
-                        }}
-                      />
-                      <span className="break-words">{a.name}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+    <div className="flex flex-col gap-3" data-testid="rev-walls-pick">
+      {groups.map((g) => {
+        const here = new Set(g.areas.map((a) => a.id));
+        return (
+          <div key={g.level} className="flex flex-col gap-1.5">
+            <span aria-hidden className={GROUP_LABEL}>
+              {g.level}
+            </span>
+            <ChipPick
+              label={g.level}
+              multiple
+              chips={g.areas.map((a) => ({ value: a.id, label: a.name }))}
+              picked={picked.filter((id) => here.has(id))}
+              onChange={(next) => {
+                onChange([...picked.filter((id) => !here.has(id)), ...next]);
+              }}
+              testId="rev-wall"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

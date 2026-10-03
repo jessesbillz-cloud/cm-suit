@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { RevSetup, RevStatusRow } from '../../data/revs.types';
 import {
-  firstSheet, isDone, itemNeed, itemsByRev, mapWhat, prefillPick, requestItems, requestWalls, sheetCount, statusIndex,
-  titlePreview, toggleItem, toggleWalls, wallsByLevel, type RevPick,
+  firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
+  sheetCount, statusIndex, titlePreview, toggleItem, wallsByLevel, type RevPick,
 } from './revPick';
 
 const row = { project_id: 'job', version: 1, deleted_at: null };
@@ -64,6 +64,14 @@ describe('the walls and items to pick from', () => {
     // No wall picked: nothing is done yet.
     expect(isDone(itemNeed(INDEX, 'tow', []))).toBe(false);
   });
+  it("gives each item's button one state: done, then requested, then failed, else open", () => {
+    expect(itemState(INDEX, 'tow', ['w1', 'w2'])).toBe('done');
+    // Done on one picked wall only: still open on the other.
+    expect(itemState(INDEX, 'tow', ['w1', 'w10'])).toBe('open');
+    expect(itemState(INDEX, 'stuff', ['w1', 'w2'])).toBe('requested');
+    expect(itemState(INDEX, 'stuff', ['w2'])).toBe('failed');
+    expect(itemState(INDEX, 'caulk', ['w1'])).toBe('open');
+  });
 });
 
 describe('what the request carries', () => {
@@ -105,11 +113,11 @@ describe('picking', () => {
     expect(p.itemIds).toEqual(['stuff', 'caulk', 'tape']);
     expect(toggleItem(p, 'caulk').itemIds).toEqual(['stuff', 'tape']);
   });
-  it('drops an item the picked walls no longer need', () => {
-    const p = toggleWalls(SETUP, INDEX, pick(['w10'], ['tow', 'caulk']), ['w10'], false);
+  it('keeps the walls in their order and drops an item the picked walls no longer need', () => {
+    const p = pickWalls(SETUP, INDEX, pick(['w10'], ['tow', 'caulk']), []);
     // No wall left: the items stay, for when walls are picked again.
     expect(p.itemIds).toEqual(['tow', 'caulk']);
-    const onLevel2 = toggleWalls(SETUP, INDEX, p, ['w1', 'w2'], true);
+    const onLevel2 = pickWalls(SETUP, INDEX, p, ['w2', 'w1', 'nope']);
     expect(onLevel2.areaIds).toEqual(['w1', 'w2']);
     expect(onLevel2.itemIds).toEqual(['caulk']);
   });
