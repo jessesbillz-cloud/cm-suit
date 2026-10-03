@@ -23,12 +23,19 @@ interface ClickWindow {
   __tapCount: number;
 }
 
-/** Switches the mock user and opens a page. The mock's data stays in this tab's sessionStorage. */
+/** Switches the mock user and opens a page. The mock's data stays in this tab's sessionStorage. If the page we're on
+ * reloads itself just then (the dev server's first-load dependency pass), the open is tried once more after it. */
 async function openAs(page: Page, who: string, path: string): Promise<void> {
   await page.evaluate((w: string) => {
     window.localStorage.setItem('e2e-mock-user', w);
   }, who);
-  await page.goto(path);
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
 }
 
 /** Signs in as a mock user and counts every click on the page (capture phase). */
