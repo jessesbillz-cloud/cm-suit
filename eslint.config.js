@@ -26,6 +26,8 @@ export default tseslint.config(
       'supabase/functions/**', // Deno; linted by `deno lint` in CI
       'src/data/database.types.ts',
       'public/sw.js',
+      'src/vendor/**', // vendored third-party builds (pdf.js), minified as released
+      'public/vendor/**', // pdf.js's image decoders, as released
     ],
   },
   js.configs.recommended,

@@ -103,4 +103,6 @@ export const qk = {
   /** An OFS request's cells and its map (0056), by request. */
   irRevItems: (requestId: string) => ['ir_rev_items', requestId] as const,
   irMap: (requestId: string) => ['ir_map', requestId] as const,
+  /** A request map's sheet: a short-lived signed URL (ir-map 'sheet'), per request and sheet file. */
+  sheetUrl: (requestId: string, sheetFileId: string) => ['sheet_url', requestId, sheetFileId] as const,
 };

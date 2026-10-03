@@ -13,7 +13,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: false, // public/manifest.webmanifest is hand-written
-      workbox: { globPatterns: ['**/*.{js,css,html,woff2,svg,png}'] },
+      // pdf.js's image decoders (public/vendor) load only when a sheet needs them, never into everyone's cache.
+      workbox: { globPatterns: ['**/*.{js,css,html,woff2,svg,png}'], globIgnores: ['**/node_modules/**/*', 'vendor/**'] },
     }),
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },

@@ -4,7 +4,7 @@
     ".": {
       "entry": ["tests/security/*.ts", "tests/e2e/**/*.ts", "scripts/*.mjs", "scripts/*.ts", "scripts/eslint-rules/*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}", "tests/**/*.ts"],
-      "ignore": ["src/data/database.types.ts"]
+      "ignore": ["src/data/database.types.ts", "src/vendor/**"]
     },
     "worker": {
       "project": ["src/**/*.ts"]
