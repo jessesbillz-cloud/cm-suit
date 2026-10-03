@@ -30,7 +30,13 @@ export interface StampInput {
 const MARGIN = 36;
 const SIG_WIDTH = 150;
 const SIG_MAX_HEIGHT = 54;
-const TEXT_SIZE = 8;
+/** The "Signed by" line's size (Helvetica), for a page that lays out room for it (the inspection map's title box). */
+export const STAMP_TEXT_SIZE = 8;
+
+/** The words the stamp writes beside the signature. */
+export function signedByLine(input: Pick<StampInput, 'name' | 'signedAtLabel'>): string {
+  return `Signed by ${input.name} · ${input.signedAtLabel}`;
+}
 
 /** Stamps the last page, bottom right (or left), or the given spot. Returns new PDF bytes; the input is not modified. */
 export async function stampSignature(pdfBytes: Uint8Array, input: StampInput): Promise<Uint8Array> {
@@ -41,8 +47,8 @@ export async function stampSignature(pdfBytes: Uint8Array, input: StampInput): P
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const { width: pageWidth } = page.getSize();
-  const text = `Signed by ${input.name} · ${input.signedAtLabel}`;
-  const textW = font.widthOfTextAtSize(text, TEXT_SIZE);
+  const text = signedByLine(input);
+  const textW = font.widthOfTextAtSize(text, STAMP_TEXT_SIZE);
   const color = rgb(0.2, 0.2, 0.2);
 
   if (input.at) {
@@ -52,7 +58,7 @@ export async function stampSignature(pdfBytes: Uint8Array, input: StampInput): P
       const scale = Math.min(width / png.width, height / png.height);
       page.drawImage(png, { x, y, width: png.width * scale, height: png.height * scale });
     }
-    page.drawText(text, { x: x + width + 8, y: y + 1, size: TEXT_SIZE, font, color });
+    page.drawText(text, { x: x + width + 8, y: y + 1, size: STAMP_TEXT_SIZE, font, color });
     return doc.save();
   }
 
@@ -62,9 +68,9 @@ export async function stampSignature(pdfBytes: Uint8Array, input: StampInput): P
     const scale = Math.min(SIG_WIDTH / png.width, SIG_MAX_HEIGHT / png.height);
     const sigW = png.width * scale;
     const sigH = png.height * scale;
-    page.drawImage(png, { x: left ? MARGIN : pageWidth - MARGIN - sigW, y: MARGIN + TEXT_SIZE + 4, width: sigW, height: sigH });
+    page.drawImage(png, { x: left ? MARGIN : pageWidth - MARGIN - sigW, y: MARGIN + STAMP_TEXT_SIZE + 4, width: sigW, height: sigH });
   }
-  page.drawText(text, { x: left ? MARGIN : pageWidth - MARGIN - textW, y: MARGIN, size: TEXT_SIZE, font, color });
+  page.drawText(text, { x: left ? MARGIN : pageWidth - MARGIN - textW, y: MARGIN, size: STAMP_TEXT_SIZE, font, color });
   return doc.save();
 }
 
