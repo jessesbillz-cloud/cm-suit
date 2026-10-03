@@ -97,4 +97,6 @@ export const qk = {
   requestLinkDay: (projectId: string, via: string, day: string) => ['request_link_public', projectId, 'day', via, day] as const,
   /** A request's private status link (0055), by its receipt. */
   requestStatus: (projectId: string, receipt: string) => ['request_status', projectId, receipt] as const,
+  /** A request map's sheet: a short-lived signed URL (ir-map 'sheet'), per request and sheet file. */
+  sheetUrl: (requestId: string, sheetFileId: string) => ['sheet_url', requestId, sheetFileId] as const,
 };

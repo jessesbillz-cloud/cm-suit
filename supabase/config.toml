@@ -163,3 +163,7 @@ verify_jwt = false
 # --- Permits: the official stamps the plans and issues the permit (signed; one PDF per request) ---
 [functions.permit-stamp]
 verify_jwt = true
+
+# --- Revs: the OSFM inspection map (render, download / view, and the sheet for the in-app viewer) ---
+[functions.ir-map]
+verify_jwt = true

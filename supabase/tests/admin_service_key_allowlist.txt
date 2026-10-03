@@ -75,3 +75,8 @@ request-link
 # requireCapability('permits.manage'), the signing re-confirmation, permit_stamp_source() (authorize_download inside),
 # permit_record_stamped_set() or permit_approved() run as the user first.
 permit-stamp
+# Revs inspection maps: reads the sheet's files row and bytes, the signer's signature image and the map's ir_maps row,
+# gets the Reports folder (ir_folder_make: the requester may lack ir.decide), stores the map (storeGeneratedPdf), records
+# it (ir_map_attach, service-only) and signs URLs; ir_map_context() runs as the user first (it refuses anyone who can't
+# see the request), and every URL is handed out after authorize_ir_file() as the user.
+ir-map
