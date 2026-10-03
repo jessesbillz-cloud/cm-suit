@@ -14,3 +14,5 @@ export const PROGRESS_ITEM = 'progress';
 export const CONTRACT_ITEM = 'contract';
 /** Timesheets: the billing form. */
 export const BILLING_ITEM = 'billing';
+/** Revs: adding walls to a list. */
+export const WALLS_ITEM = 'walls';

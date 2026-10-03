@@ -2,8 +2,8 @@
 // status pipeline. Small round dots on a thin line, a short label (and a time) under each. Done: a green dot with a
 // check, and the line into the next step turns green once that step is reached. Has it now: a ringed dot with its
 // number. Ahead: a grey outline with its number. Failed (not approved, returned): red with a cross. Colors from
-// lib/status only. Used by the RFI route strip, the inspection request tracker and the permit tracker (which may split
-// its stages over two rows: the second row numbers on from the first).
+// lib/status only. Used by the RFI route strip, the inspection request tracker, the permit tracker (which may split
+// its stages over two rows: the second row numbers on from the first) and a wall's revs (reached in any order).
 import type { CSSProperties } from 'react';
 import { Check, X } from 'lucide-react';
 import { Icon } from './Icon';
@@ -30,6 +30,8 @@ interface StepperProps {
   testId?: string | undefined;
   /** The first step's number (a tracker split over two rows numbers on). */
   start?: number | undefined;
+  /** Steps reached in any order (a wall's revs): a line is colored only when the step before it was reached too. */
+  anyOrder?: boolean | undefined;
 }
 
 const KEY: Record<StepperState, string> = { done: 'step_done', current: 'step_current', todo: 'step_ahead', failed: 'late' };
@@ -61,13 +63,13 @@ function Dot({ state, n, size }: DotProps) {
   );
 }
 
-/** The line into step i is colored once step i is reached (done, has it, or failed). */
-function lineColor(state: StepperState): string {
-  if (state === 'todo') return `var(--status-step_ahead-dot)`;
+/** The line into step i is colored once step i is reached (done, has it, or failed); in any order, once both ends are. */
+function lineColor(state: StepperState, before: StepperState | undefined, anyOrder: boolean): string {
+  if (state === 'todo' || (anyOrder && before === 'todo')) return `var(--status-step_ahead-dot)`;
   return state === 'failed' ? `var(--status-late-dot)` : `var(--status-step_done-solid)`;
 }
 
-export function Stepper({ steps, size = 'md', label = 'Progress', testId, start = 1 }: StepperProps) {
+export function Stepper({ steps, size = 'md', label = 'Progress', testId, start = 1, anyOrder = false }: StepperProps) {
   if (steps.length === 0) return null;
   const top = size === 'sm' ? 'top-[9px]' : 'top-[11px]';
   return (
@@ -84,7 +86,7 @@ export function Stepper({ steps, size = 'md', label = 'Progress', testId, start 
             className="relative flex min-w-0 flex-1 flex-col items-center gap-1 text-center"
           >
             {i > 0 ? (
-              <span aria-hidden="true" className={`absolute right-1/2 h-0.5 w-full -translate-y-1/2 ${top}`} style={{ background: lineColor(s.state) }} />
+              <span aria-hidden="true" className={`absolute right-1/2 h-0.5 w-full -translate-y-1/2 ${top}`} style={{ background: lineColor(s.state, steps[i - 1]?.state, anyOrder) }} />
             ) : null}
             <Dot state={s.state} n={start + i} size={size} />
             <span className={`break-words px-0.5 leading-[13px] ${size === 'sm' ? 'text-[10.5px]' : 'text-[11.5px]'} ${text}`} style={{ color }}>

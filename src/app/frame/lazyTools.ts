@@ -24,6 +24,7 @@ export const DailiesTool = lazyRouteComponent(() => import('../../features/daili
 export const InspectionsTool = lazyRouteComponent(() =>
   import('../../features/inspections/InspectionsTool').then((m) => ({ default: m.InspectionsTool })),
 );
+export const RevsTool = lazyRouteComponent(() => import('../../features/revs/RevsTool').then((m) => ({ default: m.RevsTool })));
 export const DeliveriesTool = lazyRouteComponent(() =>
   import('../../features/deliveries/DeliveriesTool').then((m) => ({ default: m.DeliveriesTool })),
 );
@@ -48,6 +49,7 @@ export const DailiesItem = lazyRouteComponent(() => import('../../features/daili
 export const InspectionsItem = lazyRouteComponent(() =>
   import('../../features/inspections/InspectionsItem').then((m) => ({ default: m.InspectionsItem })),
 );
+export const RevsItem = lazyRouteComponent(() => import('../../features/revs/RevsItem').then((m) => ({ default: m.RevsItem })));
 export const DeliveryItem = lazyRouteComponent(() =>
   import('../../features/deliveries/DeliveryItem').then((m) => ({ default: m.DeliveryItem })),
 );
@@ -91,6 +93,8 @@ function partsOf(tool: Tool, onJob: boolean): readonly Part[] {
       return [DailiesTool, DailiesItem];
     case 'inspections':
       return [InspectionsTool, InspectionsItem];
+    case 'revs':
+      return [RevsTool, RevsItem];
     case 'deliveries':
       return [DeliveriesTool, DeliveryItem];
     case 'corrections':

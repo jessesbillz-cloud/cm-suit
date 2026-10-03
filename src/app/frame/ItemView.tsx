@@ -3,7 +3,7 @@
 // Item code loads on first use (lazyTools), with the usual loading line meanwhile.
 import { Suspense } from 'react';
 import type { Tool } from '../../lib/layout';
-import { BILLING_ITEM, CONTRACT_ITEM, SHARE_ITEM } from '../../lib/itemIds';
+import { BILLING_ITEM, CONTRACT_ITEM, NEW_ITEM, SHARE_ITEM, WALLS_ITEM } from '../../lib/itemIds';
 import { EmptyState, LoadingState } from '../../ui/States';
 import { commentTarget } from './commentTarget';
 import {
@@ -18,6 +18,7 @@ import {
   HoursItem,
   InspectionsItem,
   PermitItem,
+  RevsItem,
   RfiItem,
   TimesheetsItem,
 } from './lazyTools';
@@ -66,6 +67,7 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   if (tool === 'inspections' && model.loc.projectId !== null) {
     return <InspectionsItem projectId={model.loc.projectId} itemId={itemId} onOpenWindow={openWindow} />;
   }
+  if (tool === 'revs' && model.loc.projectId !== null) return <RevsItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
   if (tool === 'deliveries' && model.loc.projectId !== null) return <DeliveryItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'corrections' && model.loc.projectId !== null) {
     return (
@@ -112,6 +114,7 @@ export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'calendar') return 'Calendar';
   if (tool === 'dailies') return 'Dailies';
   if (tool === 'inspections') return itemId === SHARE_ITEM ? 'Share' : 'Inspection';
+  if (tool === 'revs') return itemId === NEW_ITEM ? 'New list' : itemId === WALLS_ITEM ? 'Add walls' : 'Wall';
   if (tool === 'deliveries') return 'Delivery';
   if (tool === 'corrections') return 'Corrections';
   if (tool === 'rfis') return 'RFI';
