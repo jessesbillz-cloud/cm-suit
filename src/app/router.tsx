@@ -40,14 +40,26 @@ interface ToolSearch {
   /** Logs: the sort ("column.asc|desc") and the search box, shared by the list and the reading pane's arrow keys. */
   sort?: string;
   q?: string;
+  /** Inspections > new request from Revs (0056): the walls and items to prefill, comma-separated ids. */
+  areas?: string;
+  items?: string;
 }
 
 function str(v: unknown): string | undefined {
   return typeof v === 'string' && v !== '' ? v : undefined;
 }
 
+const ID_LIST = /^[0-9a-z-]{1,64}(,[0-9a-z-]{1,64}){0,199}$/;
+
+function idList(v: unknown): string | undefined {
+  const t = str(v);
+  return t && ID_LIST.test(t) ? t : undefined;
+}
+
 function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const folder = str(s['folder']);
+  const areas = idList(s['areas']);
+  const items = idList(s['items']);
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const day = str(s['day']);
@@ -62,6 +74,8 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
     ...(sort ? { sort } : {}),
     ...(q ? { q } : {}),
+    ...(areas ? { areas } : {}),
+    ...(items ? { items } : {}),
   };
 }
 
