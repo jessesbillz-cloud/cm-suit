@@ -43,7 +43,7 @@ test.describe('dailies (SPEC §13.1)', () => {
     await page.goto('/p/job-a/dailies');
     await page.getByTestId('daily-setup-open').click();
     const setup = page.getByTestId('daily-setup');
-    await expect(setup.getByTestId('daily-form')).toHaveValue('daily');
+    await expect(setup.getByTestId('daily-form-daily')).toHaveAttribute('aria-pressed', 'true');
     await expect(setup.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Daily Report');
     await expect(setup.getByTestId('daily-filename-preview')).toContainText(/^Daily Report 1 Sample Job A \d{2}-\d{2}-\d{4}\.pdf$/);
   });
@@ -55,7 +55,7 @@ test.describe('dailies (SPEC §13.1)', () => {
     await expect(page.getByTestId('daily-today')).toBeVisible();
     await page.getByTestId('daily-setup-open').click();
     const setup = page.getByTestId('daily-setup');
-    await expect(setup.getByTestId('daily-form')).toHaveValue('vis_daily');
+    await expect(setup.getByTestId('daily-form-vis_daily')).toHaveAttribute('aria-pressed', 'true');
     await expect(setup.getByTestId('job-field-project_name')).toHaveValue('Sample School Wing');
     await expect(setup.getByTestId('job-field-project_no')).toHaveValue('S-400');
     await expect(setup.getByTestId('job-field-jurisdiction')).toHaveValue('DSA');
@@ -87,10 +87,10 @@ test.describe('dailies (SPEC §13.1)', () => {
     await page.getByTestId('daily-setup-open').click();
     const setup = page.getByTestId('daily-setup');
     await expect(setup.getByTestId('daily-job-fields')).toBeVisible();
-    await setup.getByTestId('daily-form').selectOption('daily');
+    await setup.getByTestId('daily-form-daily').click();
     await expect(setup.getByTestId('daily-job-fields')).toHaveCount(0);
     await expect(setup.getByTestId('daily-filename-preview')).toContainText(/^Daily Report 1 Sample School Wing/);
-    await setup.getByTestId('daily-form').selectOption('vis_daily');
+    await setup.getByTestId('daily-form-vis_daily').click();
     await expect(setup.getByTestId('job-field-project_name')).toHaveValue('Sample School Wing');
   });
 });

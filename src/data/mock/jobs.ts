@@ -5,6 +5,7 @@ import type { MyOrg, MyProject, NewJobInput, OrgPatch, ProjectPatch, ProjectRow 
 import { MOCK_DEFAULT_MODULES, MOCK_ORGS, MOCK_PROJECTS, mockProfile, NEWCOMER_ID } from './fixtures';
 import { missingDsaFolders, newJobFolders } from './folders';
 import { FORM_ORG, FORM_ORG_SETTINGS, formJobRows } from './formJobs';
+import { gcJobRole, gcJobRows } from './gcJobs';
 import { mockUser } from './index';
 import { PERMIT_ORG, isOfficial, permitJobRole, permitJobRows } from './permitJobs';
 import { pipelineJobRows } from './pipelineJobs';
@@ -38,7 +39,7 @@ function fixtureRow(p: MyProject): ProjectRow {
 function fixtureRows(): ProjectRow[] {
   if (isNewcomer()) return [];
   if (isOfficial()) return permitJobRows();
-  return [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows(), ...formJobRows(), ...permitJobRows()];
+  return [...MOCK_PROJECTS.map(fixtureRow), ...pipelineJobRows(), ...formJobRows(), ...permitJobRows(), ...gcJobRows()];
 }
 
 function projectRows(): ProjectRow[] {
@@ -78,7 +79,7 @@ export async function projects(): Promise<MyProject[]> {
     name: r.name,
     number: r.number ?? '',
     org_name: orgList.find((o) => o.org_id === r.org_id)?.name ?? orgName(r.org_id),
-    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? permitJobRole(r.id) ?? creatorRole(r.org_id),
+    role: MOCK_PROJECTS.find((p) => p.project_id === r.id)?.role ?? permitJobRole(r.id) ?? gcJobRole(r.id) ?? creatorRole(r.org_id),
     stage: r.stage,
     timezone: r.timezone,
     modules: r.modules,

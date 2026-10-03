@@ -138,6 +138,7 @@ export function useReportDraft(projectId: string, report: DailyReportRow, saved:
     (change: (c: DailyContent) => DailyContent) => {
       if (stopped.current) return;
       const next = change(latest.current);
+      if (next === latest.current) return; // nothing changed: nothing to save
       latest.current = next;
       edits.current += 1;
       setContent(next);

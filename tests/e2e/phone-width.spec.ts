@@ -22,6 +22,7 @@ const PAGES = [
   '/p/job-a/safety?view=library',
   '/p/job-a/safety/mock-meeting-1',
   '/p/job-a/safety/new',
+  '/p/job-g/dailies',
 ];
 
 test.describe('phone width', () => {

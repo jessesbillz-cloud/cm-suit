@@ -19,6 +19,7 @@ const RECOMMENDED: Record<string, readonly string[]> = {
   ahj: ['board', 'calendar', 'permits', 'inspections', 'revs', 'files'],
   superintendent: ['board', 'calendar', 'dailies', 'safety', 'inspections', 'deliveries'],
   safety: ['board', 'safety', 'calendar'],
+  foreman: ['board', 'calendar', 'dailies', 'safety', 'inspections', 'deliveries'],
 };
 
 const ALWAYS_ON = ['board', 'people'];

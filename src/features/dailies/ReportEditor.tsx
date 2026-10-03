@@ -1,14 +1,15 @@
-// One report being written. Work log: weather, work log, notes, photos. A company form (SPEC §8.3): its day's values
-// (FormFields) and photos. Field Mode (the phone's default): a big Camera button and the notes. Autosaves
-// (useReportDraft); a submitted report opens read-only until Edit. The bottom bar holds Submit (or Download / Send once
-// submitted) and the autosave line.
+// One report being written. Work log: weather, work log, notes, photos. A form (SPEC §8.3): its day's values and tables
+// (FormFields) and photos; a draft fills in what the job knows that day (useDayPrefill). Field Mode (the phone's default,
+// except for a form with tables, which opens whole): a big Camera button and the notes. Autosaves (useReportDraft); a
+// submitted report opens read-only until Edit. The bottom bar holds Submit (or Download / Send once submitted) and the
+// autosave line.
 import { useState } from 'react';
 import { Pencil, RotateCw, Smartphone, Trash2 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAddDailyPhotos, useCreateDailyReport, useDailyPhotoUploads, useDeleteDailyDraft, type PhotoPick } from '../../data/dailies.mutations';
 import type { DailyPhotoRow, DailyReportRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
-import { needsResubmit, type DailyContent, type DailyHeader, type ReportForm } from '../../lib/dailies';
+import { needsResubmit, tablesOf, type DailyContent, type DailyHeader, type ReportForm } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
@@ -21,6 +22,7 @@ import { numberLabel, reportChip } from './model';
 import { PhotoButtons } from './PhotoButtons';
 import { PhotoList } from './PhotoList';
 import { SubmitArea } from './SubmitArea';
+import { useDayPrefill } from './useDayPrefill';
 import { useReportDraft } from './useReportDraft';
 import { WorkLogBody } from './WorkLogBody';
 
@@ -92,9 +94,10 @@ export function ReportEditor(props: ReportEditorProps) {
   const restore = useCreateDailyReport(projectId);
   const toast = useToast();
   const navigate = useNavigate();
-  const [field, setField] = useState(isPhone);
+  const [field, setField] = useState(isPhone && (form === null || tablesOf(form).length === 0));
   const [editing, setEditing] = useState(false);
   const c = draft.content;
+  const prefill = useDayPrefill({ projectId, report, form, tz: header.timezone, content: c, edit: draft.edit });
   const stale = needsResubmit(report, photos) || (report.status === 'submitted' && draft.status !== 'saved');
   const locked = report.status === 'submitted' && !editing && !stale;
   const uploading = uploads.items.some((i) => i.status === 'queued' || i.status === 'uploading');
@@ -149,7 +152,7 @@ export function ReportEditor(props: ReportEditorProps) {
       tz={header.timezone}
       locked={locked}
       field={field}
-      describe={form !== null}
+      describe={form?.describePhotos === true}
       buttons={
         <PhotoButtons
           projectName={header.project_name}
@@ -185,6 +188,14 @@ export function ReportEditor(props: ReportEditorProps) {
       />
 
       <div className="flex flex-1 flex-col gap-3 p-3">
+        {prefill.error ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-danger" role="alert" data-testid="daily-prefill-error">
+            Sign-ins and deliveries didn't load.
+            <Button size="sm" icon={RotateCw} onClick={prefill.retry}>
+              Retry
+            </Button>
+          </p>
+        ) : null}
         {field ? photoList : null}
         {form ? (
           <>
@@ -195,6 +206,9 @@ export function ReportEditor(props: ReportEditorProps) {
               field={field}
               onField={(key, value) => {
                 draft.edit((x) => ({ ...x, fields: { ...x.fields, [key]: value } }));
+              }}
+              onTable={(key, change) => {
+                draft.edit((x) => ({ ...x, tables: { ...x.tables, [key]: change(x.tables[key] ?? []) } }));
               }}
             />
             <InspectionsList items={c.inspections} />

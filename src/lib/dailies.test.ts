@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DAILY_REPORT_TYPE,
   DAILY_SETTINGS_DEFAULTS,
+  FORM_CHOICES,
   activeReportType,
   asPdfName,
   dailyContentSchema,
@@ -13,7 +14,9 @@ import {
   needsResubmit,
   newSetupSettings,
   parseDailySettings,
+  tablesOf,
 } from './dailies';
+import { NUMBER_CELLS } from '../../supabase/functions/_shared/reportForms';
 import { buildFilename } from './buildFilename';
 
 describe('daily report content schema', () => {
@@ -83,15 +86,50 @@ describe('daily setup settings', () => {
 describe('company forms (SPEC §8.3)', () => {
   const known = { project_name: 'Sample School Wing', project_number: 'S-400', author_name: 'Pat Sample', is_dsa: true };
 
-  it('the form I write: the setup chosen last, else the company\'s form, else the work log', () => {
+  it('the form I write: the setup chosen last, else my role\'s form, else the company\'s form, else the work log', () => {
     const setups = [
       { report_type: 'daily', chosen_at: '2026-09-27T16:00:00.000000+00:00' },
       { report_type: 'vis_daily', chosen_at: '2026-09-28T16:00:00.000000+00:00' },
     ];
-    expect(activeReportType(setups, null)).toBe('vis_daily');
-    expect(activeReportType([], 'vis_daily')).toBe('vis_daily');
-    expect(activeReportType([], 'unknown_form')).toBe(DAILY_REPORT_TYPE);
-    expect(activeReportType([], null)).toBe(DAILY_REPORT_TYPE);
+    expect(activeReportType(setups, 'gc_daily', null)).toBe('vis_daily');
+    expect(activeReportType([], 'gc_daily', 'vis_daily')).toBe('gc_daily');
+    expect(activeReportType([], 'foreman_daily', null)).toBe('foreman_daily');
+    expect(activeReportType([], null, 'vis_daily')).toBe('vis_daily');
+    expect(activeReportType([], 'unknown_form', 'unknown_form')).toBe(DAILY_REPORT_TYPE);
+    expect(activeReportType([], null, null)).toBe(DAILY_REPORT_TYPE);
+  });
+
+  it('a new superintendent or foreman setup: the form\'s name and filename, no job values to type', () => {
+    const gc = newSetupSettings('gc_daily', known);
+    expect(gc.label).toBe('Daily Report');
+    expect(gc.filename_pattern).toBe('Daily Report {#} {Project} {MM-DD-YYYY}');
+    expect(gc.locked).toEqual({});
+    expect(newSetupSettings('foreman_daily', known).filename_pattern).toBe('Foreman Daily {#} {Project} {MM-DD-YYYY}');
+    expect(FORM_CHOICES.map((c) => c.value)).toEqual(['daily', 'vis_daily', 'gc_daily', 'foreman_daily']);
+  });
+
+  it('every table\'s number columns are the cells carryover clears (SQL daily_carryover: count, hours)', () => {
+    for (const choice of FORM_CHOICES) {
+      const form = formOf(choice.value);
+      if (!form) continue;
+      for (const t of tablesOf(form)) {
+        for (const c of t.columns) {
+          expect((NUMBER_CELLS as readonly string[]).includes(c.key)).toBe(c.number === true);
+        }
+        expect(new Set(t.columns.map((c) => c.key)).size).toBe(t.columns.length);
+      }
+      const keys = [...form.daily.map((f) => f.key), ...tablesOf(form).map((t) => t.key)];
+      expect(keys.every((k) => /^[a-z0-9_]{1,40}$/.test(k))).toBe(true);
+      expect(form.daily.some((f) => f.key === form.standing)).toBe(true);
+    }
+  });
+
+  it('a report keeps its tables; duplicate row keys in a table are refused', () => {
+    const c = dailyContentSchema.parse({ tables: { manpower: [{ key: 'm1', cells: { company: 'Sample Framing', count: '4' } }] } });
+    expect(c.tables['manpower']).toEqual([{ key: 'm1', ref: null, carry: false, cells: { company: 'Sample Framing', count: '4' } }]);
+    expect(c.pulled).toEqual([]);
+    expect(dailyContentSchema.safeParse({ tables: { manpower: [{ key: 'm1' }, { key: 'm1' }] } }).success).toBe(false);
+    expect(dailyContentSchema.safeParse({ tables: { crew: [{ key: 'c1' }], work: [{ key: 'c1' }] } }).success).toBe(true);
   });
 
   it('a new VIS setup: the form\'s name and filename, job values prefilled, everything else the defaults', () => {

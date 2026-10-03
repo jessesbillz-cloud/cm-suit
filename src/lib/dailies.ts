@@ -1,6 +1,6 @@
 // Daily reports: the ONE content schema, setup settings schema (defaults) and shared rules live with the edge functions
-// (supabase/functions/_shared/dailies.ts), and so do the company forms (_shared/reportForms.ts), so the browser and the
-// server read a report the same way. Here: which form a person writes, and a new setup's settings for it.
+// (supabase/functions/_shared/dailies.ts), and so do the forms (_shared/reportForms.ts), so the browser and the server
+// read a report the same way. Here: which form a person writes, and a new setup's settings for it.
 import { DAILY_REPORT_TYPE, DAILY_SETTINGS_DEFAULTS, type DailySettings } from '../../supabase/functions/_shared/dailies';
 import { formIdOf, formOf, newLockedValues, REPORT_FORMS, type KnownJob } from '../../supabase/functions/_shared/reportForms';
 
@@ -19,21 +19,35 @@ export {
   type DailyHeader,
   type DailySettings,
   type NoteKey,
+  type TableRow,
   type WorkRow,
 } from '../../supabase/functions/_shared/dailies';
-export { dailyValues, formOf, type FormField, type ReportForm } from '../../supabase/functions/_shared/reportForms';
+export {
+  dailyValues,
+  formOf,
+  tablesOf,
+  type FormColumn,
+  type FormField,
+  type FormTable,
+  type ReportForm,
+} from '../../supabase/functions/_shared/reportForms';
 
-/** The forms Setup offers: the built-in work log, then each company form. */
+/** The forms Setup offers: the built-in work log, then each form in the registry. */
 export const FORM_CHOICES: readonly { value: string; label: string }[] = [
   { value: DAILY_REPORT_TYPE, label: 'Work log' },
   ...Object.entries(REPORT_FORMS).map(([value, f]) => ({ value, label: f.name })),
 ];
 
-/** The form a person writes on a job: the setup they chose last, else the company's form (orgs.settings
- *  report_generator, when it names a known one), else the work log. */
-export function activeReportType(setups: readonly { report_type: string; chosen_at: string }[], orgGenerator: string | null): string {
+/** The form a person writes on a job: the setup they chose last; else their role's form (roles.daily_form, e.g. the
+ *  superintendent's daily); else their company's form (orgs.settings report_generator, e.g. an inspector company's
+ *  VIS form); else the work log. Only known forms count. */
+export function activeReportType(
+  setups: readonly { report_type: string; chosen_at: string }[],
+  roleForm: string | null,
+  orgGenerator: string | null,
+): string {
   const chosen = [...setups].sort((a, b) => b.chosen_at.localeCompare(a.chosen_at))[0];
-  return chosen?.report_type ?? formIdOf(orgGenerator) ?? DAILY_REPORT_TYPE;
+  return chosen?.report_type ?? formIdOf(roleForm) ?? formIdOf(orgGenerator) ?? DAILY_REPORT_TYPE;
 }
 
 /** A new setup's settings for a form: the one set of defaults, plus a company form's own name, filename and job values

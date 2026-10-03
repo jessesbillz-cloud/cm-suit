@@ -38,6 +38,40 @@ export type DailySetupRow = Pick<Tables<'daily_setups'>, 'id' | 'project_id' | '
 
 export const SETUP_COLS = 'id, project_id, report_type, settings, version, chosen_at';
 
+/** What the job knows that day (daily_day_facts, as the caller may read it): fills a report as it is opened. */
+export const dayFactsSchema = z.object({
+  /** Sign-ins at that day's safety meetings, by company and trade (a person once). */
+  signins: z.array(z.object({ company: z.string(), trade: z.string(), count: z.number().int() })),
+  /** That day's closed meetings. */
+  meetings: z.array(z.object({ id: z.string(), kind: z.string(), number: z.number().int(), title: z.string(), signed: z.number().int() })),
+  deliveries: z.array(
+    z.object({
+      id: z.string(),
+      number: z.number().int(),
+      /** UTC; null = time TBD. */
+      starts_at: z.string().nullable(),
+      company: z.string(),
+      description: z.string(),
+      standby: z.boolean(),
+    }),
+  ),
+  inspections: z.array(
+    z.object({
+      id: z.string(),
+      number: z.number().int(),
+      kind: z.string(),
+      special: z.string().nullable(),
+      items: z.string(),
+      /** The job's wall-clock time, HH:mm; null = no set time. */
+      start_time: z.string().nullable(),
+      status: z.string(),
+      result: z.string().nullable(),
+      helper_id: z.string().nullable(),
+    }),
+  ),
+});
+export type DayFacts = z.infer<typeof dayFactsSchema>;
+
 /** What submit-daily answers. */
 export const submitResultSchema = z.object({
   id: z.string(),
