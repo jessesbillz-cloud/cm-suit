@@ -1,5 +1,6 @@
 // One place on the rail, and More (the job's other tools in a small menu beside the rail). Both come in two widths: the
-// open rail (icon over a short name) and the collapsed one (icon only, the name on hover and for screen readers).
+// open rail (icon over a short name) and the collapsed one (icon only, the name on hover and for screen readers). On a
+// short screen (a laptop browser) the open rail's places are shorter, so a job's tools fit without scrolling.
 import { useState, type KeyboardEvent } from 'react';
 import { Ellipsis, type LucideIcon } from 'lucide-react';
 import type { RailTool, Tool } from '../lib/layout';
@@ -36,7 +37,7 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
       aria-expanded={expanded}
       className={`relative flex shrink-0 items-center justify-center rounded-lg transition-colors ${
-        compact ? 'h-10 w-10' : 'h-[60px] w-[80px] flex-col gap-1'
+        compact ? 'h-10 w-10' : 'h-[60px] w-[80px] flex-col gap-1 short:h-12 short:gap-0.5'
       } ${active || expanded ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'}`}
       onClick={onClick}
     >

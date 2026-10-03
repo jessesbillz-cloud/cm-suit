@@ -7,6 +7,8 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // A short window (a laptop browser): the rail's places get shorter so a job's tools fit.
+      screens: { short: { raw: '(max-height: 820px)' } },
       colors: {
         page: '#EDF0F4',
         card: { DEFAULT: '#FFFFFF', head: '#F8F9FB' },
