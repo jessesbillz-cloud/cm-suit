@@ -1,25 +1,28 @@
-// Inspection requests from the request link with no login (SPEC §6.4 #4, migration 0055). No session: everything goes
-// through the public request-link function, which answers the outsider's day (time, length, type, color), takes the
-// request with its photos / PDFs as one multipart form, and answers a request's status by its private receipt.
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+// Inspection requests from the request link with no login (SPEC §6.4 #4, migrations 0055 and 0057). No session:
+// everything goes through the public request-link function, which answers the outsider's day (time, length, type,
+// color), takes the request (or the revs request, naming its walls and items) with its photos / PDFs as one multipart
+// form, and answers a request's status by its private receipt. The walls and a request's map: requestNoLoginRevs.ts.
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { callFunction } from './functions';
 import type { CalendarRow } from './inspections.types';
 import { prepareIrFile } from './inspections.mutations';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mock from './mock/requestNoLogin';
+import * as mockRevs from './mock/requestNoLoginRevs';
 import type { LinkKey } from './requestLink.types';
 import {
   publicDaySchema,
   requestFactsSchema,
   submittedSchema,
   type PublicDay,
+  type PublicOfsInput,
   type PublicRequestInput,
   type RequestFacts,
   type Submitted,
 } from './requestNoLogin.types';
 
-function linkBody(key: LinkKey) {
+export function linkBody(key: LinkKey) {
   return { project_id: key.projectId, token: key.token, ...(key.hubId === null ? {} : { hub_id: key.hubId }) };
 }
 
@@ -61,10 +64,9 @@ export function usePublicDay(key: LinkKey, day: string | null) {
   });
 }
 
-async function send(key: LinkKey, v: PublicRequestInput): Promise<Submitted> {
-  if (isMock()) return mock.submit(key, v);
-  const form = new FormData();
-  form.append('payload', JSON.stringify({
+/** Who is asking and when: what every request from the link carries. */
+function visitorPayload(key: LinkKey, v: PublicRequestInput | PublicOfsInput) {
+  return {
     action: 'submit',
     ...linkBody(key),
     name: v.contact.name.trim(),
@@ -75,21 +77,52 @@ async function send(key: LinkKey, v: PublicRequestInput): Promise<Submitted> {
     time: v.startTime,
     duration_kind: v.durationKind,
     duration_min: v.durationMin,
-    kind: v.kind,
-    special_kind_id: v.kind === 'special' ? v.specialKindId : null,
-    items: v.items.trim(),
     notice_ack: true,
-  }));
-  for (const picked of v.files) {
+  };
+}
+
+/** The multipart form: the JSON payload and the files (photos compressed on the way). */
+async function formOf(payload: object, files: File[]): Promise<FormData> {
+  const form = new FormData();
+  form.append('payload', JSON.stringify(payload));
+  for (const picked of files) {
     const file = await prepareIrFile(picked);
     form.append('file', file, file.name);
   }
-  return callFunction('request-link', form, submittedSchema);
+  return form;
+}
+
+async function send(key: LinkKey, v: PublicRequestInput): Promise<Submitted> {
+  if (isMock()) return mock.submit(key, v);
+  const payload = {
+    ...visitorPayload(key, v),
+    kind: v.kind,
+    special_kind_id: v.kind === 'special' ? v.specialKindId : null,
+    items: v.items.trim(),
+  };
+  return callFunction('request-link', await formOf(payload, v.files), submittedSchema);
 }
 
 /** Sends the request: the receipt (the number the database gave, the tracker's facts, the status link's token). */
 export function useSubmitPublicRequest(key: LinkKey) {
   return useMutation({ mutationFn: (v: PublicRequestInput) => send(key, v) });
+}
+
+async function sendOfs(key: LinkKey, v: PublicOfsInput): Promise<Submitted> {
+  if (isMock()) return mockRevs.submitOfs(key, v);
+  const payload = { ...visitorPayload(key, v), area_ids: v.areaIds, item_ids: v.itemIds, sheet_file_id: v.sheetFileId };
+  return callFunction('request-link', await formOf(payload, v.files), submittedSchema);
+}
+
+/** Sends the revs request (an OFS request on 1 to 3 items of picked walls): the same receipt as any link request; its
+ *  map opens by that receipt (requestNoLoginRevs.ts). */
+export function useSubmitPublicOfs(key: LinkKey) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: PublicOfsInput) => sendOfs(key, v),
+    // The walls' status moved (requested).
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.requestLinkRevs(key.projectId, key.hubId ?? 'job') }),
+  });
 }
 
 /** A request sent through the link, by its private receipt (the status link). A wrong one rejects with 404. */

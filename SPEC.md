@@ -396,6 +396,7 @@ Each one has:
 3. **`delivery-board` (token-gated per project; the super can rotate the token):** post a delivery; view the board and TV mode. Returns board fields only (§13.3).
 4. **`request-link` (token-gated per project QR poster for inspection requests):**
    - anyone with the link requests with no login: the job's day (time, length, type, color only), the request with up to 3 photos or PDFs, their name, company and phone or email; a private status link shows the tracker and the result (Jesse, Oct 2);
+   - on an OFS job the same visitor makes the revs request (Jesse, Oct 3): the job's walls with each item's status only (open, requested, passed, N/A; never a number, a note or a name), then walls and up to 3 items; the status link's receipt opens that request's map and nothing else (draw it until the result, its sheet, the map PDF; each download logged);
    - a visitor who wants to see all their requests verifies their email by code and becomes a `requester` member (requests only);
    - the project admin can revoke them.
 5. **`inbound-email` (Resend Inbound `email.received` webhook):** Svix signature (HMAC-SHA256 over id, timestamp and raw body, `RESEND_WEBHOOK_SECRET`) with a 5-minute timestamp window. De-duplicated on the Resend `email_id`.
@@ -955,7 +956,7 @@ This phase rebuilds **Jesse's MDR processes** (`mdr-processes-to-carry-over`). K
 - **Feeds:** the weekly summary and digest; DSA 151/156 forms on DSA jobs (template-driven); hours rollups (Phase 5).
 
 ### 13.2 Inspection scheduling and IRs
-- **Who requests:** subs, the GC, the super and the PE, as members through their access link. There's also a **QR poster per project** (`request-link`, §6.4); visitors request with no login, and sign in by email code only to see all their requests.
+- **Who requests:** subs, the GC, the super and the PE, as members through their access link. There's also a **QR poster per project** (`request-link`, §6.4); visitors request with no login, and sign in by email code only to see all their requests. On an OFS job a visitor makes the same revs request a member makes (pick walls and up to 3 items, draw the IR map on the sheet, get the map), with no login.
 - **The requester's calendar:**
   - a live, anonymized view: times and types for everyone, full detail only for their own requests;
   - status colors from §7.1;

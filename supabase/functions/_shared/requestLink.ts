@@ -5,12 +5,12 @@
 import { uuid, z } from './validate.ts';
 
 /** 32 random bytes as base64url: the shape rotate_request_link, rotate_request_hub and a receipt hand out. */
-const token = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Malformed token');
+export const token = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Malformed token');
 const clean = (max: number) => z.string().trim().min(1).max(max);
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use yyyy-mm-dd');
 
 /** A job's request page opens with the job's own token, or with a hub's token and the hub's id. */
-const job = { project_id: uuid, token, hub_id: uuid.optional() };
+export const job = { project_id: uuid, token, hub_id: uuid.optional() };
 
 export const RequestLinkBody = z.discriminatedUnion('action', [
   /** The job's name, and whether this device's session is already on the job. */
@@ -28,6 +28,28 @@ export type RequestLinkRequest = z.infer<typeof RequestLinkBody>;
 
 const PHONE = /^\+?[0-9 ().-]{7,30}$/;
 
+/** Who is asking and when, and the notice: the fields every request from the link carries (also the revs request). */
+export const visitorFields = {
+  name: clean(120),
+  company: clean(120),
+  phone: z.string().trim().max(30).refine((v) => v === '' || (PHONE.test(v) && v.replace(/\D/g, '').length >= 7), 'Check the phone number.'),
+  email: z.string().trim().toLowerCase().max(320).refine((v) => v === '' || z.string().email().safeParse(v).success, 'Check the email.'),
+  date: day,
+  /** Job-clock time on the half hour, 24-hour; null = Flexible. */
+  time: z.string().regex(/^([01]\d|2[0-3]):(00|30)$/, 'Pick a time on the half hour.').nullable(),
+  duration_kind: z.enum(['timed', 'all_day', 'periodic']),
+  duration_min: z.number().int().min(5).max(720).nullable(),
+  notice_ack: z.literal(true),
+};
+
+/** A phone or an email (at least one). */
+export const hasContact = (b: { phone: string; email: string }): boolean => b.phone !== '' || b.email !== '';
+/** A length in minutes exactly when timed. */
+export const lengthFits = (b: { duration_kind: string; duration_min: number | null }): boolean =>
+  (b.duration_kind === 'timed') === (b.duration_min !== null);
+export const CONTACT_RULE = { message: 'Add a phone or an email.', path: ['phone'] };
+export const LENGTH_RULE = { message: 'Pick how long it takes.', path: ['duration_min'] };
+
 /**
  * A request sent with no login: the multipart form's `payload` field (the files ride in `file` fields). Every field
  * the member form has, plus the visitor's contact; never an uploader, a path, a number or a status.
@@ -36,23 +58,14 @@ export const SubmitBody = z
   .object({
     action: z.literal('submit'),
     ...job,
-    name: clean(120),
-    company: clean(120),
-    phone: z.string().trim().max(30).refine((v) => v === '' || (PHONE.test(v) && v.replace(/\D/g, '').length >= 7), 'Check the phone number.'),
-    email: z.string().trim().toLowerCase().max(320).refine((v) => v === '' || z.string().email().safeParse(v).success, 'Check the email.'),
-    date: day,
-    /** Job-clock time on the half hour, 24-hour; null = Flexible. */
-    time: z.string().regex(/^([01]\d|2[0-3]):(00|30)$/, 'Pick a time on the half hour.').nullable(),
-    duration_kind: z.enum(['timed', 'all_day', 'periodic']),
-    duration_min: z.number().int().min(5).max(720).nullable(),
+    ...visitorFields,
     kind: z.enum(['ior', 'special', 'ofs']),
     special_kind_id: uuid.nullable(),
     items: clean(4000),
-    notice_ack: z.literal(true),
   })
   .strict()
-  .refine((b) => b.phone !== '' || b.email !== '', { message: 'Add a phone or an email.', path: ['phone'] })
-  .refine((b) => (b.duration_kind === 'timed') === (b.duration_min !== null), { message: 'Pick how long it takes.', path: ['duration_min'] })
+  .refine(hasContact, CONTACT_RULE)
+  .refine(lengthFits, LENGTH_RULE)
   .refine((b) => (b.kind === 'special') === (b.special_kind_id !== null), { message: 'Pick the special inspection.', path: ['special_kind_id'] });
 export type SubmitRequest = z.infer<typeof SubmitBody>;
 

@@ -13,8 +13,9 @@ export interface GeneratedPdf {
   /** The filename people download (lib buildFilename pattern, resolved by the caller). */
   name: string;
   bytes: Uint8Array;
-  /** The person the PDF belongs to (the signer / author). */
-  createdBy: string;
+  /** The person the PDF belongs to (the signer / author); null when no member is behind it (a request-link visitor's
+   *  map, 0057). */
+  createdBy: string | null;
   /** Regenerating: the file this one replaces (same version group, next version number). */
   replaces?: string | null | undefined;
 }

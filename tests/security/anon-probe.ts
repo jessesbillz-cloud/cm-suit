@@ -4,7 +4,7 @@
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY. Exits non-zero on any failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
-import { BUCKETS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, REQUEST_NO_LOGIN_RPCS, REVS_RPCS, Report, ZERO_UUID, errText, makeClient, requestNoLoginCases, requireEnv, rowsOf } from './_lib';
+import { BUCKETS, LINK_REVS_RPCS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, REQUEST_NO_LOGIN_RPCS, REVS_RPCS, Report, ZERO_UUID, errText, makeClient, requestNoLoginCases, requireEnv, rowsOf } from './_lib';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -298,7 +298,7 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['permit_officials', { p_project_id: U, p_assigned_to: U }],
   ['permit_tell', { p_permit: {}, p_kind: 'probe', p_summary: 'probe', p_people: [] }],
   // Permit stamp (0053): listed in _lib.ts, this file being at its line limit.
-  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS, ...REQUEST_NO_LOGIN_RPCS, ...REVS_RPCS,
+  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS, ...REQUEST_NO_LOGIN_RPCS, ...REVS_RPCS, ...LINK_REVS_RPCS,
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */

@@ -193,8 +193,39 @@ export function requestNoLoginCases(token: string, projectId: string): [string, 
     ['calendar on a malformed day', { action: 'calendar', project_id: projectId, token, day: 'today' }, [400]],
     ['status with an unknown receipt', { action: 'status', project_id: projectId, receipt: token }, [404]],
     ['submit as JSON, not a form', { action: 'submit', project_id: projectId, token, name: 'probe', company: 'probe' }, [400]],
+    // Revs from the link (0057): the walls by the link token, a map by its receipt only.
+    ['revs with an unknown token', { action: 'revs', project_id: projectId, token }, [404]],
+    ['map with an unknown receipt', { action: 'map', project_id: projectId, receipt: token }, [404]],
+    ['map save with an unknown receipt', {
+      action: 'map_save', project_id: projectId, receipt: token, version: 1, strokes: [], sheet_file_id: null, page: null,
+    }, [404]],
+    ['sheet with an unknown receipt', { action: 'sheet', project_id: projectId, receipt: token }, [404]],
+    ['map render with an unknown receipt', { action: 'map_render', project_id: projectId, receipt: token }, [404]],
+    ['map download with an unknown receipt', { action: 'map_download', project_id: projectId, receipt: token }, [404]],
+    ['map by a request id, not a receipt', { action: 'map', project_id: projectId, request_id: projectId }, [400]],
   ];
 }
+
+/** Revs from the link (0057) for the anon probe: the link's SQL surface and its internal helpers. */
+export const LINK_REVS_RPCS: [string, Record<string, unknown>][] = [
+  ['link_request_revs', { p_project_id: ZERO_UUID, p_token_hash: 'x', p_hub_id: null }],
+  ['link_request_submit_ofs', {
+    p_project_id: ZERO_UUID, p_token_hash: 'x', p_hub_id: null, p_name: 'probe', p_company: 'probe', p_phone: '5550100000',
+    p_email: null, p_request_date: '2030-01-01', p_notice_ack: true, p_area_ids: [ZERO_UUID], p_item_ids: [ZERO_UUID],
+  }],
+  ['link_request_map', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  ['link_request_map_save', { p_project_id: ZERO_UUID, p_receipt_hash: 'x', p_version: 1, p_strokes: [] }],
+  ['link_request_map_facts', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  ['link_request_map_file', { p_project_id: ZERO_UUID, p_receipt_hash: 'x', p_which: 'sheet', p_ip: null }],
+  ['link_request_receipt', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  ['link_request_map_editor', { p_request_id: ZERO_UUID }],
+  ['link_request_map_sheets', { p_request_id: ZERO_UUID }],
+  ['link_request_map_view', { p_request_id: ZERO_UUID }],
+  ['ir_ofs_open_text', { p_project_id: ZERO_UUID, p_area_ids: [], p_item_ids: [] }],
+  ['rev_walls_sheet_ok', { p_project_id: ZERO_UUID, p_area_ids: [], p_file_id: ZERO_UUID }],
+  ['rev_status_rows', { p_project_id: ZERO_UUID }],
+  ['ir_map_facts', { p_request_id: ZERO_UUID }],
+];
 
 /** Revs (0056) for the anon probe: the RPCs, the service-only map record, and the internal helpers. */
 export const REVS_RPCS: [string, Record<string, unknown>][] = [

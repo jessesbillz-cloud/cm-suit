@@ -3120,7 +3120,7 @@ export type Database = {
           area_id: string
           color: number
           created_at: string
-          created_by: string
+          created_by: string | null
           id: string
           item_id: string
           org_id: string
@@ -3137,7 +3137,7 @@ export type Database = {
           area_id: string
           color: number
           created_at?: string
-          created_by: string
+          created_by?: string | null
           id?: string
           item_id: string
           org_id: string
@@ -3154,7 +3154,7 @@ export type Database = {
           area_id?: string
           color?: number
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           id?: string
           item_id?: string
           org_id?: string
@@ -7386,6 +7386,7 @@ export type Database = {
       }
       ir_map_context: { Args: { p_request_id: string }; Returns: Json }
       ir_map_editor: { Args: { p_request_id: string }; Returns: boolean }
+      ir_map_facts: { Args: { p_request_id: string }; Returns: Json }
       ir_map_save: {
         Args: {
           p_page?: number
@@ -7419,6 +7420,39 @@ export type Database = {
       }
       ir_map_strokes_ok: { Args: { p_strokes: Json }; Returns: boolean }
       ir_map_what: { Args: { p_request_id: string }; Returns: string }
+      ir_map_write: {
+        Args: {
+          p_map: Database["public"]["Tables"]["ir_maps"]["Row"]
+          p_page: number
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+          p_sheet_file_id: string
+          p_strokes: Json
+          p_version: number
+          p_visitor: boolean
+        }
+        Returns: {
+          content_hash: string | null
+          created_at: string
+          map_file_id: string | null
+          org_id: string
+          page: number
+          project_id: string
+          request_id: string
+          sheet_file_id: string | null
+          signed: boolean
+          stale: boolean
+          strokes: Json
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ir_maps"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ir_mark_sent: {
         Args: {
           p_recipient_ids?: string[]
@@ -7585,6 +7619,23 @@ export type Database = {
         Returns: string
       }
       ir_ofs_list: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_project_id: string
+        }
+        Returns: string
+      }
+      ir_ofs_make: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+          p_sheet_file_id: string
+        }
+        Returns: undefined
+      }
+      ir_ofs_open_text: {
         Args: {
           p_area_ids: string[]
           p_item_ids: string[]
@@ -8435,7 +8486,73 @@ export type Database = {
         }
         Returns: Json
       }
+      link_request_make: {
+        Args: {
+          p_area_ids: string[]
+          p_attachment_ids: string[]
+          p_company: string
+          p_duration_kind: string
+          p_duration_min: number
+          p_email: string
+          p_hub_id: string
+          p_item_ids: string[]
+          p_items: string
+          p_kind: string
+          p_name: string
+          p_notice_ack: boolean
+          p_phone: string
+          p_project_id: string
+          p_request_date: string
+          p_sheet_file_id: string
+          p_special_kind_id: string
+          p_start_time: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      link_request_map: {
+        Args: { p_project_id: string; p_receipt_hash: string }
+        Returns: Json
+      }
+      link_request_map_editor: {
+        Args: { p_request_id: string }
+        Returns: boolean
+      }
+      link_request_map_facts: {
+        Args: { p_project_id: string; p_receipt_hash: string }
+        Returns: Json
+      }
+      link_request_map_file: {
+        Args: {
+          p_ip?: string
+          p_project_id: string
+          p_receipt_hash: string
+          p_which: string
+        }
+        Returns: Json
+      }
+      link_request_map_save: {
+        Args: {
+          p_page?: number
+          p_project_id: string
+          p_receipt_hash: string
+          p_sheet_file_id?: string
+          p_strokes: Json
+          p_version: number
+        }
+        Returns: Json
+      }
+      link_request_map_sheets: { Args: { p_request_id: string }; Returns: Json }
+      link_request_map_view: { Args: { p_request_id: string }; Returns: Json }
       link_request_open: {
+        Args: { p_hub_id?: string; p_project_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      link_request_receipt: {
+        Args: { p_project_id: string; p_receipt_hash: string }
+        Returns: string
+      }
+      link_request_revs: {
         Args: { p_hub_id?: string; p_project_id: string; p_token_hash: string }
         Returns: Json
       }
@@ -8459,6 +8576,27 @@ export type Database = {
           p_project_id: string
           p_request_date: string
           p_special_kind_id?: string
+          p_start_time?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      link_request_submit_ofs: {
+        Args: {
+          p_area_ids: string[]
+          p_attachment_ids?: string[]
+          p_company: string
+          p_duration_kind?: string
+          p_duration_min?: number
+          p_email: string
+          p_hub_id: string
+          p_item_ids: string[]
+          p_name: string
+          p_notice_ack: boolean
+          p_phone: string
+          p_project_id: string
+          p_request_date: string
+          p_sheet_file_id?: string
           p_start_time?: string
           p_token_hash: string
         }
@@ -9656,10 +9794,27 @@ export type Database = {
           status: string
         }[]
       }
+      rev_status_rows: {
+        Args: { p_project_id: string }
+        Returns: {
+          area_id: string
+          at: string
+          ir_number: number
+          item_id: string
+          note: string
+          ofs_number: number
+          request_id: string
+          status: string
+        }[]
+      }
       rev_table: { Args: { p_kind: string }; Returns: string }
       rev_version_ok: {
         Args: { p_have: number; p_want: number }
         Returns: undefined
+      }
+      rev_walls_sheet_ok: {
+        Args: { p_area_ids: string[]; p_file_id: string; p_project_id: string }
+        Returns: boolean
       }
       review_delivery_month: {
         Args: {
