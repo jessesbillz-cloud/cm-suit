@@ -501,7 +501,11 @@ Both probes run in CI on every PR and after every staging deploy.
 │      │                              │  item opened     │
 └──────┴──────────────────────────────┴──────────────────┘
 ```
-- **Rail:** fixed width, holding the icons of the tools the person turned on. It can collapse to a strip.
+- **Rail:** fixed width; it can collapse to a strip of icons. Settings is pinned at the bottom. A tool never shows twice.
+  - On **"All my jobs"**: the tools that work across jobs (Board, Calendar, and the bids pipeline, permit caseload and timesheets when they apply to the person).
+  - On **a job**, only that job (Jesse, Oct 3): its name, then its tools in the person's order, More for the job's other tools, and Edit to choose them. Nothing from All my jobs; the job picker goes back there.
+  - A job's own Board and Calendar are job tools like any other. Until the person chooses with Edit, a job's tools are their position's recommendation without the Board (the right column already shows the job's board), then Files, so Files is always one tap.
+  - The phone has no right column, so its bar on a job starts with the job's Board, then the job's tools (§7.7).
 - **Main area:** there is no separate home screen.
   - By default it opens on the **message board**, or on the person's chosen default (e.g. the calendar).
   - A rail icon switches the main area.
@@ -509,10 +513,10 @@ Both probes run in CI on every PR and after every staging deploy.
   - An opened item takes over the column; closing the item brings the docked panel back.
   - The column can go full width or collapse.
 - **Every item and document** has **Open in new window** and **Download**.
-- **The only layout choices a person has:** rail icons, main default, docked panel, collapsed panes, calendar types. No dragging or resizing.
+- **The only layout choices a person has:** each job's rail tools, main default, docked panel, collapsed panes, calendar types. No dragging or resizing.
 - **Job picker:** always top-left in the same spot.
   - Recent jobs first, then type-to-find.
-  - "All my jobs" for the board and the calendar.
+  - "All my jobs" for the board and the calendar, always in view under the jobs.
   - **Switching jobs keeps you in the same tool.**
 
 ### 7.3 Message board

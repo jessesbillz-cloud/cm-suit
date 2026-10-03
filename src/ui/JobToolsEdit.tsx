@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 import { TOOL_META } from './tools';
 
 export interface JobToolsChoice {
-  /** Every tool the job has on below the top of the rail. */
+  /** Every tool the job has on (its own Board and Calendar too). */
   tools: readonly RailTool[];
   /** The ones under the job's name, in my order. */
   chosen: readonly RailTool[];
@@ -105,8 +105,9 @@ export function JobToolsEdit({ tools, chosen, own, onChange, onDone }: JobToolsE
   // One keyed list, so a tool that is shown or hidden moves (and keeps focus) instead of being drawn anew.
   const order = [...chosen, ...tools.filter((t) => !chosen.includes(t))];
   return (
-    <div data-testid="job-tools-edit" data-own={own} className="flex flex-col">
-      <ul className="divide-y divide-line">
+    // The list scrolls on a short screen; Recommended and Done stay in view.
+    <div data-testid="job-tools-edit" data-own={own} className="flex min-h-0 flex-col">
+      <ul className="min-h-0 divide-y divide-line overflow-y-auto">
         {order.map((tool, i) => (
           <ToolRow
             key={tool}
@@ -122,7 +123,7 @@ export function JobToolsEdit({ tools, chosen, own, onChange, onDone }: JobToolsE
           />
         ))}
       </ul>
-      <div className="flex items-center gap-2 border-t border-line px-2 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-t border-line px-2 py-2">
         {own ? (
           <Button
             size="sm"

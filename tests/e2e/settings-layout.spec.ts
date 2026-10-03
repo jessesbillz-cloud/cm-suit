@@ -1,8 +1,9 @@
 // Settings > Layout, Calendar subscriptions and Notify me about (SPEC §7.2, §7.6, §7.8) against the e2e mock data layer.
 // Runs on desktop and phone. Contract with the mock: 'pm' starts from the layout defaults (opens on Board, right column
-// Board, the quiet notification set) with no tools of their own on any job, so the rail on job-a is Board, Calendar,
-// Bids on top and the PM's recommendation under the job: RFIs, Inspections, Files (0040, 0051); job-a has "Sample OAC
-// meeting" this week. A job's tools are chosen on the rail (Edit under its name), never in Settings (0051).
+// Board, the quiet notification set) with no tools of their own on any job, so the rail on job-a is only the job's: the
+// PM's recommendation without the Board, then Files: Calendar, RFIs, Inspections, Files (0040, 0051, 0058); on All my
+// jobs, Board, Calendar, Bids. job-a has "Sample OAC meeting" this week. A job's tools are chosen on the rail (Edit
+// under its name), never in Settings (0051).
 // Test ids: layout-preview-rail and layout-preview-phone (children carry data-tool, in order), layout-preview-main
 // (data-tool), layout-preview-right (data-panel), layout-main-default, layout-docked-<panel>, cal-sub-<kind>,
 // notify-parent-<area>, notify-<event>; layout-card, cal-subs and notify-tree carry data-version (the saved row's
@@ -41,7 +42,7 @@ test.describe('settings layout (SPEC §7.2)', () => {
     const card = page.getByTestId('layout-card');
     const rail = page.getByTestId('layout-preview-rail');
     const phone = page.getByTestId('layout-preview-phone');
-    await expect.poll(() => toolsIn(rail)).toEqual(['board', 'calendar', 'bids', 'rfis', 'inspections', 'files', 'settings']);
+    await expect.poll(() => toolsIn(rail)).toEqual(['calendar', 'rfis', 'inspections', 'files', 'settings']);
     await expect.poll(() => toolsIn(phone)).toEqual(['board', 'calendar', 'rfis', 'inspections']);
     // One way to choose a job's tools: on the rail, not here.
     await expect(page.getByTestId('layout-rail')).toHaveCount(0);
@@ -61,7 +62,7 @@ test.describe('settings layout (SPEC §7.2)', () => {
       // A tool chosen for the job on the rail shows in the sketch at once.
       await page.getByTestId('job-rail-edit').click();
       await page.getByTestId('job-rail-editor').getByTestId('job-tool-show-dailies').click();
-      await expect.poll(() => toolsIn(rail)).toEqual(['board', 'calendar', 'bids', 'rfis', 'inspections', 'files', 'dailies', 'settings']);
+      await expect.poll(() => toolsIn(rail)).toEqual(['calendar', 'rfis', 'inspections', 'files', 'dailies', 'settings']);
       await page.getByTestId('job-tools-done').click();
     }
 

@@ -1,9 +1,9 @@
-// The rail (SPEC §7.2; Jesse, Oct 1) in two parts. On top, always, the general things: Board and Calendar (and the bids
-// pipeline and timesheets when they apply to me); with no job picked they cover all my jobs, with a job picked they act
-// on it. Under them, only with a job picked: a divider, the job's name, the tools I chose for this job (each with a
-// count of what needs me), More for the job's other tools, and Edit to choose them. Settings is pinned at the bottom.
+// The rail (SPEC §7.2). On All my jobs: the cross-job tools (Board and Calendar, and the bids pipeline, permit caseload
+// and timesheets when they apply to me). On a job, only that job (Jesse, Oct 3: "once you're on a job, it should all be
+// specific to that job"): its name, the tools I chose for it (each with a count of what needs me), More for its other
+// tools, and Edit to choose them. Settings is pinned at the bottom; the job picker goes back to All my jobs.
 // A dark navy strip down the whole left edge with the product mark on top; it collapses to icons only (the job's name
-// becomes a thin divider). Nobody drags or resizes it.
+// becomes a thin line). Nobody drags or resizes it.
 import { useEffect, useRef, useState } from 'react';
 import { ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
 import { FUTURE_NAME } from '../lib/brand';
@@ -14,6 +14,7 @@ import { Icon } from './Icon';
 import { JobToolsEdit, type JobToolsChoice } from './JobToolsEdit';
 import { RailItem, RailMore } from './RailItem';
 import { TOOL_META } from './tools';
+import { useFitInWindow } from './useFitInWindow';
 
 /** The picked job's part of the rail. */
 export interface RailJobPart {
@@ -29,8 +30,9 @@ export interface RailJobPart {
 }
 
 interface RailProps {
+  /** The cross-job tools on All my jobs; none on a job. */
   general: readonly RailTool[];
-  /** null on All my jobs. */
+  /** The picked job's part; null on All my jobs. */
   job: RailJobPart | null;
   counts: ToolCounts;
   current: Tool;
@@ -50,6 +52,7 @@ interface JobEditProps {
 function JobEdit({ label, choice }: JobEditProps) {
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
+  useFitInWindow(panel, open);
   useEffect(() => {
     if (open) panel.current?.focus();
   }, [open]);
@@ -85,12 +88,12 @@ function JobEdit({ label, choice }: JobEditProps) {
             aria-label={`${label} tools`}
             tabIndex={-1}
             data-testid="job-rail-editor"
-            className="absolute bottom-0 left-full z-40 ml-1 max-h-[calc(100vh-1.5rem)] w-64 overflow-y-auto rounded-card bg-card shadow-pop outline-none"
+            className="absolute bottom-0 left-full z-40 ml-1 flex max-h-[calc(100vh-1rem)] w-64 flex-col rounded-card bg-card shadow-pop outline-none"
             onKeyDown={(e) => {
               if (e.key === 'Escape') close();
             }}
           >
-            <p className="break-words border-b border-line px-3 py-2.5 text-sm font-semibold text-ink wrap-anywhere">{label}</p>
+            <p className="shrink-0 break-words border-b border-line px-3 py-2.5 text-sm font-semibold text-ink wrap-anywhere">{label}</p>
             <JobToolsEdit {...choice} onDone={close} />
           </div>
         </>
@@ -138,7 +141,7 @@ interface JobHeadProps {
   compact: boolean;
 }
 
-/** Where the job's part starts: a divider and the job's name (wrapped, never cut), or on the collapsed rail a thin line. */
+/** The top of a job's rail: the job's name (wrapped, never cut) over a line, or on the collapsed rail a thin line. */
 function JobHead({ label, compact }: JobHeadProps) {
   if (compact) {
     return (
@@ -146,7 +149,7 @@ function JobHead({ label, compact }: JobHeadProps) {
         aria-hidden="true"
         title={label}
         data-testid="job-rail-label"
-        className="my-1.5 h-[3px] w-7 shrink-0 rounded-full bg-rail-ink/50"
+        className="mb-1.5 h-[3px] w-7 shrink-0 rounded-full bg-rail-ink/50"
       />
     );
   }
@@ -154,7 +157,7 @@ function JobHead({ label, compact }: JobHeadProps) {
     <p
       aria-hidden="true"
       data-testid="job-rail-label"
-      className="mt-2 w-[80px] shrink-0 text-balance break-words border-t border-rail-line px-1 pb-1 pt-2.5 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-rail-ink wrap-anywhere"
+      className="mb-1 w-[80px] shrink-0 text-balance break-words border-b border-rail-line px-1 pb-2 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-white/85 wrap-anywhere"
     >
       {label}
     </p>

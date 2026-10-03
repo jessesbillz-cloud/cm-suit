@@ -1,5 +1,5 @@
 // A small live sketch of my desktop frame (SPEC §7.2) and my phone bar (§7.7), drawn from my layout choices and the
-// rail the frame shows here (the general tools, then the job's). The part a person is pointing at in the form lights up
+// rail the frame shows here (All my jobs' tools, or the job's). The part a person is pointing at in the form lights up
 // here, so they see exactly where a choice lands.
 import type { FocusEvent } from 'react';
 import { Ellipsis } from 'lucide-react';
@@ -78,7 +78,10 @@ function RailDot({ tool, active }: DotProps) {
   );
 }
 
-/** The frame as it is: the navy rail (general tools, the job's under a line) with the mark on top, the white top bar. */
+/**
+ * The frame as it is: the navy rail (All my jobs' tools, or a line for the job's name and its tools) with the mark on
+ * top, the white top bar.
+ */
 function DesktopSketch({ choices, rail, spot }: PreviewProps) {
   const at = (a: Spot) => spot === a;
   const main = choices.main_default;

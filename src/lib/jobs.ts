@@ -57,21 +57,19 @@ export function railForJob<T extends string>(railItems: readonly T[], modules: r
 
 /**
  * The tools that work across every job ("All my jobs"): the board and calendar of all my jobs, the bids pipeline, the
- * official's permit caseload and my timesheets. The ONE list: they are the top of the rail (Jesse, Oct 1: "our big
- * general things"), and the job picker names them.
+ * official's permit caseload and my timesheets. The ONE list: they are the rail on All my jobs, never on a job (Jesse,
+ * Oct 3: "once you're on a job, it should all be specific to that job"), and the job picker names them.
  */
 export const ALL_JOBS_TOOLS = ['board', 'calendar', 'bids', 'permits', 'timesheets'] as const satisfies readonly RailTool[];
 
 type AllJobsTool = (typeof ALL_JOBS_TOOLS)[number];
 
-/** Never under a job's name: Board and Calendar sit on top, Timesheets is All my jobs only. */
-const TOP_ONLY: readonly string[] = ['board', 'calendar', 'timesheets'];
-
 /**
- * The tools that may sit under a job's name (the database's job_rail_tools(), 0051): every rail tool but the top ones.
- * A new tool in RAIL_TOOLS (and in job_rail_tools()) joins every job's list here, and its Edit list, by itself.
+ * A job's tools (the database's job_rail_tools(), 0058): every rail tool but Timesheets (All my jobs only; a job's own
+ * hours are its Hours). The job's own Board and Calendar are job tools like any other. A new tool in RAIL_TOOLS (and in
+ * job_rail_tools()) joins every job's list here, and its Edit list, by itself.
  */
-export const JOB_TOOLS: readonly RailTool[] = RAIL_TOOLS.filter((t) => !TOP_ONLY.includes(t));
+export const JOB_TOOLS: readonly RailTool[] = RAIL_TOOLS.filter((t) => t !== 'timesheets');
 
 function worksAcrossJobs(tool: string): tool is AllJobsTool {
   return (ALL_JOBS_TOOLS as readonly string[]).includes(tool);
@@ -83,22 +81,22 @@ export function railForAllJobs<T extends string>(railItems: readonly T[], jobMod
 }
 
 /**
- * The rail in two parts (Jesse, Oct 1): the general things on top; with a job picked, that job's tools under its name
- * in my order for the job, then More for the job's other tools. One way to reach each tool.
+ * The rail (Jesse, Oct 3): on All my jobs, the cross-job tools; on a job, only that job's: its tools in my order under
+ * its name, then More for its other tools. One way to reach each tool.
  */
 export interface RailModel {
-  /** On All my jobs, the cross-job tools; on a job, the same ones acting on that job (Timesheets is its Hours). */
+  /** On All my jobs, the cross-job tools. None on a job. */
   general: RailTool[];
-  /** Under the job's name, in my order. None on All my jobs. */
+  /** On a job, its tools in my order. None on All my jobs. */
   job: RailTool[];
   /** The job's other tools, under More. */
   more: RailTool[];
 }
 
 /**
- * Tools on top only for the positions they are for: Timesheets for people who keep hours (my position recommends Hours
- * on some job of mine), Permits for the official whose position recommends it (everyone else finds a job's Permits
- * under its name or More).
+ * Cross-job tools only for the positions they are for: Timesheets for people who keep hours (my position recommends
+ * Hours on some job of mine), Permits for the official whose position recommends it (everyone else finds a job's
+ * Permits on the job).
  */
 const TOP_FOR: Readonly<Record<string, string>> = { timesheets: 'hours', permits: 'permits' };
 
@@ -107,30 +105,30 @@ function recommendedSomewhere(tool: string, recommended: readonly (readonly stri
   return needs === undefined || recommended.some((r) => r.includes(needs));
 }
 
-/** The top of the rail on All my jobs: the cross-job tools some job of mine has on (Timesheets, Permits: see TOP_FOR). */
-function allJobsTop(jobModules: readonly (readonly string[])[], recommended: readonly (readonly string[])[]): RailTool[] {
+/** The rail on All my jobs: the cross-job tools some job of mine has on (Timesheets, Permits: see TOP_FOR). */
+function allJobsRail(jobModules: readonly (readonly string[])[], recommended: readonly (readonly string[])[]): RailTool[] {
   return railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => recommendedSomewhere(t, recommended));
 }
 
 /**
- * A job's rail. Top: the general tools (`top`, from All my jobs) the job has on, acting on the job. Under its name: my
- * own list for this job (`choice`), else my position's recommendation there (my_recommended_tools), in that order,
- * minus what sits on top. More: the job's other tools. A list may name tools the job has off; they just don't show.
+ * My tools on a job until I choose my own: my position's recommendation without the Board (the right column shows the
+ * job's board beside every tool), then Files, so Files is one tap on every job (Jesse, Oct 3).
  */
-export function jobRail(
-  top: readonly RailTool[],
-  choice: readonly string[] | null,
-  recommended: readonly string[],
-  modules: readonly string[],
-): RailModel {
-  const general = railForJob(
-    top.map((t): RailTool => (t === 'timesheets' ? 'hours' : t)),
-    modules,
-  );
-  const on = railForJob(JOB_TOOLS, modules).filter((t) => !general.includes(t));
-  const chosen = choice ?? recommended;
+function defaultJobTools(recommended: readonly string[]): string[] {
+  const mine = recommended.filter((t) => t !== 'board');
+  return mine.includes('files') ? mine : [...mine, 'files'];
+}
+
+/**
+ * A job's rail. Under its name: my own list for this job (`choice`; Edit decides), else my default there (my position's
+ * recommendation, my_recommended_tools, then Files), in that order. More: the job's other tools. A list may name tools
+ * the job has off; they just don't show.
+ */
+export function jobRail(choice: readonly string[] | null, recommended: readonly string[], modules: readonly string[]): RailModel {
+  const on = railForJob(JOB_TOOLS, modules);
+  const chosen = choice ?? defaultJobTools(recommended);
   const job = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
-  return { general, job, more: on.filter((t) => !job.includes(t)) };
+  return { general: [], job, more: on.filter((t) => !job.includes(t)) };
 }
 
 interface RailJob {
@@ -139,8 +137,8 @@ interface RailJob {
 }
 
 /**
- * The rail the frame shows: on All my jobs (`projectId` null) only the top; on a job, the top acting on it and the job's
- * own part. `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none).
+ * The rail the frame shows: on All my jobs (`projectId` null) the cross-job tools; on a job, that job's part only.
+ * `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none).
  */
 export function railModel(
   projectId: string | null,
@@ -148,19 +146,24 @@ export function railModel(
   recommended: Readonly<Record<string, readonly string[]>>,
   choices: Readonly<Record<string, readonly string[] | null>>,
 ): RailModel {
-  const top = allJobsTop(
-    jobs.map((j) => j.modules),
-    jobs.map((j) => recommended[j.project_id] ?? []),
-  );
-  if (projectId === null) return { general: top, job: [], more: [] };
+  if (projectId === null) {
+    const general = allJobsRail(
+      jobs.map((j) => j.modules),
+      jobs.map((j) => recommended[j.project_id] ?? []),
+    );
+    return { general, job: [], more: [] };
+  }
   const modules = jobs.find((j) => j.project_id === projectId)?.modules ?? [];
-  return jobRail(top, choices[projectId] ?? null, recommended[projectId] ?? [], modules);
+  return jobRail(choices[projectId] ?? null, recommended[projectId] ?? [], modules);
 }
 
-/** The phone bar's order (SPEC §7.7): Board and Calendar, then the job's tools, then the rest of the top. */
+/**
+ * The phone bar's order (SPEC §7.7): on All my jobs, the cross-job tools; on a job, its Board first (the phone has no
+ * right column, so the board is its home), then the job's tools in my order.
+ */
 export function phoneRail(m: RailModel): RailTool[] {
-  const core: RailTool[] = m.general.filter((t) => t === 'board' || t === 'calendar');
-  return [...core, ...m.job, ...m.general.filter((t) => !core.includes(t))];
+  if (m.general.length > 0) return [...m.general];
+  return ['board', ...m.job.filter((t) => t !== 'board')];
 }
 
 /** Shows a tool under the job's name (it joins the end) or takes it off (it goes under More). */

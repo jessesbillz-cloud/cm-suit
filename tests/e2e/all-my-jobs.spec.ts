@@ -81,7 +81,9 @@ test.describe('All my jobs and the bids pipeline', () => {
     await signIn(page);
     await page.goto('/p/job-a/files');
     await expect(page.getByTestId('rail-files')).toBeVisible();
-    // The PM's rail (0040) leaves Dailies under More.
+    // Nothing from All my jobs on a job's rail (Oct 3); the PM's rail (0040) leaves Dailies under More.
+    await expect(page.getByTestId('rail-board')).toHaveCount(0);
+    await expect(page.getByTestId('rail-bids')).toHaveCount(0);
     await expect(page.getByTestId('rail-dailies')).toHaveCount(0);
     await page.getByTestId('rail-more').click();
     await expect(page.getByTestId('rail-more-dailies')).toBeVisible();

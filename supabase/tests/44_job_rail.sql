@@ -1,8 +1,9 @@
 begin;
-select plan(30);
+select plan(31);
 -- The job's part of the rail (migration 0051): per person, per job, the tools under the job's name. Own rows only, only
 -- while on the job; the one write is save_job_rail with a version check; unknown tools are refused; null (or no row)
--- means my position's recommendation, which my_recommended_tools still answers.
+-- means my position's recommendation, which my_recommended_tools still answers. Since 0058 a job's own Board and
+-- Calendar are job tools too (on a job the rail is the job's alone); Timesheets never is.
 \ir _helpers.psql
 
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000441', 'probe+jr-admin@example.test', 'JR Admin');
@@ -39,11 +40,12 @@ select ok((select prosecdef from pg_proc where oid = 'public.save_job_rail(uuid,
           and not has_function_privilege('anon', 'public.save_job_rail(uuid, text[], int)', 'EXECUTE')
           and has_function_privilege('authenticated', 'public.save_job_rail(uuid, text[], int)', 'EXECUTE'),
   'save_job_rail: SECURITY DEFINER, for signed-in people, never anon');
-select ok(not 'board' = any (public.job_rail_tools()) and not 'calendar' = any (public.job_rail_tools())
+select ok('board' = any (public.job_rail_tools()) and 'calendar' = any (public.job_rail_tools())
           and not 'timesheets' = any (public.job_rail_tools()),
-  'the top of the rail (Board, Calendar) and Timesheets are never a job''s tools');
+  'a job''s own Board and Calendar are job tools (0058); Timesheets is All my jobs only');
 select is_empty($$ select t from unnest(public.job_rail_tools()) t
-                   where t not in ('files','bids','dailies','inspections','revs','rfis','permits','deliveries','corrections','people','hours') $$,
+                   where t not in ('board','files','bids','calendar','dailies','inspections','revs','rfis','permits',
+                                   'deliveries','corrections','people','hours') $$,
   'job tools are rail tools');
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -86,12 +88,14 @@ select is((select (public.save_job_rail('c0000000-0000-0000-0000-000000000441', 
 -- ---------------------------------------------------------------------------------------------------------------
 select throws_ok($$ select public.save_job_rail('c0000000-0000-0000-0000-000000000441', '{rfis,plans}', 3) $$, '22023', null,
   'an unknown tool is refused');
-select throws_ok($$ select public.save_job_rail('c0000000-0000-0000-0000-000000000441', '{board,rfis}', 3) $$, '22023', null,
-  'Board sits on top, never under a job');
+select throws_ok($$ select public.save_job_rail('c0000000-0000-0000-0000-000000000441', '{timesheets,rfis}', 3) $$, '22023', null,
+  'Timesheets is All my jobs only, never a job''s tool');
 select throws_ok($$ select public.save_job_rail('c0000000-0000-0000-0000-000000000441', '{rfis,rfis}', 3) $$, '22023', null,
   'a tool twice is refused');
 select throws_ok($$ select public.save_job_rail('c0000000-0000-0000-0000-000000000441', array['rfis', null], 3) $$, '22023', null,
   'a blank entry is refused');
+select is((select (public.save_job_rail('c0000000-0000-0000-0000-000000000441', '{calendar,rfis,board}', 3)).tools),
+  '{calendar,rfis,board}'::text[], 'the job''s own Calendar and Board may be in my list, in my order (0058)');
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Own rows only, only on my jobs

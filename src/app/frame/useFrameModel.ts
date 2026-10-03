@@ -52,7 +52,7 @@ export function useFrameModel(loc: FrameLocation) {
   const choices: LayoutChoices | undefined = layoutQuery.data?.choices;
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.project_id === loc.projectId);
-  /** The rail (lib/jobs railModel): the general tools on top; on a job, its tools in my order and More. */
+  /** The rail (lib/jobs railModel): on All my jobs the cross-job tools; on a job only its tools in my order, and More. */
   const rail = railModel(loc.projectId, projects, recommendedQuery.data ?? {}, jobRailChoices(jobRailsQuery.data));
   /** What needs me, per tool on this rail (the rest counts on the Board). */
   const counts = countsByTool(countsQuery.data ?? [], [...rail.general, ...rail.job, ...rail.more]);
