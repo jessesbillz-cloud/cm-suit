@@ -37,6 +37,8 @@ export const MODULES = [
   { value: 'corrections', label: 'Corrections' },
   // Tailgate safety meetings and job meetings, signed in from a QR (0060): on for jobs being built.
   { value: 'safety', label: 'Safety' },
+  // What the spec book commits people to, with due dates and reminders (0063): on for jobs being built.
+  { value: 'requirements', label: 'Requirements' },
   // My hours on the job (0043): on for an inspector company's jobs; Timesheets (All my jobs) comes with it.
   { value: 'hours', label: 'Hours' },
 ] as const satisfies readonly { value: RailTool; label: string }[];

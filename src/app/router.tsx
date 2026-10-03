@@ -48,6 +48,8 @@ interface ToolSearch {
   level?: string;
   wall?: string;
   place?: string;
+  /** Requirements (0063): All's grouping (section; absent = by kind). */
+  by?: 'section';
 }
 
 function str(v: unknown): string | undefined {
@@ -87,6 +89,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(level && level.length <= 40 ? { level } : {}),
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
+    ...(s['by'] === 'section' ? { by: 'section' as const } : {}),
   };
 }
 

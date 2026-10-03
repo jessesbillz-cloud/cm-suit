@@ -11,6 +11,7 @@ describe('where a record opens', () => {
     expect(entityTarget('daily_report', 'r-1')).toEqual({ tool: 'dailies', itemId: 'r-1' });
     expect(entityTarget('rfi', 'rfi-1')).toEqual({ tool: 'rfis', itemId: 'rfi-1' });
     expect(entityTarget('safety_meeting', 'sm-1')).toEqual({ tool: 'safety', itemId: 'sm-1' });
+    expect(entityTarget('requirement', 'rq-1')).toEqual({ tool: 'requirements', itemId: 'rq-1' });
   });
 
   it('bid records open in the bids view they live in', () => {

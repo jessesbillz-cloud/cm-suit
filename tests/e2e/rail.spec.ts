@@ -64,7 +64,7 @@ test.describe('the rail by position', () => {
 
     await page.getByTestId('rail-more').click();
     const menu = page.getByTestId('rail-more-menu');
-    await expect(menu.getByRole('menuitem')).toHaveText(['Board', 'Bids', 'Dailies', 'Deliveries', 'Corrections', 'Safety', 'People']);
+    await expect(menu.getByRole('menuitem')).toHaveText(['Board', 'Bids', 'Dailies', 'Deliveries', 'Corrections', 'Safety', 'Requirements', 'People']);
     await page.getByTestId('rail-more-dailies').click();
     await expect(page).toHaveURL(/\/p\/job-a\/dailies$/);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'dailies');
@@ -169,6 +169,7 @@ test.describe('each job\'s tools, chosen per job (Jesse, Oct 1); on a job, only 
       'Deliveries',
       'Corrections',
       'Safety',
+      'Requirements',
       'People',
     ]);
     await page.keyboard.press('Escape');

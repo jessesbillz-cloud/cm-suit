@@ -20,6 +20,8 @@ export const WALLS_ITEM = 'walls';
 export const NEW_TOPIC_ITEM = 'new-topic';
 /** Safety: a library topic opens as `topic-<id>` (a meeting opens by its own id). */
 export const TOPIC_ITEM_PREFIX = 'topic-';
+/** Requirements: read a spec section with AI. */
+export const READ_ITEM = 'read';
 
 /**
  * Items that are pages of their own: on a desktop they fill the main area instead of the right column (the right column
