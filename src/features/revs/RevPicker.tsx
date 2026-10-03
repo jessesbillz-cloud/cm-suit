@@ -1,12 +1,14 @@
-// What an OFS request inspects on a job with revs: walls (by level, any number) and up to three items of their list, each
-// item with the color it gets on the map, then the title the map will carry. Props only (the job's setup and status in,
-// the pick out), so the no-login request page can use it too. The database decides again on submit (ir_submit_ofs).
+// What an OFS request inspects on a job with revs, laid out like My Daily Reports' Special kinds: buttons that just say
+// what each one is. The walls by level; once walls are picked, up to three items of their list, each picked one with
+// the color it gets on the map; then the title the map will carry. Props only (the job's setup and status in, the pick
+// out), so the no-login request page uses it too. The database decides again on submit (ir_submit_ofs).
 import { useMemo } from 'react';
+import { MapIcon } from 'lucide-react';
 import type { RevSetup, RevStatusRow } from '../../data/revs.types';
-import { FIELD_LABEL } from '../../ui/Fields';
+import { Icon } from '../../ui/Icon';
 import { Segments } from '../../ui/Segments';
 import {
-  itemsByRev, listsWithWalls, mapWhat, pickList, requestPlan, statusIndex, titlePreview, toggleItem, toggleWalls,
+  itemsByRev, listsWithWalls, mapWhat, pickList, pickWalls, requestPlan, statusIndex, titlePreview, toggleItem,
   wallsByLevel, type RevPick,
 } from './revPick';
 import { RevItems } from './RevItems';
@@ -27,7 +29,6 @@ export function RevPicker({ setup, status, value, onChange, date }: RevPickerPro
   const list = setup.lists.find((l) => l.id === value.listId) ?? null;
   const { items, walls } = requestPlan(setup, index, value);
   const colors = new Map(items.map((r) => [r.item.id, r.color]));
-  const title = titlePreview(list?.phase ?? null, date, mapWhat(walls, items));
 
   return (
     <div className="flex flex-col gap-4" data-testid="rev-picker">
@@ -46,25 +47,31 @@ export function RevPicker({ setup, status, value, onChange, date }: RevPickerPro
       <RevWalls
         groups={wallsByLevel(setup, value.listId)}
         picked={value.areaIds}
-        onToggle={(ids, on) => {
-          onChange(toggleWalls(setup, index, value, ids, on));
+        onChange={(areaIds) => {
+          onChange(pickWalls(setup, index, value, areaIds));
         }}
       />
-      <RevItems
-        groups={itemsByRev(setup, value.listId)}
-        index={index}
-        pick={value}
-        colors={colors}
-        onToggle={(id) => {
-          onChange(toggleItem(value, id));
-        }}
-      />
-      <div className="flex flex-col gap-1.5">
-        <span className={FIELD_LABEL}>Map title</span>
-        <p className="break-words rounded-lg bg-page px-3 py-2.5 text-[13px] font-semibold leading-5 text-ink" data-testid="rev-title">
-          {title}
+      {value.areaIds.length > 0 ? (
+        <div className="border-t border-line pt-4">
+          <RevItems
+            groups={itemsByRev(setup, value.listId)}
+            index={index}
+            pick={value}
+            colors={colors}
+            onToggle={(id) => {
+              onChange(toggleItem(value, id));
+            }}
+          />
+        </div>
+      ) : null}
+      {items.length > 0 && walls.length > 0 ? (
+        <p className="flex items-start gap-2 rounded-lg bg-page px-3 py-2 text-[13px] font-semibold leading-5 text-ink">
+          <Icon icon={MapIcon} size={16} label="Map title" className="mt-0.5 shrink-0 text-ink-2" />
+          <span className="min-w-0 break-words" data-testid="rev-title">
+            {titlePreview(list?.phase ?? null, date, mapWhat(walls, items))}
+          </span>
         </p>
-      </div>
+      ) : null}
     </div>
   );
 }

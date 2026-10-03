@@ -1,14 +1,14 @@
-// The request picker's items: the list's revs in order, each with its items. A picked item shows its map color (the
-// legend); three at most. An item passed or N/A on every picked wall is done and can't be picked; one already asked
-// for, or failed last time, says so.
-import { useId } from 'react';
+// The request picker's items: one button per item that just says what it is, in rev order under a thin "Rev 3 · Drywall"
+// label. Three at most (OSFM: three colors on a sheet); a picked one carries its map color, so the picked buttons are
+// the legend. An item passed or N/A on every picked wall is done: shown with a check, not pickable. One already asked
+// for, or failed last time, has a small status dot.
 import { Check } from 'lucide-react';
 import type { MarkupColor } from '../../lib/markup';
-import { FIELD_LABEL } from '../../ui/Fields';
+import { ChipPick, type Chip } from '../../ui/ChipPick';
 import { Icon } from '../../ui/Icon';
-import { StatusChip } from '../../ui/StatusChip';
 import { Swatch } from './map/MarkupBar';
-import { MAX_ITEMS, isDone, itemNeed, type ItemNeed, type RevGroup, type RevPick, type StatusIndex } from './revPick';
+import { GROUP_LABEL } from './RevWalls';
+import { MAX_ITEMS, itemState, type ItemState, type RevGroup, type RevPick, type StatusIndex } from './revPick';
 
 interface RevItemsProps {
   groups: readonly RevGroup[];
@@ -19,82 +19,70 @@ interface RevItemsProps {
   onToggle: (itemId: string) => void;
 }
 
-function Mark({ color, picked, done }: { color: MarkupColor | undefined; picked: boolean; done: boolean }) {
-  if (done) {
-    return (
-      <span aria-hidden className="flex h-5 w-7 shrink-0 items-center justify-center text-ink-3">
-        <Icon icon={Check} size={16} />
-      </span>
-    );
-  }
-  if (picked && color !== undefined) return <Swatch color={color} />;
-  return <span aria-hidden className={`h-5 w-7 shrink-0 rounded border ${picked ? 'border-accent bg-accent-soft' : 'border-line-strong bg-card'}`} />;
-}
+const SAYS: Record<Exclude<ItemState, 'open'>, string> = { done: 'Done', requested: 'Requested', failed: 'Failed' };
+const DOT: Record<'requested' | 'failed', string> = { requested: 'var(--status-pending-dot)', failed: 'var(--status-not_approved-dot)' };
 
-function Need({ need, done }: { need: ItemNeed; done: boolean }) {
-  if (done) return <span className="shrink-0 text-xs text-ink-3">Done</span>;
-  if (need.requested > 0) return <StatusChip status="pending" label="Requested" />;
-  if (need.failed > 0) return <StatusChip status="not_approved" label="Failed" />;
-  if (need.done > 0) {
+function Mark({ state, color }: { state: ItemState; color: MarkupColor | undefined }) {
+  if (color !== undefined) {
+    // A white edge keeps the blue swatch from melting into the picked button.
     return (
-      <span className="shrink-0 text-xs tabular-nums text-ink-2">
-        {need.done} of {need.done + need.open} done
+      <span className="inline-flex shrink-0 rounded ring-2 ring-white">
+        <Swatch color={color} />
       </span>
     );
   }
-  return null;
+  if (state === 'open') return null;
+  return (
+    <>
+      {state === 'done' ? (
+        <Icon icon={Check} size={15} className="shrink-0 text-ink-3" />
+      ) : (
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: DOT[state] }} />
+      )}
+      <span className="sr-only">{SAYS[state]}:</span>
+    </>
+  );
 }
 
 export function RevItems({ groups, index, pick, colors, onToggle }: RevItemsProps) {
-  const full = pick.itemIds.length >= MAX_ITEMS;
-  const labelId = useId();
   return (
-    <div role="group" aria-labelledby={labelId} className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span id={labelId} className={FIELD_LABEL}>
-          Items
-        </span>
-        <span className={`text-xs tabular-nums ${full ? 'font-medium text-ink' : 'text-ink-2'}`} data-testid="rev-items-count">
-          {pick.itemIds.length} of {MAX_ITEMS}
-        </span>
-      </div>
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card shadow-control">
-        {groups.map((g) => (
-          <div key={g.number} role="group" aria-label={`Rev ${String(g.number)} ${g.name}`} className="border-t border-line first:border-t-0">
-            <p className="bg-card-head px-3 py-1.5 text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3">
+    <div className="flex flex-col gap-3" data-testid="rev-items-pick">
+      {groups.map((g) => {
+        const here = g.items.map((i) => i.id);
+        const picked = pick.itemIds.filter((id) => here.includes(id));
+        const chips: Chip<string>[] = g.items.map((item) => {
+          const state = itemState(index, item.id, pick.areaIds);
+          const on = picked.includes(item.id);
+          return {
+            value: item.id,
+            label: item.name,
+            mark: <Mark state={state} color={on ? colors.get(item.id) : undefined} />,
+            // One that became done while picked can still be dropped.
+            done: state === 'done' && !on,
+            title: state === 'open' ? undefined : SAYS[state],
+          };
+        });
+        return (
+          <div key={g.number} className="flex flex-col gap-1.5">
+            <span aria-hidden className={GROUP_LABEL}>
               Rev {g.number} · {g.name}
-            </p>
-            <ul>
-              {g.items.map((item) => {
-                const picked = pick.itemIds.includes(item.id);
-                const need = itemNeed(index, item.id, pick.areaIds);
-                const done = isDone(need);
-                const off = done || (full && !picked);
-                return (
-                  <li key={item.id} className="border-t border-line">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={picked}
-                      disabled={off}
-                      data-testid={`rev-item-${item.id}`}
-                      data-done={done || undefined}
-                      onClick={() => {
-                        onToggle(item.id);
-                      }}
-                      className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm text-ink hover:bg-page/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-ink-3 disabled:hover:bg-transparent"
-                    >
-                      <Mark color={colors.get(item.id)} picked={picked} done={done} />
-                      <span className={`min-w-0 flex-1 break-words ${picked ? 'font-medium' : ''}`}>{item.name}</span>
-                      <Need need={need} done={done} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            </span>
+            <ChipPick
+              label={`Rev ${String(g.number)} ${g.name}`}
+              multiple
+              // The three are shared by every rev: this one takes what the others leave.
+              max={MAX_ITEMS - (pick.itemIds.length - picked.length)}
+              chips={chips}
+              picked={picked}
+              onChange={(next) => {
+                const tapped = here.find((id) => next.includes(id) !== picked.includes(id));
+                if (tapped !== undefined) onToggle(tapped);
+              }}
+              testId="rev-item"
+            />
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
