@@ -4,6 +4,7 @@
 // inspector, never once signed; a version check) and the results per cell. The requests themselves live in
 // mock/inspections; the map PDF is server-only, so a render here answers a stand-in file id.
 import { conflictError } from '../errors';
+import { FunctionError } from '../functions';
 import type { Tables } from '../database.types';
 import type { IrRef } from '../inspections.mutations';
 import type { IrRequest, IrRowRaw } from '../inspections.types';
@@ -170,7 +171,13 @@ export async function saveMap(v: { requestId: string; version: number; strokes: 
 /** The ir-map function in the mock: no PDF is made; the map counts as rendered (with the signature when signed). */
 export async function renderMap(requestId: string): Promise<{ file_id: string }> {
   const q = await mockIr.request(requestId);
-  if (!q) throw fail('That item no longer exists.', 'P0002');
+  const map = read().maps.find((m) => m.request_id === requestId);
+  if (!q || !map) throw fail('That item no longer exists.', 'P0002');
+  // ir-map's own refusals (400).
+  if (map.sheet_file_id === null) throw new FunctionError(400, 'bad_request', 'Pick the sheet first.', null, null);
+  if (!Array.isArray(map.strokes) || map.strokes.length === 0) {
+    throw new FunctionError(400, 'bad_request', 'Mark the walls first.', null, null);
+  }
   const fileId = `mock-ir-map-${requestId}`;
   write((x) => ({
     ...x,
