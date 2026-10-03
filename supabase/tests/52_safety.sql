@@ -89,10 +89,10 @@ select is((select array_agg(role order by role) from public.role_permissions whe
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'safety.manage'),
   '{inspector_admin,project_admin,safety}'::text[], 'matrix: who keeps the library (inspector_admin follows the project admin, 0044)');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'safety'),
-  '{calendar.read,comments.write,members.view,revs.read,safety.manage,safety.read,safety.run}'::text[], 'matrix: the safety manager''s whole list');
+  '{calendar.read,comments.write,members.view,requirements.read,revs.read,safety.manage,safety.read,safety.run}'::text[], 'matrix: the safety manager''s whole list');
 select results_eq($$ select name, recommended_tools from public.roles where name in ('superintendent', 'foreman') order by name $$,
   $$ values ('foreman'::text, '{board,calendar,dailies,safety,inspections,deliveries}'::text[]),
-            ('superintendent', '{board,calendar,dailies,safety,inspections,deliveries}') $$,
+            ('superintendent', '{board,calendar,dailies,safety,inspections,deliveries,requirements}') $$,
   'rail: Safety right after Dailies for the superintendent and the foreman');
 select ok('safety' = any (public.job_rail_tools()), 'rail: Safety is a job tool');
 select ok((select 'safety' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000521')

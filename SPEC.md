@@ -655,6 +655,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
   - `readSheetNumber`
   - `draftRfi`
   - `buildSubmittalRegister`
+  - `extractRequirements` (one spec section's dated commitments beyond submittals, each with its quoted sentence; the Requirements register's drafts, migration 0063)
   - `describePhoto`
   - `compileNotes`
   - `searchToFilters`

@@ -1,0 +1,23 @@
+SECTION 28 46 21.11 - ADDRESSABLE FIRE-ALARM SYSTEMS (SYNTHETIC FIXTURE)
+
+PART 1 - GENERAL
+
+1.6 CLOSEOUT SUBMITTALS
+A. Operation and Maintenance Data: For the fire-alarm system, in bookmarked PDF.
+B. Record of Completion: Signed by the installer.
+
+1.7 QUALITY ASSURANCE
+A. Field Quality Control: The manufacturer's authorized representative shall inspect the installation and certify it in writing before the acceptance test.
+
+1.8 WARRANTY
+A. Extended warranty may be offered at the Owner's option for an additional two years.
+
+PART 3 - EXECUTION
+
+3.4 FIELD QUALITY CONTROL
+A. Acceptance Test: Test the complete system in the presence of the Inspector of Record and the Fire Marshal.
+B. Give the Fire Marshal at least 10 working days' notice before the acceptance test.
+
+3.6 DEMONSTRATION
+A. Train the Owner's maintenance personnel for four hours. Schedule training with at least 14 days' notice.
+B. Where a voice evacuation system is provided, include two additional hours of training.

@@ -178,3 +178,7 @@ verify_jwt = false
 # --- Safety: close a meeting and make its sign-in sheet PDF; a library topic's PDF ---
 [functions.safety-meeting]
 verify_jwt = true
+
+# --- Requirements: read one spec section with AI into drafts (0063; rate-limited; refuses without the AI key) ---
+[functions.requirements-extract]
+verify_jwt = true
