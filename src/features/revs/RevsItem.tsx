@@ -1,5 +1,5 @@
-// The right column for revs (full screen on the phone): a wall, or a setup form (a new list from the legend, walls to
-// add) for those who manage the lists.
+// A revs item: a setup form for those who manage the lists (a new list from the legend, walls to add; the right column
+// on a desktop), or a wall's page on the phone (full screen) and in its own window (on a desktop it fills the main area).
 import type { ReactNode } from 'react';
 import { useCapability } from '../../data/queries';
 import { NEW_ITEM, WALLS_ITEM } from '../../lib/itemIds';
@@ -7,7 +7,7 @@ import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { AddWalls } from './AddWalls';
 import { NewList } from './NewList';
-import { WallPane } from './WallPane';
+import { WallPage } from './WallPage';
 
 interface RevsItemProps {
   projectId: string;
@@ -44,5 +44,5 @@ export function RevsItem({ projectId, itemId, isPhone }: RevsItemProps) {
       </ManagersOnly>
     );
   }
-  return <WallPane key={itemId} projectId={projectId} areaId={itemId} isPhone={isPhone} />;
+  return <WallPage key={itemId} projectId={projectId} areaId={itemId} isPhone={isPhone} />;
 }

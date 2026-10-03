@@ -16,3 +16,11 @@ export const CONTRACT_ITEM = 'contract';
 export const BILLING_ITEM = 'billing';
 /** Revs: adding walls to a list. */
 export const WALLS_ITEM = 'walls';
+
+/**
+ * Items that are pages of their own: on a desktop they fill the main area instead of the right column (the right column
+ * keeps its docked panel). A Revs wall is one (Jesse, Oct 3: "the whole wall gets built out on its own inspection page").
+ */
+export function opensInMain(tool: string, itemId: string): boolean {
+  return tool === 'revs' && itemId !== NEW_ITEM && itemId !== WALLS_ITEM;
+}

@@ -1,12 +1,13 @@
 // Revs (0056): a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2: "anyone can see what's left
-// on each wall at any time"). Walls: every wall by level with its tracker; a tap opens it in the right column (full
-// screen on the phone). Open: the end-of-job check, what is still open and where. Setup (revs.manage): the lists,
-// pasted from OSFM's legend, and the walls. What shows is decided by has_capability, never role names.
+// on each wall at any time"). Walls: every wall by level as a callout tile with its tally; a tap opens the wall's own
+// page (the main area; its own screen on the phone). Open: the end-of-job check, what is still open and where. Setup
+// (revs.manage): the lists, pasted from OSFM's legend, and the walls. What shows is decided by has_capability, never
+// role names.
 import { useMemo, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { useCapability } from '../../data/queries';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
-import { NEW_ITEM, WALLS_ITEM } from '../../lib/itemIds';
+import { NEW_ITEM, opensInMain, WALLS_ITEM } from '../../lib/itemIds';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
@@ -17,6 +18,7 @@ import { VIEWS, VIEW_LABELS, indexStatus, metaLine, type RevView } from './model
 import { OpenView } from './OpenView';
 import { SetupView } from './SetupView';
 import { useRevsNav } from './useRevsNav';
+import { WallPage } from './WallPage';
 import { WallsView } from './WallsView';
 
 const META = TOOL_META.revs;
@@ -95,8 +97,6 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
       <WallsView
         setup={setup.data}
         index={index}
-        selectedId={itemId}
-        isPhone={isPhone}
         onOpen={nav.open}
         onSetup={canManage ? () => { nav.setView('setup'); } : undefined}
       />
@@ -143,5 +143,7 @@ export function RevsTool({ projectId, itemId, isPhone }: RevsToolProps) {
       </Shell>
     );
   }
+  // A wall is a page of its own: it fills the main area (lib/itemIds opensInMain).
+  if (itemId !== null && opensInMain('revs', itemId)) return <WallPage key={itemId} projectId={projectId} areaId={itemId} isPhone={isPhone} />;
   return <RevsMain key={projectId} projectId={projectId} itemId={itemId} isPhone={isPhone} canManage={manage.data === true} />;
 }

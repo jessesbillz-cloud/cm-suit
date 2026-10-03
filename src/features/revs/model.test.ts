@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import {
+  canAsk,
   cellOf,
   chipOf,
   indexStatus,
@@ -9,13 +10,9 @@ import {
   metaLine,
   naToggle,
   neighbor,
-  nextItems,
   openRollup,
   parseView,
   requestSearch,
-  revLabel,
-  revState,
-  revSteps,
   wallRevs,
   wallsByList,
 } from './model';
@@ -58,45 +55,16 @@ const STATUS = indexStatus([
 ]);
 
 describe('revs model', () => {
-  it("a rev's place on a wall's tracker", () => {
-    expect(revState(['passed', 'passed'])).toBe('done');
-    expect(revState(['passed', 'na'])).toBe('done');
-    expect(revState(['na', 'na'])).toBe('done');
-    expect(revState([])).toBe('done');
-    expect(revState(['passed', 'requested', 'failed'])).toBe('current');
-    expect(revState(['passed', 'failed', 'open'])).toBe('failed');
-    expect(revState(['passed', 'open'])).toBe('todo');
-    expect(revState(['open', 'na'])).toBe('todo');
-  });
-
   it("a wall's revs, in order, each with its items' statuses (an unanswered cell is open)", () => {
     const revs = wallRevs(SETUP, STATUS, wall(1, 'Level 01', 'Stair 2 shaft'));
-    expect(revs.map((r) => [r.rev.number, r.state])).toEqual([[0, 'done'], [1, 'failed'], [2, 'todo']]);
+    expect(revs.map((r) => r.rev.number)).toEqual([0, 1, 2]);
     expect(revs[1]?.cells.map((c) => c.cell.status)).toEqual(['passed', 'failed', 'na', 'open']);
-    expect(wallRevs(SETUP, STATUS, wall(2, 'Level 10', 'Corridor 1010')).map((r) => r.state)).toEqual(['done', 'current', 'todo']);
     expect(cellOf(STATUS, 'a9', 'i01').status).toBe('open');
   });
 
-  it("the tracker's steps: short names, the rev number as the kind, passed count on hover", () => {
-    const steps = revSteps(wallRevs(SETUP, STATUS, wall(1, 'Level 01', 'Stair 2 shaft')));
-    expect(steps.map((s) => s.label)).toEqual(['TOW', 'HOW Cavity', 'CJ']);
-    expect(steps.map((s) => s.kind)).toEqual(['0', '1', '2']);
-    expect(steps[1]?.title).toBe('Rev 1 HOW - Cavity: 1 of 3 passed');
-    expect(revLabel('HOW- Cavity')).toBe('HOW Cavity');
-    expect(revLabel('In-Wall Final')).toBe('In-Wall Final');
-  });
-
-  it('next items: up to 3 from the earliest rev with something to ask for (failed asks again)', () => {
-    const a1 = wallRevs(SETUP, STATUS, wall(1, 'Level 01', 'Stair 2 shaft'));
-    expect(nextItems(a1).map((i) => i.id)).toEqual(['i12', 'i14']);
-    // Nothing asked yet on wall 4: Rev 0's one item.
-    expect(nextItems(wallRevs(SETUP, STATUS, wall(4, 'Level 01', 'Corridor 110'))).map((i) => i.id)).toEqual(['i01']);
-    // Wall 3 passed Rev 0: Rev 1's first three.
-    expect(nextItems(wallRevs(SETUP, STATUS, wall(3, 'Level 2', 'Elevator 2'))).map((i) => i.id)).toEqual(['i11', 'i12', 'i13']);
-    // Wall 2: Rev 1's requested item is waiting; the rest of Rev 1 comes next.
-    expect(nextItems(wallRevs(SETUP, STATUS, wall(2, 'Level 10', 'Corridor 1010'))).map((i) => i.id)).toEqual(['i12', 'i13', 'i14']);
-    const allDone = indexStatus(SETUP.items.map((i) => row('a1', i.id, 'passed')));
-    expect(nextItems(wallRevs(SETUP, allDone, wall(1, 'Level 01', 'Stair 2 shaft')))).toEqual([]);
+  it('still to ask for: never asked, or failed', () => {
+    const all: RevStatusRow['status'][] = ['open', 'failed', 'requested', 'passed', 'na'];
+    expect(all.filter(canAsk)).toEqual(['open', 'failed']);
   });
 
   it('the open rollup: per rev, per item, the walls not passed or N/A', () => {

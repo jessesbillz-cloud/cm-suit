@@ -1,7 +1,7 @@
 // Tap-to-pick buttons that wrap, the way My Daily Reports lays out a Special inspection's kinds (Soils, Concrete,
 // Masonry, Grout ...): each button says what it is, a tap picks it, a second tap drops it. One pick or several (with a
 // cap). A button can carry a small mark before its name (a status dot, a color swatch) and can be done (shown, not
-// pickable). Big targets on the phone.
+// pickable); the one being looked at elsewhere (focus) is ringed. Big targets on the phone.
 import type { ReactNode } from 'react';
 
 export interface Chip<T extends string> {
@@ -24,6 +24,8 @@ interface ChipPickProps<T extends string> {
   multiple?: boolean | undefined;
   /** With multiple: at most this many; the rest wait until one is dropped. */
   max?: number | undefined;
+  /** The button being looked at elsewhere (e.g. on a drawing): ringed. */
+  focus?: T | null | undefined;
   testId?: string | undefined;
 }
 
@@ -34,7 +36,7 @@ export function nextPicked<T extends string>(picked: readonly T[], value: T, mul
   return picked.length >= max ? [...picked] : [...picked, value];
 }
 
-export function ChipPick<T extends string>({ chips, picked, onChange, label, multiple = false, max = Infinity, testId }: ChipPickProps<T>) {
+export function ChipPick<T extends string>({ chips, picked, onChange, label, multiple = false, max = Infinity, focus, testId }: ChipPickProps<T>) {
   const full = multiple && picked.length >= max;
   return (
     <div role="group" aria-label={label} className="flex flex-wrap gap-1.5" data-testid={testId}>
@@ -50,7 +52,10 @@ export function ChipPick<T extends string>({ chips, picked, onChange, label, mul
             title={c.title}
             data-testid={testId ? `${testId}-${c.value}` : undefined}
             data-done={c.done ? 'true' : undefined}
+            data-focus={c.value === focus ? 'true' : undefined}
             className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-left text-sm font-medium wrap-anywhere sm:min-h-9 ${
+              c.value === focus ? 'ring-2 ring-accent ring-offset-1' : ''
+            } ${
               on
                 ? 'border-accent bg-accent text-white'
                 : c.done
