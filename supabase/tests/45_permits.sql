@@ -98,8 +98,8 @@ select ok(not exists (select 1 from unnest(array['permits', 'permit_stage_events
                           or not has_table_privilege('authenticated', 'public.' || t, 'SELECT')),
   'anon reads nothing; signed in: read only, writes go through the RPCs');
 select is((select description from public.roles where name = 'ahj'), 'Fire / building official', 'the role ahj, as data');
-select is((select recommended_tools from public.roles where name = 'ahj'), '{board,calendar,permits,inspections,files}'::text[],
-  'its recommended rail');
+select is((select recommended_tools from public.roles where name = 'ahj'), '{board,calendar,permits,inspections,revs,files}'::text[],
+  'its recommended rail (Revs from 0056)');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'permits.read'),
   '{ahj,architect,inspector,inspector_admin,owner_rep,pe,pm,project_admin,superintendent}'::text[], 'matrix: permits.read');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'permits.manage'),
@@ -108,8 +108,8 @@ select is((select array_agg(role order by role) from public.role_permissions whe
   '{architect,inspector_admin,pe,pm,project_admin}'::text[],
   'matrix: permits.respond is the design team''s (and inspector_admin follows the project admin, 0044)');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'ahj'),
-  '{calendar.read,comments.write,files.read_project,ir.decide,ir.view_all,members.view,permits.manage,permits.read}'::text[],
-  'matrix: the official''s whole list');
+  '{calendar.read,comments.write,files.read_project,ir.decide,ir.view_all,members.view,permits.manage,permits.read,revs.manage,revs.read}'::text[],
+  'matrix: the official''s whole list (revs from 0056)');
 select ok('permits' = any (public.job_rail_tools()), 'Permits is a job tool on the rail');
 select ok((select 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000451')
           and (select not 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000454'),

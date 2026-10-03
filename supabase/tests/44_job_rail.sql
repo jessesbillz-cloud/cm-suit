@@ -43,7 +43,7 @@ select ok(not 'board' = any (public.job_rail_tools()) and not 'calendar' = any (
           and not 'timesheets' = any (public.job_rail_tools()),
   'the top of the rail (Board, Calendar) and Timesheets are never a job''s tools');
 select is_empty($$ select t from unnest(public.job_rail_tools()) t
-                   where t not in ('files','bids','dailies','inspections','rfis','permits','deliveries','corrections','people','hours') $$,
+                   where t not in ('files','bids','dailies','inspections','revs','rfis','permits','deliveries','corrections','people','hours') $$,
   'job tools are rail tools');
 
 -- ---------------------------------------------------------------------------------------------------------------

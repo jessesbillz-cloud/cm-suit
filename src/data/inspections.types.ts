@@ -50,13 +50,14 @@ export type FormContext = z.infer<typeof formContextSchema>;
 
 // One literal, so supabase-js can type the rows from it.
 export const IR_COLS =
-  'id, project_id, number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ir_special_kinds(name)';
+  'id, project_id, number, ofs_number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ir_special_kinds(name)';
 
 export type IrRequest = Pick<
   Tables<'inspection_requests'>,
   | 'id'
   | 'project_id'
   | 'number'
+  | 'ofs_number'
   | 'version'
   | 'requested_by'
   | 'requester_name'

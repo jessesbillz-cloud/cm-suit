@@ -141,6 +141,8 @@ export const PUBLIC_TABLES = [
   'permit_stamped_copies',
   // A no-login request's private status link: only its token's hash (0055)
   'ir_link_receipts',
+  // Revs (0056)
+  'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -193,3 +195,47 @@ export function requestNoLoginCases(token: string, projectId: string): [string, 
     ['submit as JSON, not a form', { action: 'submit', project_id: projectId, token, name: 'probe', company: 'probe' }, [400]],
   ];
 }
+
+/** Revs (0056) for the anon probe: the RPCs, the service-only map record, and the internal helpers. */
+export const REVS_RPCS: [string, Record<string, unknown>][] = [
+  ['rev_status', { p_project_id: ZERO_UUID }],
+  ['rev_list_create', { p_project_id: ZERO_UUID, p_name: 'probe', p_phase: null, p_permit_id: null, p_revs: [] }],
+  ['rev_list_save', { p_id: ZERO_UUID, p_version: 1, p_name: 'probe', p_phase: null, p_permit_id: null }],
+  ['rev_save', { p_list_id: ZERO_UUID, p_id: null, p_version: null, p_number: 0, p_name: 'probe' }],
+  ['rev_item_save', { p_rev_id: ZERO_UUID, p_id: null, p_version: null, p_name: 'probe', p_company: null, p_position: null }],
+  ['rev_areas_add', { p_list_id: ZERO_UUID, p_level: 'probe', p_names: ['probe'], p_sheet_file_id: null }],
+  ['rev_area_save', { p_id: ZERO_UUID, p_version: 1, p_level: 'probe', p_name: 'probe', p_sheet_file_id: null, p_position: null }],
+  ['rev_remove', { p_kind: 'list', p_id: ZERO_UUID, p_version: 1 }],
+  ['rev_restore', { p_kind: 'list', p_id: ZERO_UUID, p_version: 1 }],
+  ['rev_mark_na', { p_area_id: ZERO_UUID, p_item_id: ZERO_UUID, p_on: true }],
+  ['ir_submit_ofs', {
+    p_project_id: ZERO_UUID, p_company: 'probe', p_request_date: '2030-01-01', p_notice_ack: true, p_area_ids: [ZERO_UUID],
+    p_item_ids: [ZERO_UUID],
+  }],
+  ['ir_map_context', { p_request_id: ZERO_UUID }],
+  ['ir_map_save', { p_request_id: ZERO_UUID, p_version: 1, p_strokes: [] }],
+  ['ir_map_attach', { p_request_id: ZERO_UUID, p_file_id: ZERO_UUID, p_content_hash: '0'.repeat(64), p_signed: false }],
+  ['ir_rev_results', { p_request_id: ZERO_UUID, p_version: 1, p_results: [] }],
+  ['ir_map_strokes_ok', { p_strokes: [] }],
+  ['rev_clean', { p_text: 'probe' }],
+  ['rev_need', { p_project_id: ZERO_UUID, p_cap: 'revs.read' }],
+  ['rev_version_ok', { p_have: 1, p_want: 1 }],
+  ['rev_sheet_ok', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  ['rev_sheet_check', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  ['rev_list_check', { p_project_id: ZERO_UUID, p_name: 'probe', p_phase: null, p_permit_id: null }],
+  ['rev_rev_check', { p_number: 0, p_name: 'probe' }],
+  ['rev_item_check', { p_name: 'probe', p_company: null }],
+  ['rev_area_check', { p_level: 'probe', p_name: 'probe' }],
+  ['rev_legend_check', { p_revs: [] }],
+  ['rev_free_number', { p_list_id: ZERO_UUID, p_number: 0, p_except: null }],
+  ['rev_list_lock', { p_list_id: ZERO_UUID, p_version: 1 }],
+  ['rev_lock', { p_rev_id: ZERO_UUID }],
+  ['rev_table', { p_kind: 'list' }],
+  ['ir_ofs_cells', { p_project_id: ZERO_UUID, p_area_ids: [], p_item_ids: [] }],
+  ['ir_ofs_list', { p_project_id: ZERO_UUID, p_area_ids: [], p_item_ids: [] }],
+  ['ir_ofs_items_text', { p_area_ids: [], p_item_ids: [] }],
+  ['ir_map_what', { p_request_id: ZERO_UUID }],
+  ['ir_rev_failed_notes', { p_request_id: ZERO_UUID }],
+  ['ir_rev_results_check', { p_request_id: ZERO_UUID, p_results: [] }],
+  ['ir_map_editor', { p_request_id: ZERO_UUID }],
+];

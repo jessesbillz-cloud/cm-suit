@@ -2671,6 +2671,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -2726,6 +2727,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number?: number | null
           org_id: string
           owner_id?: string | null
           pdf_postponed?: boolean
@@ -2781,6 +2783,7 @@ export type Database = {
           kind?: string
           notice_ack_at?: string
           number?: number
+          ofs_number?: number | null
           org_id?: string
           owner_id?: string | null
           pdf_postponed?: boolean
@@ -3029,6 +3032,169 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inspection_requests"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_maps: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          map_file_id: string | null
+          org_id: string
+          page: number
+          project_id: string
+          request_id: string
+          sheet_file_id: string | null
+          signed: boolean
+          stale: boolean
+          strokes: Json
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          map_file_id?: string | null
+          org_id: string
+          page?: number
+          project_id: string
+          request_id: string
+          sheet_file_id?: string | null
+          signed?: boolean
+          stale?: boolean
+          strokes?: Json
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          map_file_id?: string | null
+          org_id?: string
+          page?: number
+          project_id?: string
+          request_id?: string
+          sheet_file_id?: string | null
+          signed?: boolean
+          stale?: boolean
+          strokes?: Json
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_maps_map_file_id_fkey"
+            columns: ["map_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_maps_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "ir_maps_request_id_project_id_fkey"
+            columns: ["request_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "ir_maps_sheet_file_id_fkey"
+            columns: ["sheet_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_rev_items: {
+        Row: {
+          area_id: string
+          color: number
+          created_at: string
+          created_by: string
+          id: string
+          item_id: string
+          org_id: string
+          project_id: string
+          request_id: string
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_id: string
+          color: number
+          created_at?: string
+          created_by: string
+          id?: string
+          item_id: string
+          org_id: string
+          project_id: string
+          request_id: string
+          result?: string | null
+          result_at?: string | null
+          result_by?: string | null
+          result_note?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_id?: string
+          color?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          item_id?: string
+          org_id?: string
+          project_id?: string
+          request_id?: string
+          result?: string | null
+          result_at?: string | null
+          result_by?: string | null
+          result_note?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_rev_items_area_id_project_id_fkey"
+            columns: ["area_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_areas"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "ir_rev_items_item_id_project_id_fkey"
+            columns: ["item_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_items"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "ir_rev_items_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "ir_rev_items_request_id_project_id_fkey"
+            columns: ["request_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id", "project_id"]
           },
         ]
       }
@@ -4217,6 +4383,317 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      rev_areas: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          sheet_file_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position?: number
+          project_id: string
+          sheet_file_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          level?: string
+          list_id?: string
+          name?: string
+          org_id?: string
+          position?: number
+          project_id?: string
+          sheet_file_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_areas_list_id_project_id_fkey"
+            columns: ["list_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_lists"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_areas_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "rev_areas_sheet_file_id_fkey"
+            columns: ["sheet_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rev_items: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          rev_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          position?: number
+          project_id: string
+          rev_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          position?: number
+          project_id?: string
+          rev_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_items_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "rev_items_rev_id_project_id_fkey"
+            columns: ["rev_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "revs"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      rev_lists: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          permit_id: string | null
+          phase: string | null
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          permit_id?: string | null
+          phase?: string | null
+          position?: number
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          permit_id?: string | null
+          phase?: string | null
+          position?: number
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_lists_permit_id_project_id_fkey"
+            columns: ["permit_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "permits"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_lists_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      rev_marks: {
+        Row: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          item_id: string
+          kind: string
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          item_id: string
+          kind?: string
+          org_id: string
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          item_id?: string
+          kind?: string
+          org_id?: string
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_marks_area_id_project_id_fkey"
+            columns: ["area_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_areas"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_marks_item_id_project_id_fkey"
+            columns: ["item_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_items"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_marks_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      revs: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          list_id: string
+          name: string
+          number: number
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          list_id: string
+          name: string
+          number: number
+          org_id: string
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          list_id?: string
+          name?: string
+          number?: number
+          org_id?: string
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revs_list_id_project_id_fkey"
+            columns: ["list_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_lists"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "revs_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
           },
         ]
       }
@@ -6231,6 +6708,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6301,6 +6779,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6426,6 +6905,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6490,6 +6970,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6554,6 +7035,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6618,6 +7100,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6691,6 +7174,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6761,6 +7245,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6830,6 +7315,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6868,6 +7354,71 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_map_attach: {
+        Args: {
+          p_content_hash: string
+          p_file_id: string
+          p_request_id: string
+          p_signed: boolean
+        }
+        Returns: {
+          content_hash: string | null
+          created_at: string
+          map_file_id: string | null
+          org_id: string
+          page: number
+          project_id: string
+          request_id: string
+          sheet_file_id: string | null
+          signed: boolean
+          stale: boolean
+          strokes: Json
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ir_maps"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_map_context: { Args: { p_request_id: string }; Returns: Json }
+      ir_map_editor: { Args: { p_request_id: string }; Returns: boolean }
+      ir_map_save: {
+        Args: {
+          p_page?: number
+          p_request_id: string
+          p_sheet_file_id?: string
+          p_strokes: Json
+          p_version: number
+        }
+        Returns: {
+          content_hash: string | null
+          created_at: string
+          map_file_id: string | null
+          org_id: string
+          page: number
+          project_id: string
+          request_id: string
+          sheet_file_id: string | null
+          signed: boolean
+          stale: boolean
+          strokes: Json
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ir_maps"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_map_strokes_ok: { Args: { p_strokes: Json }; Returns: boolean }
+      ir_map_what: { Args: { p_request_id: string }; Returns: string }
       ir_mark_sent: {
         Args: {
           p_recipient_ids?: string[]
@@ -6898,6 +7449,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -6977,6 +7529,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7015,6 +7568,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_ofs_cells: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_project_id: string
+        }
+        Returns: {
+          area_id: string
+          color: number
+          item_id: string
+        }[]
+      }
+      ir_ofs_items_text: {
+        Args: { p_area_ids: string[]; p_item_ids: string[] }
+        Returns: string
+      }
+      ir_ofs_list: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_project_id: string
+        }
+        Returns: string
+      }
       ir_owner_ok: {
         Args: { p_owner: string; p_project_id: string }
         Returns: boolean
@@ -7051,6 +7628,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7126,6 +7704,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7164,6 +7743,76 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_rev_failed_notes: { Args: { p_request_id: string }; Returns: string }
+      ir_rev_results: {
+        Args: { p_request_id: string; p_results: Json; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_number: number | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_rev_results_check: {
+        Args: { p_request_id: string; p_results: Json }
+        Returns: undefined
+      }
       ir_set_attendance: {
         Args: { p_attendance?: string; p_request_id: string; p_version: number }
         Returns: {
@@ -7190,6 +7839,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7260,6 +7910,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7332,6 +7983,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7412,6 +8064,84 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_submit_ofs: {
+        Args: {
+          p_area_ids: string[]
+          p_attachment_ids?: string[]
+          p_company: string
+          p_duration_kind?: string
+          p_duration_min?: number
+          p_item_ids: string[]
+          p_notice_ack: boolean
+          p_project_id: string
+          p_request_date: string
+          p_sheet_file_id?: string
+          p_start_time?: string
+        }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7496,6 +8226,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7564,6 +8295,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8621,6 +9353,314 @@ export type Database = {
         }[]
       }
       restore_delivery: { Args: { p_id: string }; Returns: undefined }
+      rev_area_check: {
+        Args: { p_level: string; p_name: string }
+        Returns: undefined
+      }
+      rev_area_save: {
+        Args: {
+          p_id: string
+          p_level: string
+          p_name: string
+          p_position: number
+          p_sheet_file_id: string
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          sheet_file_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_areas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_areas_add: {
+        Args: {
+          p_level: string
+          p_list_id: string
+          p_names: string[]
+          p_sheet_file_id: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          sheet_file_id: string | null
+          updated_at: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "rev_areas"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      rev_clean: { Args: { p_text: string }; Returns: string }
+      rev_free_number: {
+        Args: { p_except: string; p_list_id: string; p_number: number }
+        Returns: undefined
+      }
+      rev_item_check: {
+        Args: { p_company: string; p_name: string }
+        Returns: undefined
+      }
+      rev_item_save: {
+        Args: {
+          p_company: string
+          p_id: string
+          p_name: string
+          p_position: number
+          p_rev_id: string
+          p_version: number
+        }
+        Returns: {
+          company: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          rev_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_legend_check: { Args: { p_revs: Json }; Returns: undefined }
+      rev_list_check: {
+        Args: {
+          p_name: string
+          p_permit_id: string
+          p_phase: string
+          p_project_id: string
+        }
+        Returns: undefined
+      }
+      rev_list_create: {
+        Args: {
+          p_name: string
+          p_permit_id: string
+          p_phase: string
+          p_project_id: string
+          p_revs: Json
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          permit_id: string | null
+          phase: string | null
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_list_lock: {
+        Args: { p_list_id: string; p_version: number }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          permit_id: string | null
+          phase: string | null
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_list_save: {
+        Args: {
+          p_id: string
+          p_name: string
+          p_permit_id: string
+          p_phase: string
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          name: string
+          org_id: string
+          permit_id: string | null
+          phase: string | null
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_lists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_lock: {
+        Args: { p_rev_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          list_id: string
+          name: string
+          number: number
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "revs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_mark_na: {
+        Args: { p_area_id: string; p_item_id: string; p_on: boolean }
+        Returns: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          item_id: string
+          kind: string
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_marks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_need: {
+        Args: { p_cap: string; p_project_id: string }
+        Returns: undefined
+      }
+      rev_remove: {
+        Args: { p_id: string; p_kind: string; p_version: number }
+        Returns: Json
+      }
+      rev_restore: {
+        Args: { p_id: string; p_kind: string; p_version: number }
+        Returns: Json
+      }
+      rev_rev_check: {
+        Args: { p_name: string; p_number: number }
+        Returns: undefined
+      }
+      rev_save: {
+        Args: {
+          p_id: string
+          p_list_id: string
+          p_name: string
+          p_number: number
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          list_id: string
+          name: string
+          number: number
+          org_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "revs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_sheet_check: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: undefined
+      }
+      rev_sheet_ok: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: boolean
+      }
+      rev_status: {
+        Args: { p_project_id: string }
+        Returns: {
+          area_id: string
+          at: string
+          ir_number: number
+          item_id: string
+          note: string
+          ofs_number: number
+          request_id: string
+          status: string
+        }[]
+      }
+      rev_table: { Args: { p_kind: string }; Returns: string }
+      rev_version_ok: {
+        Args: { p_have: number; p_want: number }
+        Returns: undefined
+      }
       review_delivery_month: {
         Args: {
           p_company: string
@@ -9955,6 +10995,7 @@ export type Database = {
           kind: string
           notice_ack_at: string
           number: number
+          ofs_number: number | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean

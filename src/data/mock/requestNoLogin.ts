@@ -34,7 +34,7 @@ function refuse(status: number, message: string): FunctionError {
 export async function day(key: LinkKey, picked: string | null): Promise<PublicDayAnswer> {
   await delay();
   jobFor(key);
-  const ctx = await formContext();
+  const ctx = await formContext(key.projectId);
   const d = picked ?? ctx.today;
   if (d < ctx.today) throw refuse(400, 'Pick today or a later day.');
   const rows = (await calendar(key.projectId, d, d))
@@ -71,7 +71,7 @@ export async function submit(key: LinkKey, v: PublicRequestInput): Promise<Submi
   );
   const receipt = newReceipt();
   window.sessionStorage.setItem(KEY, JSON.stringify({ ...receipts(), [receipt]: row.id }));
-  const special = (await formContext()).kinds.find((k) => k.id === row.special_kind_id)?.name ?? null;
+  const special = (await formContext(key.projectId)).kinds.find((k) => k.id === row.special_kind_id)?.name ?? null;
   return { ...facts(key.projectId, row, special), receipt };
 }
 

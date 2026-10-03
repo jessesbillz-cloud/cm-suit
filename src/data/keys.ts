@@ -97,4 +97,10 @@ export const qk = {
   requestLinkDay: (projectId: string, via: string, day: string) => ['request_link_public', projectId, 'day', via, day] as const,
   /** A request's private status link (0055), by its receipt. */
   requestStatus: (projectId: string, receipt: string) => ['request_status', projectId, receipt] as const,
+  /** Every revs query of a job (0056: the setup, the status) sits under this prefix: one refresh after any revs write. */
+  revs: (projectId: string) => ['revs', projectId] as const,
+  revsPart: (projectId: string, part: string) => ['revs', projectId, part] as const,
+  /** An OFS request's cells and its map (0056), by request. */
+  irRevItems: (requestId: string) => ['ir_rev_items', requestId] as const,
+  irMap: (requestId: string) => ['ir_map', requestId] as const,
 };

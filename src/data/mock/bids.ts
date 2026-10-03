@@ -24,6 +24,7 @@ import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import * as mockPackages from './packages';
 import * as mockPermits from './permits';
+import * as mockRevs from './revs';
 import * as mockRfis from './rfis';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
@@ -39,6 +40,7 @@ export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('corrections.')) return mockCorrections.capability(cap);
   if (cap.startsWith('rfi.')) return mockRfis.capability(cap);
   if (cap.startsWith('permits.')) return mockPermits.capability(cap);
+  if (cap.startsWith('revs.')) return mockRevs.capability(cap);
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
 }

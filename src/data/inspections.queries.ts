@@ -39,7 +39,7 @@ export function useIrCalendar(projectId: string, from: string, to: string) {
 }
 
 async function fetchContext(projectId: string): Promise<FormContext> {
-  if (isMock()) return mock.formContext();
+  if (isMock()) return mock.formContext(projectId);
   const data: unknown = throwIfError(await supabase.rpc('ir_form_context', { p_project_id: projectId }));
   return formContextSchema.parse(data);
 }
