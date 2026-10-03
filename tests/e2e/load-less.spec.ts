@@ -2,9 +2,9 @@
 // and its own tool only; a tool's code starts loading when the pointer is on its rail item (or a finger on its tab, or
 // More opens), so the click doesn't wait. Runs against the e2e mock. Where the whole app is one file (a one-file
 // preview bundle) nothing loads later, so the "loads on hover" checks are skipped there.
-// Contract with the mock (as rail.spec.ts): 'pm' on Sample Job A has RFIs, Inspections, Files under the job's name and
-// Dailies, Deliveries, Corrections, People under More. Test ids: rail-<tool>, phone-tab-more, phone-more-<tool>,
-// main-area (data-tool).
+// Contract with the mock (as rail.spec.ts): 'pm' on Sample Job A has Calendar, RFIs, Inspections, Files under the job's
+// name and Board, Bids, Dailies, Deliveries, Corrections, People under More. Test ids: rail-<tool>, phone-tab-more,
+// phone-more-<tool>, main-area (data-tool).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 

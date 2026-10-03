@@ -1,5 +1,5 @@
-// The rail the Settings sketch draws: the one the frame shows here (lib/jobs railModel, the same model), the general
-// tools on top and, on a job, its tools under its name. Each job's tools are chosen with Edit on the rail itself.
+// The rail the Settings sketch draws: the one the frame shows here (lib/jobs railModel, the same model), the cross-job
+// tools on All my jobs and, on a job, only its tools under its name. Each job's tools are chosen with Edit on the rail.
 import { jobRailChoices, useJobRails } from '../../data/jobRail.queries';
 import { useMyProjects } from '../../data/queries';
 import { useRecommendedTools } from '../../data/rail.queries';

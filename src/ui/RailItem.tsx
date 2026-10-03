@@ -1,13 +1,14 @@
 // One place on the rail, and More (the job's other tools in a small menu beside the rail). Both come in two widths: the
 // open rail (icon over a short name) and the collapsed one (icon only, the name on hover and for screen readers). On a
 // short screen (a laptop browser) the open rail's places are shorter, so a job's tools fit without scrolling.
-import { useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { Ellipsis, type LucideIcon } from 'lucide-react';
 import type { RailTool, Tool } from '../lib/layout';
 import { countOf, type ToolCounts } from '../lib/toolCounts';
 import { CountBadge } from './CountBadge';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
+import { useFitInWindow } from './useFitInWindow';
 
 interface RailItemProps {
   testId: string;
@@ -82,6 +83,8 @@ interface RailMoreProps {
 /** More: the job's other tools in a small menu beside the rail. Lit while one of them is open. */
 export function RailMore({ tools, counts, current, compact, onSelect, onPreload }: RailMoreProps) {
   const [open, setOpen] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+  useFitInWindow(menu, open);
   const close = () => {
     setOpen(false);
   };
@@ -106,10 +109,11 @@ export function RailMore({ tools, counts, current, compact, onSelect, onPreload 
           {/* Backdrop: clicking outside closes the menu without a document listener. */}
           <div className="fixed inset-0 z-30" aria-hidden="true" onClick={close} />
           <div
+            ref={menu}
             role="menu"
             aria-label="More tools"
             data-testid="rail-more-menu"
-            className="absolute left-full top-0 z-40 ml-3 w-56 rounded-card bg-card py-1.5 shadow-pop"
+            className="absolute left-full top-0 z-40 ml-3 max-h-[calc(100vh-1rem)] w-56 overflow-y-auto rounded-card bg-card py-1.5 shadow-pop"
             onKeyDown={(e) => {
               menuKeys(e, close);
             }}

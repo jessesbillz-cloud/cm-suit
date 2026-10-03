@@ -1,5 +1,6 @@
 // The job picker (SPEC §7.2): always top-left. Recent jobs first, then type-to-find, "All my jobs", and "New job".
-// It only reports the pick; the frame keeps the current tool when switching (2 taps: open, pick).
+// It only reports the pick; the frame keeps the current tool when switching (2 taps: open, pick). A job's rail holds
+// only that job (Oct 3), so "All my jobs" stays in view under the jobs, however many there are.
 import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
@@ -40,6 +41,35 @@ function detailOf(p: MyProject): string {
   return [p.number, p.org_name].filter((s) => s).join(' · ');
 }
 
+interface OptionRowProps {
+  option: Option;
+  index: number;
+  active: boolean;
+  current: boolean;
+  onHover: () => void;
+  onChoose: () => void;
+}
+
+function OptionRow({ option, index, active, current, onHover, onChoose }: OptionRowProps) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={current}
+      data-testid={`job-picker-option-${String(index)}`}
+      className={`flex w-full items-start gap-2 px-3 py-2 text-left ${active ? 'bg-page' : ''}`}
+      onMouseEnter={onHover}
+      onClick={onChoose}
+    >
+      <span className="min-w-0 flex-1 wrap-anywhere">
+        <span className="block text-sm text-ink">{option.name}</span>
+        {option.detail ? <span className="block text-xs text-ink-2">{option.detail}</span> : null}
+      </span>
+      {current ? <Icon icon={Check} size={16} className="mt-0.5 text-accent" /> : null}
+    </button>
+  );
+}
+
 export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: JobPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -68,6 +98,21 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
     close();
     if (o.id !== currentId) onPick(o.id);
   }
+
+  const last = options.at(-1);
+  const allOption = last?.id === null ? last : undefined;
+  const rowProps = (o: Option, i: number): OptionRowProps => ({
+    option: o,
+    index: i,
+    active: i === active,
+    current: o.id === currentId,
+    onHover: () => {
+      setActive(i);
+    },
+    onChoose: () => {
+      choose(o);
+    },
+  });
 
   return (
     <div className="relative">
@@ -118,32 +163,24 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
                 }}
               />
             </div>
-            <ul role="listbox" aria-label="Jobs" className="max-h-80 overflow-auto py-1">
-              {options.map((o, i) => (
-                <li key={o.id ?? 'all'} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={o.id === currentId}
-                    data-testid={`job-picker-option-${String(i)}`}
-                    className={`flex w-full items-start gap-2 px-3 py-2 text-left ${i === active ? 'bg-page' : ''}`}
-                    onMouseEnter={() => {
-                      setActive(i);
-                    }}
-                    onClick={() => {
-                      choose(o);
-                    }}
-                  >
-                    <span className="min-w-0 flex-1 wrap-anywhere">
-                      <span className="block text-sm text-ink">{o.name}</span>
-                      {o.detail ? <span className="block text-xs text-ink-2">{o.detail}</span> : null}
-                    </span>
-                    {o.id === currentId ? <Icon icon={Check} size={16} className="mt-0.5 text-accent" /> : null}
-                  </button>
-                </li>
-              ))}
-              {options.length === 0 ? <li className="px-3 py-3 text-sm text-ink-2">No job matches.</li> : null}
-            </ul>
+            {/* The jobs scroll; "All my jobs" (always the last option) stays in view under them. */}
+            <div role="listbox" aria-label="Jobs" className="py-1">
+              <ul role="presentation" className="max-h-72 overflow-auto">
+                {options.map((o, i) =>
+                  o.id === null ? null : (
+                    <li key={o.id} role="presentation">
+                      <OptionRow {...rowProps(o, i)} />
+                    </li>
+                  ),
+                )}
+                {options.length === 0 ? <li className="px-3 py-3 text-sm text-ink-2">No job matches.</li> : null}
+              </ul>
+              {allOption ? (
+                <div className={options.length > 1 ? 'mt-1 border-t border-line pt-1' : ''}>
+                  <OptionRow {...rowProps(allOption, options.length - 1)} />
+                </div>
+              ) : null}
+            </div>
             <button
               type="button"
               data-testid="job-picker-new"

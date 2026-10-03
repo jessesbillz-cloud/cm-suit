@@ -1,7 +1,7 @@
 // The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. Job picker on top; along the bottom the same
-// choice as the desktop rail (lib/jobs phoneRail): Board, Calendar, then the job's tools in my order, each with its
-// count; More for the rest, and on a job "Edit tools" to choose them. One screen at a time, items full screen with a
-// back button.
+// choice as the desktop rail (lib/jobs phoneRail): on a job its Board (the phone has no right column), then the job's
+// tools in my order, each with its count; on All my jobs the cross-job tools. More for the rest, and on a job "Edit
+// tools" to choose them. One screen at a time, items full screen with a back button.
 import { useState } from 'react';
 import { phoneRail } from '../../lib/jobs';
 import { phoneTabs, type Tool } from '../../lib/layout';
@@ -81,8 +81,8 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
             />
           ) : null}
           {sheet === 'edit' && jobPart ? (
-            <div data-testid="phone-job-tools" className="max-h-[60dvh] shrink-0 overflow-y-auto border-t border-line bg-card">
-              <p className="break-words px-3 pt-3 text-sm font-semibold text-ink wrap-anywhere">{jobPart.label}</p>
+            <div data-testid="phone-job-tools" className="flex max-h-[60dvh] shrink-0 flex-col border-t border-line bg-card">
+              <p className="shrink-0 break-words px-3 pt-3 text-sm font-semibold text-ink wrap-anywhere">{jobPart.label}</p>
               <JobToolsEdit
                 {...jobPart.edit}
                 onDone={() => {

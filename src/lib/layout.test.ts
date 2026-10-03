@@ -57,6 +57,10 @@ describe('layout', () => {
     expect(phoneTabs(rail, 'dailies', others).tabs).toEqual(['board', 'calendar', 'rfis', 'dailies']);
     expect(phoneTabs(['bids'], 'board', ['board', 'files'])).toEqual({ tabs: ['bids', 'board'], more: ['files', 'settings'] });
   });
+  it('phone bar: a tool in both lists shows once', () => {
+    const rail = ['board', 'calendar', 'rfis', 'inspections', 'files', 'dailies'] as const;
+    expect(phoneTabs(rail, 'rfis', ['board', 'dailies', 'people']).more).toEqual(['files', 'dailies', 'people', 'settings']);
+  });
 });
 
 describe('rail order', () => {

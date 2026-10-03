@@ -227,8 +227,8 @@ const PHONE_TABS = 4;
 
 /**
  * The phone's bottom bar: the first rail tools, with the open tool always among them, then More for the rest of the
- * rail, the job's other tools (the desktop rail's More) and Settings, so every tool is one tap from More and the bar
- * never hides where you are.
+ * rail, the job's other tools (the desktop rail's More) and Settings, so every tool is one tap from More, once, and the
+ * bar never hides where you are.
  */
 export function phoneTabs(rail: readonly Tool[], current: Tool, others: readonly Tool[] = []): { tabs: Tool[]; more: Tool[] } {
   const tabs = rail.slice(0, PHONE_TABS);
@@ -237,6 +237,6 @@ export function phoneTabs(rail: readonly Tool[], current: Tool, others: readonly
     if (tabs.length < PHONE_TABS) tabs.push(current);
     else tabs[PHONE_TABS - 1] = current;
   }
-  const more: Tool[] = [...rail, ...others].filter((t) => !tabs.includes(t));
+  const more: Tool[] = [...new Set([...rail, ...others])].filter((t) => !tabs.includes(t));
   return { tabs, more: [...more, 'settings'] };
 }
