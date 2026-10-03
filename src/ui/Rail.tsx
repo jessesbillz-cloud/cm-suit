@@ -169,7 +169,7 @@ export function Rail({ general, job, counts, current, collapsed, onSelect, onPre
   const items = { counts, current, compact, onSelect, onPreload };
   return (
     <nav aria-label="Tools" className={`flex shrink-0 flex-col items-center bg-rail pb-2 ${compact ? 'w-14' : 'w-rail'}`}>
-      <div className="flex h-14 w-full shrink-0 items-center justify-center short:h-11" title={FUTURE_NAME}>
+      <div className="flex h-14 w-full shrink-0 items-center justify-center [@media(max-height:820px)]:h-11" title={FUTURE_NAME}>
         <BrandMark size="md" />
       </div>
       <div className="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto pt-2">

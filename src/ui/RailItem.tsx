@@ -38,7 +38,7 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
       aria-expanded={expanded}
       className={`relative flex shrink-0 items-center justify-center rounded-lg transition-colors ${
-        compact ? 'h-10 w-10' : 'h-[60px] w-[80px] flex-col gap-1 short:h-12 short:gap-0.5'
+        compact ? 'h-10 w-10' : 'h-[60px] w-[80px] flex-col gap-1 [@media(max-height:820px)]:h-12 [@media(max-height:820px)]:gap-0.5'
       } ${active || expanded ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'}`}
       onClick={onClick}
     >

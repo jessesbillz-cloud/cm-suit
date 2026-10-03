@@ -19,6 +19,9 @@ export default defineConfig({
   ],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   server: { port: 5173 },
+  // The dev server finds every package up front (lazy tools included), so a page opened later never triggers
+  // "new dependencies optimized, reloading" in the middle of an e2e navigation. The vendored pdf.js is not a package.
+  optimizeDeps: { entries: ['index.html', 'src/**/*.tsx', '!src/**/*.test.*', '!src/vendor/**'] },
   build: { sourcemap: true },
   define: { __BASE_PATH__: JSON.stringify(base) },
 });
