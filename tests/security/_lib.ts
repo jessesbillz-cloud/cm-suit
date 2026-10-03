@@ -269,4 +269,11 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['ir_rev_failed_notes', { p_request_id: ZERO_UUID }],
   ['ir_rev_results_check', { p_request_id: ZERO_UUID, p_results: [] }],
   ['ir_map_editor', { p_request_id: ZERO_UUID }],
+  // Walls on the plan (0059): drawing, placing, the plan sheet, and the internal checks.
+  ['rev_area_draw', { p_list_id: ZERO_UUID, p_level: 'probe', p_name: 'probe', p_sheet_file_id: ZERO_UUID, p_page: 1, p_geom: [[0, 0], [1, 1]] }],
+  ['rev_area_place', { p_id: ZERO_UUID, p_version: 1, p_sheet_file_id: null, p_page: 1, p_geom: null }],
+  ['authorize_rev_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  ['rev_geom_ok', { p_geom: [[0, 0], [1, 1]] }],
+  ['rev_geom_check', { p_project_id: ZERO_UUID, p_sheet_file_id: ZERO_UUID, p_page: 1, p_geom: [[0, 0], [1, 1]], p_was: null }],
+  ['rev_wall_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
 ];

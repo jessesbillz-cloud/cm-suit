@@ -24,7 +24,7 @@ const item = (r: number, k: number, name: string): RevItem => ({
   ...base, id: `i${String(r)}${String(k)}`, rev_id: `r${String(r)}`, name, company: null, position: k,
 });
 const wall = (n: number, level: string, name: string): RevArea => ({
-  ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, position: n,
+  ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, position: n,
 });
 
 const SETUP: RevSetup = {

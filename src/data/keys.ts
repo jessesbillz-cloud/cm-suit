@@ -111,4 +111,6 @@ export const qk = {
   publicMap: (projectId: string, receipt: string) => ['request_status', projectId, receipt, 'map'] as const,
   publicSheetUrl: (projectId: string, receipt: string, sheetFileId: string) =>
     ['request_status', projectId, receipt, 'sheet', sheetFileId] as const,
+  /** A plan sheet in Revs (0059: the plan view, a wall's thumbnail): a short-lived signed URL (ir-map 'plan'). */
+  planSheetUrl: (projectId: string, fileId: string) => ['plan_sheet_url', projectId, fileId] as const,
 };

@@ -1,7 +1,8 @@
 // Synthetic revs for the e2e mock and the preview (CLAUDE.md rule 8: obviously fake) on Sample Science Building (the
 // permit jobs' OFS job): one list with the eight revs of a fire marshal job (synthetic trades), six walls on Level 01
-// and Level 02, two N/A marks, and three OFS requests around today: TOW passed and signed, HOW cavity with one wall
-// failed, and CJ requested with a map the requester drew. Placed relative to today like the other inspection seeds.
+// and Level 02 (all but one drawn on the synthetic plan set), two N/A marks, and three OFS requests around today: TOW
+// passed and signed, HOW cavity with one wall failed, and CJ requested with a map the requester drew. Placed relative
+// to today like the other inspection seeds.
 import { addDays, format, parseISO } from 'date-fns';
 import type { Tables } from '../database.types';
 import type { IrRowRaw } from '../inspections.types';
@@ -34,13 +35,21 @@ const LEGEND: Legend = [
   [7, 'Final', [['Final - OK to Cover - All firestopping/fireproofing', null]]],
 ];
 
-const WALLS: [level: string, name: string, sheet: string][] = [
-  ['Level 01', 'Shaftwall at Stair 2 (C–D / 3–4)', 'job-s-plan-a101'],
-  ['Level 01', 'Corridor 110 north wall (B / 2–5)', 'job-s-plan-a101'],
-  ['Level 01', 'Elevator 1 shaft (E / 1–2)', 'job-s-plan-a101'],
-  ['Level 02', 'Shaftwall at Stair 2 (C–D / 3–4)', 'job-s-plan-a102'],
-  ['Level 02', 'Corridor 210 north wall (B / 2–5)', 'job-s-plan-a102'],
-  ['Level 02', 'Electrical 205 east wall (D / 4)', 'job-s-plan-a102'],
+type Line = [number, number][];
+
+// Lines on the synthetic plan set (mock/sheet: grid A-G across, 1-5 down; the corridor between 3 and 4). Level 01 is
+// page 1 of its sheet, Level 02 page 2 of the set (0059). The Level 02 electrical wall isn't on the plan yet.
+const SHAFT: Line = [[0.3318, 0.5382], [0.3318, 0.6713], [0.4475, 0.6713], [0.4475, 0.5382]];
+const CORRIDOR: Line = [[0.216, 0.4572], [0.5633, 0.4572]];
+const ELEVATOR: Line = [[0.5633, 0.1505], [0.5633, 0.3241]];
+
+const WALLS: [level: string, name: string, sheet: string, page: number, line: Line | null][] = [
+  ['Level 01', 'Shaftwall at Stair 2 (C–D / 3–4)', 'job-s-plan-a101', 1, SHAFT],
+  ['Level 01', 'Corridor 110 north wall (B / 2–5)', 'job-s-plan-a101', 1, CORRIDOR],
+  ['Level 01', 'Elevator 1 shaft (E / 1–2)', 'job-s-plan-a101', 1, ELEVATOR],
+  ['Level 02', 'Shaftwall at Stair 2 (C–D / 3–4)', 'job-s-plan-a102', 2, SHAFT],
+  ['Level 02', 'Corridor 210 north wall (B / 2–5)', 'job-s-plan-a102', 2, CORRIDOR],
+  ['Level 02', 'Electrical 205 east wall (D / 4)', 'job-s-plan-a102', 2, null],
 ];
 
 const LIST_ID = 'mock-rev-list-1';
@@ -55,8 +64,8 @@ export function seedSetup() {
   const items: Tables<'rev_items'>[] = LEGEND.flatMap(([n, , list]) =>
     list.map(([name, company], k) => ({ ...base, id: itemId(n, k + 1), rev_id: `mock-rev-${String(n)}`, name, company, position: k + 1 })),
   );
-  const areas: Tables<'rev_areas'>[] = WALLS.map(([level, name, sheet], i) => ({
-    ...base, id: areaId(i + 1), list_id: LIST_ID, level, name, sheet_file_id: sheet, position: i + 1,
+  const areas: Tables<'rev_areas'>[] = WALLS.map(([level, name, sheet, page, line], i) => ({
+    ...base, id: areaId(i + 1), list_id: LIST_ID, level, name, sheet_file_id: sheet, sheet_page: page, geom: line, position: i + 1,
   }));
   const marks: Tables<'rev_marks'>[] = [
     { ...base, id: 'mock-rev-mark-1', area_id: areaId(6), item_id: itemId(4, 2), kind: 'na' },

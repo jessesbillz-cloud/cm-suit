@@ -19,6 +19,7 @@ import {
   type IrStroke,
   type LegendRev,
   type NewOfsRequest,
+  parseArea,
   type Rev,
   type RevArea,
   type RevItem,
@@ -149,7 +150,7 @@ export function useAddRevAreas() {
           p_names: v.names.map((n) => n.trim()).filter((n) => n !== ''),
           p_sheet_file_id: sqlNull(v.sheetFileId),
         }),
-      );
+      ).map(parseArea);
     },
     onSettled: (_r, _e, v) => refresh(v.projectId),
   });
@@ -171,7 +172,7 @@ export function useSaveRevArea() {
           p_position: sqlNull(v.position),
         }),
       );
-      return one(data);
+      return parseArea(one(data));
     },
     onSettled: (_r, _e, v) => refresh(v.area.project_id),
   });

@@ -43,6 +43,10 @@ interface ToolSearch {
   /** Inspections > new request from Revs (0056): the walls and items to prefill, comma-separated ids. */
   areas?: string;
   items?: string;
+  /** Revs plan (0059): the level shown, the wall to center on, the wall being placed on the plan. */
+  level?: string;
+  wall?: string;
+  place?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -66,6 +70,9 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const win = s['window'] === '1' || s['window'] === 1;
   const sort = str(s['sort']);
   const q = str(s['q']);
+  const level = str(s['level']);
+  const wall = idList(s['wall']);
+  const place = idList(s['place']);
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
@@ -76,6 +83,9 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(q ? { q } : {}),
     ...(areas ? { areas } : {}),
     ...(items ? { items } : {}),
+    ...(level && level.length <= 40 ? { level } : {}),
+    ...(wall && !wall.includes(',') ? { wall } : {}),
+    ...(place && !place.includes(',') ? { place } : {}),
   };
 }
 

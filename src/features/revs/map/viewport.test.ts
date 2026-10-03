@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_ZOOM, cappedDensity, clampView, fitSize, fitView, pinchView, toPage, visibleRegion, zoomAt } from './viewport';
+import { MAX_ZOOM, cappedDensity, clampView, fitSize, fitView, pinchView, toPage, viewOn, visibleRegion, zoomAt } from './viewport';
 
 const frame = { w: 400, h: 800 };
 const fit = fitSize(0.75, frame); // 400 x 300
@@ -70,5 +70,23 @@ describe('cappedDensity', () => {
   it('stays under the pixel budget', () => {
     expect(cappedDensity(1000 * 1000, 2, 8_000_000)).toBe(2);
     expect(cappedDensity(2000 * 2000, 3, 8_000_000)).toBeCloseTo(Math.sqrt(2), 6);
+  });
+});
+
+describe('viewOn', () => {
+  it('centers a part of the page, zoomed so it fills about half the frame', () => {
+    // A box 0.2 x 0.2 of the page in the middle: 80 x 60 fit pixels; half the frame across is 200 -> 2.5x.
+    const v = viewOn({ x: 0.4, y: 0.4, w: 0.2, h: 0.2 }, fit, frame);
+    expect(v.z).toBe(2.5);
+    expect(v.x).toBe(200 - 200 * 2.5);
+    expect(v.y).toBe(400 - 150 * 2.5);
+  });
+  it('fills as much of the frame as asked: a page-high band fills the frame top to bottom', () => {
+    // The page is 300 high in an 800-high frame: 800 / 300.
+    expect(viewOn({ x: 0.5, y: 0, w: 0, h: 1 }, fit, frame, 1).z).toBeCloseTo(800 / 300, 6);
+  });
+  it('never past 4x for one short wall, nor out past the whole page', () => {
+    expect(viewOn({ x: 0.5, y: 0.5, w: 0.001, h: 0 }, fit, frame).z).toBe(4);
+    expect(viewOn({ x: 0, y: 0, w: 1, h: 1 }, fit, frame)).toEqual(fitView(fit, frame));
   });
 });

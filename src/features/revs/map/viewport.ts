@@ -92,3 +92,19 @@ export function cappedDensity(area: number, want: number, maxPixels: number): nu
   if (area <= 0) return want;
   return Math.min(want, Math.sqrt(maxPixels / area));
 }
+
+/** How far in a view on one wall goes: close enough to read the grid around it, never the whole screen of one line. */
+const FOCUS_ZOOM = 4;
+
+/**
+ * A view on part of the page (`box` in fractions of the page): centered, zoomed so it fills `fill` of the frame (about
+ * half by default), at most FOCUS_ZOOM, never past the whole page.
+ */
+export function viewOn(box: { x: number; y: number; w: number; h: number }, fit: Size, frame: Size, fill = 0.5): View {
+  const bw = Math.max(box.w * fit.w, 1e-6);
+  const bh = Math.max(box.h * fit.h, 1e-6);
+  const z = Math.min(FOCUS_ZOOM, MAX_ZOOM, Math.max(1, Math.min((frame.w * fill) / bw, (frame.h * fill) / bh)));
+  const cx = (box.x + box.w / 2) * fit.w;
+  const cy = (box.y + box.h / 2) * fit.h;
+  return clampView({ x: frame.w / 2 - cx * z, y: frame.h / 2 - cy * z, z }, fit, frame);
+}

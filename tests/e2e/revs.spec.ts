@@ -8,6 +8,10 @@
 // picked, data-focus when shown, its dot [data-status]), rev-ir-link, rev-item-note, rev-na, rev-request (data-count),
 // rev-open-item-<item> (data-count), rev-open-wall (data-status), rev-new-list, rev-list-new, rev-list-name,
 // rev-legend, rev-legend-error, rev-legend-preview, rev-preview-rev, rev-list-create, rev-setup.
+// The plan (0059): rev-walls-as-<list|plan>, rev-plan (data-level), plan-level-<level>, plan-sheet (data-page), each
+// drawn wall a [data-wall] (its second line in its color), plan-wall-<area> (its callout; data-focus), plan-add-wall,
+// plan-draw-bar (data-points), plan-prompt, plan-done, plan-wall-name, plan-wall-save, rev-wall-thumb, rev-wall-place.
+// The synthetic plan set (mock/sheet) has every wall but Level 02's electrical wall drawn on it, Level 02 on page 2.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -22,6 +26,17 @@ HOW Cavity Spray (Sample Firestop)
 Rev 2 – CJ
 CJ Stuffing (Sample Firestop)
 CJ Caulking`;
+
+/** A tap on the plan's frame (fractions of it): a click, or a finger on the phone. */
+async function tapPlan(page: Page, fx: number, fy: number, phone: boolean): Promise<void> {
+  const frame = page.getByTestId('sheet-frame');
+  await frame.scrollIntoViewIfNeeded();
+  const b = await frame.boundingBox();
+  if (b === null) throw new Error('The plan has no frame.');
+  const [x, y] = [b.x + b.width * fx, b.y + b.height * fy];
+  if (phone) await page.touchscreen.tap(x, y);
+  else await page.mouse.click(x, y);
+}
 
 /** Switches the mock user and opens a page. The mock's data stays in this tab's sessionStorage. */
 async function openAs(page: Page, who: string, path: string): Promise<void> {
@@ -188,5 +203,88 @@ test.describe('revs', () => {
     await expect(preview).toContainText('HOW Cavity Spray');
     await form.getByTestId('rev-list-create').click();
     await expect(page.getByTestId('rev-setup')).toContainText('Sample Shaft Walls');
+  });
+
+  test("Plan: a level's sheet with its walls in their colors; a wall opens its page, whose thumbnail opens the plan on it", async ({ page }) => {
+    await openAs(page, 'pm', '/p/job-s/revs');
+    await page.getByTestId('rev-walls-as-plan').click();
+    const plan = page.getByTestId('rev-plan');
+    await expect(plan).toHaveAttribute('data-level', 'Level 01');
+    await expect(plan.locator('[data-wall]')).toHaveCount(3);
+    // Corridor 110: HOW cavity spray failed (red); the shaftwall: nothing failed or asked for (grey).
+    await expect(plan.locator('[data-wall="mock-rev-area-2"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-not_approved-solid)');
+    await expect(plan.locator('[data-wall="mock-rev-area-1"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-step_ahead-fg)');
+    await expect(page.getByTestId('plan-add-wall')).toHaveCount(0);
+
+    // Level 02 is page 2 of the set; CJ is asked for on two walls (gold); the electrical wall isn't on the plan.
+    await page.getByTestId('plan-level-Level 02').click();
+    await expect(plan).toHaveAttribute('data-level', 'Level 02');
+    await expect(page.getByTestId('plan-sheet')).toHaveAttribute('data-page', '2');
+    await expect(plan.locator('[data-wall]')).toHaveCount(2);
+    await expect(plan.locator('[data-wall="mock-rev-area-5"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-pending-dot)');
+
+    await plan.getByTestId('plan-wall-mock-rev-area-5').click();
+    await expect(page).toHaveURL(/\/p\/job-s\/revs\/mock-rev-area-5/);
+    const wall = page.getByTestId('rev-wall-page');
+    await expect(wall.getByTestId('rev-wall-name')).toHaveText('Corridor 210 north wall B / 2–5');
+    await wall.getByTestId('rev-wall-thumb').click();
+    await expect(page).toHaveURL(/view=plan.*wall=mock-rev-area-5/);
+    await expect(page.getByTestId('plan-wall-mock-rev-area-5')).toHaveAttribute('data-focus', 'true');
+  });
+
+  test('a manager adds walls on the plan: two taps, Done, a name; the next one starts at once; Undo takes it off', async ({ page }, testInfo) => {
+    const phone = testInfo.project.name === 'phone';
+    await openAs(page, 'inspector', '/p/job-s/revs?view=plan&level=Level%2002');
+    const plan = page.getByTestId('rev-plan');
+    await expect(plan.locator('[data-wall]')).toHaveCount(2);
+    await plan.getByTestId('plan-add-wall').click();
+    await expect(plan.getByTestId('plan-prompt')).toHaveText('Tap the start');
+    await expect(plan.getByTestId('plan-done')).toBeDisabled();
+    await tapPlan(page, 0.3, 0.25, phone);
+    await expect(plan.getByTestId('plan-prompt')).toHaveText('Tap the end');
+    await tapPlan(page, 0.62, 0.25, phone);
+    await expect(plan.getByTestId('plan-draw-bar')).toHaveAttribute('data-points', '2');
+    await plan.getByTestId('plan-done').click();
+
+    const name = plan.getByTestId('plan-wall-name');
+    await expect(name).toBeFocused();
+    await name.fill('Electrical 0242 north (grid 7)');
+    await plan.getByTestId('plan-wall-save').click();
+    await expect(page.getByText('Electrical 0242 north added.')).toBeVisible();
+    await expect(plan.locator('[data-wall]')).toHaveCount(3);
+    await expect(plan.getByTestId('plan-prompt')).toHaveText('Tap the start');
+
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(plan.locator('[data-wall]')).toHaveCount(2);
+  });
+
+  test('a manager places a wall that is not on the plan yet, from its page', async ({ page }, testInfo) => {
+    const phone = testInfo.project.name === 'phone';
+    await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-6');
+    const wall = page.getByTestId('rev-wall-page');
+    await expect(wall.getByTestId('rev-wall-thumb')).toHaveCount(0);
+    await wall.getByTestId('rev-wall-place').click();
+    await expect(page).toHaveURL(/view=plan.*place=mock-rev-area-6/);
+    const plan = page.getByTestId('rev-plan');
+    await expect(plan.getByTestId('plan-draw-bar')).toContainText('Electrical 205 east wall');
+    await expect(page.getByTestId('plan-sheet')).toHaveAttribute('data-page', '2');
+    await tapPlan(page, 0.5, 0.3, phone);
+    await tapPlan(page, 0.5, 0.6, phone);
+    await plan.getByTestId('plan-done').click();
+    await expect(page.getByText('Electrical 205 east wall placed.')).toBeVisible();
+    await expect(page).toHaveURL(/wall=mock-rev-area-6/);
+    await expect(page.getByTestId('plan-wall-mock-rev-area-6')).toHaveAttribute('data-focus', 'true');
+  });
+
+  test("a request's map draws its walls from the plan, one mark per wall and item", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The map opens in the right column.');
+    await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-4,mock-rev-area-5&items=mock-rev-item-3-1,mock-rev-item-3-2');
+    await page.getByTestId('ir-ack').check();
+    await page.getByTestId('ir-submit').click();
+    await expect(page.getByTestId('sheet-frame')).toBeVisible({ timeout: 15_000 });
+    // Two walls x two items, on page 2 of the set where the walls are; saved like any mark.
+    await expect(page.getByTestId('sheet-frame').locator('svg path')).toHaveCount(4);
+    await expect(page.getByTestId('map-page')).toHaveValue('2');
+    await expect(page.getByTestId('ir-map-save')).toContainText('Saved');
   });
 });

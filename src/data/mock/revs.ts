@@ -5,7 +5,7 @@
 // sessionStorage (its own key), never module state.
 import { DataError, conflictError } from '../errors';
 import type { Tables } from '../database.types';
-import type { LegendRev, Rev, RevArea, RevItem, RevKind, RevList, RevMark, RevRemoved, RevSetup } from '../revs.types';
+import { parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
 import { mockUser } from './index';
 import { seedCells, seedMaps, seedSetup } from './revSeeds';
 import { delay } from './store';
@@ -51,24 +51,24 @@ export function fail(message: string, code = '22023'): DataError {
   return new DataError(message, code, null);
 }
 
-function must(cap: string): void {
+export function must(cap: string): void {
   if (!has(cap)) throw fail("You don't have access to that.", '42501');
 }
 
-const clean = (s: string | null | undefined) => (s ?? '').trim().replace(/\s+/g, ' ');
-const same = (a: string, b: string) => clean(a).toLowerCase() === clean(b).toLowerCase();
-const stamp = () => ({ created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: mockUser().id, version: 1, deleted_at: null });
-const newId = (prefix: string) => `${prefix}-${String(Date.now())}-${String(Math.floor(Math.random() * 1e6))}`;
-const bump = <T extends { version: number }>(row: T, patch: Partial<T>): T => ({ ...row, ...patch, version: row.version + 1, updated_at: new Date().toISOString() });
+export const clean = (s: string | null | undefined) => (s ?? '').trim().replace(/\s+/g, ' ');
+export const same = (a: string, b: string) => clean(a).toLowerCase() === clean(b).toLowerCase();
+export const stamp = () => ({ created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: mockUser().id, version: 1, deleted_at: null });
+export const newId = (prefix: string) => `${prefix}-${String(Date.now())}-${String(Math.floor(Math.random() * 1e6))}`;
+export const bump = <T extends { version: number }>(row: T, patch: Partial<T>): T => ({ ...row, ...patch, version: row.version + 1, updated_at: new Date().toISOString() });
 
-function listOf(s: RevMockState, id: string): Tables<'rev_lists'> {
+export function listOf(s: RevMockState, id: string): Tables<'rev_lists'> {
   const l = s.lists.find((x) => x.id === id);
   if (!l) throw fail('That item no longer exists.', 'P0002');
   if (l.deleted_at !== null) throw fail('This list was removed.');
   return l;
 }
 
-function checkVersion(have: number, want: number | null): void {
+export function checkVersion(have: number, want: number | null): void {
   if (want !== null && have !== want) throw conflictError();
 }
 
@@ -77,7 +77,7 @@ export async function setup(projectId: string): Promise<RevSetup> {
   if (!has('revs.read')) return { lists: [], revs: [], items: [], areas: [], marks: [] };
   const s = read();
   const mine = <T extends { project_id: string }>(rows: T[]) => rows.filter((r) => r.project_id === projectId);
-  return { lists: mine(s.lists), revs: mine(s.revs), items: mine(s.items), areas: mine(s.areas), marks: mine(s.marks) };
+  return { lists: mine(s.lists), revs: mine(s.revs), items: mine(s.items), areas: mine(s.areas).map(parseArea), marks: mine(s.marks) };
 }
 
 export async function createList(v: { projectId: string; name: string; phase: string; permitId: string | null; revs: LegendRev[] }): Promise<RevList> {
@@ -185,13 +185,13 @@ export async function addAreas(v: { listId: string; level: string; names: string
     position += 1;
     const row = {
       ...stamp(), org_id: l.org_id, project_id: l.project_id, id: newId('mock-rev-area'), list_id: l.id, level: clean(v.level), name,
-      sheet_file_id: v.sheetFileId, position,
+      sheet_file_id: v.sheetFileId, sheet_page: 1, geom: null, position,
     };
     added.push(row);
     out.push(row);
   }
   write((x) => ({ ...x, areas: [...x.areas, ...added] }));
-  return out;
+  return out.map(parseArea);
 }
 
 export async function saveArea(v: { area: RevArea; level: string; name: string; sheetFileId: string | null; position: number | null }): Promise<RevArea> {
@@ -204,9 +204,13 @@ export async function saveArea(v: { area: RevArea; level: string; name: string; 
   if (s.areas.some((a) => a.list_id === current.list_id && a.id !== current.id && a.deleted_at === null && same(a.level, v.level) && same(a.name, v.name))) {
     throw fail('That wall is already on this level.');
   }
-  const next = bump(current, { level: clean(v.level), name: clean(v.name), sheet_file_id: v.sheetFileId, position: v.position ?? current.position });
+  // A wall's line goes with its sheet (0059): another sheet takes it off the plan, back to page 1.
+  const moved = v.sheetFileId !== current.sheet_file_id ? { geom: null, sheet_page: 1 } : {};
+  const next = bump(current, {
+    level: clean(v.level), name: clean(v.name), sheet_file_id: v.sheetFileId, position: v.position ?? current.position, ...moved,
+  });
   write((x) => ({ ...x, areas: x.areas.map((a) => (a.id === next.id ? next : a)) }));
-  return next;
+  return parseArea(next);
 }
 
 interface Removable {

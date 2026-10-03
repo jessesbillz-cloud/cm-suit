@@ -2,8 +2,8 @@
 // save. Each change waits a moment for the next one, then saves; saves go one at a time, each carrying the version the
 // last one left. A failure is loud (a toast, and a red line with Try again); someone else's change in between (a version
 // miss) offers Reload instead. Leaving the screen doesn't drop a change: its timer still fires. Another sheet saves at
-// once and starts on its page 1; another page waits like a mark. Either clears the marks drawn on the old one, and Undo
-// puts the sheet, the page and the marks back.
+// once and starts on the page given (the page the request's walls are on, else 1); another page waits like a mark.
+// Either clears the marks drawn on the old one, and Undo puts the sheet, the page and the marks back.
 import { useEffect, useRef, useState } from 'react';
 import { DataError, messageOf } from '../../data/errors';
 import { FunctionError } from '../../data/functions';
@@ -28,7 +28,7 @@ interface MapAutosave {
   /** What the map shows: my drawing while it saves, else the saved one. */
   drawn: Drawn;
   change: (strokes: Stroke[]) => void;
-  setSheet: (fileId: string) => void;
+  setSheet: (fileId: string, page?: number) => void;
   setPage: (page: number) => void;
   /** A change waiting or saving. */
   busy: boolean;
@@ -121,8 +121,8 @@ export function useMapAutosave(view: MapView, save: SaveMap, reload: () => void)
     change: (strokes) => {
       put({ ...drawn, strokes }, false);
     },
-    setSheet: (fileId) => {
-      if (fileId !== drawn.sheetFileId) move({ sheetFileId: fileId, page: 1, strokes: [] }, true, 'Sheet changed. Marks cleared.');
+    setSheet: (fileId, page = 1) => {
+      if (fileId !== drawn.sheetFileId) move({ sheetFileId: fileId, page, strokes: [] }, true, 'Sheet changed. Marks cleared.');
     },
     setPage: (page) => {
       if (page !== drawn.page) move({ ...drawn, page, strokes: [] }, false, 'Page changed. Marks cleared.');

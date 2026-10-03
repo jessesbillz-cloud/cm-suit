@@ -4391,6 +4391,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          geom: Json | null
           id: string
           level: string
           list_id: string
@@ -4399,6 +4400,7 @@ export type Database = {
           position: number
           project_id: string
           sheet_file_id: string | null
+          sheet_page: number
           updated_at: string
           version: number
         }
@@ -4406,6 +4408,7 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          geom?: Json | null
           id?: string
           level: string
           list_id: string
@@ -4414,6 +4417,7 @@ export type Database = {
           position?: number
           project_id: string
           sheet_file_id?: string | null
+          sheet_page?: number
           updated_at?: string
           version?: number
         }
@@ -4421,6 +4425,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          geom?: Json | null
           id?: string
           level?: string
           list_id?: string
@@ -4429,6 +4434,7 @@ export type Database = {
           position?: number
           project_id?: string
           sheet_file_id?: string | null
+          sheet_page?: number
           updated_at?: string
           version?: number
         }
@@ -5827,6 +5833,15 @@ export type Database = {
         Returns: {
           mime: string
           original_name: string
+          storage_path: string
+        }[]
+      }
+      authorize_rev_sheet: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: {
+          mime: string
+          original_name: string
+          size: number
           storage_path: string
         }[]
       }
@@ -9495,6 +9510,71 @@ export type Database = {
         Args: { p_level: string; p_name: string }
         Returns: undefined
       }
+      rev_area_draw: {
+        Args: {
+          p_geom: Json
+          p_level: string
+          p_list_id: string
+          p_name: string
+          p_page: number
+          p_sheet_file_id: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          geom: Json | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          sheet_file_id: string | null
+          sheet_page: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_areas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_area_place: {
+        Args: {
+          p_geom: Json
+          p_id: string
+          p_page: number
+          p_sheet_file_id: string
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          geom: Json | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          sheet_file_id: string | null
+          sheet_page: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_areas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rev_area_save: {
         Args: {
           p_id: string
@@ -9508,6 +9588,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          geom: Json | null
           id: string
           level: string
           list_id: string
@@ -9516,6 +9597,7 @@ export type Database = {
           position: number
           project_id: string
           sheet_file_id: string | null
+          sheet_page: number
           updated_at: string
           version: number
         }
@@ -9537,6 +9619,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          geom: Json | null
           id: string
           level: string
           list_id: string
@@ -9545,6 +9628,7 @@ export type Database = {
           position: number
           project_id: string
           sheet_file_id: string | null
+          sheet_page: number
           updated_at: string
           version: number
         }[]
@@ -9560,6 +9644,17 @@ export type Database = {
         Args: { p_except: string; p_list_id: string; p_number: number }
         Returns: undefined
       }
+      rev_geom_check: {
+        Args: {
+          p_geom: Json
+          p_page: number
+          p_project_id: string
+          p_sheet_file_id: string
+          p_was: string
+        }
+        Returns: undefined
+      }
+      rev_geom_ok: { Args: { p_geom: Json }; Returns: boolean }
       rev_item_check: {
         Args: { p_company: string; p_name: string }
         Returns: undefined
@@ -9811,6 +9906,10 @@ export type Database = {
       rev_version_ok: {
         Args: { p_have: number; p_want: number }
         Returns: undefined
+      }
+      rev_wall_sheet: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: boolean
       }
       rev_walls_sheet_ok: {
         Args: { p_area_ids: string[]; p_file_id: string; p_project_id: string }
