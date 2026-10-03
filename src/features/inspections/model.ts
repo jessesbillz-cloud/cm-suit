@@ -134,6 +134,14 @@ export function trackerSteps(r: TrackInput, gcStep: boolean): TrackStep[] {
   return steps;
 }
 
+/** Still with the GC (or withdrawn): the inspector has no steps on it yet. */
+export const WITH_GC: readonly string[] = ['gc_review', 'returned', 'withdrawn'];
+
+/** The inspector's own steps show on this request (InspectorPanel): past the GC, and mine or nobody's yet. */
+export function ownsSteps(r: { status: string; owner_id: string | null }, me: string): boolean {
+  return !WITH_GC.includes(r.status) && (r.owner_id === null || r.owner_id === me);
+}
+
 /** An inspector step card: done, the one to do now, open (can be done any time), or not reached yet. */
 export type CardState = 'done' | 'current' | 'open' | 'todo';
 

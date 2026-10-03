@@ -10,7 +10,8 @@ export interface MarkupItem {
   name: string;
 }
 
-function Swatch({ color }: { color: MarkupColor }) {
+/** One mark color as the highlighter shows it (the legend's swatch); the request form and its cells use it too. */
+export function Swatch({ color }: { color: MarkupColor }) {
   const hex = MARKUP_COLORS[color];
   return (
     <span aria-hidden className="relative h-5 w-7 shrink-0 overflow-hidden rounded border bg-white" style={{ borderColor: hex }}>
