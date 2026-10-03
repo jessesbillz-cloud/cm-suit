@@ -46,6 +46,8 @@ const contextSchema = z.object({
   legend: z.array(z.object({ color, name: z.string() })).max(3),
   signer_name: z.string().nullable(),
   map_file_id: z.string().nullable(),
+  /** A save or a change to the request since the last map (it may still look the same). */
+  stale: z.boolean(),
 });
 type MapContext = z.infer<typeof contextSchema>;
 
@@ -129,7 +131,13 @@ async function ensureMap(client: Db, service: Db, userId: string, ctx: MapContex
     await service.from('ir_maps').select('content_hash, map_file_id').eq('request_id', ctx.request_id).maybeSingle(),
     'map lookup',
   ) as { content_hash: string | null; map_file_id: string | null } | null;
-  if (onFile?.map_file_id && onFile.content_hash === hash) return onFile.map_file_id;
+  const attach = (fileId: string) =>
+    rpc(service, 'ir_map_attach', { p_request_id: ctx.request_id, p_file_id: fileId, p_content_hash: hash, p_signed: signed !== null });
+  if (onFile?.map_file_id && onFile.content_hash === hash) {
+    // Same picture as the map on file: it stays the map, and recording it again clears "out of date".
+    if (ctx.stale) await attach(onFile.map_file_id);
+    return onFile.map_file_id;
+  }
 
   const sheet = await sheetFile(service, ctx);
   if (sheet.scan_status === 'infected') throw new HttpError(403, 'infected');
@@ -155,7 +163,7 @@ async function ensureMap(client: Db, service: Db, userId: string, ctx: MapContex
   const stored = await storeGeneratedPdf(service, {
     projectId: ctx.project_id, folderId, name, bytes: pdf, createdBy: userId, replaces: onFile?.map_file_id ?? ctx.map_file_id,
   });
-  await rpc(service, 'ir_map_attach', { p_request_id: ctx.request_id, p_file_id: stored.id, p_content_hash: hash, p_signed: signed !== null });
+  await attach(stored.id);
   return stored.id;
 }
 
