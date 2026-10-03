@@ -109,7 +109,8 @@ export function asPublicRevs(projectId: string, raw: PublicRevsAnswer): PublicRe
       lists: raw.lists.map((l) => ({ ...row, ...l, permit_id: null })),
       revs: raw.revs.map((r) => ({ ...row, ...r })),
       items: raw.items.map((i) => ({ ...row, ...i })),
-      areas: raw.areas.map((a) => ({ ...row, ...a })),
+      // The link's walls carry no line on the plan (0059: the visitor's picker doesn't use the plan yet).
+      areas: raw.areas.map((a) => ({ ...row, ...a, sheet_page: 1, geom: null })),
       marks: raw.status
         .filter((s) => s.status === 'na')
         .map((s) => ({ ...row, id: `na:${s.area_id}:${s.item_id}`, area_id: s.area_id, item_id: s.item_id, kind: 'na' })),

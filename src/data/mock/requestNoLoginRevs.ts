@@ -9,7 +9,7 @@ import type { Tables } from '../database.types';
 import type { IrRequest } from '../inspections.types';
 import type { LinkKey } from '../requestLink.types';
 import type { PublicMap, PublicOfsInput, PublicRevsAnswer, Submitted } from '../requestNoLogin.types';
-import { liveSetup, type IrStroke } from '../revs.types';
+import { liveSetup, parseArea, type IrStroke } from '../revs.types';
 import { addUploadedFile } from './api';
 import { addLinkRequest, folder, formContext } from './inspections';
 import { jobFor } from './requestLink';
@@ -29,7 +29,7 @@ export async function revs(key: LinkKey): Promise<PublicRevsAnswer> {
   if (!(await formContext(key.projectId)).ofs) return NONE;
   const s = read();
   const mine = <T extends { project_id: string }>(rows: T[]) => rows.filter((r) => r.project_id === key.projectId);
-  const live = liveSetup({ lists: mine(s.lists), revs: mine(s.revs), items: mine(s.items), areas: mine(s.areas), marks: mine(s.marks) });
+  const live = liveSetup({ lists: mine(s.lists), revs: mine(s.revs), items: mine(s.items), areas: mine(s.areas).map(parseArea), marks: mine(s.marks) });
   return {
     lists: live.lists.map((l) => ({ id: l.id, name: l.name, phase: l.phase, position: l.position })),
     revs: live.revs.map((r) => ({ id: r.id, list_id: r.list_id, number: r.number, name: r.name })),

@@ -8,17 +8,23 @@
 //             download) and a fresh signed URL of the map, with / without the download header.
 //   sheet:    the map's sheet for the in-app viewer: at most 40 MB (the viewer reads it whole), then authorize_ir_file()
 //             as the caller, then a 10-minute signed URL without the download header.
+//   plan:     a plan sheet for the Revs plan view and a wall's thumbnail (0059), by job and file: authorize_rev_sheet() AS
+//             THE CALLER (whoever reads revs, for a sheet a wall is on; a manager, any PDF of the job he may read; the
+//             scan rules; logged as a download), at most 40 MB, then a 10-minute signed URL without the download header.
 // Service client (admin_service_key_allowlist.txt): the sheet's files row and bytes, the signer's signature image, the
 // map's own row, the Reports folder (ir_folder_make: the requester may lack ir.decide), storing and recording the map
-// and signing URLs; each only after ir_map_context ran as the caller.
+// and signing URLs; each only after ir_map_context (or, for 'plan', authorize_rev_sheet) ran as the caller.
 import { handle, HttpError, ok } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, signedViewUrl } from '../_shared/db.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { loadRequest } from '../_shared/inspections.ts';
-import { ensureMap, type MapFacts, mapFactsSchema, type MapJob, sheetFile, signerOf } from '../_shared/irMapFile.ts';
+import { checkSheetSize, ensureMap, type MapFacts, mapFactsSchema, type MapJob, sheetFile, signerOf } from '../_shared/irMapFile.ts';
 
-const Body = z.object({ action: z.enum(['render', 'download', 'view', 'sheet']), request_id: uuid }).strict();
+const Body = z.union([
+  z.object({ action: z.enum(['render', 'download', 'view', 'sheet']), request_id: uuid }).strict(),
+  z.object({ action: z.literal('plan'), project_id: uuid, file_id: uuid }).strict(),
+]);
 
 interface Authorized {
   storage_path: string;
@@ -37,9 +43,22 @@ async function authorized(client: Db, requestId: string, fileId: string): Promis
   return f;
 }
 
+/** A plan sheet of the job's walls, through Revs' own gate as the caller (logged); its size before a URL is signed. */
+async function planSheet(client: Db, projectId: string, fileId: string): Promise<Authorized> {
+  const rows = await rpc<(Authorized & { size: number })[]>(client, 'authorize_rev_sheet', { p_project_id: projectId, p_file_id: fileId });
+  const f = rows?.[0];
+  if (!f) throw new HttpError(404, 'File not found');
+  checkSheetSize(f.size);
+  return f;
+}
+
 Deno.serve(handle(async (req) => {
   const { user, client } = await requireUser(req);
   const body = await parseJson(req, Body, 4096);
+  if (body.action === 'plan') {
+    const f = await planSheet(client, body.project_id, body.file_id);
+    return ok(req, { url: await signedViewUrl(serviceClient(), f.storage_path) });
+  }
   const ctx = await context(client, body.request_id);
   const service = serviceClient();
 

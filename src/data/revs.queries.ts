@@ -18,6 +18,7 @@ import {
   REV_MARK_COLS,
   irMapContextSchema,
   liveSetup,
+  parseArea,
   revStatusRowSchema,
   type IrMapContext,
   type IrRevItem,
@@ -40,14 +41,14 @@ async function fetchSetup(projectId: string): Promise<RevSetup> {
     lists: throwIfError(lists),
     revs: throwIfError(revs),
     items: throwIfError(items),
-    areas: throwIfError(areas),
+    areas: throwIfError(areas).map(parseArea),
     marks: throwIfError(marks),
   });
 }
 
-/** The job's lists with their revs and items, its walls and N/A marks: live rows, in order. */
-export function useRevSetup(projectId: string) {
-  return useQuery({ queryKey: qk.revsPart(projectId, 'setup'), queryFn: () => fetchSetup(projectId) });
+/** The job's lists with their revs and items, its walls and N/A marks: live rows, in order. `enabled` false: not yet. */
+export function useRevSetup(projectId: string, enabled = true) {
+  return useQuery({ queryKey: qk.revsPart(projectId, 'setup'), queryFn: () => fetchSetup(projectId), enabled });
 }
 
 async function fetchStatus(projectId: string): Promise<RevStatusRow[]> {

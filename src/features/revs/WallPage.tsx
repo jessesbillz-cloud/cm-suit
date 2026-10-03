@@ -15,6 +15,7 @@ import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { indexStatus, wallRevs, type StatusIndex } from './model';
+import { WallThumb } from './plan/WallThumb';
 import { useRevsNav } from './useRevsNav';
 import { Wall3D } from './wall3d/Wall3D';
 import { useWidth } from './wall3d/useWidth';
@@ -90,10 +91,33 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
     nav.request([area.id], items.filter((i) => pick.picked.includes(i.item.id)).map((i) => i.item));
   };
   const button = canRequest && askable ? <RequestButton picked={pick.picked.length} onRequest={request} wide={isPhone} /> : null;
+  // Where it is on the plan: a tap opens the plan there; a manager places or redraws it.
+  const thumb = (
+    <WallThumb
+      projectId={projectId}
+      area={area}
+      canManage={canManage}
+      isPhone={isPhone}
+      onShow={() => {
+        nav.showPlan({ level: area.level.trim(), wall: area.id });
+      }}
+      onPlace={() => {
+        nav.showPlan({ level: area.level.trim(), place: area.id });
+      }}
+    />
+  );
 
   return (
     <div ref={frame} className="flex flex-col gap-4" data-testid="rev-wall-page" data-wide={wide ? 'true' : undefined}>
-      <WallHeader projectId={projectId} area={area} list={setup.lists.find((l) => l.id === area.list_id)} count={count} action={isPhone ? null : button} />
+      <WallHeader
+        projectId={projectId}
+        area={area}
+        list={setup.lists.find((l) => l.id === area.list_id)}
+        count={count}
+        action={isPhone ? null : button}
+        side={isPhone ? null : thumb}
+      />
+      {isPhone ? thumb : null}
       <div className={wide ? 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>
         <div className={`flex flex-col gap-1 bg-card ${isPhone ? 'sticky top-0 z-10 -mx-4 border-b border-line px-4 pb-2' : wide ? 'sticky top-0' : ''}`}>
           <Wall3D

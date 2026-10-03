@@ -21,6 +21,11 @@ import { looksLikePdf } from './permitStamp.ts';
 const SHEET_MAX_BYTES = 40 * 1024 * 1024;
 const TOO_BIG = 'Upload the single sheet.';
 
+/** A sheet the viewer and the map PDF read whole: at most SHEET_MAX_BYTES. */
+export function checkSheetSize(size: number): void {
+  if (size > SHEET_MAX_BYTES) throw new HttpError(400, TOO_BIG);
+}
+
 const color = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
 /** What the map shows and the PDF draws: ir_map_facts (0057), as ir_map_context and link_request_map_facts answer it. */
@@ -93,7 +98,7 @@ export async function sheetFile(service: Db, facts: MapFacts): Promise<SheetFile
     'sheet lookup',
   ) as SheetFile | null;
   if (!f || f.project_id !== facts.project_id) throw new HttpError(404, 'The sheet is no longer in this job.');
-  if (f.size > SHEET_MAX_BYTES) throw new HttpError(400, TOO_BIG);
+  checkSheetSize(f.size);
   return f;
 }
 

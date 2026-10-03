@@ -1,18 +1,21 @@
 // Fingers, mouse and pen on the sheet. Two fingers always pan and zoom (pinch); one finger, the mouse or a pen draws
 // when drawing is on, and pans otherwise. A second finger cancels the stroke the first one started (it was a pinch),
 // and after a pinch the finger left behind pans until all are lifted. While a pen draws, the palm is ignored. The
-// wheel zooms around the pointer.
+// wheel zooms around the pointer. With drawing off, a press that barely moves is a tap (`onTap`: the plan's walls).
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { clampView, pinchView, toPage, zoomAt, type Pt, type Size, type View } from './viewport';
 
 type Gesture =
   | { kind: 'idle' }
-  | { kind: 'pan'; id: number; start: Pt; view0: View }
+  | { kind: 'pan'; id: number; start: Pt; view0: View; tap: boolean }
   | { kind: 'pinch'; a: number; b: number; a0: Pt; b0: Pt; view0: View }
   | { kind: 'draw'; id: number; pen: boolean; last: Pt; points: [number, number][] };
 
 /** A new point every 2 CSS pixels at most: smooth lines, few points. */
 const MIN_STEP = 2;
+
+/** A press that moves less than this (CSS pixels) is a tap, not a pan. */
+const TAP_SLOP = 8;
 
 interface Options {
   frameRef: RefObject<HTMLDivElement | null>;
@@ -23,6 +26,8 @@ interface Options {
   /** One finger / the mouse / a pen draws. */
   drawing: boolean;
   onStroke: (points: [number, number][]) => void;
+  /** A tap with drawing off, at this point of the frame. */
+  onTap?: ((at: Pt) => void) | undefined;
 }
 
 function localPoint(frame: HTMLDivElement | null, e: { clientX: number; clientY: number }): Pt {
@@ -30,7 +35,7 @@ function localPoint(frame: HTMLDivElement | null, e: { clientX: number; clientY:
   return { x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) };
 }
 
-export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing, onStroke }: Options) {
+export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing, onStroke, onTap }: Options) {
   const pointers = useRef(new Map<number, Pt>());
   const gesture = useRef<Gesture>({ kind: 'idle' });
   const viewNow = useRef(view);
@@ -55,8 +60,9 @@ export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing,
     };
   }, [frameRef, fit, frame, setView]);
 
-  const panFrom = (id: number, at: Pt) => {
-    gesture.current = { kind: 'pan', id, start: at, view0: viewNow.current };
+  /** `tap`: a fresh press (not the finger left after a pinch) that may still turn out to be a tap. */
+  const panFrom = (id: number, at: Pt, tap: boolean) => {
+    gesture.current = { kind: 'pan', id, start: at, view0: viewNow.current, tap };
   };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -78,7 +84,7 @@ export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing,
       setLive(gesture.current.points.slice());
       return;
     }
-    panFrom(e.pointerId, at);
+    panFrom(e.pointerId, at, true);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -91,6 +97,7 @@ export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing,
       const b1 = pointers.current.get(g.b);
       if (a1 && b1) setView(() => pinchView(g.view0, g.a0, g.b0, a1, b1, fit, frame));
     } else if (g.kind === 'pan' && g.id === e.pointerId) {
+      if (Math.hypot(at.x - g.start.x, at.y - g.start.y) > TAP_SLOP) g.tap = false;
       setView(() => clampView({ x: g.view0.x + at.x - g.start.x, y: g.view0.y + at.y - g.start.y, z: g.view0.z }, fit, frame));
     } else if (g.kind === 'draw' && g.id === e.pointerId && Math.hypot(at.x - g.last.x, at.y - g.last.y) >= MIN_STEP) {
       g.last = at;
@@ -111,7 +118,8 @@ export function useSheetGestures({ frameRef, fit, frame, view, setView, drawing,
     }
     const [rest] = [...pointers.current.entries()];
     if (rest === undefined) gesture.current = { kind: 'idle' };
-    else if (g.kind === 'pinch') panFrom(rest[0], rest[1]);
+    else if (g.kind === 'pinch') panFrom(rest[0], rest[1], false);
+    if (g.kind === 'pan' && g.id === e.pointerId && g.tap && e.type !== 'pointercancel') onTap?.(g.start);
   };
 
   return {

@@ -1,7 +1,7 @@
 // Setup's moves, each a version-checked save (CLAUDE.md rule 7) with Undo in the toast instead of "are you sure?"
-// (rule 16): rename a list, rev, item or wall (Undo puts the old values back), remove one (Undo restores it), and move
-// an item or a wall up or down (it swaps places with its neighbor). Undo uses mutateAsync, which settles even if the
-// screen has moved on.
+// (rule 16): rename a list, rev, item or wall (Undo puts the old values back, a wall's line on the plan too: another
+// sheet takes it off the plan, 0059), remove one (Undo restores it), and move an item or a wall up or down (it swaps
+// places with its neighbor). Undo uses mutateAsync, which settles even if the screen has moved on.
 import { messageOf } from '../../data/errors';
 import {
   useRemoveRev,
@@ -11,6 +11,7 @@ import {
   useSaveRevItem,
   useSaveRevList,
 } from '../../data/revs.mutations';
+import { usePlaceRevArea } from '../../data/revs.plan';
 import type { Rev, RevArea, RevItem, RevKind, RevList } from '../../data/revs.types';
 import { useToast } from '../../ui/Toast';
 import { neighbor } from './model';
@@ -35,6 +36,7 @@ export function useSetupActions(projectId: string) {
   const saveArea = useSaveRevArea();
   const remove = useRemoveRev();
   const restore = useRestoreRev();
+  const place = usePlaceRevArea();
 
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
@@ -44,7 +46,7 @@ export function useSetupActions(projectId: string) {
   };
 
   return {
-    busy: [saveList, saveRev, saveItem, saveArea, remove, restore].some((m) => m.isPending),
+    busy: [saveList, saveRev, saveItem, saveArea, remove, restore, place].some((m) => m.isPending),
 
     /** Saves; true when saved (the form closes). */
     list: async (list: RevList, v: ListValues): Promise<boolean> => {
@@ -97,9 +99,12 @@ export function useSetupActions(projectId: string) {
     wall: async (area: RevArea, v: WallValues): Promise<boolean> => {
       try {
         const row = await saveArea.mutateAsync({ area, ...v, position: null });
-        saved('Wall saved.', () =>
-          saveArea.mutateAsync({ area: row, level: area.level, name: area.name, sheetFileId: area.sheet_file_id, position: null }),
-        );
+        saved('Wall saved.', async () => {
+          const back = await saveArea.mutateAsync({ area: row, level: area.level, name: area.name, sheetFileId: area.sheet_file_id, position: null });
+          if (area.geom !== null && back.geom === null) {
+            await place.mutateAsync({ area: back, sheetFileId: area.sheet_file_id, page: area.sheet_page, geom: area.geom });
+          }
+        });
         return true;
       } catch (e) {
         failed(e);

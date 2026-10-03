@@ -4,7 +4,8 @@
 //
 // No data fetching here: the caller passes a fresh signed URL of the sheet (src/data/sheetUrl.ts useSheetUrl) and saves
 // what onChange hands back (the whole list of strokes after every change). `onPages` hears the PDF's page count once it
-// is open (a plan set kept as one PDF: the caller's page picker); another page starts a new Undo history.
+// is open (a plan set kept as one PDF: the caller's page picker); another page starts a new Undo history. `onAspect`
+// hears the shown page's height / width once it is open (the request's walls drawn on the map from the plan).
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { useToast } from '../../../ui/Toast';
@@ -26,9 +27,10 @@ interface SheetMarkupProps {
   readOnly: boolean;
   onChange: (strokes: Stroke[]) => void;
   onPages?: ((pages: number) => void) | undefined;
+  onAspect?: ((aspect: number) => void) | undefined;
 }
 
-export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange, onPages }: SheetMarkupProps) {
+export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange, onPages, onAspect }: SheetMarkupProps) {
   const { sheet, pages, retry } = useSheetPage(sheetUrl, page);
   const toast = useToast();
   const [picked, setPicked] = useState<MarkupColor | null>(items[0]?.color ?? null);
@@ -50,6 +52,11 @@ export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange
 
   const pen = readOnly || moving || !items.some((it) => it.color === picked) ? null : picked;
   const aspect = sheet.status === 'ready' ? sheet.aspect : 1;
+  const ready = sheet.status === 'ready';
+
+  useEffect(() => {
+    if (ready) onAspect?.(aspect);
+  }, [ready, aspect, onAspect]);
 
   const onStroke = (points: [number, number][]) => {
     if (pen === null) return;

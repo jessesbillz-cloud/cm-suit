@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { irMapContextSchema, irStrokesSchema, liveSetup, revStatusRowSchema, type RevSetup } from './revs.types';
+import { irMapContextSchema, irStrokesSchema, liveSetup, parseArea, revStatusRowSchema, type RevSetup } from './revs.types';
 
 const row = { project_id: 'job', version: 1, deleted_at: null };
 const gone = { ...row, deleted_at: '2026-10-03T16:00:00Z' };
@@ -26,9 +26,9 @@ function setup(): RevSetup {
       { ...gone, id: 'iy', rev_id: 'r0', name: 'Removed item', company: null, position: 2 },
     ],
     areas: [
-      { ...row, id: 'a2', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: null, position: 2 },
-      { ...row, id: 'a1', list_id: 'l1', level: 'Level 01', name: 'Wall A', sheet_file_id: 'sheet', position: 1 },
-      { ...row, id: 'a9', list_id: 'l3', level: 'Level 01', name: 'On a removed list', sheet_file_id: null, position: 1 },
+      { ...row, id: 'a2', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: null, sheet_page: 1, geom: null, position: 2 },
+      { ...row, id: 'a1', list_id: 'l1', level: 'Level 01', name: 'Wall A', sheet_file_id: 'sheet', sheet_page: 1, geom: null, position: 1 },
+      { ...row, id: 'a9', list_id: 'l3', level: 'Level 01', name: 'On a removed list', sheet_file_id: null, sheet_page: 1, geom: null, position: 1 },
     ],
     marks: [
       { ...row, id: 'm1', area_id: 'a1', item_id: 'i0', kind: 'na' },
@@ -79,5 +79,15 @@ describe('the boundary', () => {
     };
     expect(irMapContextSchema.parse(ctx).legend[0]?.color).toBe(1);
     expect(irMapContextSchema.safeParse({ ...ctx, legend: [{ color: 4, name: 'x' }] }).success).toBe(false);
+  });
+  it("reads a wall's line on the plan (0059): 2 to 50 points of the page, or none", () => {
+    const wall = {
+      id: 'a1', project_id: 'job', list_id: 'l1', level: 'Level 02', name: 'Wall A', sheet_file_id: 'sheet', sheet_page: 2,
+      position: 1, version: 1, deleted_at: null,
+    };
+    expect(parseArea({ ...wall, geom: [[0.1, 0.2], [0.3, 0.2]] }).geom).toEqual([[0.1, 0.2], [0.3, 0.2]]);
+    expect(parseArea({ ...wall, geom: null }).geom).toBeNull();
+    expect(() => parseArea({ ...wall, geom: [[0.1, 0.2]] })).toThrow();
+    expect(() => parseArea({ ...wall, geom: [[0.1, 1.2], [0.3, 0.2]] })).toThrow();
   });
 });

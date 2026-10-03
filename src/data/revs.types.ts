@@ -8,17 +8,35 @@ import type { Tables } from './database.types';
 export const REV_LIST_COLS = 'id, project_id, name, phase, permit_id, position, version, deleted_at';
 export const REV_COLS = 'id, project_id, list_id, number, name, version, deleted_at';
 export const REV_ITEM_COLS = 'id, project_id, rev_id, name, company, position, version, deleted_at';
-export const REV_AREA_COLS = 'id, project_id, list_id, level, name, sheet_file_id, position, version, deleted_at';
+export const REV_AREA_COLS = 'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at';
 export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, version, deleted_at';
 export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version';
 
 export type RevList = Pick<Tables<'rev_lists'>, 'id' | 'project_id' | 'name' | 'phase' | 'permit_id' | 'position' | 'version' | 'deleted_at'>;
 export type Rev = Pick<Tables<'revs'>, 'id' | 'project_id' | 'list_id' | 'number' | 'name' | 'version' | 'deleted_at'>;
 export type RevItem = Pick<Tables<'rev_items'>, 'id' | 'project_id' | 'rev_id' | 'name' | 'company' | 'position' | 'version' | 'deleted_at'>;
-export type RevArea = Pick<
+type RevAreaRow = Pick<
   Tables<'rev_areas'>,
-  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'position' | 'version' | 'deleted_at'
+  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'sheet_page' | 'geom' | 'position' | 'version' | 'deleted_at'
 >;
+
+/**
+ * A wall's line on its plan sheet (0059): 2 to 50 points [x, y], fractions 0..1 of the sheet page (`sheet_page`) as it
+ * is viewed, origin top-left (the map strokes' frame). Checked by the database; parsed here so a bad one fails loudly.
+ */
+export const wallLineSchema = z
+  .array(z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]))
+  .min(2)
+  .max(50);
+export type WallLine = [number, number][];
+
+/** A wall: its level, name and sheet, and its line on that sheet's page (null: not on the plan). */
+export type RevArea = Omit<RevAreaRow, 'geom'> & { geom: WallLine | null };
+
+/** A wall row as the database answers it (geom is JSON), with its line parsed. */
+export function parseArea<T extends RevAreaRow>(row: T): Omit<T, 'geom'> & { geom: WallLine | null } {
+  return { ...row, geom: row.geom === null ? null : wallLineSchema.parse(row.geom) };
+}
 export type RevMark = Pick<Tables<'rev_marks'>, 'id' | 'project_id' | 'area_id' | 'item_id' | 'kind' | 'version' | 'deleted_at'>;
 export type IrRevItem = Pick<
   Tables<'ir_rev_items'>,

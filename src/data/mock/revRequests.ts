@@ -136,12 +136,15 @@ export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
     result_note: null, result_at: null, result_by: null,
   }));
   const sheet = v.sheetFileId ?? walls.find((a) => a.sheet_file_id !== null)?.sheet_file_id ?? null;
+  // The page of the first wall on that sheet, one drawn on the plan first (0059).
+  const onSheet = walls.filter((a) => a.sheet_file_id === sheet);
+  const page = (onSheet.find((a) => a.geom !== null) ?? onSheet[0])?.sheet_page ?? 1;
   write((x) => ({
     ...x,
     cells: [...x.cells, ...added],
     maps: [...x.maps, {
       request_id: row.id, org_id: row.org_id, project_id: row.project_id, created_at: now, updated_at: now, updated_by: me,
-      version: 1, sheet_file_id: sheet, page: 1, strokes: [], map_file_id: null, content_hash: null, signed: false, stale: true,
+      version: 1, sheet_file_id: sheet, page, strokes: [], map_file_id: null, content_hash: null, signed: false, stale: true,
     }],
   }));
   return row;
