@@ -1,5 +1,6 @@
 // The IR PDF: Generate IR (signed on the server, silent), Update PDF when the signed content changed, Delete PDF &
-// start over (a legal record: asked once, inline), and a re-stamp when the POSTPONED mark is out of step.
+// start over (a legal record: asked once, inline), and a re-stamp when the POSTPONED mark is out of step. `afterSign`
+// runs once it is signed (an OFS request's map is made again then, carrying the signature).
 import { useState } from 'react';
 import { FileSignature, RefreshCw, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -15,9 +16,10 @@ import { IR_FILENAME } from './model';
 interface PdfStepProps {
   row: IrRequest;
   jobName: string;
+  afterSign?: (() => void) | undefined;
 }
 
-export function PdfStep({ row, jobName }: PdfStepProps) {
+export function PdfStep({ row, jobName, afterSign }: PdfStepProps) {
   const generate = useGenerateIr();
   const restamp = useRestampIr();
   const remove = useDeletePdf();
@@ -29,6 +31,7 @@ export function PdfStep({ row, jobName }: PdfStepProps) {
   const sign = () => generate.mutateAsync({ row, filename });
   const onSigned = () => {
     toast.show({ message: `IR ${String(row.number)} made.` });
+    afterSign?.();
   };
   const stampOff = (row.status === 'postponed') !== row.pdf_postponed;
 

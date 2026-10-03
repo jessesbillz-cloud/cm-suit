@@ -1,5 +1,6 @@
 // A request's body: who asked through the public link (if they did), what to inspect, then only the notes that exist (the inspector's note for the GC, a GC return
-// reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is one.
+// reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is one. An OFS
+// request with walls shows its walls, items and why each failed below (RevCells), so they aren't repeated here.
 import type { ReactNode } from 'react';
 import { FileText } from 'lucide-react';
 import type { IrRequest } from '../../data/inspections.types';
@@ -14,6 +15,8 @@ interface RequestDetailsProps {
   onViewIr: () => void;
   /** View IR is the pane's main button unless the inspector's steps have their own. */
   viewIsMain: boolean;
+  /** Its walls and items show on their own (an OFS request with walls). */
+  walls: boolean;
 }
 
 function Note({ label, children, testId }: { label: string; children: ReactNode; testId?: string | undefined }) {
@@ -49,37 +52,49 @@ function ViaLink({ row }: { row: IrRequest }) {
   );
 }
 
-export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain }: RequestDetailsProps) {
+export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain, walls }: RequestDetailsProps) {
   const result = resultLabel(row.result);
   const attendance = attendanceLabel(row.attendance);
+  const notes =
+    !walls ||
+    row.requester_name !== null ||
+    Boolean(row.gc_note) ||
+    Boolean(row.confirm_note) ||
+    attendance !== null ||
+    row.status === 'postponed' ||
+    result !== null ||
+    Boolean(row.helper_report);
+  if (!notes && !row.ir_file_id) return null;
   return (
     <div className="flex flex-col gap-3">
-      <div className="divide-y divide-line rounded-lg border border-line">
-        <ViaLink row={row} />
-        <Note label="Items">{row.items}</Note>
-        {row.gc_note ? <Note label={row.status === 'returned' ? 'Returned' : 'GC note'}>{row.gc_note}</Note> : null}
-        {row.confirm_note ? <Note label="Inspector note">{row.confirm_note}</Note> : null}
-        {attendance ? <Note label="Attendance">{attendance}</Note> : null}
-        {row.status === 'postponed' ? (
-          <Note label="Postponed" testId="ir-postponed">
-            {postponeLabel(row.postpone_reason)}
-            {row.postpone_until ? ` · expected ${formatDay(row.postpone_until, 'EEE, MMM d')}` : ''}
-            {row.postpone_note ? `\n${row.postpone_note}` : ''}
-          </Note>
-        ) : null}
-        {result ? (
-          <Note label="Result" testId="ir-outcome">
-            {result}
-            {row.result_note ? `\n${row.result_note}` : ''}
-          </Note>
-        ) : null}
-        {row.helper_report ? (
-          <Note label="Helper">
-            {row.helper_report === 'passed' ? 'Passed' : 'Issues'}
-            {row.helper_note ? `\n${row.helper_note}` : ''}
-          </Note>
-        ) : null}
-      </div>
+      {notes ? (
+        <div className="divide-y divide-line rounded-lg border border-line">
+          <ViaLink row={row} />
+          {walls ? null : <Note label="Items">{row.items}</Note>}
+          {row.gc_note ? <Note label={row.status === 'returned' ? 'Returned' : 'GC note'}>{row.gc_note}</Note> : null}
+          {row.confirm_note ? <Note label="Inspector note">{row.confirm_note}</Note> : null}
+          {attendance ? <Note label="Attendance">{attendance}</Note> : null}
+          {row.status === 'postponed' ? (
+            <Note label="Postponed" testId="ir-postponed">
+              {postponeLabel(row.postpone_reason)}
+              {row.postpone_until ? ` · expected ${formatDay(row.postpone_until, 'EEE, MMM d')}` : ''}
+              {row.postpone_note ? `\n${row.postpone_note}` : ''}
+            </Note>
+          ) : null}
+          {result ? (
+            <Note label="Result" testId="ir-outcome">
+              {result}
+              {row.result_note && !walls ? `\n${row.result_note}` : ''}
+            </Note>
+          ) : null}
+          {row.helper_report ? (
+            <Note label="Helper">
+              {row.helper_report === 'passed' ? 'Passed' : 'Issues'}
+              {row.helper_note ? `\n${row.helper_note}` : ''}
+            </Note>
+          ) : null}
+        </div>
+      ) : null}
       {row.ir_file_id ? (
         <div className="flex flex-wrap items-center gap-3">
           <Button variant={viewIsMain ? 'primary' : 'secondary'} icon={FileText} loading={viewing} onClick={onViewIr} data-testid="ir-view-ir">

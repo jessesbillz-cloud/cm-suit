@@ -42,25 +42,8 @@ export interface IrMapInput {
   stamp: { signaturePng: Uint8Array | null; name: string; signedAtLabel: string } | null;
 }
 
-export interface MapTitleInput {
-  number: number;
-  ofsNumber: number | null;
-  phase: string | null;
-  /** yyyy-MM-dd, the request's day. */
-  requestDate: string;
-  what: string;
-}
-
-/** OSFM's title: "IR 377 - OFS IR #0065 - PH III - 2026-10-05 - Level 02 Cavity Stuffing". */
-export function mapTitle(t: MapTitleInput): string {
-  return [
-    `IR ${String(t.number)}`,
-    t.ofsNumber === null ? '' : `OFS IR #${String(t.ofsNumber).padStart(4, '0')}`,
-    t.phase?.trim() ?? '',
-    t.requestDate,
-    t.what.trim(),
-  ].filter((part) => part !== '').join(' - ');
-}
+/** OSFM's title: one definition with the request form's preview (../markup.ts). */
+export { mapTitle, type MapTitleInput } from '../markup.ts';
 
 /** Where the sheet sits on the map: the box it fills (as viewed), and how its page is drawn to read upright. */
 export interface SheetPlacement {

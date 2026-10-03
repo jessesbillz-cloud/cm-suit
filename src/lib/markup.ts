@@ -3,7 +3,7 @@
 // stroke (kept on the page, simplified well under the database's 2000 points) and the undo history.
 import { clamp01, clampStroke, type MarkupColor, type Stroke } from '../../supabase/functions/_shared/markup';
 
-export { HIGHLIGHT_OPACITY, MARKUP_COLORS, STROKE_LIMITS } from '../../supabase/functions/_shared/markup';
+export { HIGHLIGHT_OPACITY, MARKUP_COLORS, STROKE_LIMITS, mapTitle, ofsIrLabel } from '../../supabase/functions/_shared/markup';
 export type { MarkupColor, Stroke } from '../../supabase/functions/_shared/markup';
 
 type Point = [number, number];

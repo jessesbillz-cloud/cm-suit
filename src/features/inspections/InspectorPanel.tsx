@@ -1,14 +1,17 @@
 // The inspector's steps on one request, each small, redoable and silent unless noted: Confirm, Attendance,
-// Approved / Not approved, Generate IR, Send results; then Move and Postpone, and the helper. Each step is a card; the
-// one to do now stands out. The database checks every one.
+// Approved / Not approved (wall by wall on an OFS request with walls), Generate IR, Send results; then Move and
+// Postpone, and the helper. Each step is a card; the one to do now stands out. The database checks every one. Signing
+// a passed OFS request makes its map again, with the signature on it.
 import { useState } from 'react';
 import { CalendarClock, PauseCircle } from 'lucide-react';
 import type { IrRequest } from '../../data/inspections.types';
+import type { IrRevItem } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { AttendanceStep } from './AttendanceStep';
 import { ConfirmStep } from './ConfirmStep';
 import { HelperStep } from './HelperStep';
-import { inspectorSteps } from './model';
+import { useSignedMap } from './MapActions';
+import { WITH_GC, inspectorSteps, ownsSteps } from './model';
 import { MoveForm } from './MoveForm';
 import { PdfStep } from './PdfStep';
 import { PostponeForm, canPostpone } from './PostponeForm';
@@ -20,15 +23,22 @@ interface InspectorPanelProps {
   row: IrRequest;
   me: string;
   jobName: string;
+  /** An OFS request's walls and items (null for any other request). */
+  revs: readonly IrRevItem[] | null;
 }
 
-const WITH_GC = ['gc_review', 'returned', 'withdrawn'];
-
-export function InspectorPanel({ row, me, jobName }: InspectorPanelProps) {
+export function InspectorPanel({ row, me, jobName, revs }: InspectorPanelProps) {
   const [moving, setMoving] = useState(false);
   const [postponing, setPostponing] = useState(false);
+  const signedMap = useSignedMap();
   if (WITH_GC.includes(row.status)) return null;
-  const owner = row.owner_id === null || row.owner_id === me;
+  const owner = ownsSteps(row, me);
+  const afterSign =
+    revs !== null && row.result === 'approved'
+      ? () => {
+          signedMap(row.id);
+        }
+      : undefined;
   const movable = row.status !== 'complete' && row.result === null;
   const postponable = canPostpone(row.status);
   const steps = inspectorSteps(row);
@@ -46,10 +56,10 @@ export function InspectorPanel({ row, me, jobName }: InspectorPanelProps) {
             <AttendanceStep row={row} />
           </StepCard>
           <StepCard n={3} title="Result" state={steps.result}>
-            <ResultStep row={row} />
+            <ResultStep row={row} revs={revs} />
           </StepCard>
           <StepCard n={4} title="IR PDF" state={steps.pdf}>
-            <PdfStep row={row} jobName={jobName} />
+            <PdfStep row={row} jobName={jobName} afterSign={afterSign} />
           </StepCard>
           <StepCard n={5} title="Send results" state={steps.send}>
             <SendStep row={row} />
