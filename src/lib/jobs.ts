@@ -28,6 +28,8 @@ export const MODULES = [
   { value: 'calendar', label: 'Calendar' },
   { value: 'dailies', label: 'Dailies' },
   { value: 'inspections', label: 'Inspections' },
+  // The fire marshal's walls and their revs (0056): on for OFS jobs being built.
+  { value: 'revs', label: 'Revs' },
   { value: 'rfis', label: 'RFIs' },
   // For the fire / building official (0052): on for jobs being built.
   { value: 'permits', label: 'Permits' },

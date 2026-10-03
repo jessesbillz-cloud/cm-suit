@@ -117,7 +117,7 @@ describe('jobs', () => {
     expect(showJobTool(['rfis', 'files'], 'rfis', false)).toEqual(['files']);
   });
   it("job tools: every rail tool but Board, Calendar and Timesheets (the database's job_rail_tools)", () => {
-    expect(JOB_TOOLS).toEqual(['files', 'bids', 'dailies', 'inspections', 'rfis', 'permits', 'deliveries', 'corrections', 'people', 'hours']);
+    expect(JOB_TOOLS).toEqual(['files', 'bids', 'dailies', 'inspections', 'revs', 'rfis', 'permits', 'deliveries', 'corrections', 'people', 'hours']);
   });
   it("Permits: on top (the caseload, and the job's permits) for the official whose position recommends it; a job's tool for everyone else", () => {
     const jobs = [
@@ -132,6 +132,18 @@ describe('jobs', () => {
     expect(railModel(null, jobs, pm, {}).general).toEqual(['board', 'calendar', 'bids']);
     expect(railModel('s', jobs, pm, {})).toEqual({ general: ['board', 'calendar'], job: ['inspections', 'files'], more: ['permits', 'people'] });
     expect(allJobsTool('permits')).toBe('permits');
+  });
+  it('Revs: a job tool right after Inspections, there only on jobs that have it on (OFS jobs)', () => {
+    expect(JOB_TOOLS.indexOf('revs')).toBe(JOB_TOOLS.indexOf('inspections') + 1);
+    expect(toolIsOn('revs', FIELD)).toBe(false);
+    expect(toolIsOn('revs', [...FIELD, 'revs'])).toBe(true);
+    const rec = ['board', 'calendar', 'inspections', 'revs', 'files'];
+    expect(railModel('s', [{ project_id: 's', modules: ['files', 'calendar', 'inspections', 'revs'] }], { s: rec }, {}).job).toEqual([
+      'inspections',
+      'revs',
+      'files',
+    ]);
+    expect(railModel('a', [{ project_id: 'a', modules: FIELD }], { a: rec }, {}).job).toEqual(['inspections', 'files']);
   });
   it('Hours and Timesheets land on each other between a job and All my jobs', () => {
     expect(allJobsTool('hours')).toBe('timesheets');

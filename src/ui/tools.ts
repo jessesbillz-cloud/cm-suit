@@ -1,5 +1,6 @@
 // Tool names and icons: one table for the rail, the phone bar and the settings screen.
 import {
+  BrickWall,
   CalendarDays,
   ClipboardCheck,
   Clock,
@@ -25,6 +26,7 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   calendar: { label: 'Calendar', icon: CalendarDays },
   dailies: { label: 'Dailies', icon: NotebookPen },
   inspections: { label: 'Inspections', icon: ClipboardCheck },
+  revs: { label: 'Revs', icon: BrickWall },
   rfis: { label: 'RFIs', icon: FileQuestion },
   permits: { label: 'Permits', icon: Stamp },
   deliveries: { label: 'Deliveries', icon: Truck },
