@@ -6,6 +6,8 @@ import type { CalendarRow, FormContext, IrEvent, IrRecipient, IrRequest, IrRowRa
 import { SEED_IR } from './boardSeeds';
 import { permitJobRequests, seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
+import { permitJobRole } from './permitJobs';
+import { revsJobRequests } from './revSeeds';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-ir';
@@ -40,7 +42,7 @@ interface IrState {
 /** The start: IR 12 on Sample Job B (a board line points at it) and the calendar's seeded month on both jobs. */
 function seeded(): IrState {
   const today = todayInZone(TZ);
-  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 }), ...permitJobRequests(today)];
+  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 }), ...permitJobRequests(today), ...revsJobRequests(today)];
   const next: Record<string, number> = {};
   for (const r of requests) next[r.project_id] = Math.max(next[r.project_id] ?? 1, r.number + 1);
   return { requests, events: [], blocks: seedBlocks(today), next };
@@ -120,10 +122,11 @@ export async function calendar(projectId: string, from: string, to: string): Pro
   return [...rows, ...blocks].sort((a, b) => a.request_date.localeCompare(b.request_date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''));
 }
 
-export async function formContext(): Promise<FormContext> {
+export async function formContext(projectId: string): Promise<FormContext> {
   await delay();
   return {
-    gc: 'Sample Builders', inspectors: ['Sample Inspector'], gc_step: false, ofs: false, kinds: KINDS,
+    // The permit jobs are the fire marshal's (OFS) jobs.
+    gc: 'Sample Builders', inspectors: ['Sample Inspector'], gc_step: false, ofs: permitJobRole(projectId) !== null, kinds: KINDS,
     companies: ['Sample Concrete Co', 'Sample Steel Co'], my_company: 'Sample Concrete Co', today: todayInZone(TZ),
   };
 }
@@ -172,8 +175,15 @@ function newRow(a: Record<string, unknown>, number: number): IrRowRaw {
     helper_report: null, helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null,
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
-    requester_name: null, requester_phone: null, requester_email: null,
+    requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
   };
+}
+
+/** Every OFS request gets the job's next OFS IR number (the database's trigger, 0056). */
+function withOfs(row: IrRowRaw, s: IrState): IrRowRaw {
+  if (row.kind !== 'ofs') return row;
+  const used = s.requests.filter((r) => r.project_id === row.project_id).map((r) => r.ofs_number ?? 0);
+  return { ...row, ofs_number: Math.max(0, ...used) + 1 };
 }
 
 type Change = (r: IrRowRaw, a: Record<string, unknown>, me: string) => Partial<IrRowRaw>;
@@ -222,7 +232,7 @@ export async function rpc(name: string, a: Record<string, unknown>): Promise<IrR
   if (name === 'ir_submit') {
     const projectId = opt(a, 'p_project_id') ?? '';
     const number = (read().next[projectId] ?? 1);
-    const row = newRow(a, number);
+    const row = withOfs(newRow(a, number), read());
     write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
       events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: me, created_at: row.created_at }] }));
     return row;
@@ -265,10 +275,22 @@ export async function addLinkRequest(a: Record<string, unknown>, who: { name: st
   const projectId = opt(a, 'p_project_id') ?? '';
   const number = read().next[projectId] ?? 1;
   const row: IrRowRaw = {
-    ...newRow(a, number), requested_by: null, created_by: null, requester_name: who.name,
+    ...withOfs(newRow(a, number), read()), requested_by: null, created_by: null, requester_name: who.name,
     requester_phone: who.phone === '' ? null : who.phone, requester_email: who.email === '' ? null : who.email.toLowerCase(),
   };
   write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
     events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: null, created_at: row.created_at }] }));
+  return row;
+}
+
+/** A revs request (0056): an OFS request numbered like any, with the next OFS IR number (mock/revRequests adds its
+ *  cells and map). `a` takes ir_submit's argument names. */
+export async function addOfsRequest(a: Record<string, unknown>): Promise<IrRowRaw> {
+  await delay();
+  const projectId = opt(a, 'p_project_id') ?? '';
+  const number = read().next[projectId] ?? 1;
+  const row = withOfs(newRow({ ...a, p_kind: 'ofs' }, number), read());
+  write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
+    events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: row.requested_by, created_at: row.created_at }] }));
   return row;
 }

@@ -10,12 +10,12 @@ import { me, waiting } from './rfis';
 const RECOMMENDED: Record<string, readonly string[]> = {
   project_admin: ['board', 'calendar', 'bids', 'rfis', 'inspections', 'files', 'hours'],
   pm: ['board', 'calendar', 'rfis', 'inspections', 'files'],
-  inspector: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files', 'hours'],
-  inspector_admin: ['board', 'calendar', 'dailies', 'inspections', 'corrections', 'files', 'hours'],
+  inspector: ['board', 'calendar', 'dailies', 'inspections', 'revs', 'corrections', 'files', 'hours'],
+  inspector_admin: ['board', 'calendar', 'dailies', 'inspections', 'revs', 'corrections', 'files', 'hours'],
   sub: ['board', 'calendar', 'inspections', 'rfis', 'files'],
   architect: ['board', 'rfis', 'files'],
   bidder: ['bids'],
-  ahj: ['board', 'calendar', 'permits', 'inspections', 'files'],
+  ahj: ['board', 'calendar', 'permits', 'inspections', 'revs', 'files'],
 };
 
 const ALWAYS_ON = ['board', 'people'];

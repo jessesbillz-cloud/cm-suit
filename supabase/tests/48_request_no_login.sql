@@ -75,7 +75,8 @@ update public.project_members set member_org_id = 'b0000000-0000-0000-0000-00000
 select results_eq($$ select description, recommended_tools from public.roles where name = 'requester' $$,
   $$ values ('Requester'::text, '{inspections}'::text[]) $$, 'role: Requester, with Inspections on its rail');
 select results_eq($$ select capability from public.role_permissions where role = 'requester' order by 1 $$,
-  $$ values ('comments.write'::text), ('ir.request') $$, 'role: requests and comments on its own requests, nothing else');
+  $$ values ('comments.write'::text), ('ir.request'), ('revs.read') $$,
+  'role: requests, comments on its own requests and the job''s revs (0056, to pick walls), nothing else');
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Link-made subs become requesters; a sub a person invited or changed stays a sub

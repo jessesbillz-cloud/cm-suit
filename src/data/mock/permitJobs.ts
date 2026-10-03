@@ -21,8 +21,9 @@ function job(id: string, name: string, number: string): ProjectRow {
     address: null,
     timezone: TZ,
     stage: 'construction',
-    modules: ['calendar', 'files', 'inspections', 'permits'],
-    settings: {},
+    // The fire marshal's jobs: OFS requests, and Revs with them (0056).
+    modules: ['calendar', 'files', 'inspections', 'permits', 'revs'],
+    settings: { ir_ofs_allowed: true },
     version: 1,
     job_type: null,
     prevailing_wage: false,
@@ -99,6 +100,8 @@ const FILE_SEEDS: FileSeed[] = [
   ['mock-stamped-s1-2a', SCIENCE_JOB, 'mock-permit-s1-folder', 'Sample A-101 Floor Plan - Approved 24-0001.pdf', 4_833_908],
   ['mock-stamped-s1-2b', SCIENCE_JOB, 'mock-permit-s1-folder', 'Sample A-201 Elevations - Approved 24-0001.pdf', 3_219_440],
   ['mock-stamped-t1-1a', LIBRARY_JOB, 'mock-permit-t1-folder', 'Sample A-101 Annex Plan - Approved 25-0102.pdf', 5_120_009],
+  // The Level 02 sheet the revs walls start their maps on (mock/revSeeds).
+  ['job-s-plan-a102', SCIENCE_JOB, `${SCIENCE_JOB}-plans`, 'Sample A-102 Level 02 Floor Plan.pdf', 4_390_771],
 ];
 
 export const PERMIT_JOB_FILES: FileRow[] = FILE_SEEDS.map(([id, job, folderId, name, size]) => ({

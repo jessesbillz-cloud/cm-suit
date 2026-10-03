@@ -24,7 +24,8 @@ type FunctionName =
   | 'rfis'
   | 'timesheets'
   | 'request-link'
-  | 'permit-stamp';
+  | 'permit-stamp'
+  | 'ir-map';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';
