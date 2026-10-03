@@ -402,6 +402,10 @@ Each one has:
 5. **`inbound-email` (Resend Inbound `email.received` webhook):** Svix signature (HMAC-SHA256 over id, timestamp and raw body, `RESEND_WEBHOOK_SECRET`) with a 5-minute timestamp window. De-duplicated on the Resend `email_id`.
 6. **`email-events` (delivery, bounce, complaint and open webhook):** same auth. De-duplicated on the webhook's `svix-id`.
 7. **`calendar-feed` (per-user secret token, rotatable).**
+8. **`meeting-signin` (token-gated per meeting; the QR on a tailgate safety meeting's or a job meeting's screen, Jesse, Oct 3):**
+   - the crew signs in with no login: the page shows the job, the meeting's number, title and day; each person enters name, company, an optional trade and signs on the pad, then sees "Signed" and is done;
+   - only the token's hash is stored; the leader's "New QR" replaces it at once, closing the meeting drops it, and signing ends 18 hours after the start;
+   - the same name twice in a meeting is one line; the answer is the status only, never anyone's name.
 
 Everything else requires a signed-in user.
 

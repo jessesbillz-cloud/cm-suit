@@ -143,12 +143,17 @@ export const PUBLIC_TABLES = [
   'ir_link_receipts',
   // Revs (0056)
   'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
+  // Safety (0060)
+  'safety_topics', 'safety_meetings', 'safety_signins',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
 export const BUCKETS = ['files', 'signatures', 'inbound', 'fixtures', 'org-logos'] as const;
 
 export const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
+
+// Safety (0060): its RPC list and the meeting-signin checks, for the anon probe.
+export { probeMeetingSignin, SAFETY_RPCS } from './_safety';
 
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [

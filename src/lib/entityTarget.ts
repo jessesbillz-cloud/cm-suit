@@ -36,6 +36,9 @@ const HOMES: Record<string, Home> = {
   // The job's bid time is the job, not a row.
   project_bid_due: { tool: 'bids', toolOnly: true },
   project_member: { tool: 'people', toolOnly: true },
+  // Safety (0060): a meeting (the calendar's line, the board's close line); the tailgate reminder opens the tool.
+  safety_meeting: { tool: 'safety' },
+  safety_due: { tool: 'safety', toolOnly: true },
 };
 
 /** Where a record opens, or null when nothing owns that type (or the id is missing). */

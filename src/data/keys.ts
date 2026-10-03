@@ -113,4 +113,11 @@ export const qk = {
     ['request_status', projectId, receipt, 'sheet', sheetFileId] as const,
   /** A plan sheet in Revs (0059: the plan view, a wall's thumbnail): a short-lived signed URL (ir-map 'plan'). */
   planSheetUrl: (projectId: string, fileId: string) => ['plan_sheet_url', projectId, fileId] as const,
+  /** Every safety query of a job (0060: meetings, one meeting, its sheet, when the next tailgate is due) sits under this prefix. */
+  safety: (projectId: string) => ['safety', projectId] as const,
+  safetyPart: (projectId: string, part: string, id = '') => ['safety', projectId, part, id] as const,
+  /** The topic library a job sees: the starters and its company's own (0060). */
+  safetyTopics: (orgId: string) => ['safety_topics', orgId] as const,
+  /** The public meeting sign-in page (no session needed), by meeting. */
+  meetingPublic: (meetingId: string) => ['meeting_public', meetingId] as const,
 };

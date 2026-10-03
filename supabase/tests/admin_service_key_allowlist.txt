@@ -86,3 +86,11 @@ permit-stamp
 # see the request), and every URL is handed out after authorize_ir_file() as the user; a Revs plan sheet's URL (0059)
 # only after authorize_rev_sheet() as the user.
 ir-map
+# Public endpoint §6.4 #8: the meeting sign-in page. The meeting's token is checked by service-role-only SQL
+# (link_meeting_open / link_meeting_sign), which answers the page's facts only and records the signature; rate-limited
+# per IP and per meeting. Nothing else is read or written with the key.
+meeting-signin
+# Safety sign-in sheets (0060): gets the job's Safety folder (safety_folder_make), stores the sheet PDF
+# (storeGeneratedPdf: storage + files row), records it (safety_meeting_attach, service-only) and signs a library topic's
+# download URL; safety_meeting_close / safety_meeting_sheet and safety_topic_file run as the user first.
+safety-meeting

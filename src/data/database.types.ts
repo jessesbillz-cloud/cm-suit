@@ -5079,6 +5079,281 @@ export type Database = {
         }
         Relationships: []
       }
+      safety_meetings: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          file_id: string | null
+          held_on: string
+          id: string
+          kind: string
+          leader_id: string
+          location: string
+          notes: string
+          number: number
+          opened_at: string
+          org_id: string
+          pdf_file_id: string | null
+          points: string[]
+          project_id: string
+          questions: string[]
+          request_key: string | null
+          source: string | null
+          source_url: string | null
+          status: string
+          title: string
+          token_hash: string | null
+          token_made_at: string | null
+          topic_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          content_hash?: string | null
+          created_at?: string
+          created_by: string
+          file_id?: string | null
+          held_on: string
+          id?: string
+          kind: string
+          leader_id: string
+          location?: string
+          notes?: string
+          number: number
+          opened_at?: string
+          org_id: string
+          pdf_file_id?: string | null
+          points?: string[]
+          project_id: string
+          questions?: string[]
+          request_key?: string | null
+          source?: string | null
+          source_url?: string | null
+          status?: string
+          title: string
+          token_hash?: string | null
+          token_made_at?: string | null
+          topic_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string
+          file_id?: string | null
+          held_on?: string
+          id?: string
+          kind?: string
+          leader_id?: string
+          location?: string
+          notes?: string
+          number?: number
+          opened_at?: string
+          org_id?: string
+          pdf_file_id?: string | null
+          points?: string[]
+          project_id?: string
+          questions?: string[]
+          request_key?: string | null
+          source?: string | null
+          source_url?: string | null
+          status?: string
+          title?: string
+          token_hash?: string | null
+          token_made_at?: string | null
+          topic_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_meetings_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_meetings_pdf_file_id_fkey"
+            columns: ["pdf_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_meetings_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "safety_meetings_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "safety_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_signins: {
+        Row: {
+          added_by: string | null
+          company: string
+          created_at: string
+          id: string
+          meeting_id: string
+          name: string
+          name_key: string | null
+          org_id: string
+          person_id: string | null
+          project_id: string
+          removed_at: string | null
+          removed_by: string | null
+          signature: Json | null
+          signed_at: string | null
+          trade: string
+          updated_at: string
+          version: number
+          via: string
+        }
+        Insert: {
+          added_by?: string | null
+          company?: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          name: string
+          name_key?: string | null
+          org_id: string
+          person_id?: string | null
+          project_id: string
+          removed_at?: string | null
+          removed_by?: string | null
+          signature?: Json | null
+          signed_at?: string | null
+          trade?: string
+          updated_at?: string
+          version?: number
+          via: string
+        }
+        Update: {
+          added_by?: string | null
+          company?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          name?: string
+          name_key?: string | null
+          org_id?: string
+          person_id?: string | null
+          project_id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          signature?: Json | null
+          signed_at?: string | null
+          trade?: string
+          updated_at?: string
+          version?: number
+          via?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_signins_meeting_id_project_id_fkey"
+            columns: ["meeting_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "safety_meetings"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "safety_signins_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      safety_topics: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          language: string
+          org_id: string | null
+          points: string[]
+          questions: string[]
+          slug: string | null
+          source: string | null
+          source_url: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          language?: string
+          org_id?: string | null
+          points?: string[]
+          questions?: string[]
+          slug?: string | null
+          source?: string | null
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          language?: string
+          org_id?: string | null
+          points?: string[]
+          questions?: string[]
+          slug?: string | null
+          source?: string | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_topics_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_topics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_switches: {
         Row: {
           enabled: boolean
@@ -8454,6 +8729,21 @@ export type Database = {
         }
         Returns: Json
       }
+      link_meeting_open: {
+        Args: { p_meeting_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      link_meeting_sign: {
+        Args: {
+          p_company: string
+          p_meeting_id: string
+          p_name: string
+          p_signature: Json
+          p_token_hash: string
+          p_trade: string
+        }
+        Returns: Json
+      }
       link_post_delivery: {
         Args: {
           p_company: string
@@ -10858,6 +11148,213 @@ export type Database = {
         Returns: {
           made_at: string
           token: string
+        }[]
+      }
+      safety_category_ok: { Args: { p_category: string }; Returns: boolean }
+      safety_due: {
+        Args: { p_project_id: string }
+        Returns: {
+          due_on: string
+          last_held_on: string
+          open_count: number
+          today: string
+        }[]
+      }
+      safety_due_on: {
+        Args: { p_project_id: string; p_today: string }
+        Returns: string
+      }
+      safety_file_ok: {
+        Args: { p_file_id: string; p_org_id: string; p_project_id: string }
+        Returns: boolean
+      }
+      safety_folder: { Args: { p_project_id: string }; Returns: string }
+      safety_folder_make: { Args: { p_project_id: string }; Returns: string }
+      safety_kind_label: { Args: { p_kind: string }; Returns: string }
+      safety_lead_lock: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          file_id: string | null
+          held_on: string
+          id: string
+          kind: string
+          leader_id: string
+          location: string
+          notes: string
+          number: number
+          opened_at: string
+          org_id: string
+          pdf_file_id: string | null
+          points: string[]
+          project_id: string
+          questions: string[]
+          request_key: string | null
+          source: string | null
+          source_url: string | null
+          status: string
+          title: string
+          token_hash: string | null
+          token_made_at: string | null
+          topic_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "safety_meetings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      safety_lines_ok: {
+        Args: { p_lines: string[]; p_max: number }
+        Returns: boolean
+      }
+      safety_meeting: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          can_lead: boolean
+          closed_at: string
+          closed_by: string
+          closed_by_name: string
+          file_id: string
+          held_on: string
+          id: string
+          kind: string
+          leader_id: string
+          leader_name: string
+          location: string
+          notes: string
+          number: number
+          opened_at: string
+          pdf_file_id: string
+          points: string[]
+          project_id: string
+          questions: string[]
+          source: string
+          source_url: string
+          status: string
+          title: string
+          token_made_at: string
+          topic_file: boolean
+          topic_id: string
+          version: number
+        }[]
+      }
+      safety_meeting_attach: {
+        Args: { p_content_hash: string; p_file_id: string; p_meeting_id: string }
+        Returns: undefined
+      }
+      safety_meeting_close: {
+        Args: { p_meeting_id: string; p_version: number }
+        Returns: number
+      }
+      safety_meeting_qr: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          token: string
+          token_made_at: string
+        }[]
+      }
+      safety_meeting_reopen: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          token: string
+          token_made_at: string
+          version: number
+        }[]
+      }
+      safety_meeting_sheet: { Args: { p_meeting_id: string }; Returns: Json }
+      safety_meeting_start: {
+        Args: {
+          p_file_id: string
+          p_key: string
+          p_kind: string
+          p_location: string
+          p_notes: string
+          p_project_id: string
+          p_title: string
+          p_topic_id: string
+        }
+        Returns: {
+          id: string
+          number: number
+          token: string
+          token_made_at: string
+        }[]
+      }
+      safety_meetings_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          closed_at: string
+          held_on: string
+          id: string
+          kind: string
+          leader_id: string
+          leader_name: string
+          number: number
+          opened_at: string
+          signed: number
+          status: string
+          title: string
+          version: number
+        }[]
+      }
+      safety_new_token: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          token: string
+          token_made_at: string
+        }[]
+      }
+      safety_org_can: {
+        Args: { p_cap: string; p_org_id: string }
+        Returns: boolean
+      }
+      safety_person_name: { Args: { p_person: string }; Returns: string }
+      safety_signature_ok: { Args: { p_sig: Json }; Returns: boolean }
+      safety_signin_remove: {
+        Args: { p_removed: boolean; p_signin_id: string }
+        Returns: undefined
+      }
+      safety_tailgate_check: { Args: { p_at?: string }; Returns: number }
+      safety_tick: {
+        Args: { p_meeting_id: string; p_person: string }
+        Returns: string
+      }
+      safety_topic_file: {
+        Args: { p_project_id: string; p_topic_id: string }
+        Returns: {
+          mime: string
+          original_name: string
+          storage_path: string
+        }[]
+      }
+      safety_topic_remove: {
+        Args: { p_id: string; p_project_id: string; p_removed: boolean }
+        Returns: number
+      }
+      safety_topic_save: {
+        Args: {
+          p_category: string
+          p_file_id: string
+          p_id: string
+          p_points: string[]
+          p_project_id: string
+          p_questions: string[]
+          p_source: string
+          p_source_url: string
+          p_title: string
+          p_version: number
+        }
+        Returns: {
+          id: string
+          version: number
         }[]
       }
       save_billing_profile: {

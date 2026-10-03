@@ -167,3 +167,14 @@ verify_jwt = true
 # --- Revs: the OSFM inspection map (render, download / view, and the sheet for the in-app viewer) ---
 [functions.ir-map]
 verify_jwt = true
+
+# --- Public endpoint (SPEC §6.4 #8): the meeting sign-in page (tailgate safety meetings and job meetings, 0060).
+# verify_jwt = false because the crew scans the QR with no account. The function gates itself: the meeting's token
+# hash (made by the leader, dropped on close, 18 hours at most), rate limits per IP and per meeting, zod on every input,
+# the page's facts only and never a name back. ---
+[functions.meeting-signin]
+verify_jwt = false
+
+# --- Safety: close a meeting and make its sign-in sheet PDF; a library topic's PDF ---
+[functions.safety-meeting]
+verify_jwt = true

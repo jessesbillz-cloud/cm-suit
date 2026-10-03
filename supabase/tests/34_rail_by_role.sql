@@ -41,7 +41,7 @@ select is_empty($$ select name from public.roles
                        or cardinality(recommended_tools) <> (select count(distinct t) from unnest(recommended_tools) t) $$,
   'every role has a lean rail: 1 to 8 tools (Revs shows only on OFS jobs), none twice');
 select is_empty($$ select name from public.roles
-                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,revs,rfis,permits,deliveries,corrections,people,hours}' $$,
+                    where not recommended_tools <@ '{board,files,bids,calendar,dailies,inspections,revs,rfis,permits,deliveries,corrections,safety,people,hours}' $$,
   'recommendations name only rail tools');
 select is_empty($$ select name from public.roles where 'board' = any (recommended_tools) and recommended_tools[1] <> 'board' $$,
   'Board comes first wherever it is recommended');
