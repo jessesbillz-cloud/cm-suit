@@ -1,7 +1,8 @@
 // The OSFM inspection map's PDF on file (Revs, migrations 0056 and 0057): ONE way to make it, used by ir-map (a member,
 // after ir_map_context ran as the caller) and by request-link (a link visitor, after the receipt-gated
-// link_request_map_facts). The facts' content hash (sheet, page, strokes, title, legend and, on a passed and signed IR,
-// the signature) decides: the map on file already shows exactly that, so it is the answer; else the sheet's files row
+// link_request_map_facts). The facts' content hash (sheet, page, strokes, title, legend, the permit number and the
+// readiness checklist (0061), and on a passed and signed IR the signature) decides: the map on file already shows
+// exactly that, so it is the answer; else the sheet's files row
 // (same job, scanned clean, at most 40 MB) and bytes -> buildIrMap (pdf/irMap.ts; the deputy's signature and date
 // through the ONE stamp) -> storeGeneratedPdf into Reports / Inspection reports (`replaces` the previous map: its next
 // version) -> ir_map_attach (service role only). The service client is the caller's (an allowlisted function); this
@@ -13,6 +14,7 @@ import { contentHash } from './crypto.ts';
 import { buildFilename } from './buildFilename.ts';
 import { storeGeneratedPdf } from './generatedPdf.ts';
 import { buildIrMap, mapTitle, SheetError } from './pdf/irMap.ts';
+import { isReadiness, readinessLines } from './readiness.ts';
 import { pdfSafe } from './pdf/inspectionReport.ts';
 import { type IrRow, signedAtLabel } from './inspections.ts';
 import { looksLikePdf } from './permitStamp.ts';
@@ -45,6 +47,13 @@ export const mapFactsSchema = z.object({
   map_file_id: z.string().nullable(),
   /** A save or a change to the request since the last map (it may still look the same). */
   stale: z.boolean(),
+  /** The request's readiness checklist (0061; none on requests before it). */
+  readiness: z
+    .unknown()
+    .refine((v) => v === null || v === undefined || isReadiness(v), 'Malformed readiness checklist')
+    .transform((v) => (isReadiness(v) ? v : null)),
+  /** The number of the permit the request is on (0061), or none. */
+  permit_number: z.string().nullish().transform((v) => v ?? null),
 });
 export type MapFacts = z.infer<typeof mapFactsSchema>;
 
@@ -73,11 +82,21 @@ export function titleOf(facts: MapFacts): string {
   return mapTitle({ number: facts.number, ofsNumber: facts.ofs_number, phase: facts.phase, requestDate: facts.request_date, what: facts.what });
 }
 
-/** Everything the map PDF shows: its content hash says whether the map on file is still this picture. */
+/** "Permit 24-0001" under the map's title, or none. */
+export function permitLine(facts: Pick<MapFacts, 'permit_number'>): string | null {
+  return facts.permit_number ? `Permit ${facts.permit_number}` : null;
+}
+
+/**
+ * Everything the map PDF shows: its content hash says whether the map on file is still this picture. The permit and the
+ * checklist only when there are some, so a map made before 0061 keeps its hash.
+ */
 export function mapContent(facts: MapFacts, signed: MapSigner | null): Record<string, unknown> {
   return {
     kind: 'ir_map', request_id: facts.request_id, sheet_file_id: facts.sheet_file_id, page: facts.page, strokes: facts.strokes,
     title: titleOf(facts), legend: facts.legend, signed: signed && { by: signed.by, at: signed.at, ir_content_hash: signed.irHash },
+    ...(facts.permit_number ? { permit: facts.permit_number } : {}),
+    ...(facts.readiness ? { readiness: facts.readiness } : {}),
   };
 }
 
@@ -150,7 +169,8 @@ export async function ensureMap(service: Db, facts: MapFacts, made: MapMaker): P
 
   const { signed, job } = made;
   const pdf = await buildIrMap({
-    sheet: bytes, page: facts.page, strokes: facts.strokes, title: titleOf(facts), legend: facts.legend,
+    sheet: bytes, page: facts.page, strokes: facts.strokes, title: titleOf(facts), legend: facts.legend, permit: permitLine(facts),
+    checklist: facts.readiness ? readinessLines(facts.readiness) : [],
     stamp: signed && {
       signaturePng: await signatureOf(service, signed.by), name: pdfSafe(signed.name), signedAtLabel: signedAtLabel(signed.at, job.timezone),
     },

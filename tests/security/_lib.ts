@@ -154,6 +154,7 @@ export const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 
 // Safety (0060): its RPC list and the meeting-signin checks, for the anon probe.
 export { probeMeetingSignin, SAFETY_RPCS } from './_safety';
+export { OFS_PERMITS_RPCS } from './_ofsPermits';
 
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [

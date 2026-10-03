@@ -39,7 +39,7 @@ returns jsonb language sql as $$
     p_company => 'Sample Firestop Co', p_phone => p_phone, p_email => p_email, p_request_date => pg_temp.d(3),
     p_notice_ack => true, p_area_ids => array(select pg_temp.rid(a) from unnest(p_areas) a),
     p_item_ids => array(select pg_temp.rid(i) from unnest(p_items) i), p_sheet_file_id => p_sheet, p_start_time => '09:00',
-    p_duration_kind => 'timed', p_duration_min => 60) $$;
+    p_duration_kind => 'timed', p_duration_min => 60, p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}') $$;
 grant execute on all functions in schema pg_temp to public;
 
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000501', 'probe+lr-insp@example.test', 'Ivy Inspector');
@@ -108,7 +108,7 @@ reset role;
 -- ---------------------------------------------------------------------------------------------------------------------
 select is_empty($$ select f from unnest(array[
     'public.link_request_revs(uuid, text, uuid)',
-    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[])',
+    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)',
     'public.link_request_map(uuid, text)', 'public.link_request_map_save(uuid, text, integer, jsonb, uuid, integer)',
     'public.link_request_map_facts(uuid, text)', 'public.link_request_map_file(uuid, text, text, text)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
@@ -120,7 +120,7 @@ select is_empty($$ select f from unnest(array[
     'public.ir_map_write(public.inspection_requests, public.ir_maps, integer, jsonb, uuid, integer, boolean)',
     'public.link_request_receipt(uuid, text)', 'public.link_request_map_editor(uuid)', 'public.link_request_map_sheets(uuid)',
     'public.link_request_map_view(uuid)',
-    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid)']) f
+    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, jsonb)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE') $$,
   'grants: the shared bodies are internal');
 set local role authenticated;
@@ -343,7 +343,7 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000501');
 select is((public.ir_map_context(pg_temp.rid('S1')) ->> 'can_edit'), 'true', 'inspector: reads and may draw the visitor''s map');
 select pg_temp.login('a0000000-0000-0000-0000-000000000502');
 insert into ids select 'M', (public.ir_submit_ofs('c0000000-0000-0000-0000-000000000501', 'Sample Firestop Co', pg_temp.d(4), true,
-  array[pg_temp.rid('wA')], array[pg_temp.rid('spray')], null, '08:00', 'timed', 60)).id;
+  array[pg_temp.rid('wA')], array[pg_temp.rid('spray')], null, '08:00', 'timed', 60, p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}')).id;
 select is((select sheet_file_id from public.ir_maps where request_id = pg_temp.rid('M')), 'e0000000-0000-0000-0000-000000000501'::uuid,
   'member: ir_submit_ofs still makes its cells and map (first wall''s sheet)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000501');

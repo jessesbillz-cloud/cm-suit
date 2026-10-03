@@ -1,6 +1,6 @@
 // `deno test supabase/functions/_shared/irMapFile_test.ts` — the map PDF's facts, signer and content (0056, 0057).
 import { contentHash } from './crypto.ts';
-import { mapContent, type MapFacts, mapFactsSchema, signerOf, titleOf } from './irMapFile.ts';
+import { mapContent, type MapFacts, mapFactsSchema, permitLine, signerOf, titleOf } from './irMapFile.ts';
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error(`failed: ${what}`);
@@ -53,4 +53,23 @@ Deno.test('content: the hash moves with what the map shows, not with its stale m
   check(base !== await contentHash(mapContent({ ...facts, page: 2 }, null)), 'page');
   check(base !== await contentHash(mapContent({ ...facts, what: 'Level 03 HOW Cavity Stuff' }, null)), 'title');
   check(base !== await contentHash(mapContent(facts, signerOf(SIGNED, 'Sample Deputy'))), 'the signature');
+});
+
+const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' } as const;
+
+Deno.test('facts (0061): the checklist and the permit number, both optional; a bad checklist is refused', () => {
+  const old = mapFactsSchema.parse(FACTS);
+  check(old.readiness === null && old.permit_number === null, 'a map before 0061: neither');
+  const f = mapFactsSchema.parse({ ...FACTS, readiness: READY, permit_number: '24-0001' });
+  check(f.readiness?.ior === 'na' && permitLine(f) === 'Permit 24-0001', 'parsed');
+  check(permitLine(old) === null, 'no permit, no line');
+  check(!mapFactsSchema.safeParse({ ...FACTS, readiness: { ...READY, gc: 'no' } }).success, 'Yes or N/A only');
+});
+
+Deno.test('content (0061): a map with no permit and no checklist keeps its hash; each moves it', async () => {
+  const facts: MapFacts = mapFactsSchema.parse(FACTS);
+  const base = await contentHash(mapContent(facts, null));
+  check(base === await contentHash(mapContent({ ...facts, readiness: null, permit_number: null }, null)), 'none: same hash');
+  check(base !== await contentHash(mapContent({ ...facts, permit_number: '24-0001' }, null)), 'the permit');
+  check(base !== await contentHash(mapContent({ ...facts, readiness: READY }, null)), 'the checklist');
 });

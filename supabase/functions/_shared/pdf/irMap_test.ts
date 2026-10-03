@@ -157,3 +157,32 @@ Deno.test('irMap: a passed IR carries the stamp; a missing page or a non-PDF is 
   const junk = await buildIrMap({ ...base, sheet: new TextEncoder().encode('not a pdf'), stamp: null }).then(() => null, (e: unknown) => e);
   check(junk instanceof Error && junk.message === 'The sheet could not be read as a PDF.', 'not a PDF');
 });
+
+Deno.test('irMap (0061): the permit under the title, the checklist under the legend, the signature under both', async () => {
+  const checklist = [
+    { label: 'Previous required inspections complete', answer: 'Yes' },
+    { label: 'Trade contractor inspection complete', answer: 'Yes' },
+    { label: 'GC inspection complete', answer: 'Yes' },
+    { label: 'IOR inspection complete', answer: 'Yes' },
+    { label: 'Special inspection complete', answer: 'N/A' },
+  ];
+  const doc = await PDFDocument.load(await buildIrMap({
+    sheet: await sampleSheet(), page: 1, strokes: STROKES, title: 'IR 377 - OFS IR #0065 - PH III', legend: LEGEND,
+    permit: 'Permit 24-0001', checklist,
+    stamp: { signaturePng: null, name: 'Pat Sample', signedAtLabel: 'Oct 5, 2026, 4:05 PM PDT' },
+  }));
+  const content = pageContent(doc);
+  const title = textAt(content, 'IR 377 - OFS IR #0065 - PH III');
+  const permit = textAt(content, 'Permit 24-0001');
+  const lastItem = textAt(content, LEGEND[2]?.name ?? '');
+  const first = textAt(content, 'Previous required inspections complete');
+  const last = textAt(content, 'Special inspection complete');
+  const signed = textAt(content, 'Signed by Pat Sample · Oct 5, 2026, 4:05 PM PDT');
+  check(permit.y < title.y && permit.y > lastItem.y && Math.abs(permit.x - title.x) < 1, 'the permit right under the title');
+  check(first.y < lastItem.y && last.y < first.y && Math.abs(first.x - title.x) < 1, 'the checklist under the legend, in order');
+  check(signed.y < last.y, 'the signature row under the checklist');
+  const yes = textAt(content, 'Yes');
+  const na = textAt(content, 'N/A');
+  check(Math.abs(yes.x - na.x) < 0.01 && yes.x > first.x + 150, 'the answers in one column, right of the labels');
+  check(last.y > MAP_SIZE.height / 2, 'all of it in the top half, clear of the title block');
+});

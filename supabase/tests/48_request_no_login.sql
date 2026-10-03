@@ -390,10 +390,10 @@ select ok(not has_function_privilege('authenticated', 'public.link_request_calen
           and not has_function_privilege('authenticated', 'public.link_request_files(uuid, text, uuid, jsonb)', 'execute')
           and not has_function_privilege('authenticated', 'public.link_request_status(uuid, text)', 'execute')
           and not has_function_privilege('authenticated',
-            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[])', 'execute')
+            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[], jsonb)', 'execute')
           and has_function_privilege('service_role', 'public.link_request_status(uuid, text)', 'execute')
           and has_function_privilege('service_role',
-            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[])', 'execute'),
+            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[], jsonb)', 'execute'),
   'grants: the link functions are service-role only');
 select ok(not has_function_privilege('authenticated', 'public.ir_folder_make(uuid, text)', 'execute')
           and not has_function_privilege('authenticated', 'public.ir_calendar_rows(uuid, date, date, uuid, boolean, boolean)', 'execute')

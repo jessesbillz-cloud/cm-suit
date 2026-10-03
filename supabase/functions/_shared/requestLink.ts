@@ -3,6 +3,7 @@
 // (link_request_* in migrations 0046 and 0055) already returns only these fields; the function passes everything through
 // these projections as well, so a later change to the SQL can never widen what the public pages see.
 import { uuid, z } from './validate.ts';
+import type { ReadinessKey } from './readiness.ts';
 
 /** 32 random bytes as base64url: the shape rotate_request_link, rotate_request_hub and a receipt hand out. */
 export const token = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Malformed token');
@@ -42,6 +43,13 @@ export const visitorFields = {
   notice_ack: z.literal(true),
 };
 
+const answer = z.enum(['yes', 'na']);
+/** The OFS request's readiness checklist (0061): the five items of readiness.ts, each Yes or N/A, nothing else. */
+export const ReadinessBody = z
+  .object({ previous: answer, trade: answer, gc: answer, ior: answer, special: answer } satisfies Record<ReadinessKey, typeof answer>)
+  .strict();
+const READINESS_RULE = { message: 'Answer the checklist.', path: ['readiness'] };
+
 /** A phone or an email (at least one). */
 export const hasContact = (b: { phone: string; email: string }): boolean => b.phone !== '' || b.email !== '';
 /** A length in minutes exactly when timed. */
@@ -62,11 +70,14 @@ export const SubmitBody = z
     kind: z.enum(['ior', 'special', 'ofs']),
     special_kind_id: uuid.nullable(),
     items: clean(4000),
+    /** On an OFS request, the checklist (required); none on the others. */
+    readiness: ReadinessBody.nullish(),
   })
   .strict()
   .refine(hasContact, CONTACT_RULE)
   .refine(lengthFits, LENGTH_RULE)
-  .refine((b) => (b.kind === 'special') === (b.special_kind_id !== null), { message: 'Pick the special inspection.', path: ['special_kind_id'] });
+  .refine((b) => (b.kind === 'special') === (b.special_kind_id !== null), { message: 'Pick the special inspection.', path: ['special_kind_id'] })
+  .refine((b) => b.kind !== 'ofs' || (b.readiness ?? null) !== null, READINESS_RULE);
 export type SubmitRequest = z.infer<typeof SubmitBody>;
 
 const Opened = z.object({ project_name: z.string() });

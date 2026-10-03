@@ -12,6 +12,7 @@ import {
   job,
   LENGTH_RULE,
   lengthFits,
+  ReadinessBody,
   RequestLinkBody,
   SubmitBody,
   type SubmitRequest,
@@ -84,6 +85,8 @@ export const SubmitOfsBody = z
     item_ids: z.array(uuid).min(1).max(3),
     /** One of the picked walls' sheets, or null for the first wall's. */
     sheet_file_id: uuid.nullable(),
+    /** The readiness checklist (0061): all five. */
+    readiness: ReadinessBody,
   })
   .strict()
   .refine(hasContact, CONTACT_RULE)

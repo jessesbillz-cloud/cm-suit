@@ -70,7 +70,8 @@ const SUBMIT = {
   duration_min: 60,
   notice_ack: true,
 };
-const OFS = { ...SUBMIT, area_ids: [AREA], item_ids: [ITEM], sheet_file_id: null };
+const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'yes', special: 'na' };
+const OFS = { ...SUBMIT, area_ids: [AREA], item_ids: [ITEM], sheet_file_id: null, readiness: READY };
 
 Deno.test('submit payload: walls make it the revs request; otherwise 0055\'s request', () => {
   const ofs = submitPayload(JSON.stringify(OFS));
@@ -90,6 +91,10 @@ Deno.test('submit payload: walls make it the revs request; otherwise 0055\'s req
     { ...OFS, number: 1 },
     { ...OFS, requested_by: USER },
     { ...OFS, sheet_file_id: 'not-a-uuid' },
+    // The readiness checklist (0061): all five, Yes or N/A.
+    { ...OFS, readiness: undefined },
+    { ...OFS, readiness: { ...READY, special: 'no' } },
+    { ...OFS, readiness: { ...READY, previous: undefined } },
   ];
   for (const b of bad) {
     let refused = false;
