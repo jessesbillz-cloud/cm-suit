@@ -17,6 +17,7 @@ import {
   AccessLinkPage,
   HubPage,
   KeyLoginPage,
+  MeetingSigninPage,
   NewJobPage,
   PublicDeliveriesPage,
   RequestLinkPage,
@@ -183,6 +184,13 @@ const requestLinkRoute = createRoute({
 });
 /** A request sent with no login, by its private status link (0055): the tracker and the result line. */
 const requestStatusRoute = createRoute({ getParentRoute: () => rootRoute, path: '/r/$projectId/s/$receipt', component: RequestStatusPage });
+/** A meeting's sign-in page (SPEC §6.4 #8, 0060): the QR on a tailgate or job meeting's screen; its token. */
+const meetingSigninRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/m/$meetingId',
+  validateSearch: parseAccessSearch,
+  component: MeetingSigninPage,
+});
 /** One link for all the jobs a person takes inspection requests on. */
 const hubRoute = createRoute({ getParentRoute: () => rootRoute, path: '/h/$hubId', validateSearch: parseAccessSearch, component: HubPage });
 
@@ -239,6 +247,7 @@ const routeTree = rootRoute.addChildren([
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
   allPermitsRoute.addChildren([allPermitsItemRoute]),
   requestStatusRoute,
+  meetingSigninRoute,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

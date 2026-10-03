@@ -25,7 +25,9 @@ type FunctionName =
   | 'timesheets'
   | 'request-link'
   | 'permit-stamp'
-  | 'ir-map';
+  | 'ir-map'
+  | 'meeting-signin'
+  | 'safety-meeting';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

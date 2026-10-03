@@ -18,6 +18,10 @@ const PAGES = [
   '/p/job-s/revs',
   '/p/job-s/revs/mock-rev-area-2',
   '/p/job-s/revs?view=plan&level=Level%2002',
+  '/p/job-a/safety',
+  '/p/job-a/safety?view=library',
+  '/p/job-a/safety/mock-meeting-1',
+  '/p/job-a/safety/new',
 ];
 
 test.describe('phone width', () => {

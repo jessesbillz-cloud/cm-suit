@@ -45,6 +45,8 @@ const WHO: Record<string, { role: string; caps: readonly string[] }> = {
   architect: { role: 'architect', caps: ['rfi.answer'] },
   bidder: { role: 'bidder', caps: [] },
   ahj: { role: 'ahj', caps: [] },
+  super: { role: 'superintendent', caps: ['rfi.create_draft'] },
+  safety: { role: 'safety', caps: [] },
 };
 
 export function me(): Me {
