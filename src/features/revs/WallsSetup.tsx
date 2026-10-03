@@ -27,7 +27,7 @@ function WallForm({ area, levels, onSave, onCancel }: WallFormProps) {
     <EditForm ready={v.name.trim() !== '' && v.level.trim() !== ''} testId="rev-wall-form" onSave={() => onSave(v)} onCancel={onCancel}>
       <TextField label="Wall" value={v.name} onChange={(name) => { setV({ ...v, name }); }} autoFocus maxLength={160} testId="rev-wall-name-input" />
       <LevelField value={v.level} levels={levels} onChange={(level) => { setV({ ...v, level }); }} />
-      <SheetPicker projectId={area.project_id} value={v.sheetFileId} onChange={(sheetFileId) => { setV({ ...v, sheetFileId }); }} />
+      <SheetPicker projectId={area.project_id} value={v.sheetFileId} onChange={(sheetFileId) => { setV({ ...v, sheetFileId }); }} clearable />
     </EditForm>
   );
 }

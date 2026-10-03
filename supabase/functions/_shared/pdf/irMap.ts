@@ -1,7 +1,8 @@
 // The OSFM inspection map (Revs, migration 0056): ONE 11x17 landscape page with the plan sheet's page embedded as vectors
 // (scaled to fit, 18 pt margin, its /Rotate honored), the inspected walls highlighted over it in up to three colors, the
 // title in red bold at the top left on a white box with the legend (swatch + item name) under it, and, on an IR that
-// passed and is signed, the deputy's signature and date at the bottom right through the ONE stamp (stamp.ts).
+// passed and is signed, the deputy's signature and date in that same box under the legend through the ONE stamp
+// (stamp.ts), so nothing on the sheet (its number, its title block) is covered.
 // The page content is embedded, not its annotations: old markups on an uploaded sheet never show (OSFM: no previously
 // inspected work on a map), and the sheet viewer leaves them off too. Pure: bytes in, bytes out. Tests: irMap_test.ts.
 import {
@@ -10,7 +11,7 @@ import {
 } from 'pdf-lib';
 import { HIGHLIGHT_OPACITY, MARKUP_COLORS, type MarkupColor, type Stroke, clampStroke } from '../markup.ts';
 import { pdfSafe, wrapText } from './inspectionReport.ts';
-import { stampSignature } from './stamp.ts';
+import { STAMP_TEXT_SIZE, type StampSpot, signedByLine, stampSignature } from './stamp.ts';
 
 /** The sheet itself can't be used (locked, damaged, no such page): the person's file, said in plain words. */
 export class SheetError extends Error {
@@ -23,6 +24,7 @@ const MARGIN = 18;
 
 const RED = rgb(0.8, 0.07, 0.07);
 const INK = rgb(0.07, 0.09, 0.15);
+const RULE = rgb(0.75, 0.77, 0.8);
 const WHITE = rgb(1, 1, 1);
 
 export interface MapLegendItem {
@@ -109,13 +111,28 @@ const PAD = 9;
 const SWATCH = { width: 28, height: 12 } as const;
 /** The title box never covers more than this much of the sheet's width. */
 const BOX_MAX_TEXT = 520;
+/** The signature's box on the signature row (stamp.ts fits the image in it, the "Signed by" line to its right). */
+const SIGNATURE = { width: 96, height: 34 } as const;
+/** stamp.ts puts the line this far right of the signature's box. */
+const STAMP_GAP = 8;
 
-/** Title and legend at the top left, on a white box with a thin red edge. Long names wrap; nothing is cut. */
-function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: readonly MapLegendItem[]): void {
+/** The signature row's content: whether there is a signature image, and the width of the "Signed by" line. */
+interface SignRow {
+  image: boolean;
+  textWidth: number;
+}
+
+/**
+ * Title and legend at the top left, on a white box with a thin red edge, and on a passed, signed IR a signature row
+ * under the legend: answers the spot for the stamp there. Long names wrap; nothing is cut.
+ */
+function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: readonly MapLegendItem[], sign: SignRow | null): StampSpot | null {
   const titleLines = wrapText(title, font, TITLE_SIZE, BOX_MAX_TEXT);
   const nameMax = BOX_MAX_TEXT - SWATCH.width - 8;
   const rows = legend.map((it) => ({ it, lines: wrapText(it.name, font, LEGEND_SIZE, nameMax) }));
+  const signWidth = sign === null ? 0 : (sign.image ? SIGNATURE.width + STAMP_GAP : 0) + sign.textWidth;
   const widest = Math.max(
+    signWidth,
     ...titleLines.map((l) => font.widthOfTextAtSize(l, TITLE_SIZE)),
     ...rows.flatMap((r) => r.lines.map((l) => SWATCH.width + 8 + font.widthOfTextAtSize(l, LEGEND_SIZE))),
   );
@@ -138,9 +155,24 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
     cursor -= h + 5;
     return t;
   });
+  // The signature row: a hairline under the legend, then the signature's box with the line beside it. Without an
+  // image the box is empty, so the line starts at the text's left edge (stamp.ts writes it STAMP_GAP past the box).
+  let spot: StampSpot | null = null;
+  let rule: number | null = null;
+  if (sign !== null) {
+    rule = bottom - 6;
+    const height = sign.image ? SIGNATURE.height : STAMP_TEXT_SIZE;
+    bottom = rule - 6 - height;
+    spot = sign.image
+      ? { page: 0, x: left + PAD, y: bottom, ...SIGNATURE }
+      : { page: 0, x: left + PAD - STAMP_GAP, y: bottom, width: 0, height: 0 };
+  }
   page.drawRectangle({
     x: left, y: bottom - PAD, width: widest + 2 * PAD, height: top - bottom + PAD, color: WHITE, borderColor: RED, borderWidth: 0.75,
   });
+  if (rule !== null) {
+    page.drawLine({ start: { x: left + PAD, y: rule }, end: { x: left + PAD + widest, y: rule }, thickness: 0.5, color: RULE });
+  }
 
   titleLines.forEach((line, i) => {
     page.drawText(line, { x: left + PAD, y: titleBase[i] ?? top, size: TITLE_SIZE, font, color: RED });
@@ -156,14 +188,7 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
       page.drawText(line, { x: left + PAD + SWATCH.width + 8, y, size: LEGEND_SIZE, font, color: INK });
     });
   });
-}
-
-/** A white panel under the stamp's corner (stamp.ts: 36 pt in, signature above an 8 pt line), so it reads on the sheet. */
-function drawStampPanel(page: PDFPage, font: PDFFont, stamp: NonNullable<IrMapInput['stamp']>): void {
-  const textW = font.widthOfTextAtSize(pdfSafe(`Signed by ${stamp.name} · ${stamp.signedAtLabel}`), 8);
-  const width = Math.max(150, textW) + 16;
-  const height = stamp.signaturePng ? 82 : 22;
-  page.drawRectangle({ x: MAP_SIZE.width - 36 + 8 - width, y: 28, width, height, color: WHITE, borderColor: INK, borderWidth: 0.5 });
+  return spot;
 }
 
 async function loadSheet(bytes: Uint8Array): Promise<PDFDocument> {
@@ -192,10 +217,17 @@ export async function buildIrMap(input: IrMapInput): Promise<Uint8Array> {
   drawStrokes(page, input.strokes, place.box);
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  drawTitleBox(page, bold, input.title, input.legend);
-  if (input.stamp) drawStampPanel(page, await doc.embedFont(StandardFonts.Helvetica), input.stamp);
+  const stamp = input.stamp;
+  // The stamp writes its line in Helvetica: measured the same way, so the box holds it.
+  const sign = stamp
+    ? {
+      image: stamp.signaturePng !== null,
+      textWidth: (await doc.embedFont(StandardFonts.Helvetica)).widthOfTextAtSize(signedByLine(stamp), STAMP_TEXT_SIZE),
+    }
+    : null;
+  const spot = drawTitleBox(page, bold, input.title, input.legend, sign);
 
   // Without object streams: much less work for a big sheet, and nothing is compressed twice.
   const bytes = await doc.save({ useObjectStreams: false });
-  return input.stamp ? await stampSignature(bytes, input.stamp) : bytes;
+  return stamp && spot ? await stampSignature(bytes, { ...stamp, at: spot }) : bytes;
 }

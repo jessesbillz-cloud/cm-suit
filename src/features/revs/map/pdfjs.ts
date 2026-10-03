@@ -1,10 +1,10 @@
 // pdf.js, vendored in src/vendor/pdfjs (docs/decisions.md, Oct 2). Loaded only here and only by dynamic import, so it
 // is its own chunk that the sheet viewer alone downloads; the worker is a separate file the bundler copies as is.
 import type {
-  PDFDocumentLoadingTask, PDFPageProxy, RenderTask,
+  PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask,
 } from '../../../vendor/pdfjs/pdf.min.mjs';
 
-export type { PDFPageProxy };
+export type { PDFDocumentProxy, PDFPageProxy };
 
 const WORKER_URL = new URL('../../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
@@ -36,8 +36,8 @@ function dataUrlBytes(url: string): Uint8Array {
 export async function openSheet(url: string): Promise<PDFDocumentLoadingTask> {
   const lib = await pdfjs();
   const source = url.startsWith('data:') ? { data: dataUrlBytes(url) } : { url, disableRange: true };
-  // JPEG 2000 images (logos and stamps on many sheets) decode with pdf.js's OpenJPEG (public/vendor/pdfjs-wasm). The
-  // CSP allows no wasm compile, so its plain-script build is what runs; eval stays off.
+  // JPEG 2000 images (logos and stamps on many sheets) decode with pdf.js's OpenJPEG (public/vendor/pdfjs-wasm), as wasm
+  // (the CSP allows 'wasm-unsafe-eval' for it, and nothing else); eval stays off.
   return lib.getDocument({ ...source, isEvalSupported: false, wasmUrl: WASM_URL, verbosity: ERRORS_ONLY });
 }
 

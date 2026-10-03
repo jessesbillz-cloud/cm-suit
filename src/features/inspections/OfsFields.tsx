@@ -1,11 +1,11 @@
 // "What to inspect" on an OFS request of a job with revs: the walls and items (RevPicker), then the sheet the map starts
-// on: the first picked wall's, or one picked from the job's files. Walls on two sheets get a short note: one map shows
-// one sheet (OSFM).
+// on: the first picked wall's, or one picked from the job's PDFs (the one SheetPicker). Walls on two sheets get a short
+// note: one map shows one sheet (OSFM).
 import { useMemo } from 'react';
 import type { RevSetup, RevStatusRow } from '../../data/revs.types';
 import { RevPicker } from '../revs/RevPicker';
 import { firstSheet, requestPlan, sheetCount, statusIndex, type RevPick } from '../revs/revPick';
-import { SheetField } from './SheetField';
+import { SheetPicker } from '../revs/SheetPicker';
 
 export interface OfsRevs {
   setup: RevSetup;
@@ -34,7 +34,13 @@ export function OfsFields({ projectId, revs, pick, onPick, sheet, onSheet, date 
       <RevPicker setup={revs.setup} status={revs.status} value={pick} onChange={onPick} date={date} />
       {walls.length > 0 ? (
         <div className="flex flex-col gap-1">
-          <SheetField projectId={projectId} value={sheet ?? firstSheet(walls)} onChange={onSheet} />
+          <SheetPicker
+            projectId={projectId}
+            value={sheet ?? firstSheet(walls)}
+            onChange={(id) => {
+              if (id !== null) onSheet(id);
+            }}
+          />
           {sheet === null && sheets > 1 ? (
             <p className="text-[13px] text-ink-2" data-testid="rev-sheets-note">
               Walls on {sheets} sheets. The map shows one.

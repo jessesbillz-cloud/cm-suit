@@ -1,5 +1,7 @@
 // After a request is sent with no login: the IR number the database gave, the tracker, and the private status link the
-// visitor bookmarks or screenshots (only this screen ever shows it: the server keeps its hash).
+// visitor bookmarks or screenshots (only this screen ever shows it: the server keeps its hash). A request with walls
+// shows its map right here (children), to draw while on the spot.
+import type { ReactNode } from 'react';
 import { CircleCheck, Copy } from 'lucide-react';
 import type { Submitted } from '../../data/requestNoLogin.types';
 import { shortLinkText, statusLinkUrl } from '../../lib/requestLink';
@@ -13,9 +15,10 @@ interface PublicReceiptProps {
   projectId: string;
   receipt: Submitted;
   onAnother: () => void;
+  children?: ReactNode | undefined;
 }
 
-export function PublicReceipt({ projectId, receipt, onAnother }: PublicReceiptProps) {
+export function PublicReceipt({ projectId, receipt, onAnother, children }: PublicReceiptProps) {
   const copy = useCopyLink();
   const url = statusLinkUrl(window.location.origin, __BASE_PATH__, projectId, receipt.receipt);
   return (
@@ -26,6 +29,7 @@ export function PublicReceipt({ projectId, receipt, onAnother }: PublicReceiptPr
           Sent
         </p>
         <RequestFactsView facts={receipt} />
+        {children}
         <div className="flex flex-col gap-2 rounded-lg border border-line bg-page px-3 py-3">
           <p className="text-xs font-medium text-ink-3">Status link</p>
           <p className="break-all text-sm text-ink" data-testid="public-status-url">

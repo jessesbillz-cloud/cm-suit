@@ -2,8 +2,10 @@
 # Renaming the product (FUTURE_NAME) also touches public/manifest.webmanifest, which is static and can't import brand.ts.
 # connect-src: Supabase REST/Auth/Storage/Functions (https) and Realtime (wss), and Sentry ingest (US region DSNs use
 # o<id>.ingest.us.sentry.io, which the plain *.ingest.sentry.io wildcard does not match).
+# script-src 'wasm-unsafe-eval': lets pdf.js compile its JPEG 2000 decoder (public/vendor/pdfjs-wasm) as wasm; eval stays
+# off (no 'unsafe-eval').
 /*
-  Content-Security-Policy: default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=()

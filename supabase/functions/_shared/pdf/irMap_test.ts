@@ -42,6 +42,21 @@ function hexOf(text: string): string {
   return Array.from(text, (ch) => ch.charCodeAt(0).toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
+/** Where a line of text starts on the page: the text matrix (… x y Tm) set last before it is shown. */
+function textAt(content: string, text: string): { x: number; y: number } {
+  const at = content.indexOf(`<${hexOf(text)}`);
+  check(at >= 0, `text on the page: ${text}`);
+  const moves = [...content.slice(0, at).matchAll(/(-?[\d.]+) (-?[\d.]+) Tm/g)];
+  const last = moves[moves.length - 1];
+  check(last !== undefined, `a position for: ${text}`);
+  return { x: Number(last?.[1]), y: Number(last?.[2]) };
+}
+
+/** Where images are drawn: each image's lower-left corner (the 1 0 0 1 x y cm before its Do). */
+function imagesAt(content: string): { x: number; y: number }[] {
+  return [...content.matchAll(/1 0 0 1 (-?[\d.]+) (-?[\d.]+) cm\s+(?:[^\n]*\n){0,3}?[^\n]*\/Image[^\s]* Do/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
+}
+
 const LEGEND = [
   { color: 1 as const, name: 'HOW Cavity Stuff' },
   { color: 2 as const, name: 'HOW Cavity Spray' },
@@ -100,6 +115,32 @@ Deno.test('irMap: the sheet fits inside the margin, turned upright when it has a
   check(Math.abs(turned.y - (turned.box.y + turned.box.height)) < 1e-9, 'turned around the top-left corner');
   const out = await PDFDocument.load(await buildIrMap({ sheet: await sampleSheet(90), page: 1, strokes: STROKES, title: 'IR 1', legend: [], stamp: null }));
   check(out.getPageCount() === 1 && out.getPage(0).getRotation().angle === 0, 'the map itself is not rotated');
+});
+
+Deno.test('irMap: the signature and date sit in the title box under the legend, never over the sheet\'s corner', async () => {
+  const signedAtLabel = 'Oct 5, 2026, 4:05 PM PDT';
+  const base = { sheet: await sampleSheet(), page: 1, strokes: STROKES, title: 'IR 377 - OFS IR #0065 - PH III', legend: LEGEND };
+  for (const signaturePng of [PNG_1PX, null]) {
+    const doc = await PDFDocument.load(await buildIrMap({ ...base, stamp: { signaturePng, name: 'Pat Sample', signedAtLabel } }));
+    const content = pageContent(doc);
+    const line = textAt(content, `Signed by Pat Sample · ${signedAtLabel}`);
+    const lastItem = textAt(content, LEGEND[2]?.name ?? '');
+    const title = textAt(content, 'IR 377 - OFS IR #0065 - PH III');
+    const what = signaturePng ? 'with a signature' : 'without one';
+    // Top left, inside the title box's column, under the last legend line.
+    check(line.y < lastItem.y && line.y > MAP_SIZE.height / 2, `${what}: under the legend, in the top half (y ${line.y})`);
+    check(line.x < 300 && Math.abs(title.x - (signaturePng ? line.x - 104 : line.x)) < 1, `${what}: in the box's column (x ${line.x})`);
+    // Nothing in the bottom right, where a sheet's number and title block are.
+    check(!(line.x > MAP_SIZE.width / 2 && line.y < MAP_SIZE.height / 2), `${what}: not at the bottom right`);
+    const images = imagesAt(content);
+    if (signaturePng) {
+      check(images.length === 1, `one signature image, got ${images.length}`);
+      const img = images[0] ?? { x: -1, y: -1 };
+      check(Math.abs(img.x - title.x) < 1 && Math.abs(img.y - (line.y - 1)) < 1, `the signature on the row, left of the line (${img.x}, ${img.y})`);
+    } else {
+      check(images.length === 0, 'no image without a signature');
+    }
+  }
 });
 
 Deno.test('irMap: a passed IR carries the stamp; a missing page or a non-PDF is refused in words', async () => {

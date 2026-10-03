@@ -117,7 +117,7 @@ export function AddWalls({ projectId }: { projectId: string }) {
             {problem}
           </p>
         ) : null}
-        <SheetPicker projectId={projectId} value={sheet} onChange={setSheet} />
+        <SheetPicker projectId={projectId} value={sheet} onChange={setSheet} clearable />
         {add.isError ? (
           <p role="alert" className="text-sm text-danger">
             {messageOf(add.error)}
