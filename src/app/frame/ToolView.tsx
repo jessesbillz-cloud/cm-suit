@@ -25,6 +25,7 @@ import {
   RevsTool,
   RfisTool,
   SafetyTool,
+  ScheduleTool,
   SettingsTool,
   TimesheetsTool,
 } from './lazyTools';
@@ -126,6 +127,9 @@ function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'safety':
       if (projectId === null) return <NeedsJob what="safety meetings" />;
       return <SafetyTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'schedule':
+      if (projectId === null) return <NeedsJob what="the schedule" />;
+      return <ScheduleTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
     case 'hours':
       if (projectId === null) return <NeedsJob what="hours" />;
       return <HoursTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;

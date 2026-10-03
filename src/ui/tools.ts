@@ -2,6 +2,7 @@
 import {
   BrickWall,
   CalendarDays,
+  ChartGantt,
   ClipboardCheck,
   Clock,
   FileQuestion,
@@ -33,6 +34,7 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   deliveries: { label: 'Deliveries', icon: Truck },
   corrections: { label: 'Corrections', icon: ListChecks },
   safety: { label: 'Safety', icon: HardHat },
+  schedule: { label: 'Schedule', icon: ChartGantt },
   people: { label: 'People', icon: Users },
   settings: { label: 'Settings', icon: Settings },
   hours: { label: 'Hours', icon: Clock },

@@ -11,6 +11,7 @@ describe('where a record opens', () => {
     expect(entityTarget('daily_report', 'r-1')).toEqual({ tool: 'dailies', itemId: 'r-1' });
     expect(entityTarget('rfi', 'rfi-1')).toEqual({ tool: 'rfis', itemId: 'rfi-1' });
     expect(entityTarget('safety_meeting', 'sm-1')).toEqual({ tool: 'safety', itemId: 'sm-1' });
+    expect(entityTarget('schedule_activity', 'act-1')).toEqual({ tool: 'schedule', itemId: 'act-1' });
   });
 
   it('bid records open in the bids view they live in', () => {
@@ -25,6 +26,8 @@ describe('where a record opens', () => {
     expect(entityTarget('project_member', 'm-1')).toEqual({ tool: 'people', itemId: null });
     expect(entityTarget('project_bid_due', null)).toEqual({ tool: 'bids', itemId: null });
     expect(entityTarget('safety_due', 'job-1')).toEqual({ tool: 'safety', itemId: null });
+    expect(entityTarget('schedule_version', 'v-1')).toEqual({ tool: 'schedule', itemId: null, view: 'updates' });
+    expect(entityTarget('schedule_due', 'v-1')).toEqual({ tool: 'schedule', itemId: null, view: 'updates' });
   });
 
   it('opens nothing for an unknown type, no type, or a missing id', () => {

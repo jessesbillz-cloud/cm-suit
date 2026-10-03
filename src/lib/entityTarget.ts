@@ -39,6 +39,11 @@ const HOMES: Record<string, Home> = {
   // Safety (0060): a meeting (the calendar's line, the board's close line); the tailgate reminder opens the tool.
   safety_meeting: { tool: 'safety' },
   safety_due: { tool: 'safety', toolOnly: true },
+  // Schedule (0062): an activity (the calendar's look-ahead and milestone lines); a published update and the "update due"
+  // line open the tool.
+  schedule_activity: { tool: 'schedule' },
+  schedule_version: { tool: 'schedule', view: 'updates', toolOnly: true },
+  schedule_due: { tool: 'schedule', view: 'updates', toolOnly: true },
 };
 
 /** Where a record opens, or null when nothing owns that type (or the id is missing). */

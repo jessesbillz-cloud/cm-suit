@@ -17,7 +17,7 @@ const RECOMMENDED: Record<string, readonly string[]> = {
   architect: ['board', 'rfis', 'files'],
   bidder: ['bids'],
   ahj: ['board', 'calendar', 'permits', 'inspections', 'revs', 'files'],
-  superintendent: ['board', 'calendar', 'dailies', 'safety', 'inspections', 'deliveries'],
+  superintendent: ['board', 'calendar', 'schedule', 'dailies', 'safety', 'inspections', 'deliveries'],
   safety: ['board', 'safety', 'calendar'],
 };
 

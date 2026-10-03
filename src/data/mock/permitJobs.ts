@@ -21,8 +21,8 @@ function job(id: string, name: string, number: string): ProjectRow {
     address: null,
     timezone: TZ,
     stage: 'construction',
-    // The fire marshal's jobs: OFS requests, and Revs with them (0056).
-    modules: ['calendar', 'files', 'inspections', 'permits', 'revs'],
+    // The fire marshal's jobs: OFS requests, and Revs with them (0056); being built, so the Schedule (0062).
+    modules: ['calendar', 'files', 'inspections', 'permits', 'revs', 'schedule'],
     settings: { ir_ofs_allowed: true },
     version: 1,
     job_type: null,

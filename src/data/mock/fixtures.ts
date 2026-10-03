@@ -15,7 +15,7 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
 /** The sample jobs are being built, so they have the field tools too (0021 tg_project_field_modules). */
-const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections', 'rfis', 'safety'];
+const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections', 'rfis', 'safety', 'schedule'];
 
 export const MOCK_PROJECTS: MyProject[] = [
   {

@@ -48,6 +48,8 @@ interface ToolSearch {
   level?: string;
   wall?: string;
   place?: string;
+  /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
+  range?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -74,6 +76,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const level = str(s['level']);
   const wall = idList(s['wall']);
   const place = idList(s['place']);
+  const range = str(s['range']);
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
@@ -87,6 +90,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(level && level.length <= 40 ? { level } : {}),
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
+    ...(range === '2m' ? { range } : {}),
   };
 }
 
