@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { boundsOf, circle, convexHull, depthOf, extrude, facesViewer, pathOf, project, rect, shadeOf, signedArea, VIEW } from './iso';
 
+/** -0 and 0 are the same point here; toEqual tells them apart. */
+const unsign = (v: readonly number[]): number[] => v.map((n) => n + 0);
+
 describe('the projection', () => {
   it('draws the wall rising gently to the right, through it up and left, and up straight up', () => {
     const [x0, y0] = project([0, 0, 0]);
-    expect([x0, y0]).toEqual([0, 0]);
+    expect(unsign([x0, y0])).toEqual([0, 0]);
     const along = project([10, 0, 0]);
     expect(along[0]).toBeGreaterThan(0);
     expect(along[1]).toBeLessThan(0);
@@ -56,14 +59,14 @@ describe('extrude', () => {
     const faces = extrude(rect(0, 0, 10, 20), 'y', 0, 4);
     expect(faces).toHaveLength(3);
     expect(faces[faces.length - 1]?.kind).toBe('cap');
-    expect(faces[faces.length - 1]?.normal).toEqual([-0, -1, -0]);
+    expect(unsign(faces[faces.length - 1]?.normal ?? [])).toEqual([0, -1, 0]);
     for (const f of faces) expect(f.pts).toHaveLength(4);
   });
 
   it('winds either way and still finds the outside', () => {
     const cw = [...rect(0, 0, 10, 20)].reverse();
     expect(signedArea(cw)).toBeLessThan(0);
-    expect(extrude(cw, 'y', 0, 4).map((f) => f.normal)).toEqual(extrude(rect(0, 0, 10, 20), 'y', 0, 4).map((f) => f.normal));
+    expect(extrude(cw, 'y', 0, 4).map((f) => unsign(f.normal))).toEqual(extrude(rect(0, 0, 10, 20), 'y', 0, 4).map((f) => unsign(f.normal)));
   });
 
   it('keeps only the cap, or drops the faces looking down or up', () => {
