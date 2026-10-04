@@ -14,7 +14,8 @@ function ir(over: Partial<CalendarInspection> = {}): CalendarInspection {
     id: 'r1', number: 1, version: 1, full_detail: true, mine: false, is_block: false, request_date: '2026-09-30',
     start_time: '09:00:00', duration_kind: 'timed', duration_min: 60, kind: 'ior', special_kind: null, status: 'pending',
     status_key: 'pending', result: null, attendance: null, company: 'Sample Concrete Co', items: 'Footings', owner_id: null,
-    helper_id: null, postpone_reason: null, postpone_until: null, attachment_ids: [], postpone_count: 0, project_id: 'job-a',
+    helper_id: null, postpone_reason: null, postpone_until: null, ofs_sent: false, attachment_ids: [], postpone_count: 0,
+    project_id: 'job-a',
     ...over,
   };
 }

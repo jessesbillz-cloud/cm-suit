@@ -1,6 +1,6 @@
 // After a request is sent: the IR number the database gave it (and its OFS IR number), what was asked, and who has it
-// now (wording follows the job's GC step: it never mentions a GC when the step is off). An OFS request with walls
-// shows its map right here (children), to draw while on the spot.
+// now (the GC only when the request is with the GC; OFS when the inspector filed an OFS request himself). An OFS
+// request with walls shows its map right here (children), to draw while on the spot.
 import type { ReactNode } from 'react';
 import { CircleCheck } from 'lucide-react';
 import type { IrRowRaw } from '../../data/inspections.types';
@@ -9,7 +9,7 @@ import { ofsIrLabel } from '../../lib/markup';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
-import { requestChip, typeLabel } from './model';
+import { requestChip, typeLabel, waitingOn } from './model';
 import { clockLabel, durationLabel } from './time';
 
 interface ReceiptProps {
@@ -44,7 +44,7 @@ export function Receipt({ row, specialName, onTrack, onAnother, children }: Rece
       </p>
       <p className="flex items-center gap-2 text-sm text-ink-2">
         <StatusChip status={chip.status} label={chip.label} />
-        {row.status === 'gc_review' ? 'Waiting on the GC.' : 'Waiting on the inspector.'}
+        {waitingOn(row)}
       </p>
       {children}
       <div className="flex gap-2">

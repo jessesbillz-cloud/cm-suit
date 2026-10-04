@@ -1,21 +1,15 @@
 // A request sent through the link, as its visitor sees it (the receipt and the status link): the IR number the database
-// gave, when and what type, the tracker (Submitted → (GC) → Inspector → Result) and the inspector's result line.
-// Nothing about anyone else.
+// gave, when and what type, the tracker (Submitted → (GC) → Inspector → Result; an OFS request adds OFS, from the
+// answer's ofs_sent) and the result line. Nothing about anyone else.
 import type { RequestFacts } from '../../data/requestNoLogin.types';
 import { formatDay } from '../../lib/dates';
 import { StatusChip } from '../../ui/StatusChip';
-import { requestChip, resultLabel, trackerSteps, typeLabel } from './model';
+import { requestChip, resultLabel, trackerSteps, typeLabel, waitingOn } from './model';
 import { clockLabel, durationLabel } from './time';
 import { Tracker } from './Tracker';
 
-function waitingOn(f: RequestFacts): string | null {
-  if (f.status === 'gc_review') return 'Waiting on the GC.';
-  if (f.status === 'pending') return 'Waiting on the inspector.';
-  return null;
-}
-
 export function RequestFactsView({ facts }: { facts: RequestFacts }) {
-  const chip = requestChip({ status: facts.status, result: facts.result, helper_id: null });
+  const chip = requestChip({ status: facts.status, result: facts.result, helper_id: null, kind: facts.kind, ofs_sent: facts.ofs_sent });
   const result = resultLabel(facts.result);
   const waiting = waitingOn(facts);
   return (
@@ -30,7 +24,9 @@ export function RequestFactsView({ facts }: { facts: RequestFacts }) {
         <p className="break-words text-sm text-ink-2">{typeLabel(facts.kind, facts.special_kind)}</p>
       </div>
       <div className="rounded-lg bg-page/70 px-1 py-3">
-        <Tracker steps={trackerSteps({ status: facts.status, result: facts.result, gc_at: null }, facts.gc_step)} />
+        <Tracker
+          steps={trackerSteps({ status: facts.status, result: facts.result, gc_at: null, kind: facts.kind, ofs_sent: facts.ofs_sent }, facts.gc_step)}
+        />
       </div>
       <p className="flex flex-wrap items-center gap-2 text-sm text-ink-2" data-testid="public-ir-status">
         <StatusChip status={chip.status} label={chip.label} />

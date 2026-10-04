@@ -31,6 +31,8 @@ interface LogViewProps {
   day: string;
   selectedId: string | null;
   isPhone: boolean;
+  /** I decide OFS requests (the deputy). */
+  ofsDecide: boolean;
   onOpen: (id: string) => void;
 }
 
@@ -44,16 +46,17 @@ interface LogListProps {
   rows: readonly IrRequest[];
   tz: string;
   selectedId: string | null;
+  ofsDecide: boolean;
   onOpen: (id: string) => void;
 }
 
 /** The phone's log: no columns, one tappable row per request, newest number first. */
-function LogList({ rows, tz, selectedId, onOpen }: LogListProps) {
+function LogList({ rows, tz, selectedId, ofsDecide, onOpen }: LogListProps) {
   const sorted = [...rows].sort((a, b) => b.number - a.number);
   return (
     <ul className="divide-y divide-line">
       {sorted.map((r) => {
-        const chip = requestChip(r);
+        const chip = requestChip(r, ofsDecide);
         return (
           <li key={r.id}>
             <button
@@ -82,7 +85,7 @@ function LogList({ rows, tz, selectedId, onOpen }: LogListProps) {
   );
 }
 
-export function LogView({ projectId, tz, day, selectedId, isPhone, onOpen }: LogViewProps) {
+export function LogView({ projectId, tz, day, selectedId, isPhone, ofsDecide, onOpen }: LogViewProps) {
   const [period, setPeriod] = useState<Period>('week');
   const [anchor, setAnchor] = useState(day);
   const range = period === 'week' ? weekOf(anchor) : monthOf(anchor);
@@ -125,7 +128,7 @@ export function LogView({ projectId, tz, day, selectedId, isPhone, onOpen }: Log
       ) : null}
       {log.data && log.data.length > 0 ? (
         isPhone ? (
-          <LogList rows={log.data} tz={tz} selectedId={selectedId} onOpen={onOpen} />
+          <LogList rows={log.data} tz={tz} selectedId={selectedId} ofsDecide={ofsDecide} onOpen={onOpen} />
         ) : (
           <div className="p-4">
             <LogTable rows={rows} timeZone={tz} onOpen={onOpen} selectedId={selectedId} label="inspections" />

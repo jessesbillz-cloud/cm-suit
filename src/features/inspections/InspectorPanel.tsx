@@ -1,7 +1,8 @@
-// The inspector's steps on one request, each small, redoable and silent unless noted: Confirm, Attendance,
-// Approved / Not approved (wall by wall on an OFS request with walls), Generate IR, Send results; then Move and
-// Postpone, and the helper. Each step is a card; the one to do now stands out. The database checks every one. Signing
-// a passed OFS request makes its map again, with the signature on it.
+// The steps of whoever decides one request (the inspector; the deputy on an OFS request sent to OFS), each small,
+// redoable and silent unless noted: Confirm, Attendance, Approved / Not approved (wall by wall on an OFS request with
+// walls), Generate IR, Send results; then Move and Postpone, and the helper (never on an OFS request: it is the
+// deputy's alone). Each step is a card; the one to do now stands out. The database checks every one. Signing a passed
+// OFS request makes its map again, with the signature on it.
 import { useState } from 'react';
 import { CalendarClock, PauseCircle } from 'lucide-react';
 import type { IrRequest } from '../../data/inspections.types';
@@ -25,14 +26,17 @@ interface InspectorPanelProps {
   jobName: string;
   /** An OFS request's walls and items (null for any other request). */
   revs: readonly IrRevItem[] | null;
+  /** Off on an OFS request: it has no helper. */
+  helper?: boolean | undefined;
 }
 
-export function InspectorPanel({ row, me, jobName, revs }: InspectorPanelProps) {
+export function InspectorPanel({ row, me, jobName, revs, helper = true }: InspectorPanelProps) {
   const [moving, setMoving] = useState(false);
   const [postponing, setPostponing] = useState(false);
   const signedMap = useSignedMap();
   if (WITH_GC.includes(row.status)) return null;
   const owner = ownsSteps(row, me);
+  if (!owner && !helper) return null;
   const afterSign =
     revs !== null && row.result === 'approved'
       ? () => {
@@ -109,7 +113,7 @@ export function InspectorPanel({ row, me, jobName, revs }: InspectorPanelProps) 
           ) : null}
         </>
       ) : null}
-      <HelperStep row={row} me={me} owner={owner} />
+      {helper ? <HelperStep row={row} me={me} owner={owner} /> : null}
     </section>
   );
 }
