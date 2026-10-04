@@ -1911,8 +1911,8 @@ alter table public.permit_reviews
 alter table public.permit_reviews rename column outcome to outcome_retired_0061;
 alter index public.permit_reviews_open rename to permit_reviews_open_retired_0061;
 alter table public.permit_reviews add column outcome text;
-update public.permit_reviews set outcome = outcome_retired_0061;
-update public.permit_reviews set outcome_retired_0061 = 'retired';
+update public.permit_reviews set outcome = outcome_retired_0061 where outcome_retired_0061 is not null;
+update public.permit_reviews set outcome_retired_0061 = 'retired' where outcome_retired_0061 is distinct from 'retired';
 alter table public.permit_reviews
   alter column outcome_retired_0061 set default 'retired',
   alter column outcome_retired_0061 set not null,
