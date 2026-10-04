@@ -13,6 +13,7 @@ import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../
 import { countsByTool } from '../../lib/toolCounts';
 import type { RailJobPart } from '../../ui/Rail';
 import { useToast } from '../../ui/Toast';
+import { inAppPath } from '../../lib/basePath';
 
 export interface FrameLocation {
   /** null = "All my jobs": the tools that work across jobs (lib/jobs ALL_JOBS_TOOLS) and Settings. */
@@ -145,7 +146,7 @@ export function useFrameModel(loc: FrameLocation) {
 
   function itemWindowHref(tool: Tool, itemId: string, projectId: string | null = loc.projectId): string {
     const base = projectId === null ? `/all/${allItemTool(tool)}/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
-    return `${base}?window=1`;
+    return inAppPath(`${base}?window=1`);
   }
 
   return {

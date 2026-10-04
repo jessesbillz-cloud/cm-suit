@@ -18,6 +18,7 @@ import { LayoutForm } from './LayoutForm';
 import { NotifyTree } from './NotifyTree';
 import { ProfileForm } from './ProfileForm';
 import { TwoStepCard } from './TwoStepCard';
+import { inAppPath } from '../../lib/basePath';
 
 function DeviceCard() {
   const user = useUser();
@@ -37,7 +38,7 @@ function DeviceCard() {
             signOut(queryClient)
               .then(() => {
                 // A full reload drops every in-memory trace (upload queue, caches) and lands on sign-in.
-                window.location.assign('/');
+                window.location.assign(inAppPath('/'));
               })
               .catch((e: unknown) => {
                 setBusy(false);

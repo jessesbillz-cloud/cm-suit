@@ -116,3 +116,17 @@ test.describe('All my jobs and the bids pipeline', () => {
     await expect(page.getByText('No bids yet.')).toBeVisible();
   });
 });
+
+test.describe('Dead ends lead home', () => {
+  test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
+
+  test('a page that does not exist and a tool that does not exist each offer All my jobs', async ({ page }) => {
+    await signIn(page);
+    for (const path of ['/no-such-page', '/p/job-a/no-such-tool']) {
+      await page.goto(path);
+      await expect(page.getByText('That page does not exist.')).toBeVisible();
+      await page.getByRole('link', { name: 'All my jobs' }).click();
+      await expect(page).toHaveURL(/\/all\/board$/);
+    }
+  });
+});
