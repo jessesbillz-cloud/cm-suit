@@ -2,7 +2,9 @@
 // manpower from the day's safety sign-ins, deliveries, inspection requests, and "Tailgate held: ..." in the safety field.
 // Each source goes in once (content.pulled keeps its ref), so a row taken off stays off and nothing typed is replaced: a
 // sign-in fills a manpower row's count only while it is empty, and an inspection's result follows the request only while
-// it still reads as one of the request's states. Pure, so it is unit-tested.
+// it still reads as one of the request's states. The form is the one the company uses (lib/dailies reportForm): a table
+// or a column the company turned off is not filled, the safety line needs the safety field on, and a manpower table
+// without Company or Trade counts its crews by the one it kept. Pure, so it is unit-tested.
 import type { DayFacts } from '../../data/dailies.types';
 import { dailyValues, tablesOf, type DailyContent, type FormTable, type ReportForm, type TableRow } from '../../lib/dailies';
 import { formatInZone, fromZonedInput } from '../../lib/dates';
@@ -49,10 +51,30 @@ function clock(at: Day, hhmm: string): string {
   return instant === null ? '' : formatInZone(instant, at.tz, 'h:mm a');
 }
 
-function sourceRows(table: FormTable, facts: DayFacts, at: Day): SourceRow[] {
-  if (table.source === 'signins') {
+/** Company and trade name a crew; a company's form may have turned one (or both) off. */
+function crewColumns(table: FormTable): { company: boolean; trade: boolean } {
+  return { company: table.columns.some((c) => c.key === 'company'), trade: table.columns.some((c) => c.key === 'trade') };
+}
+
+/** The day's sign-ins as crews: by company and trade, or by the one the form kept (all together when it kept neither). */
+function crewRows(table: FormTable, facts: DayFacts): SourceRow[] {
+  const has = crewColumns(table);
+  if (has.company && has.trade) {
     return facts.signins.map((g) => ({ ref: crewRef(g.company, g.trade), cells: { company: g.company, trade: g.trade, count: String(g.count) } }));
   }
+  const crews = new Map<string, { company: string; trade: string; count: number }>();
+  for (const g of facts.signins) {
+    const company = has.company ? g.company : '';
+    const trade = has.trade ? g.trade : '';
+    const ref = crewRef(company, trade);
+    const crew = crews.get(ref);
+    crews.set(ref, { company: crew?.company ?? company, trade: crew?.trade ?? trade, count: (crew?.count ?? 0) + g.count });
+  }
+  return [...crews].map(([ref, c]) => ({ ref, cells: { company: c.company, trade: c.trade, count: String(c.count) } }));
+}
+
+function sourceRows(table: FormTable, facts: DayFacts, at: Day): SourceRow[] {
+  if (table.source === 'signins') return crewRows(table, facts);
   if (table.source === 'deliveries') {
     return facts.deliveries.map((d) => ({
       ref: `delivery:${d.id}`,
@@ -88,8 +110,13 @@ function freeKey(rows: readonly TableRow[], want: string): string {
   return key;
 }
 
-function sameCrew(row: TableRow, cells: Record<string, string>): boolean {
-  return norm(row.cells['company'] ?? '') === norm(cells['company'] ?? '') && norm(row.cells['trade'] ?? '') === norm(cells['trade'] ?? '');
+/** The same crew: the same company and trade, as far as the form has them. */
+function sameCrew(table: FormTable, row: TableRow, cells: Record<string, string>): boolean {
+  const has = crewColumns(table);
+  return (
+    (!has.company || norm(row.cells['company'] ?? '') === norm(cells['company'] ?? '')) &&
+    (!has.trade || norm(row.cells['trade'] ?? '') === norm(cells['trade'] ?? ''))
+  );
 }
 
 interface Merged {
@@ -117,7 +144,7 @@ function mergeTable(table: FormTable, current: readonly TableRow[], sources: rea
     }
     added.push(src.ref);
     if (table.source === 'signins') {
-      const i = rows.findIndex((r) => r.ref === src.ref || sameCrew(r, cells));
+      const i = rows.findIndex((r) => r.ref === src.ref || sameCrew(table, r, cells));
       const row = rows[i];
       if (row) {
         if ((row.cells['count'] ?? '').trim() === '') {

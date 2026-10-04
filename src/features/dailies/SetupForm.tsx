@@ -2,7 +2,7 @@
 // foreman's daily, or a company form; my role's form until I pick one), the schedule,
 // the report's name, filename and next number, a company form's job values (typed once, printed on every report) and
 // the standing note; everything prefilled. Saved as I leave each box (version-checked). The next number is kept by the
-// database, so an earlier numbering carries on.
+// database, so an earlier numbering carries on. A company's admin also sets up the form's fields here (FormFieldsSetup).
 import { useRef, useState } from 'react';
 import { useChooseDailyForm, useSaveDailySetup, useSetDailyStartNumber } from '../../data/dailies.mutations';
 import { useNextDailyNumber } from '../../data/dailies.queries';
@@ -25,6 +25,7 @@ import { ChipPick } from '../../ui/ChipPick';
 import { CheckField, SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { FormFieldsSetup } from './FormFieldsSetup';
 import { REMINDER_OPTIONS, parseRecipients } from './model';
 import { Section } from './Section';
 import { DaysField, JobFields } from './SetupParts';
@@ -212,6 +213,7 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
             />
           </Section>
         ) : null}
+        {form?.companyFields ? <FormFieldsSetup orgId={project.org_id} formId={reportType} form={form} /> : null}
         <Section title="Schedule">
           <div className="flex flex-col gap-3">
             <DaysField days={draft.schedule_days} onChange={(schedule_days) => { change({ schedule_days }, true); }} />

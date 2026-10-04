@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DayFacts } from '../../data/dailies.types';
-import { dailyContentSchema, formOf, tablesOf, type DailyContent, type ReportForm } from '../../lib/dailies';
+import { dailyContentSchema, formOf, formSetupSchema, fullSetup, tablesOf, type DailyContent, type FormSetup, type ReportForm } from '../../lib/dailies';
+import { companyForm } from '../../../supabase/functions/_shared/reportForms';
 import { pullFacts, SOURCE_CELLS } from './prefill';
 
 function form(id: string): ReportForm {
@@ -95,6 +96,51 @@ describe('filling a report from the day (daily_day_facts)', () => {
     const approved = { ...later, inspections: later.inspections.map((r) => ({ ...r, status: 'complete', result: 'approved' })) };
     expect(pulled(pullFacts(GC, afternoon, approved, AT)).tables['inspections']?.[1]?.cells['result']).toBe('Approved');
     expect(pullFacts(GC, typed, approved, AT)).toBeNull();
+  });
+
+  /** The superintendent's daily as a company set it up. */
+  function companyGc(change: (s: FormSetup) => void): ReportForm {
+    const s = fullSetup(GC, null);
+    change(s);
+    return companyForm(GC, formSetupSchema.parse(s));
+  }
+
+  it("fills the company's version of the form: a table, a column or the safety field turned off is left alone", () => {
+    const theirs = companyGc((s) => {
+      for (const t of s.tables) {
+        if (t.key === 'deliveries') t.on = false;
+        if (t.key === 'inspections') for (const c of t.columns) c.on = c.key !== 'time';
+        if (t.key === 'manpower') t.label = 'Crews';
+      }
+      for (const f of s.fields) if (f.key === 'safety') f.on = false;
+    });
+    const c = pulled(pullFacts(theirs, content(), FACTS, AT));
+    expect(c.tables['deliveries']).toBeUndefined();
+    expect(c.tables['inspections']?.map((r) => r.cells)).toEqual([
+      { inspection: 'IOR #7: Shear walls', result: 'Confirmed' },
+      { inspection: 'Special: Concrete #8: Footings', result: 'Pending' },
+    ]);
+    expect(c.tables['manpower']).toHaveLength(2);
+    expect(c.fields['safety']).toBeUndefined();
+    expect(c.pulled).toHaveLength(4);
+    expect(pullFacts(theirs, c, FACTS, AT)).toBeNull();
+  });
+
+  it('a manpower table without Trade counts each company once; without either, everyone together', () => {
+    const facts = { ...FACTS, signins: [...FACTS.signins, { company: 'Sample Framing Co', trade: 'Laborer', count: 2 }] };
+    const noTrade = companyGc((s) => {
+      for (const t of s.tables) if (t.key === 'manpower') for (const c of t.columns) c.on = c.key !== 'trade';
+    });
+    const byCompany = pulled(pullFacts(noTrade, content(), facts, AT));
+    expect(byCompany.tables['manpower']?.map((r) => r.cells)).toEqual([
+      { company: 'Sample Electric', count: '2' },
+      { company: 'Sample Framing Co', count: '5' },
+    ]);
+    expect(pullFacts(noTrade, byCompany, facts, AT)).toBeNull();
+    const neither = companyGc((s) => {
+      for (const t of s.tables) if (t.key === 'manpower') for (const c of t.columns) c.on = c.key === 'count' || c.key === 'hours';
+    });
+    expect(pulled(pullFacts(neither, content(), facts, AT)).tables['manpower']?.map((r) => r.cells)).toEqual([{ count: '7' }]);
   });
 
   it('the foreman form and the work log have nothing to fill', () => {

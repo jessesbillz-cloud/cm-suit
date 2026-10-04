@@ -43,6 +43,7 @@ export function hoursSeedReports(authorId: string, today: string): DailyReportRo
       pdf_file_id: null,
       filename: `DR_${String(number)}_Sample_School_Wing_${day}.pdf`,
       hours: HOURS[i] ?? 8,
+      form: null,
     };
   });
 }

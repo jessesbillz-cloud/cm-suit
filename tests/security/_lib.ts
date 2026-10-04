@@ -294,8 +294,17 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_wall_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
 ];
 
-/** Dailies for any company and trade (0070) for the anon probe: the role's form and the day's facts. */
+/** A valid setup of a daily form (0072), for the probes. */
+const FORM_SETUP = { seq: 0, fields: [{ key: 'notes', on: true, label: null, long: true }], tables: [] };
+
+/** Dailies for any company and trade (0070) for the anon probe: the role's form and the day's facts. And each company's
+ *  setup of its daily form (0072): the two save functions, their helpers, and the retired finish_daily_submit. */
 export const DAILY_FORMS_RPCS: [string, Record<string, unknown>][] = [
   ['my_daily_form', { p_project_id: ZERO_UUID }],
   ['daily_day_facts', { p_project_id: ZERO_UUID, p_day: '2026-01-05' }],
+  ['save_daily_form', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1 }],
+  ['add_daily_form_field', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1, p_label: 'probe' }],
+  ['daily_form_store', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1, p_add: null }],
+  ['daily_form_setup_problem', { p_setup: FORM_SETUP }],
+  ['finish_daily_submit_0023', { p_report_id: ZERO_UUID, p_version: 1, p_content_hash: '0'.repeat(64), p_file_id: ZERO_UUID, p_filename: 'x.pdf' }],
 ];

@@ -1,14 +1,25 @@
 // Daily report writes (SPEC §13.1). Every save carries a version check; numbers, dates and ids come from the database.
 // Submitting and emailing go through edge functions (signed record, email out); photos through the one upload queue.
 // Setups, today's copy, numbers and past dates are per form (report type): the one the person writes on the job.
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
+import type { FormSetup } from '../lib/dailies';
 import type { Json } from './database.types';
-import { emailResultSchema, submitResultSchema, type DailyPhotoRow, type DailyReportRow, type DailySetupRow } from './dailies.types';
+import {
+  companyFormSavedSchema,
+  emailResultSchema,
+  submitResultSchema,
+  type CompanyFormSaved,
+  type CompanyForms,
+  type DailyPhotoRow,
+  type DailyReportRow,
+  type DailySetupRow,
+} from './dailies.types';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { callFunction } from './functions';
 import { qk } from './keys';
 import * as mockDailies from './mock/dailies';
+import * as mockDailyForms from './mock/dailyForms';
 import { isMock } from './mock';
 import { useUploadQueue } from './UploadQueue';
 
@@ -48,6 +59,75 @@ export function useChooseDailyForm(projectId: string) {
             await supabase.rpc('choose_daily_form', { p_project_id: projectId, p_report_type: reportType, p_settings_if_new: settingsIfNew }),
           ),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.dailies(projectId) }),
+  });
+}
+
+interface CompanyFormSave {
+  formId: string;
+  /** The whole setup (lib/dailies fullSetup with the change made). */
+  setup: FormSetup;
+  /** The company row's version it was read at. */
+  version: number;
+}
+
+/** A field of the company's own, or with `table` a column of that table. The database gives its key. */
+interface CompanyFormAdd extends CompanyFormSave {
+  label: string;
+  long: boolean;
+  table: string | null;
+}
+
+/** Keeps the read copy in step with what a save answered. */
+function putCompanyForm(old: CompanyForms | undefined, formId: string, saved: CompanyFormSaved): CompanyForms {
+  return { version: saved.version, forms: { ...(old?.forms ?? {}), [formId]: saved.setup } };
+}
+
+/** After a save of a company's form: the read copy, and my companies (the company row's version moved on, which the
+ *  company's own settings screen saves with). */
+function companyFormSaved(qc: QueryClient, orgId: string, formId: string, saved: CompanyFormSaved): void {
+  qc.setQueryData<CompanyForms>(qk.companyForms(orgId), (old) => putCompanyForm(old, formId, saved));
+  void qc.invalidateQueries({ queryKey: qk.myOrgs });
+}
+
+/** Saves the company's setup of a daily form (ticks, names, order). Its admins only; a conflict throws (code 40001). */
+export function useSaveCompanyForm(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ formId, setup, version }: CompanyFormSave): Promise<CompanyFormSaved> =>
+      isMock()
+        ? mockDailyForms.save(orgId, formId, setup, version)
+        : companyFormSavedSchema.parse(
+            throwIfError(await supabase.rpc('save_daily_form', { p_org_id: orgId, p_form: formId, p_setup: setup, p_version: version })),
+          ),
+    onSuccess: (saved, v) => {
+      companyFormSaved(qc, orgId, v.formId, saved);
+    },
+  });
+}
+
+/** Adds a field (or a table's column) of the company's own to the setup as it is on screen. */
+export function useAddCompanyFormField(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ formId, setup, version, label, long, table }: CompanyFormAdd): Promise<CompanyFormSaved> =>
+      isMock()
+        ? mockDailyForms.add(orgId, formId, setup, version, { label, long, table })
+        : companyFormSavedSchema.parse(
+            throwIfError(
+              await supabase.rpc('add_daily_form_field', {
+                p_org_id: orgId,
+                p_form: formId,
+                p_setup: setup,
+                p_version: version,
+                p_label: label,
+                p_long: long,
+                ...(table === null ? {} : { p_table: table }),
+              }),
+            ),
+          ),
+    onSuccess: (saved, v) => {
+      companyFormSaved(qc, orgId, v.formId, saved);
+    },
   });
 }
 

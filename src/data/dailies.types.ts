@@ -1,6 +1,7 @@
 // Daily report shapes the app reads (SPEC §13.1). Rows derive from the generated types; content, header and settings
 // jsonb are parsed through the one schema in lib/dailies; edge-function answers are pinned with zod at the boundary.
 import { z } from 'zod';
+import { formSetupSchema, type FormSetup } from '../lib/dailies';
 import type { Tables } from './database.types';
 
 export type DailyReportRow = Pick<
@@ -21,10 +22,11 @@ export type DailyReportRow = Pick<
   | 'pdf_file_id'
   | 'filename'
   | 'hours'
+  | 'form'
 >;
 
 export const REPORT_COLS =
-  'id, project_id, author_id, report_type, report_date, status, number, header, content, version, signed_at, signed_version, submitted_at, pdf_file_id, filename, hours';
+  'id, project_id, author_id, report_type, report_date, status, number, header, content, version, signed_at, signed_version, submitted_at, pdf_file_id, filename, hours, form';
 
 export type DailyPhotoRow = Pick<
   Tables<'daily_report_photos'>,
@@ -37,6 +39,20 @@ export const PHOTO_COLS = 'id, report_id, file_id, row_key, caption, description
 export type DailySetupRow = Pick<Tables<'daily_setups'>, 'id' | 'project_id' | 'report_type' | 'settings' | 'version' | 'chosen_at'>;
 
 export const SETUP_COLS = 'id, project_id, report_type, settings, version, chosen_at';
+
+/** A company's version of its daily forms (orgs.settings.daily_forms, by form id; a form not in it is our standard
+ *  one), with the company row's version, which a save carries. */
+export interface CompanyForms {
+  version: number;
+  forms: Record<string, FormSetup>;
+}
+
+/** The company row as the forms are read from it. */
+export const companyFormsRowSchema = z.object({ version: z.number().int(), settings: z.unknown() });
+
+/** What save_daily_form and add_daily_form_field answer: the company row's new version and the setup as stored. */
+export const companyFormSavedSchema = z.object({ version: z.number().int(), setup: formSetupSchema });
+export type CompanyFormSaved = z.infer<typeof companyFormSavedSchema>;
 
 /** What the job knows that day (daily_day_facts, as the caller may read it): fills a report as it is opened. */
 export const dayFactsSchema = z.object({

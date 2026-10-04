@@ -39,6 +39,8 @@ export const qk = {
   /** Every dailies query of a job sits under this prefix (SPEC §13.1). */
   dailies: (projectId: string) => ['dailies', projectId] as const,
   dailiesPart: (projectId: string, part: string, id = '') => ['dailies', projectId, part, id] as const,
+  /** A company's daily forms (0072) with its row version: under its settings prefix, so a settings refresh reaches it. */
+  companyForms: (orgId: string) => ['org_settings', orgId, 'daily_forms'] as const,
   /** Every inspections query of a job sits under this prefix: one invalidation after any IR write. */
   inspections: (projectId: string) => ['inspections', projectId] as const,
   inspectionsPart: (projectId: string, part: string, id = '') => ['inspections', projectId, part, id] as const,
