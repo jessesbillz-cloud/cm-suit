@@ -2731,8 +2731,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number?: number | null
-          ofs_sent_at: string | null
-          ofs_sent_by: string | null
+          ofs_sent_at?: string | null
+          ofs_sent_by?: string | null
           org_id: string
           owner_id?: string | null
           pdf_postponed?: boolean
@@ -2758,7 +2758,7 @@ export type Database = {
           signed_at?: string | null
           signed_by?: string | null
           special_kind_id?: string | null
-          special_required: boolean | null
+          special_required?: boolean | null
           start_time?: string | null
           status: string
           summary?: string | null
@@ -3712,7 +3712,7 @@ export type Database = {
           received_on: string
           request_key?: string | null
           returned_on?: string | null
-          review_no?: number
+          review_no: number
           updated_at?: string
           version?: number
         }
@@ -5247,7 +5247,7 @@ export type Database = {
           id?: string
           meeting_id: string
           name: string
-          name_key?: string | null
+          name_key?: never
           org_id: string
           person_id?: string | null
           project_id: string
@@ -5267,7 +5267,7 @@ export type Database = {
           id?: string
           meeting_id?: string
           name?: string
-          name_key?: string | null
+          name_key?: never
           org_id?: string
           person_id?: string | null
           project_id?: string
