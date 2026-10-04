@@ -255,6 +255,8 @@ export function useSubmitOfs() {
           p_item_ids: v.itemIds,
           p_duration_kind: v.durationKind,
           p_attachment_ids: v.attachmentIds,
+          p_special_required: v.specialRequired,
+          ...(v.inspectorAck ? { p_inspector_ack: true } : {}),
           ...(v.sheetFileId !== null ? { p_sheet_file_id: v.sheetFileId } : {}),
           ...(v.startTime !== null ? { p_start_time: v.startTime } : {}),
           ...(v.durationMin !== null ? { p_duration_min: v.durationMin } : {}),

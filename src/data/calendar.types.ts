@@ -1,10 +1,10 @@
 // Calendar shapes the app reads and writes (SPEC §7.6). Rows derive from the generated types; the inspections RPC's
-// answer (typed non-null by the generator) is parsed with zod at the boundary, like ir_calendar's.
+// answer (typed non-null by the generator) is parsed with zod at the boundary.
 import { z } from 'zod';
 import type { Tables } from './database.types';
 import { calendarRowSchema } from './inspections.types';
 
-/** One line of calendar_inspections (0043): ir_calendar's line plus the request's attachments and postponements. */
+/** One line of calendar_inspections (0043, 0061): the calendar row plus the request's attachments and postponements. */
 export const calendarInspectionSchema = calendarRowSchema.extend({
   attachment_ids: z.array(z.string()),
   postpone_count: z.number(),
