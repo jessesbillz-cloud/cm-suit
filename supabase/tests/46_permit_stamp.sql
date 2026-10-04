@@ -116,9 +116,9 @@ select is_empty($$ select f from unnest(array[
     'public.permit_approved_root(uuid)', 'public.permit_set_folder(uuid)']) f
    where has_function_privilege('authenticated', f, 'EXECUTE') $$, 'grants: the helpers are internal');
 select is(array[public.permit_stamp_mode('draft'), public.permit_stamp_mode('accepted'), public.permit_stamp_mode('in_review'),
-                public.permit_stamp_mode('backcheck'), public.permit_stamp_mode('issued'), public.permit_stamp_mode('approved'),
-                public.permit_stamp_mode('complete'), public.permit_stamp_mode('cancelled')],
-  array[null, null, 'issue', 'issue', 'revise', 'revise', null, null]::text[],
+                public.permit_stamp_mode('backcheck'), public.permit_stamp_mode('issued'), public.permit_stamp_mode('inspected'),
+                public.permit_stamp_mode('approved'), public.permit_stamp_mode('complete'), public.permit_stamp_mode('cancelled')],
+  array[null, null, 'issue', 'issue', 'revise', 'revise', 'revise', null, null]::text[],
   'stamping issues where the permit may be issued next, revises once issued, else not at all');
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000462');
 insert into ids select 'A', (public.permit_create('c0000000-0000-0000-0000-000000000461', '24-0001',
   'Building - new construction', 'building', '{}', null, '', 'in_review')).id;
 insert into ids select 'B', (public.permit_create('c0000000-0000-0000-0000-000000000461', '24-0002',
-  'Fire sprinkler (deferred)', 'deferred_sprinkler', '{}', null, '', 'draft')).id;
+  'Site utilities', 'site_utility', '{}', null, '', 'draft')).id;
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000464');
 select throws_ok($$ select public.permit_stamp_folders(pg_temp.rid('A')) $$, '42501', null, 'a PM doesn''t make the stamp folders');

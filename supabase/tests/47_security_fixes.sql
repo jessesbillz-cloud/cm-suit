@@ -290,7 +290,7 @@ select ok(not has_table_privilege('service_role', 'public.permit_stage_events', 
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000546');
 insert into ids select 'P2', (public.permit_create('c0000000-0000-0000-0000-000000000541', '24-0542', 'Fire sprinkler',
-  'deferred_sprinkler', '{}', null, '', 'in_review')).id;
+  'other', '{}', null, '', 'in_review')).id;
 insert into ids select 'RV', (public.permit_review_open(pg_temp.rid('P2'))).id;
 insert into ids select 'PC', (public.permit_comment_add(pg_temp.rid('RV'), 'Sample: show the rated wall at grid C.', 'A-201')).id;
 select pg_temp.login('a0000000-0000-0000-0000-000000000548');

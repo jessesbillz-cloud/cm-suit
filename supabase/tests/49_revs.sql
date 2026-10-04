@@ -40,7 +40,7 @@ returns public.inspection_requests language sql volatile as $$
   select public.ir_submit_ofs('c0000000-0000-0000-0000-000000000491', 'Sample Firestop Co',
     ((now() at time zone 'America/Los_Angeles')::date + 3), true,
     array(select pg_temp.rid(a) from unnest(p_areas) a), array(select pg_temp.rid(i) from unnest(p_items) i), p_sheet,
-    '08:00', 'timed', 60) $$;
+    '08:00', 'timed', 60, p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}') $$;
 grant execute on all functions in schema pg_temp to public;
 
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000491', 'probe+rv-admin@example.test', 'Ada Admin');
@@ -154,7 +154,7 @@ select is_empty($$ select f from unnest(array[
     'public.rev_item_save(uuid, uuid, integer, text, text, integer)', 'public.rev_areas_add(uuid, text, text[], uuid)',
     'public.rev_area_save(uuid, integer, text, text, uuid, integer)', 'public.rev_remove(text, uuid, integer)',
     'public.rev_restore(text, uuid, integer)', 'public.rev_mark_na(uuid, uuid, boolean)',
-    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[])',
+    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)',
     'public.ir_map_context(uuid)', 'public.ir_map_save(uuid, integer, jsonb, uuid, integer)',
     'public.ir_rev_results(uuid, integer, jsonb)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or not has_function_privilege('authenticated', f, 'EXECUTE') $$,
@@ -405,7 +405,8 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000494');
 select is(array[pg_temp.st('w_shaft', 'i_stuff'), pg_temp.st('w_elev', 'i_tow')], array['requested:3/3', 'requested:2/2'],
   'status: requested, with the IR and OFS IR numbers (the latest request)');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000491', 'Sample Co', ((now() at time zone 'America/Los_Angeles')::date + 4),
-  'ofs', 'An OFS request from the usual form', true, p_duration_kind => 'all_day')).ofs_number, 4,
+  'ofs', 'An OFS request from the usual form', true, p_duration_kind => 'all_day',
+  p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}')).ofs_number, 4,
   'every OFS request gets the next OFS IR number');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000491', 'Sample Co', ((now() at time zone 'America/Los_Angeles')::date + 4),
   'ior', 'An IOR request', true, p_duration_kind => 'all_day')).ofs_number, null::int, 'other kinds get none');

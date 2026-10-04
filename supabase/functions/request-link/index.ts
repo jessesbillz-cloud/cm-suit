@@ -13,8 +13,8 @@
 //   submit    multipart: `payload` (the request and the visitor's name, company, phone and/or email) and up to 3 `file`
 //             parts (photos or PDFs by their bytes, <= 10 MB each, _shared/requestFiles.ts). The files are registered in
 //             the job's request folder by the database and stored here at the path it gives, then the request is made
-//             (link_request_submit, 0055): numbered by the database, the GC step and board lines as for a member. The
-//             answer carries the private receipt token once;
+//             (link_request_submit, 0055): numbered by the database, the GC step and board lines as for a member. An
+//             OFS request carries the readiness checklist (0061). The answer carries the private receipt token once;
 //   status    by that receipt alone: the tracker's facts and the inspector's result line;
 //   join      AFTER the visitor proved their email with the Auth email code ("Sign in to see all your requests"):
 //             records a requester invite on that job for the signed-in address (from the session, never the body);
@@ -124,6 +124,7 @@ async function submit(req: Request, service: Db, ip: string): Promise<Response> 
       p_item_ids: sent.body.item_ids,
       p_sheet_file_id: sent.body.sheet_file_id,
       p_attachment_ids: ids,
+      p_readiness: sent.body.readiness,
     })
     : await publicRpc<unknown>(service, 'link_request_submit', {
       ...link,
@@ -132,6 +133,7 @@ async function submit(req: Request, service: Db, ip: string): Promise<Response> 
       p_items: sent.body.items,
       p_special_kind_id: sent.body.special_kind_id,
       p_attachment_ids: ids,
+      p_readiness: sent.body.readiness ?? null,
     });
   if (raw === null) throw new HttpError(404, NOT_ACTIVE);
   const answer = submitAnswer(raw);

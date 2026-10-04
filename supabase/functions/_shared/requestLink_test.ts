@@ -165,6 +165,9 @@ Deno.test('submit body: every member-form field plus a contact; strict and bound
   check(SubmitBody.safeParse({ ...SUBMIT, phone: '', email: ' Visitor@Example.TEST ' }).success, 'an email only');
   check(SubmitBody.safeParse({ ...SUBMIT, time: null, duration_kind: 'all_day', duration_min: null }).success, 'Flexible, all day');
   check(SubmitBody.safeParse({ ...SUBMIT, kind: 'special', special_kind_id: HUB }).success, 'a special with its kind');
+  const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' };
+  check(SubmitBody.safeParse({ ...SUBMIT, kind: 'ofs', readiness: READY }).success, 'an OFS request with its checklist (0061)');
+  check(SubmitBody.safeParse({ ...SUBMIT, readiness: null }).success, 'no checklist on an IOR request');
   const bad = [
     { ...SUBMIT, phone: '', email: '' },
     { ...SUBMIT, phone: 'call me' },
@@ -174,6 +177,11 @@ Deno.test('submit body: every member-form field plus a contact; strict and bound
     { ...SUBMIT, duration_kind: 'timed', duration_min: null },
     { ...SUBMIT, kind: 'special', special_kind_id: null },
     { ...SUBMIT, items: '   ' },
+    { ...SUBMIT, kind: 'ofs' },
+    { ...SUBMIT, kind: 'ofs', readiness: null },
+    { ...SUBMIT, kind: 'ofs', readiness: { ...READY, gc: 'no' } },
+    { ...SUBMIT, kind: 'ofs', readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'yes' } },
+    { ...SUBMIT, kind: 'ofs', readiness: { ...READY, extra: 'yes' } },
     { ...SUBMIT, name: 'A'.repeat(121) },
     // Never an uploader, a path, a number or a status from the body.
     { ...SUBMIT, requested_by: USER },
