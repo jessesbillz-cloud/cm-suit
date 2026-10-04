@@ -1,7 +1,7 @@
-// Requirements' pure rules for the screens (migration 0069): the views and groupings, which lines each view shows, the
-// due words, a line's facts and its trigger in words. Dates come from the database (due_on, days_left on the job's
-// clock); nothing here computes a due date. Unit-tested in model.test.ts.
-import type { Requirement } from '../../data/requirements.types';
+// Requirements' pure rules for the screens (migrations 0069, 0073): the views and groupings, which lines each view
+// shows, the due words, a line's facts and its trigger in words, and the company the words name. Dates come from the
+// database (due_on, days_left on the job's clock); nothing here computes a due date. Unit-tested in model.test.ts.
+import type { Requirement, RequirementCompany } from '../../data/requirements.types';
 import { formatDay } from '../../lib/dates';
 import { NEW_ITEM, READ_ITEM } from '../../lib/itemIds';
 import { DUE_WINDOW_DAYS, isOpenStatus, REQUIREMENT_KINDS } from '../../lib/requirements';
@@ -22,14 +22,32 @@ export function parseView(v: string | undefined): RequirementsView {
   return v === 'all' || v === 'drafts' ? v : 'due';
 }
 
-export type Grouping = 'kind' | 'section';
-export const GROUPINGS: readonly { value: Grouping; label: string }[] = [
+/** Drafts are the managers'; anyone else who lands there gets Due. */
+export function viewFor(view: RequirementsView, canManage: boolean): RequirementsView {
+  return view === 'drafts' && !canManage ? 'due' : view;
+}
+
+export type Grouping = 'kind' | 'section' | 'company';
+const GROUPINGS: readonly { value: Grouping; label: string }[] = [
   { value: 'kind', label: 'By kind' },
   { value: 'section', label: 'By section' },
+  { value: 'company', label: 'By company' },
 ];
 
+/** All's groupings. Someone who reads only their own company's lines has one company: no "By company". */
+export function groupingsFor(ownOnly: boolean): readonly { value: Grouping; label: string }[] {
+  return ownOnly ? GROUPINGS.filter((g) => g.value !== 'company') : GROUPINGS;
+}
+
 export function parseGrouping(v: string | undefined): Grouping {
-  return v === 'section' ? 'section' : 'kind';
+  return v === 'section' || v === 'company' ? v : 'kind';
+}
+
+/** The company on the job whose name is exactly these words (case and outer spaces aside); null: none. */
+export function companyMatch(companies: readonly RequirementCompany[], words: string): string | null {
+  const w = words.trim().toLowerCase();
+  if (w === '') return null;
+  return companies.find((c) => c.name.trim().toLowerCase() === w)?.org_id ?? null;
 }
 
 /** Due: kept, still to do, dated, late or due within the window; soonest first (the list comes by due date). */
@@ -54,10 +72,21 @@ interface Group {
   rows: Requirement[];
 }
 
-/** All, grouped by kind (the kinds' order) or by spec section (by number; none last). */
+/** All, grouped by kind (the kinds' order), by spec section (by number; none last) or by company (by name; none last). */
 export function groupRows(rows: readonly Requirement[], by: Grouping): Group[] {
   if (by === 'kind') {
     return REQUIREMENT_KINDS.map((k) => ({ key: k.value, label: k.long, rows: rows.filter((r) => r.kind === k.value) })).filter((g) => g.rows.length > 0);
+  }
+  if (by === 'company') {
+    const ids = [...new Set(rows.map((r) => r.company_org_id))];
+    return ids
+      .map((id) => {
+        const inIt = rows.filter((r) => r.company_org_id === id);
+        // A picked company's name is the line's words (the database writes it).
+        return { key: id ?? 'none', label: id === null ? 'No company' : (inIt[0]?.responsible ?? ''), rows: inIt, none: id === null };
+      })
+      .sort((a, b) => Number(a.none) - Number(b.none) || a.label.localeCompare(b.label))
+      .map(({ key, label, rows: inIt }) => ({ key, label, rows: inIt }));
   }
   const keys = [...new Set(rows.map((r) => r.spec_section))].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)));
   return keys.map((key) => {

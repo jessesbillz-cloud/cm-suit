@@ -4434,6 +4434,7 @@ export type Database = {
         Row: {
           activity_code: string
           activity_name: string
+          company_org_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -4473,6 +4474,7 @@ export type Database = {
         Insert: {
           activity_code?: string
           activity_name?: string
+          company_org_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -4512,6 +4514,7 @@ export type Database = {
         Update: {
           activity_code?: string
           activity_name?: string
+          company_org_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -4549,6 +4552,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "requirements_company_org_id_fkey"
+            columns: ["company_org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "requirements_evidence_file_id_fkey"
             columns: ["evidence_file_id"]
@@ -10817,7 +10827,26 @@ export type Database = {
       }
       request_link_token: { Args: never; Returns: string }
       requester_backfill: { Args: never; Returns: number }
+      requirement_companies: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          org_id: string
+        }[]
+      }
       requirement_evidence: {
+        Args: {
+          p_file_id: string
+          p_id: string
+          p_note: string
+          p_version: number
+        }
+        Returns: {
+          id: string
+          version: number
+        }[]
+      }
+      requirement_evidence_own: {
         Args: {
           p_file_id: string
           p_id: string
@@ -10846,6 +10875,7 @@ export type Database = {
         Returns: {
           activity_code: string
           activity_name: string
+          company_org_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -10889,6 +10919,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      requirement_member_companies: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          org_id: string
+        }[]
+      }
+      requirement_mine: {
+        Args: { p_company_org_id: string; p_project_id: string }
+        Returns: boolean
+      }
+      requirement_own_tasks: {
+        Args: { p_id: string; p_today: string }
+        Returns: number
+      }
+      requirement_own_tasks_done: { Args: { p_id: string }; Returns: undefined }
       requirement_rearm: { Args: { p_id: string }; Returns: undefined }
       requirement_reminder_line: {
         Args: {
@@ -10904,6 +10950,32 @@ export type Database = {
         Returns: number
       }
       requirement_save: {
+        Args: {
+          p_activity_code: string
+          p_activity_name: string
+          p_company_org_id?: string
+          p_details: string
+          p_id: string
+          p_key: string
+          p_kind: string
+          p_lead_days: number
+          p_notice_days: number
+          p_project_id: string
+          p_required: string
+          p_responsible: string
+          p_spec_ref: string
+          p_spec_section: string
+          p_spec_title: string
+          p_title: string
+          p_trigger_date: string
+          p_version: number
+        }
+        Returns: {
+          id: string
+          version: number
+        }[]
+      }
+      requirement_save_retired_0073: {
         Args: {
           p_activity_code: string
           p_activity_name: string
@@ -10963,7 +11035,47 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: string
       }
+      requirements_folder_own: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
       requirements_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          activity_code: string
+          activity_name: string
+          company_org_id: string
+          created_at: string
+          days_left: number
+          details: string
+          draft: boolean
+          due_on: string
+          evidence_file_id: string
+          evidence_file_name: string
+          evidence_note: string
+          id: string
+          kind: string
+          lead_days: number
+          mine: boolean
+          notice_days: number
+          origin: string
+          required: string
+          responsible: string
+          source_file_id: string
+          source_file_name: string
+          source_page: number
+          source_quote: string
+          spec_ref: string
+          spec_section: string
+          spec_title: string
+          status: string
+          status_at: string
+          title: string
+          trigger_date: string
+          version: number
+        }[]
+      }
+      requirements_list_retired_0073: {
         Args: { p_project_id: string }
         Returns: {
           activity_code: string

@@ -50,8 +50,8 @@ interface ToolSearch {
   place?: string;
   /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
   range?: string;
-  /** Requirements (0069): All's grouping (section; absent = by kind). */
-  by?: 'section';
+  /** Requirements (0069, 0073): All's grouping (section or company; absent = by kind). */
+  by?: 'section' | 'company';
 }
 
 function str(v: unknown): string | undefined {
@@ -79,6 +79,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const wall = idList(s['wall']);
   const place = idList(s['place']);
   const range = str(s['range']);
+  const by = s['by'];
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
@@ -93,7 +94,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
     ...(range === '2m' ? { range } : {}),
-    ...(s['by'] === 'section' ? { by: 'section' as const } : {}),
+    ...(by === 'section' || by === 'company' ? { by } : {}),
   };
 }
 

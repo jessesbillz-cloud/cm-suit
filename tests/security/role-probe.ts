@@ -2,14 +2,15 @@
 // Role probe (SPEC §6.8). Seeds two projects with one user per SPEC §5.2 role (plus a second bidder, a project-B admin,
 // an expired member and a revoked member) using the service role, then signs in as each user and checks: the capability
 // matrix, cross-project isolation, access_ends_at, revocation, the bidder wall (members, people, files, invites,
-// submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, aal2, and who sees
-// an RFI draft.
+// submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, aal2, who sees
+// an RFI draft, and a sub's own requirement lines (_requirementsOwn.ts).
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY, PROBE_SERVICE_ROLE_KEY. Exits non-zero on any failure. Cleans up even on failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { type Client, Report, errText, makeClient, requireEnv, rowsOf } from './_lib';
 import { checkRfis } from './_rfis';
 import { checkRequestLink } from './_requestLink';
+import { checkRequirementsOwn } from './_requirementsOwn';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -17,10 +18,7 @@ const service = makeClient(url, requireEnv('PROBE_SERVICE_ROLE_KEY'));
 const report = new Report(`Role probe against ${url}`);
 const RUN = randomUUID().slice(0, 8);
 
-const ROLES = [
-  'project_admin', 'estimator', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector',
-  'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin', 'requester',
-] as const;
+const ROLES = ['project_admin', 'estimator', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin', 'requester'] as const;
 type Role = (typeof ROLES)[number];
 /** Extra users: key -> role they hold (project A unless noted). */
 const EXTRA = { bidder2: 'bidder', 'admin-b': 'project_admin', expired: 'pm', revoked: 'pm' } as const;
@@ -50,6 +48,7 @@ const MATRIX: Record<string, readonly Role[]> = {
   'corrections.view': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin'],
   'corrections.create': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'inspector_admin'],
   'corrections.mark_ready': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'inspector_admin'],
+  'requirements.read_own': ['sub', 'foreman'],
 };
 
 interface ProbeUser {
@@ -549,6 +548,7 @@ async function main(): Promise<void> {
     await report.guard('deliveries', 'deliveries', () => checkDeliveries(s, clients));
     await report.guard('rfis', 'rfis', () => checkRfis({ report, service, projectId: s.projA, orgId: s.orgA, run: RUN, as: get }));
     await report.guard('request link', 'request link', () => checkRequestLink({ report, service, url, anonKey, projectId: s.projA, as: get }));
+    await report.guard('requirements', 'own lines', () => checkRequirementsOwn({ report, service, projectId: s.projA, run: RUN, as: get, idOf: (k) => user(s, k).id }));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {

@@ -116,7 +116,7 @@ select ok(not has_function_privilege('authenticated', 'public.requirements_check
           and has_function_privilege('authenticated', 'public.requirements_add_drafts(uuid, text, uuid, jsonb)', 'EXECUTE')
           and not has_function_privilege('anon', 'public.requirements_list(uuid)', 'EXECUTE'),
   'functions: the reminder and the helpers for the server only; the RPCs for people, never anon');
-select ok((select prosecdef from pg_proc where oid = 'public.requirement_save(uuid, uuid, integer, uuid, text, text, text, text, text, text, text, text, integer, integer, text, text, date)'::regprocedure)
+select ok((select prosecdef from pg_proc where oid = 'public.requirement_save(uuid, uuid, integer, uuid, text, text, text, text, text, text, text, text, integer, integer, text, text, date, uuid)'::regprocedure)
           and not (select prosecdef from pg_proc where oid = 'public.requirements_list(uuid)'::regprocedure)
           and not (select prosecdef from pg_proc where oid = 'public.requirements_spec_sections(uuid)'::regprocedure),
   'functions: writes run as the definer; the reads run as the caller (RLS decides)');
@@ -173,7 +173,7 @@ select is((pg_temp.row_of(pg_temp.rid('ofci'))).due_on, '2026-10-10'::date, 'cha
 select is(pg_temp.seen('a0000000-0000-0000-0000-000000000555'), 4, 'read: the owner rep reads the register');
 select is(pg_temp.seen('a0000000-0000-0000-0000-000000000558'), 4, 'read: the architect reads it');
 select is(pg_temp.seen('a0000000-0000-0000-0000-000000000554'), 4, 'read: the super reads it');
-select is(pg_temp.seen('a0000000-0000-0000-0000-000000000556'), 0, 'read: not a sub (yet)');
+select is(pg_temp.seen('a0000000-0000-0000-0000-000000000556'), 0, 'read: a sub reads none of these (none is his company''s: 61_requirements_own.sql)');
 select is(pg_temp.seen('a0000000-0000-0000-0000-000000000557'), 0, 'read: nobody off the job');
 select pg_temp.login('a0000000-0000-0000-0000-000000000552');
 select results_eq($$ select title, days_left from public.requirements_list('c0000000-0000-0000-0000-000000000551') where kind = 'ofci' $$,
@@ -325,8 +325,8 @@ select results_eq($$ select name, kind, parent_id is null from public.folders wh
   $$ values ('Requirements'::text, 'requirements'::text, true) $$, 'folder: "Requirements" at the top of the job, its own kind');
 select results_eq($$ select capability, can_read, can_write from public.folder_access
                      where folder_id = (pg_temp.j('folder')#>>'{}')::uuid order by capability $$,
-  $$ values ('requirements.manage'::text, true, true), ('requirements.read', true, false) $$,
-  'folder: whoever reads requirements reads it; managers upload');
+  $$ values ('requirements.manage'::text, true, true), ('requirements.read', true, false), ('requirements.read_own', false, true) $$,
+  'folder: whoever reads requirements reads it; managers upload; a company''s own people add their evidence without reading it (0073)');
 select ok(public.folder_name_reserved('c0000000-0000-0000-0000-000000000551', null, 'Requirements'), 'folder: the name is reserved');
 insert into public.files (id, org_id, project_id, folder_id, storage_path, original_name, mime, created_by, scan_status, upload_complete) values
   ('e0000000-0000-0000-0000-000000000554', 'b0000000-0000-0000-0000-000000000551', 'c0000000-0000-0000-0000-000000000551',
@@ -336,7 +336,7 @@ select ok(pg_temp.can_read_as('a0000000-0000-0000-0000-000000000555', (pg_temp.j
           and not pg_temp.can_write_as('a0000000-0000-0000-0000-000000000555', (pg_temp.j('folder')#>>'{}')::uuid)
           and pg_temp.can_write_as('a0000000-0000-0000-0000-000000000553', (pg_temp.j('folder')#>>'{}')::uuid)
           and not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000556', (pg_temp.j('folder')#>>'{}')::uuid),
-  'folder: the owner rep reads, the PM writes, a sub does neither');
+  'folder: the owner rep reads, the PM writes, a sub does not read it');
 
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000553');

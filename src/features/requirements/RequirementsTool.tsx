@@ -1,8 +1,9 @@
 // Requirements (migration 0069): what the spec book commits people to beyond the submittals (owner-furnished items and
 // their notice, tests and witnesses, manufacturer's reps, special warranties, training, attic stock, closeout documents,
 // notices, mockups), each with who does it and when it is due. Due: the next 60 days and everything late. All: by kind
-// or by section. Drafts: what the AI read in a spec section, kept or dropped one by one. What shows is decided by
-// has_capability, never role names.
+// by section or by company. Drafts: what the AI read in a spec section, kept or dropped one by one. A sub's people see
+// the same tool with their own company's lines only (requirements.read_own, 0073): Due and All, no Add, no Drafts, no
+// Read spec. What shows is decided by has_capability, never role names.
 import type { ReactNode } from 'react';
 import { Plus, ScanText } from 'lucide-react';
 import { useCapability } from '../../data/queries';
@@ -17,7 +18,19 @@ import { TOOL_META } from '../../ui/tools';
 import { AllView } from './AllView';
 import { DraftsView } from './DraftsView';
 import { DueView } from './DueView';
-import { draftRows, dueRows, GROUPINGS, headerCounts, keptRows, NEW_ITEM, READ_ITEM, viewsFor, type Grouping } from './model';
+import {
+  draftRows,
+  dueRows,
+  groupingsFor,
+  headerCounts,
+  keptRows,
+  NEW_ITEM,
+  READ_ITEM,
+  viewFor,
+  viewsFor,
+  type Grouping,
+  type RequirementsView,
+} from './model';
 import { useRequirementsNav } from './useRequirementsNav';
 
 const META = TOOL_META.requirements;
@@ -54,33 +67,44 @@ interface MainProps {
   projectId: string;
   itemId: string | null;
   canManage: boolean;
+  /** I read only my own company's lines (requirements.read_own without requirements.read). */
+  ownOnly: boolean;
 }
 
-function Body({ projectId, itemId, canManage, rows }: MainProps & { rows: Requirement[] }) {
+interface BodyProps extends MainProps {
+  rows: Requirement[];
+  view: RequirementsView;
+  by: Grouping;
+}
+
+function Body({ projectId, itemId, canManage, ownOnly, rows, view, by }: BodyProps) {
   const nav = useRequirementsNav(projectId);
   const read = canManage ? (
     <Button variant="primary" icon={ScanText} onClick={() => { nav.open(READ_ITEM); }}>
       Read spec
     </Button>
   ) : undefined;
-  if (nav.view === 'drafts') {
+  if (view === 'drafts') {
     const drafts = draftRows(rows);
     if (drafts.length === 0) return <EmptyState icon={META.icon} title="No drafts." action={read} />;
     return <DraftsView projectId={projectId} rows={drafts} selectedId={itemId} onOpen={nav.open} />;
   }
-  if (nav.view === 'all') {
-    const kept = keptRows(rows);
+  const kept = keptRows(rows);
+  if (ownOnly && kept.length === 0) return <EmptyState icon={META.icon} title="Nothing owed." />;
+  if (view === 'all') {
     if (kept.length === 0) return <EmptyState icon={META.icon} title="No requirements yet." action={read} />;
-    return <AllView rows={kept} by={nav.by} selectedId={itemId} onOpen={nav.open} />;
+    return <AllView rows={kept} by={by} selectedId={itemId} onOpen={nav.open} />;
   }
   const due = dueRows(rows);
   if (due.length === 0) return <EmptyState icon={META.icon} title="Nothing due in the next 60 days." />;
   return <DueView projectId={projectId} rows={due} selectedId={itemId} canManage={canManage} onOpen={nav.open} />;
 }
 
-function RequirementsMain({ projectId, itemId, canManage }: MainProps) {
+function RequirementsMain({ projectId, itemId, canManage, ownOnly }: MainProps) {
   const nav = useRequirementsNav(projectId);
   const list = useRequirements(projectId);
+  const view = viewFor(nav.view, canManage);
+  const by: Grouping = ownOnly && nav.by === 'company' ? 'kind' : nav.by;
   const drafts = list.data ? draftRows(list.data).length : 0;
   const actions = canManage ? (
     <>
@@ -94,9 +118,9 @@ function RequirementsMain({ projectId, itemId, canManage }: MainProps) {
   ) : undefined;
   const below = (
     <div className="flex flex-wrap items-center gap-2">
-      <Segments label="View" options={viewsFor(canManage, drafts)} value={nav.view} onPick={nav.setView} testId="req-view" />
-      {nav.view === 'all' ? (
-        <Segments<Grouping> label="Group" kind="radio" options={GROUPINGS} value={nav.by} onPick={nav.setGrouping} testId="req-by" />
+      <Segments label="View" options={viewsFor(canManage, drafts)} value={view} onPick={nav.setView} testId="req-view" />
+      {view === 'all' ? (
+        <Segments<Grouping> label="Group" kind="radio" options={groupingsFor(ownOnly)} value={by} onPick={nav.setGrouping} testId="req-by" />
       ) : null}
     </div>
   );
@@ -105,7 +129,9 @@ function RequirementsMain({ projectId, itemId, canManage }: MainProps) {
       <Card padded={false} className="overflow-hidden">
         {list.isPending ? <LoadingState label="Loading requirements" /> : null}
         {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : null}
-        {list.isSuccess ? <Body projectId={projectId} itemId={itemId} canManage={canManage} rows={list.data} /> : null}
+        {list.isSuccess ? (
+          <Body projectId={projectId} itemId={itemId} canManage={canManage} ownOnly={ownOnly} rows={list.data} view={view} by={by} />
+        ) : null}
       </Card>
     </Shell>
   );
@@ -114,7 +140,8 @@ function RequirementsMain({ projectId, itemId, canManage }: MainProps) {
 export function RequirementsTool({ projectId, itemId }: RequirementsToolProps) {
   const read = useCapability(projectId, 'requirements.read');
   const manage = useCapability(projectId, 'requirements.manage');
-  const caps = [read, manage];
+  const own = useCapability(projectId, 'requirements.read_own');
+  const caps = [read, manage, own];
   const capError = caps.find((q) => q.isError)?.error;
   if (capError) {
     return (
@@ -132,7 +159,7 @@ export function RequirementsTool({ projectId, itemId }: RequirementsToolProps) {
       </Shell>
     );
   }
-  if (!read.data) {
+  if (!read.data && !own.data) {
     return (
       <Shell>
         <Card>
@@ -141,5 +168,5 @@ export function RequirementsTool({ projectId, itemId }: RequirementsToolProps) {
       </Shell>
     );
   }
-  return <RequirementsMain key={projectId} projectId={projectId} itemId={itemId} canManage={manage.data === true} />;
+  return <RequirementsMain key={projectId} projectId={projectId} itemId={itemId} canManage={manage.data === true} ownOnly={read.data !== true} />;
 }

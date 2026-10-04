@@ -1,5 +1,6 @@
-// Where the Requirements tool is: the view (?view=all|drafts) and All's grouping (?by=section) live in the URL; the open
-// line, the add form or the spec reader is the frame's item (the right column, or the phone's full screen). Router only.
+// Where the Requirements tool is: the view (?view=all|drafts) and All's grouping (?by=section|company) live in the URL;
+// the open line, the add form or the spec reader is the frame's item (the right column, or the phone's full screen).
+// Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { parseGrouping, parseView, type Grouping, type RequirementsView } from './model';
 
@@ -8,8 +9,8 @@ interface RequirementsSearch {
   by?: string | undefined;
 }
 
-function searchOf(view: RequirementsView, by: Grouping): { view?: RequirementsView; by?: 'section' } {
-  return { ...(view === 'due' ? {} : { view }), ...(view === 'all' && by === 'section' ? { by: 'section' as const } : {}) };
+function searchOf(view: RequirementsView, by: Grouping): { view?: RequirementsView; by?: 'section' | 'company' } {
+  return { ...(view === 'due' ? {} : { view }), ...(view === 'all' && by !== 'kind' ? { by } : {}) };
 }
 
 export function useRequirementsNav(projectId: string) {
