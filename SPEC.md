@@ -1202,22 +1202,31 @@ OFS flow (the route below), and §15's ordering.
 12. **Not ours: accounting, payroll filing, legal advice.** We track the paperwork and the dates and raise flags; a
     person verifies. E.g. the payroll cross-check says only "looks fine" or "found inconsistencies — double-check".
 
-### 18.2 Where things stand (Oct 3, evening)
+### 18.2 Where things stand (Oct 4)
 
-- **Live on staging** (main `d383a4c`, migrations 0001–0059): bids (Phase 1 core), files, calendar, dailies (company
-  forms, VIS), inspections (member form, GC step, no-login QR requests 0055, Requester role), deliveries, corrections,
-  RFIs (route strip, signed sections), permits + stamping (0052–0053), comments (0050), the job-only rail (0058), and
-  **Revs** (0056–0059): rev lists pasted from the legend, walls by level and drawn on the plan sheet, wall pages with the
-  3-D wall, the OFS request with its IR map (3 colors, drawn from the walls), the deputy's pass/fail and signature.
-- **Built, not live** — branch `wave2` (main + 0060 Safety + 0061 OFS permits + 0062 Schedule) and branches
-  `wave2-requirements` (0063) and `wave2-dailies` (0064), all on GitHub. The last two still need merging into wave2:
-  most conflicts are "both sides appended to a list"; migrations that re-create `job_rail_tools()` (and other shared
-  functions) must end with the union of every tool. 0060–0064 are not applied to staging, so their files may still be
-  edited. Changes each needs before it goes live are in §18.7.
+- **Live on staging** (migrations 0001–0062, 0065–0067): bids (Phase 1 core), files (failed uploads can be stopped and
+  removed, drop to upload), calendar, dailies (company forms, VIS), inspections (member form, GC step, no-login QR
+  requests 0055, Requester role), deliveries, corrections, RFIs (route strip, signed sections), permits + stamping
+  (0052–0053, reviews under one permit 0061), comments (0050), the job-only rail (0058), Safety (0060), Schedule (0062)
+  and **Revs** (0056–0059): rev lists pasted from the legend, walls by level and drawn on the plan sheet, wall pages with
+  the 3-D wall, the OFS request with its IR map (3 colors, drawn from the walls).
+- **6a is done and walked on the real screens (Oct 4):** the OFS route (0061, P1): sub → GC → inspector (Send to OFS /
+  Postpone only) → fire marshal (confirm, pass / fail per wall, signature, IR, signed map); OFS IRs and maps in their
+  own folder; an IOR request beside it keeps the inspector's steps and its own folder; the deputy's lists show OFS
+  requests only. The readiness checklist is gone.
+- **Found by that walk, fixed (0066, 0067):** the hosted database gave the server key almost no table rights, so no
+  server-made PDF had ever been stored on staging (now written down in 0066 and tested, CLAUDE.md rule 1); the hosted
+  runtime writes times with a narrow space the PDF font can't draw, which stopped every signature (`pdfSafe`, the one
+  stamp); an upload that never finished was offered as a plan sheet.
+- **Built, not live** — branches `wave2-requirements` (0063) and `wave2-dailies` (0064), on GitHub; they merge into
+  main in 6b (most conflicts are "both sides appended to a list"; migrations that re-create `job_rail_tools()` and
+  other shared functions must end with the union of every tool). Not applied to staging, so their files may still be
+  edited.
 - **Build environment notes:** npm is blocked in the cloud container (pdf.js is vendored, `src/vendor/pdfjs`); vitest,
   knip and `vite build` run only in CI; migrations are applied with the Supabase MCP `apply_migration` using the file's
-  exact text, then the stored SHA-256 is checked; edge functions are deployed from bundles and read back byte for byte
-  (agents have mis-copied files twice). Details: `claude/handoff-next-session.md` in the project.
+  exact text, then the stored SHA-256 is checked; edge functions are deployed from bundles and read back byte for byte.
+  A test database is built two ways locally: from zero, and with the hosted project's stricter default privileges;
+  the suite passes on both. Details: `claude/handoff-next-session.md` in the project.
 
 ### 18.3 Accounts (roles)
 
@@ -1404,7 +1413,7 @@ NFPA 13 / 72 completion records, a one-page job card per permit.
 
 Each step: CI green, live on staging, Jesse walks it (§0). Matrix changes stay provisional until he confirms.
 
-- **6a — Monday, Oct 5 (the OFS deputy's first look).** Run Revs end to end on staging with the A202 sheet (Jesse
+- **6a — Monday, Oct 5 (the OFS deputy's first look). Done Oct 4 (§18.2).** Run Revs end to end on staging with the A202 sheet (Jesse
   uploads it; Claude may not upload files): walls on Level 02 drawn on the plan, an OFS request with its map, the
   deputy's pass/fail, signature. Rework the OFS route per P1 (sub → GC → inspector → OFS; inspector acknowledgment;
   special-inspection notice) and **remove 0061's readiness checklist**; keep 0061's permit fixes (P8) and the permit
