@@ -6,6 +6,7 @@
 // longer than a line are broken, and characters the standard fonts can't draw become '?' instead of failing.
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { type DailyContent, type DailyHeader, NOTE_SECTIONS } from '../dailies.ts';
+import { plainSpaces } from './inspectionReport.ts';
 
 export interface DailyPdfPhoto {
   bytes: Uint8Array;
@@ -79,7 +80,7 @@ function addPage(ctx: Ctx): void {
 /** Text the standard fonts can draw: tabs become spaces, anything outside WinAnsi becomes '?'. */
 function clean(ctx: Ctx, s: string): string {
   let out = '';
-  for (const ch of s.replace(/\r\n?/g, '\n').replace(/\t/g, '    ')) {
+  for (const ch of plainSpaces(s).replace(/\r\n?/g, '\n').replace(/\t/g, '    ')) {
     const cp = ch.codePointAt(0) ?? 63;
     out += ch === '\n' || ctx.charset.has(cp) ? ch : '?';
   }

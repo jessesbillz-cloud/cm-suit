@@ -43,10 +43,16 @@ const AMBER = rgb(0.76, 0.35, 0.05);
 // WinAnsi (the standard fonts' encoding): printable ASCII, Latin-1 and the extra punctuation it maps.
 const WIN_ANSI_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ');
 
-/** Text the standard fonts can draw: tabs become spaces, anything outside WinAnsi becomes '?'. */
+/** Every Unicode space as a plain one. The hosted runtime's date formatter puts a narrow no-break space (U+202F) before
+ *  "AM" / "PM"; a local Deno writes a plain space, so only the hosted function ever saw it. */
+export function plainSpaces(text: string): string {
+  return text.replace(/[\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
+}
+
+/** Text the standard fonts can draw: tabs and Unicode spaces become spaces, anything else outside WinAnsi becomes '?'. */
 export function pdfSafe(text: string): string {
   let out = '';
-  for (const ch of text.replace(/\r\n?/g, '\n').replace(/\t/g, ' ')) {
+  for (const ch of plainSpaces(text).replace(/\r\n?/g, '\n').replace(/\t/g, ' ')) {
     const c = ch.codePointAt(0) ?? 63;
     const ok = ch === '\n' || (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WIN_ANSI_EXTRA.has(ch);
     out += ok ? ch : '?';

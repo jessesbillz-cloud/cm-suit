@@ -1,6 +1,6 @@
 // `deno test --config supabase/functions/deno.json supabase/functions/_shared/pdf` — the stamp on synthetic PDFs.
 import { PDFDocument, degrees } from 'pdf-lib';
-import { APPROVAL_MAX, approvalPlacement, hashLine, stampApproval, stampSignature, viewToPage } from './stamp.ts';
+import { APPROVAL_MAX, approvalPlacement, hashLine, stampApproval, signedByLine, stampSignature, viewToPage } from './stamp.ts';
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error(`failed: ${what}`);
@@ -45,6 +45,15 @@ Deno.test('stamp: a fixed spot (a company form\'s signature line) stamps that pa
   const err = await stampSignature(await twoPages(), { signaturePng: null, name: 'X', signedAtLabel: 'Y', at: { ...at, page: 5 } })
     .then(() => null, (e: unknown) => e);
   check(err instanceof Error && err.message.includes('no page 6'), 'a missing page is refused');
+});
+
+Deno.test('stamp: a time the hosted runtime formats (narrow no-break space before PM) still signs', async () => {
+  // What broke on staging: "WinAnsi cannot encode (0x202f)" stopped every signature; a local Deno writes a plain space.
+  const hosted = { name: 'Pat Sample', signedAtLabel: 'Oct 4, 2026, 7:32\u202fAM PDT' };
+  check(signedByLine(hosted) === 'Signed by Pat Sample · Oct 4, 2026, 7:32 AM PDT', 'the line reads with a plain space');
+  check(signedByLine({ name: 'Pat 中', signedAtLabel: 'now' }) === 'Signed by Pat ? · now', 'a letter the font lacks never stops it');
+  const out = await stampSignature(await twoPages(), { signaturePng: PNG_1PX, ...hosted });
+  check((await PDFDocument.load(out)).getPageCount() === 2, 'stamped');
 });
 
 Deno.test('stamp: refuses a PDF with no pages', async () => {

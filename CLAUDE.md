@@ -13,6 +13,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
 1. **Deny by default.**
    - Every table gets row-level security (RLS) in the migration that creates it.
    - No `USING (true)` policies, no `anon` or `public` grants, except the entries in `supabase/tests/anon_allowlist.sql`.
+   - The server key (`service_role`) gets its table rights from migrations, never from the database's defaults (hosted and from-zero differ). The map is `supabase/tests/58_service_grants.sql`.
    - Every SECURITY DEFINER function sets `search_path = public, pg_temp`, gets the caller from `auth.uid()` (never from a parameter), and has EXECUTE revoked from `public` and `anon` unless it's on the allowlist.
 2. **Permissions come from one place.**
    - RLS calls `has_capability(project_id, '<cap>')`, which reads the `role_permissions` table.

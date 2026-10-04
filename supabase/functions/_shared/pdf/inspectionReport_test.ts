@@ -69,6 +69,7 @@ Deno.test('IR: a photo that is not JPEG or PNG is refused', async () => {
 
 Deno.test('IR: text the standard fonts cannot draw is replaced, not thrown', async () => {
   check(pdfSafe('Grid A\tok 中文') === 'Grid A ok ??', 'tab to space, CJK to ?');
+  check(pdfSafe('4:05\u202fPM\u2009PDT') === '4:05 PM PDT', 'the hosted runtime\'s narrow space before PM is a plain space');
   const bytes = await buildInspectionReport(sample({ items: 'Anchors 中 — “quoted”', company: 'Sample Co ✓' }));
   check((await pages(bytes)) === 1, 'builds');
 });

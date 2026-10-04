@@ -1,5 +1,5 @@
 begin;
-select plan(151);
+select plan(152);
 -- Revs (migration 0056): the matrix and the module as data, the setup RPCs (a list from pasted JSON, revs, items, walls,
 -- N/A marks, remove and restore), who reads what (RLS: revs.read, removed rows for revs.manage only; anon nothing), the
 -- status precedence (na > passed > requested > failed > open), the revs request (1 to 3 items, walls from one list,
@@ -106,6 +106,13 @@ insert into public.files (id, org_id, project_id, folder_id, storage_path, origi
    pg_temp.rid('attach'), 'test/revs/sub.jpg', 'Sample sub.jpg', 'image/jpeg', 'a0000000-0000-0000-0000-000000000494', 'clean'),
   ('e0000000-0000-0000-0000-000000000496', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000491',
    pg_temp.rid('attach'), 'test/revs/req.jpg', 'Sample req.jpg', 'image/jpeg', 'a0000000-0000-0000-0000-000000000495', 'pending');
+-- Finished uploads (0067: a sheet is a file whose upload finished).
+update public.files set upload_complete = true where id::text like 'e0000000-0000-0000-0000-0000000005%' or id::text like 'e0000000-0000-0000-0000-0000000004%';
+-- An upload that never finished (no bytes behind the row): never a sheet, even for the person who started it.
+insert into public.files (id, org_id, project_id, folder_id, storage_path, original_name, mime, created_by, scan_status) values
+  ('e0000000-0000-0000-0000-000000000499', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000491',
+   'd0000000-0000-0000-0000-000000000491', 'test/revs/unfinished.pdf', 'Sample unfinished.pdf', 'application/pdf',
+   'a0000000-0000-0000-0000-000000000492', 'pending');
 insert into public.permits (id, org_id, project_id, created_by, primary_number, title) values
   ('e0000000-0000-0000-0000-0000000004a1', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000491',
    'a0000000-0000-0000-0000-000000000491', '26-0491', 'Sample building permit'),
@@ -285,6 +292,8 @@ select throws_ok($$ select public.rev_areas_add(pg_temp.rid('L'), 'Level 03', ar
   '22023', 'Pick a PDF sheet from this job''s files.', 'a sheet is a PDF');
 select throws_ok($$ select public.rev_areas_add(pg_temp.rid('L'), 'Level 03', array['X'], 'e0000000-0000-0000-0000-000000000493') $$,
   '22023', 'Pick a PDF sheet from this job''s files.', 'of this job');
+select throws_ok($$ select public.rev_areas_add(pg_temp.rid('L'), 'Level 03', array['X'], 'e0000000-0000-0000-0000-000000000499') $$,
+  '22023', 'Pick a PDF sheet from this job''s files.', 'whose upload finished');
 select throws_ok($$ select public.rev_area_save(pg_temp.rid('w_c210'), pg_temp.ver('rev_areas', 'w_c210'), 'Level 02',
   'Elevator 1 shaft (B / 2-3)', null, null) $$, '22023', 'That wall is already on this level.', 'one wall per name on a level');
 select is((public.rev_area_save(pg_temp.rid('w_c210'), pg_temp.ver('rev_areas', 'w_c210'), 'Level 02', 'Corridor 210 north wall',

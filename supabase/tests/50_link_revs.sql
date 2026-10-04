@@ -86,6 +86,8 @@ insert into public.files (id, org_id, project_id, folder_id, storage_path, origi
   ('e0000000-0000-0000-0000-000000000506', 'b0000000-0000-0000-0000-000000000501', 'c0000000-0000-0000-0000-000000000501',
    'd0000000-0000-0000-0000-000000000501', 'test/link-revs/map.pdf', 'Sample map.pdf', 'application/pdf',
    'a0000000-0000-0000-0000-000000000501', 'clean');
+-- Finished uploads (0067: a sheet is a file whose upload finished).
+update public.files set upload_complete = true where id::text like 'e0000000-0000-0000-0000-0000000005%' or id::text like 'e0000000-0000-0000-0000-0000000004%';
 
 -- The inspector sets up the job's revs: list L (TOW; HOW cavity stuff and spray), three walls, one N/A; list L2.
 set local role authenticated;
