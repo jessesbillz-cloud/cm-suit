@@ -2672,6 +2672,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -2683,7 +2685,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -2698,6 +2699,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -2729,6 +2731,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number?: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id?: string | null
           pdf_postponed?: boolean
@@ -2740,7 +2744,6 @@ export type Database = {
           postpone_until?: string | null
           postponed_at?: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by?: string | null
           requester_email?: string | null
@@ -2755,6 +2758,7 @@ export type Database = {
           signed_at?: string | null
           signed_by?: string | null
           special_kind_id?: string | null
+          special_required: boolean | null
           start_time?: string | null
           status: string
           summary?: string | null
@@ -2786,6 +2790,8 @@ export type Database = {
           notice_ack_at?: string
           number?: number
           ofs_number?: number | null
+          ofs_sent_at?: string | null
+          ofs_sent_by?: string | null
           org_id?: string
           owner_id?: string | null
           pdf_postponed?: boolean
@@ -2797,7 +2803,6 @@ export type Database = {
           postpone_until?: string | null
           postponed_at?: string | null
           project_id?: string
-          readiness?: Json | null
           request_date?: string
           requested_by?: string | null
           requester_email?: string | null
@@ -2812,6 +2817,7 @@ export type Database = {
           signed_at?: string | null
           signed_by?: string | null
           special_kind_id?: string | null
+          special_required?: boolean | null
           start_time?: string | null
           status?: string
           summary?: string | null
@@ -6490,6 +6496,36 @@ export type Database = {
           kind: string
           mine: boolean
           number: number
+          ofs_sent: boolean
+          owner_id: string
+          postpone_count: number
+          postpone_reason: string
+          postpone_until: string
+          request_date: string
+          result: string
+          special_kind: string
+          start_time: string
+          status: string
+          status_key: string
+          version: number
+        }[]
+      }
+      calendar_inspections_retired_0061: {
+        Args: { p_from: string; p_project_id: string; p_to: string }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string
+          company: string
+          duration_kind: string
+          duration_min: number
+          full_detail: boolean
+          helper_id: string
+          id: string
+          is_block: boolean
+          items: string
+          kind: string
+          mine: boolean
+          number: number
           owner_id: string
           postpone_count: number
           postpone_reason: string
@@ -7195,6 +7231,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7206,7 +7244,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7221,6 +7258,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7267,6 +7305,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7278,7 +7318,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7293,6 +7332,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7394,6 +7434,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7405,7 +7447,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7420,6 +7461,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7460,6 +7502,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7471,7 +7515,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7486,6 +7529,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7499,7 +7543,79 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_decide_cap: {
+        Args: { p_kind: string; p_ofs_sent_at: string }
+        Returns: string
+      }
       ir_decider: {
+        Args: { p_request_id: string; p_routing?: boolean; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_decider_retired_0061: {
         Args: { p_request_id: string; p_version: number }
         Returns: {
           attachment_ids: string[]
@@ -7526,6 +7642,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7537,7 +7655,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7552,6 +7669,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7592,6 +7710,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7603,7 +7723,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7618,6 +7737,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7631,7 +7751,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_first_status: { Args: { p_project_id: string }; Returns: string }
+      ir_first_status: {
+        Args: { p_kind: string; p_project_id: string }
+        Returns: string
+      }
+      ir_first_status_retired_0061: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
       ir_folder: {
         Args: { p_project_id: string; p_which: string }
         Returns: string
@@ -7667,6 +7794,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7678,7 +7807,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7693,6 +7821,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7739,6 +7868,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7750,7 +7881,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7765,6 +7895,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7810,6 +7941,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7821,7 +7954,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -7836,6 +7968,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -7979,6 +8112,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -7990,7 +8125,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8005,6 +8139,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8019,11 +8154,24 @@ export type Database = {
         }
       }
       ir_may_see: {
+        Args: {
+          p_kind: string
+          p_ofs_sent_at: string
+          p_project_id: string
+          p_requested_by: string
+        }
+        Returns: boolean
+      }
+      ir_may_see_retired_0061: {
         Args: { p_project_id: string; p_requested_by: string }
         Returns: boolean
       }
       ir_member_decides: {
         Args: { p_member: string; p_project_id: string }
+        Returns: boolean
+      }
+      ir_member_holds: {
+        Args: { p_cap: string; p_member: string; p_project_id: string }
         Returns: boolean
       }
       ir_move: {
@@ -8060,6 +8208,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8071,7 +8221,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8086,6 +8235,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8142,6 +8292,15 @@ export type Database = {
       }
       ir_ofs_permit: { Args: { p_list_id: string }; Returns: string }
       ir_owner_ok: {
+        Args: {
+          p_kind: string
+          p_ofs_sent_at: string
+          p_owner: string
+          p_project_id: string
+        }
+        Returns: boolean
+      }
+      ir_owner_ok_retired_0061: {
         Args: { p_owner: string; p_project_id: string }
         Returns: boolean
       }
@@ -8178,6 +8337,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8189,7 +8350,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8204,6 +8364,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8217,11 +8378,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      ir_readiness_for: {
-        Args: { p_kind: string; p_readiness: Json }
-        Returns: Json
-      }
-      ir_readiness_ok: { Args: { p_readiness: Json }; Returns: boolean }
       ir_recipients: {
         Args: { p_request_id: string }
         Returns: {
@@ -8260,6 +8416,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8271,7 +8429,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8286,6 +8443,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8327,6 +8485,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8338,7 +8498,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8353,6 +8512,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8369,6 +8529,74 @@ export type Database = {
       ir_rev_results_check: {
         Args: { p_request_id: string; p_results: Json }
         Returns: undefined
+      }
+      ir_send_ofs: {
+        Args: { p_request_id: string; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       ir_set_attendance: {
         Args: { p_attendance?: string; p_request_id: string; p_version: number }
@@ -8397,6 +8625,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8408,7 +8638,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8423,6 +8652,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8469,6 +8699,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8480,7 +8712,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8495,6 +8726,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8543,6 +8775,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8554,7 +8788,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8569,6 +8802,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8592,13 +8826,14 @@ export type Database = {
           p_company: string
           p_duration_kind?: string
           p_duration_min?: number
+          p_inspector_ack?: boolean
           p_items: string
           p_kind: string
           p_notice_ack: boolean
           p_project_id: string
-          p_readiness?: Json
           p_request_date: string
           p_special_kind_id?: string
+          p_special_required?: boolean
           p_start_time?: string
         }
         Returns: {
@@ -8626,6 +8861,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8637,7 +8874,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8652,6 +8888,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8672,12 +8909,13 @@ export type Database = {
           p_company: string
           p_duration_kind?: string
           p_duration_min?: number
+          p_inspector_ack?: boolean
           p_item_ids: string[]
           p_notice_ack: boolean
           p_project_id: string
-          p_readiness?: Json
           p_request_date: string
           p_sheet_file_id?: string
+          p_special_required?: boolean
           p_start_time?: string
         }
         Returns: {
@@ -8705,6 +8943,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8716,7 +8956,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8731,6 +8970,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8783,6 +9023,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8794,7 +9036,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8809,6 +9050,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8861,6 +9103,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8872,7 +9116,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8887,6 +9130,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -8908,6 +9152,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      ir_tell_ofs: { Args: { p_request_id: string }; Returns: undefined }
       ir_tell_requester: {
         Args: {
           p_kind: string
@@ -8947,6 +9192,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -8958,7 +9205,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -8973,6 +9219,75 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_unsend_ofs: {
+        Args: { p_request_id: string; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -9017,6 +9332,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -9028,7 +9345,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -9043,6 +9359,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
@@ -9188,10 +9505,10 @@ export type Database = {
           p_notice_ack: boolean
           p_phone: string
           p_project_id: string
-          p_readiness: Json
           p_request_date: string
           p_sheet_file_id: string
           p_special_kind_id: string
+          p_special_required: boolean
           p_start_time: string
           p_token_hash: string
         }
@@ -9285,9 +9602,9 @@ export type Database = {
           p_notice_ack: boolean
           p_phone: string
           p_project_id: string
-          p_readiness?: Json
           p_request_date: string
           p_special_kind_id?: string
+          p_special_required?: boolean
           p_start_time?: string
           p_token_hash: string
         }
@@ -9307,9 +9624,9 @@ export type Database = {
           p_notice_ack: boolean
           p_phone: string
           p_project_id: string
-          p_readiness?: Json
           p_request_date: string
           p_sheet_file_id?: string
+          p_special_required?: boolean
           p_start_time?: string
           p_token_hash: string
         }
@@ -12504,6 +12821,8 @@ export type Database = {
           notice_ack_at: string
           number: number
           ofs_number: number | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
           org_id: string
           owner_id: string | null
           pdf_postponed: boolean
@@ -12515,7 +12834,6 @@ export type Database = {
           postpone_until: string | null
           postponed_at: string | null
           project_id: string
-          readiness: Json | null
           request_date: string
           requested_by: string | null
           requester_email: string | null
@@ -12530,6 +12848,7 @@ export type Database = {
           signed_at: string | null
           signed_by: string | null
           special_kind_id: string | null
+          special_required: boolean | null
           start_time: string | null
           status: string
           summary: string | null
