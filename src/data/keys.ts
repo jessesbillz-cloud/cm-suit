@@ -120,4 +120,7 @@ export const qk = {
   safetyTopics: (orgId: string) => ['safety_topics', orgId] as const,
   /** The public meeting sign-in page (no session needed), by meeting. */
   meetingPublic: (meetingId: string) => ['meeting_public', meetingId] as const,
+  /** Every schedule query of a job (0062: where it stands, the versions, the current activities, a draft) sits under this prefix. */
+  schedule: (projectId: string) => ['schedule', projectId] as const,
+  schedulePart: (projectId: string, part: string, id = '') => ['schedule', projectId, part, id] as const,
 };

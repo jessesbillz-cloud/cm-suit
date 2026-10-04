@@ -5363,6 +5363,193 @@ export type Database = {
           },
         ]
       }
+      schedule_activities: {
+        Row: {
+          activity_code: string | null
+          actual_finish: string | null
+          actual_start: string | null
+          area: string | null
+          created_at: string
+          csi_division: string | null
+          deleted_at: string | null
+          finish_date: string | null
+          id: string
+          is_milestone: boolean
+          name: string
+          org_id: string
+          percent: number | null
+          project_id: string
+          sort: number
+          source_ref: string | null
+          start_date: string | null
+          trade: string | null
+          unsure: boolean
+          updated_at: string
+          version: number
+          version_id: string
+          wbs: string | null
+        }
+        Insert: {
+          activity_code?: string | null
+          actual_finish?: string | null
+          actual_start?: string | null
+          area?: string | null
+          created_at?: string
+          csi_division?: string | null
+          deleted_at?: string | null
+          finish_date?: string | null
+          id?: string
+          is_milestone?: boolean
+          name: string
+          org_id: string
+          percent?: number | null
+          project_id: string
+          sort?: number
+          source_ref?: string | null
+          start_date?: string | null
+          trade?: string | null
+          unsure?: boolean
+          updated_at?: string
+          version?: number
+          version_id: string
+          wbs?: string | null
+        }
+        Update: {
+          activity_code?: string | null
+          actual_finish?: string | null
+          actual_start?: string | null
+          area?: string | null
+          created_at?: string
+          csi_division?: string | null
+          deleted_at?: string | null
+          finish_date?: string | null
+          id?: string
+          is_milestone?: boolean
+          name?: string
+          org_id?: string
+          percent?: number | null
+          project_id?: string
+          sort?: number
+          source_ref?: string | null
+          start_date?: string | null
+          trade?: string | null
+          unsure?: boolean
+          updated_at?: string
+          version?: number
+          version_id?: string
+          wbs?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_activities_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "schedule_activities_version_id_project_id_fkey"
+            columns: ["version_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_versions"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      schedule_versions: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          data_date: string | null
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          model: string | null
+          number: number | null
+          org_id: string
+          project_id: string
+          published_at: string | null
+          published_by: string | null
+          source_kind: string
+          status: string
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string | null
+          updated_at: string
+          version: number
+          warnings: string[]
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          created_by: string
+          data_date?: string | null
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          model?: string | null
+          number?: number | null
+          org_id: string
+          project_id: string
+          published_at?: string | null
+          published_by?: string | null
+          source_kind: string
+          status?: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+          warnings?: string[]
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string
+          data_date?: string | null
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          model?: string | null
+          number?: number | null
+          org_id?: string
+          project_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          source_kind?: string
+          status?: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+          warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_versions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_versions_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "schedule_versions_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_switches: {
         Row: {
           enabled: boolean
@@ -11864,6 +12051,235 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      schedule_activity_remove: {
+        Args: { p_activity_id: string; p_removed: boolean }
+        Returns: undefined
+      }
+      schedule_activity_save: {
+        Args: {
+          p_activity_id: string
+          p_area: string
+          p_code: string
+          p_finish: string
+          p_is_milestone: boolean
+          p_name: string
+          p_start: string
+          p_trade: string
+          p_version: number
+          p_wbs: string
+        }
+        Returns: number
+      }
+      schedule_calendar_sync: {
+        Args: { p_at?: string; p_project_id: string }
+        Returns: number
+      }
+      schedule_current: {
+        Args: { p_project_id: string }
+        Returns: {
+          activity_code: string
+          actual_finish: string
+          actual_start: string
+          area: string
+          csi_division: string
+          finish_date: string
+          id: string
+          is_milestone: boolean
+          name: string
+          percent: number
+          sort: number
+          start_date: string
+          trade: string
+          version_id: string
+          wbs: string
+        }[]
+      }
+      schedule_daily: { Args: { p_at?: string }; Returns: number }
+      schedule_discard: {
+        Args: { p_discarded: boolean; p_version_id: string }
+        Returns: undefined
+      }
+      schedule_draft_lock: {
+        Args: { p_version_id: string }
+        Returns: {
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          data_date: string | null
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          model: string | null
+          number: number | null
+          org_id: string
+          project_id: string
+          published_at: string | null
+          published_by: string | null
+          source_kind: string
+          status: string
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string | null
+          updated_at: string
+          version: number
+          warnings: string[]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "schedule_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      schedule_draft_save: {
+        Args: {
+          p_data_date: string
+          p_title: string
+          p_version: number
+          p_version_id: string
+        }
+        Returns: number
+      }
+      schedule_folder: { Args: { p_project_id: string }; Returns: string }
+      schedule_folder_make: { Args: { p_project_id: string }; Returns: string }
+      schedule_import_draft: {
+        Args: {
+          p_content_hash: string
+          p_data_date: string
+          p_file_id: string
+          p_model: string
+          p_project_id: string
+          p_rows: Json
+          p_source_kind: string
+          p_title: string
+          p_warnings: string[]
+        }
+        Returns: string
+      }
+      schedule_lines_ok: {
+        Args: { p_lines: string[]; p_max: number }
+        Returns: boolean
+      }
+      schedule_publish: {
+        Args: { p_version: number; p_version_id: string }
+        Returns: {
+          number: number
+          version: number
+        }[]
+      }
+      schedule_status: {
+        Args: { p_project_id: string }
+        Returns: {
+          current_id: string
+          data_date: string
+          days_old: number
+          drafts: number
+          number: number
+          today: string
+          update_due: boolean
+        }[]
+      }
+      schedule_text: { Args: { p: string }; Returns: string }
+      schedule_today: {
+        Args: { p_at?: string; p_project_id: string }
+        Returns: string
+      }
+      schedule_unpublish: { Args: { p_version_id: string }; Returns: undefined }
+      schedule_upcoming: {
+        Args: { p_days: number; p_project_id: string }
+        Returns: {
+          activity_code: string
+          area: string
+          csi_division: string
+          days_until: number
+          finish_date: string
+          id: string
+          is_milestone: boolean
+          name: string
+          start_date: string
+          trade: string
+          version_id: string
+          wbs: string
+        }[]
+      }
+      schedule_version: {
+        Args: { p_version_id: string }
+        Returns: {
+          activities: number
+          can_manage: boolean
+          can_undo: boolean
+          created_at: string
+          created_by_name: string
+          data_date: string
+          discarded: boolean
+          file_id: string
+          file_name: string
+          id: string
+          model: string
+          need_dates: number
+          number: number
+          project_id: string
+          published_at: string
+          published_by_name: string
+          source_kind: string
+          status: string
+          title: string
+          unsure: number
+          version: number
+          warnings: string[]
+        }[]
+      }
+      schedule_version_lock: {
+        Args: { p_version_id: string }
+        Returns: {
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          data_date: string | null
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          model: string | null
+          number: number | null
+          org_id: string
+          project_id: string
+          published_at: string | null
+          published_by: string | null
+          source_kind: string
+          status: string
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string | null
+          updated_at: string
+          version: number
+          warnings: string[]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "schedule_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      schedule_versions_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          activities: number
+          created_at: string
+          created_by_name: string
+          data_date: string
+          file_id: string
+          file_name: string
+          id: string
+          number: number
+          published_at: string
+          published_by_name: string
+          source_kind: string
+          status: string
+          title: string
+          version: number
+        }[]
       }
       session_aal: { Args: never; Returns: string }
       set_bid_intent: {

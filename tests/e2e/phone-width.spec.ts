@@ -22,6 +22,11 @@ const PAGES = [
   '/p/job-a/safety?view=library',
   '/p/job-a/safety/mock-meeting-1',
   '/p/job-a/safety/new',
+  '/p/job-a/schedule',
+  '/p/job-a/schedule?view=activities',
+  '/p/job-a/schedule?view=updates',
+  '/p/job-a/schedule/mock-sched-a3-a12',
+  '/p/job-a/schedule/v-mock-sched-a3',
 ];
 
 test.describe('phone width', () => {

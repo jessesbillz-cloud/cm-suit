@@ -147,6 +147,7 @@ describe('jobs', () => {
       'deliveries',
       'corrections',
       'safety',
+      'schedule',
       'people',
       'hours',
     ]);
