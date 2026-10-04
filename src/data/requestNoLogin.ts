@@ -40,7 +40,7 @@ function asCalendarRow(r: OutsiderRow, day: string): CalendarRow {
     id: null, number: null, version: null, full_detail: false, mine: false, is_block: r.kind === 'block', request_date: day,
     start_time: r.start_time, duration_kind: r.duration_kind, duration_min: r.duration_min, kind: r.kind, special_kind: null,
     status: r.status_key, status_key: r.status_key, result: null, attendance: null, company: null, items: null, owner_id: null,
-    helper_id: null, postpone_reason: null, postpone_until: null,
+    helper_id: null, postpone_reason: null, postpone_until: null, ofs_sent: false,
   };
 }
 
@@ -99,6 +99,8 @@ async function send(key: LinkKey, v: PublicRequestInput): Promise<Submitted> {
     kind: v.kind,
     special_kind_id: v.kind === 'special' ? v.specialKindId : null,
     items: v.items.trim(),
+    // 0061: an OFS request answers the special inspection question; no other kind carries the field.
+    ...(v.kind === 'ofs' ? { special_required: v.specialRequired } : {}),
   };
   return callFunction('request-link', await formOf(payload, v.files), submittedSchema);
 }
@@ -110,7 +112,9 @@ export function useSubmitPublicRequest(key: LinkKey) {
 
 async function sendOfs(key: LinkKey, v: PublicOfsInput): Promise<Submitted> {
   if (isMock()) return mockRevs.submitOfs(key, v);
-  const payload = { ...visitorPayload(key, v), area_ids: v.areaIds, item_ids: v.itemIds, sheet_file_id: v.sheetFileId };
+  const payload = {
+    ...visitorPayload(key, v), area_ids: v.areaIds, item_ids: v.itemIds, sheet_file_id: v.sheetFileId, special_required: v.specialRequired,
+  };
   return callFunction('request-link', await formOf(payload, v.files), submittedSchema);
 }
 

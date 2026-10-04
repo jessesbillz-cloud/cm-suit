@@ -1,16 +1,21 @@
 // Synthetic inspection requests for the e2e mock and the preview (CLAUDE.md rule 8: obviously fake): about seven weeks
 // of them on both sample jobs around today, in every state the calendar colors (done, not approved, confirmed, with a
 // helper, pending, waiting on the GC, postponed), a few with files, plus blocked time. Placed relative to today so the
-// current month is always full. Sample Job A keeps 9:00-10:00 today free (the inspections e2e books it).
+// current month is always full. Sample Job A keeps 9:00-10:00 today free (the inspections e2e books it). The sample
+// jobs take IOR and special requests only; the OFS requests are on the fire marshal's job (permitJobRequests), along
+// their route: through the GC, sent to OFS by the inspector, the deputy's from there (0061).
 import { addDays, format, isWeekend, parseISO } from 'date-fns';
 import type { IrRowRaw } from '../inspections.types';
 import type { FileRow } from '../types';
-import type { MockBlock } from './inspections';
+import type { MockBlock } from './irCalendar';
 import { SEED_PERMIT_S1 } from './permitSeeds';
 
 const REQUESTER = 'mock-user-sub';
 const OWNER = 'mock-user-pm';
 const HELPER = 'mock-user-inspector';
+/** On the fire marshal's job: the inspector sends an OFS request to OFS; the deputy decides it. */
+const SENDER = 'mock-user-inspector';
+const DEPUTY = 'mock-user-ahj';
 
 const TYPES: readonly [kind: string, special: string | null][] = [
   ['ior', null],
@@ -20,7 +25,7 @@ const TYPES: readonly [kind: string, special: string | null][] = [
   ['special', 'kind-welding'],
   ['ior', null],
   ['special', 'kind-anchors'],
-  ['ofs', null],
+  ['ior', null],
   ['special', 'kind-rebar'],
   ['special', 'kind-masonry'],
 ];
@@ -102,6 +107,7 @@ function row(job: string, day: string, number: number, i: number, { time, length
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
+    ofs_sent_at: null, ofs_sent_by: null, special_required: null,
     ...fields(state, day, job, number, i % 11 === 5),
   };
 }
@@ -132,25 +138,36 @@ export function seedRequests(today: string, firstNumber: Record<string, number>)
 }
 
 /**
- * The fire marshal's inspections on Sample Science Building (the permits mock): an underground hydro done a month ago
- * and a sprinkler hydro confirmed for this week, both for permit 24-0001; two more requested and not linked yet.
+ * The fire marshal's inspections on Sample Science Building (the permits mock), all OFS requests that went through the
+ * GC: an underground hydro done a month ago and a sprinkler hydro confirmed for this week, both for permit 24-0001 and
+ * both the deputy's; a device test sent to OFS and waiting on the deputy; and one still with the inspector, not sent.
  */
 export function permitJobRequests(today: string): IrRowRaw[] {
   const on = (n: number) => format(addDays(parseISO(today), n), 'yyyy-MM-dd');
-  const seeds: [offset: number, state: State, items: string, permit: string | null][] = [
-    [-30, 'done', 'Underground fire service hydro and flush', SEED_PERMIT_S1],
-    [3, 'confirmed', 'Sprinkler hydro, levels 1 and 2', SEED_PERMIT_S1],
-    [6, 'pending', 'Fire alarm device test, level 1', null],
-    [8, 'pending', 'Fire doors and dampers, level 2', null],
+  const seeds: [offset: number, state: State, items: string, permit: string | null, sent: boolean][] = [
+    [-30, 'done', 'Underground fire service hydro and flush', SEED_PERMIT_S1, true],
+    [3, 'confirmed', 'Sprinkler hydro, levels 1 and 2', SEED_PERMIT_S1, true],
+    [6, 'pending', 'Fire alarm device test, level 1', null, true],
+    [8, 'pending', 'Fire doors and dampers, level 2', null, false],
   ];
-  // TYPES[7] is the OFS kind.
-  return seeds.map(([offset, state, items, permit], k) => ({
-    ...row('job-s', on(offset), k + 1, 7, { time: '09:00', length: 120 }, state),
-    items,
-    permit_id: permit,
-    // OFS requests get their OFS IR number from the database (0056).
-    ofs_number: k + 1,
-  }));
+  return seeds.map(([offset, state, items, permit, sent], k) => {
+    const r = row('job-s', on(offset), k + 1, 7, { time: '09:00', length: 120 }, state);
+    return {
+      ...r,
+      kind: 'ofs',
+      items,
+      permit_id: permit,
+      // OFS requests get their OFS IR number from the database (0056).
+      ofs_number: k + 1,
+      special_required: false,
+      gc_by: OWNER,
+      gc_at: r.created_at,
+      ofs_sent_at: sent ? r.created_at : null,
+      ofs_sent_by: sent ? SENDER : null,
+      owner_id: r.owner_id === null ? null : DEPUTY,
+      signed_by: r.signed_by === null ? null : DEPUTY,
+    };
+  });
 }
 
 /** Blocked time: a weekly lunch hour on Sample Job A (today's weekday, from two weeks back) and one morning on B. */

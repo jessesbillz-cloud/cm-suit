@@ -1,4 +1,4 @@
-// The GC step (only when the job has it on): approve, or return with a reason.
+// The GC step (the job has it on, or the request is an OFS one: those always take it): approve, or return with a reason.
 import { useState } from 'react';
 import { Check, CornerUpLeft } from 'lucide-react';
 import { messageOf } from '../../data/errors';

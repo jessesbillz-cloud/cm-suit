@@ -2,6 +2,8 @@
 // number comes from the database on submit. Before sending, that day's bookings show (anonymized). A request, not a
 // booking: nothing is refused for notice or overlaps. On an OFS job with revs, an OFS request picks walls and items
 // instead of typing them (prefilled from the Revs link: ?areas=&items=), and its map is drawn right after sending.
+// Every OFS request answers one question (special inspection required?); the inspector filing one himself states,
+// once, that the earlier inspections are complete (SPEC §18.4 P1: no box per item).
 import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { Send } from 'lucide-react';
@@ -19,6 +21,7 @@ import { AttachmentsField } from './AttachmentsField';
 import { ChoiceRow } from './ChoiceRow';
 import { ConflictPreview } from './ConflictPreview';
 import { IrMap } from './IrMap';
+import { InspectorStatement, SpecialQuestion } from './OfsAsk';
 import { OfsFields, type OfsRevs } from './OfsFields';
 import { Receipt } from './Receipt';
 import { SpecialPick } from './SpecialPick';
@@ -35,6 +38,8 @@ interface BodyProps {
   job: IrJob;
   ctx: FormContext;
   day: string;
+  /** I decide inspections here (ir.decide): my own OFS request goes straight to OFS, on one statement. */
+  inspector: boolean;
   /** The job's revs, when it has walls to pick (an OFS job). */
   revs: OfsRevs | null;
 }
@@ -55,7 +60,7 @@ function kindOptions(ofs: boolean): { value: IrKind; label: string }[] {
   return [{ value: 'ior', label: 'IOR' }, { value: 'special', label: 'Special' }, ...(ofs ? [{ value: 'ofs' as const, label: 'OFS' }] : [])];
 }
 
-function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
+function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProps) {
   const submit = useSubmitIr();
   const submitOfs = useSubmitOfs();
   const track = useOpenRequest(projectId);
@@ -70,6 +75,9 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
   const [files, setFiles] = useState<IrUpload[]>([]);
   const [uploading, setUploading] = useState(false);
   const [ack, setAck] = useState(false);
+  // An OFS request's own: the special inspection question (null until answered) and the inspector's statement.
+  const [specialRequired, setSpecialRequired] = useState<boolean | null>(null);
+  const [stated, setStated] = useState(false);
   const [sent, setSent] = useState<Sent | null>(null);
   const plan = kind === 'ofs' && revs !== null ? requestPlan(revs.setup, statusIndex(revs.status), pick) : null;
   const sending = plan !== null ? submitOfs : submit;
@@ -89,6 +97,8 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
           setSheet(null);
           setFiles([]);
           setAck(false);
+          setSpecialRequired(null);
+          setStated(false);
         }}
       >
         {sent.map ? <IrMap requestId={sent.row.id} projectId={projectId} editing /> : null}
@@ -97,7 +107,8 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
   }
 
   const what = plan !== null ? plan.items.length > 0 && plan.walls.length > 0 : items.trim() !== '';
-  const ready = isDay(when.date) && company.trim() !== '' && what && ack && !uploading && (kind !== 'special' || special !== '');
+  const ofsReady = kind !== 'ofs' || (specialRequired !== null && (!inspector || stated));
+  const ready = isDay(when.date) && company.trim() !== '' && what && ack && ofsReady && !uploading && (kind !== 'special' || special !== '');
   const whenValue = whenOf(when);
 
   return (
@@ -108,11 +119,13 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
         e.preventDefault();
         if (!ready) return;
         const common = { projectId, company: company.trim(), attachmentIds: files.map((f) => f.id), noticeAck: ack, ...whenValue };
+        const inspectorAck = kind === 'ofs' && inspector && stated;
         if (plan !== null) {
+          if (specialRequired === null) return;
           const areaIds = plan.walls.map((a) => a.id);
           const itemIds = plan.items.map((r) => r.item.id);
           submitOfs.mutate(
-            { ...common, areaIds, itemIds, sheetFileId: sheet },
+            { ...common, areaIds, itemIds, sheetFileId: sheet, specialRequired, inspectorAck },
             {
               onSuccess: (row) => {
                 setSent({ row, map: true });
@@ -122,7 +135,14 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
           return;
         }
         submit.mutate(
-          { ...common, kind, specialKindId: kind === 'special' ? special : null, items: items.trim() },
+          {
+            ...common,
+            kind,
+            specialKindId: kind === 'special' ? special : null,
+            items: items.trim(),
+            specialRequired: kind === 'ofs' ? specialRequired : null,
+            inspectorAck,
+          },
           {
             onSuccess: (row) => {
               setSent({ row, map: false });
@@ -173,6 +193,7 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
             />
           </label>
         )}
+        {kind === 'ofs' ? <SpecialQuestion value={specialRequired} onChange={setSpecialRequired} testId="ir-special-required" /> : null}
         <AttachmentsField projectId={projectId} label="Photos or PDFs" files={files} onChange={setFiles} onBusy={setUploading} />
         <ConflictPreview projectId={projectId} when={whenValue} ownId={null} />
         <label className="flex items-start gap-2 text-sm text-ink">
@@ -187,6 +208,7 @@ function RequestFormBody({ projectId, job, ctx, day, revs }: BodyProps) {
           />
           <span>24 hours notice (48 for special). I&apos;ll be present, with safe access and plans on site.</span>
         </label>
+        {kind === 'ofs' && inspector ? <InspectorStatement checked={stated} onChange={setStated} /> : null}
         {sending.isError ? <p className="text-sm text-danger">{messageOf(sending.error)}</p> : null}
       </div>
       <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-line bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_16px_-12px_rgba(16,24,40,.25)]">
@@ -232,7 +254,7 @@ export function RequestForm({ projectId }: { projectId: string }) {
   if (access.state === 'error') return <ErrorState error={access.error} onRetry={access.retry} />;
   if (ctx.isError) return <ErrorState error={ctx.error} onRetry={() => void ctx.refetch()} />;
   if (access.state === 'loading' || !ctx.data) return <LoadingState label="Loading the form" />;
-  const props = { projectId, job: access.job, ctx: ctx.data, day };
+  const props = { projectId, job: access.job, ctx: ctx.data, day, inspector: access.can.decide };
   // A new link from Revs (other walls, other items) starts a new form.
   const key = `${projectId}|${search.areas ?? ''}|${search.items ?? ''}`;
   return ctx.data.ofs ? <OfsRequestForm key={key} {...props} /> : <RequestFormBody key={projectId} {...props} revs={null} />;

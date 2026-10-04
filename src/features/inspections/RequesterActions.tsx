@@ -11,7 +11,7 @@ import { MoveForm } from './MoveForm';
 
 interface RequesterActionsProps {
   row: IrRequest;
-  /** Off when I'm also its inspector: the inspector's steps have Move (one way to each thing). */
+  /** Off when I'm also the one who decides it now: those steps have Move (one way to each thing). */
   canMove: boolean;
 }
 

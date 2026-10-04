@@ -3,7 +3,7 @@
 // length, type, color), the member form's fields, up to 3 photos or PDFs, and who is asking (remembered on this phone).
 // The database numbers the request; the receipt carries the private status link. A request, not a booking. On an OFS
 // job with revs, an OFS request picks walls and items with the members' Revs picker (0057), and its map is drawn right
-// after sending, by the receipt.
+// after sending, by the receipt. Every OFS request answers one question: special inspection required? (0061).
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -22,6 +22,7 @@ import { ChoiceRow } from './ChoiceRow';
 import { ContactFields } from './ContactFields';
 import { DayList } from './DayList';
 import { sheetToSend } from './mapSheets';
+import { SpecialQuestion } from './OfsAsk';
 import { PublicFiles } from './PublicFiles';
 import { PublicMap } from './PublicMap';
 import { PublicOfsFields } from './PublicOfsFields';
@@ -74,6 +75,8 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
   const [contact, setContact] = useState<Contact>(rememberedContact);
   const [remembered, setRemembered] = useState(() => contactReady(contact));
   const [ack, setAck] = useState(false);
+  // An OFS request's one extra question: null until answered.
+  const [specialRequired, setSpecialRequired] = useState<boolean | null>(null);
   // Today rides on the first answer; another day is asked for when picked.
   const valid = isDay(when.date) && when.date >= today;
   const day = usePublicDay(linkKey, valid && when.date !== today ? when.date : null);
@@ -81,7 +84,8 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
   const plan = kind === 'ofs' && revs !== null ? requestPlan(revs.setup, statusIndex(revs.status), pick) : null;
   const sending = plan !== null ? submitOfs : submit;
   const what = plan !== null ? plan.items.length > 0 && plan.walls.length > 0 : items.trim() !== '';
-  const ready = valid && what && contactReady(contact) && ack && (kind !== 'special' || special !== '');
+  const answered = kind !== 'ofs' || specialRequired !== null;
+  const ready = valid && what && contactReady(contact) && ack && answered && (kind !== 'special' || special !== '');
 
   return (
     <form
@@ -95,14 +99,18 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
           onSent({ receipt, map });
         };
         if (plan !== null) {
+          if (specialRequired === null) return;
           const areaIds = plan.walls.map((a) => a.id);
           const itemIds = plan.items.map((r) => r.item.id);
           const sheetFileId = sheetToSend(plan.walls, sheet);
-          submitOfs.mutate({ contact, ...whenValue, areaIds, itemIds, sheetFileId, files }, { onSuccess: sent(true) });
+          submitOfs.mutate({ contact, ...whenValue, areaIds, itemIds, sheetFileId, specialRequired, files }, { onSuccess: sent(true) });
           return;
         }
         const specialKindId = kind === 'special' ? special : null;
-        submit.mutate({ contact, ...whenValue, kind, specialKindId, items, files }, { onSuccess: sent(false) });
+        submit.mutate(
+          { contact, ...whenValue, kind, specialKindId, items, specialRequired: kind === 'ofs' ? specialRequired : null, files },
+          { onSuccess: sent(false) },
+        );
       }}
     >
       <Card title="When">
@@ -142,6 +150,7 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
               />
             </label>
           )}
+          {kind === 'ofs' ? <SpecialQuestion value={specialRequired} onChange={setSpecialRequired} testId="public-special-required" /> : null}
           <PublicFiles files={files} onChange={setFiles} />
         </div>
       </Card>

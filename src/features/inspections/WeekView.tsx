@@ -16,6 +16,8 @@ interface WeekViewProps {
   today: string;
   selectedId: string | null;
   isPhone: boolean;
+  /** I decide OFS requests (the deputy): the lines' words follow. */
+  ofsDecide: boolean;
   onDay: (day: string) => void;
   onPickDay: (day: string) => void;
   onOpen: (id: string) => void;
@@ -28,6 +30,7 @@ interface DayColumnProps {
   rows: readonly CalendarRow[];
   selectedId: string | null;
   isPhone: boolean;
+  ofsDecide: boolean;
   onPickDay: (day: string) => void;
   onOpen: (id: string) => void;
 }
@@ -38,7 +41,7 @@ function dateMark(day: string, today: string, current: string): string {
   return 'text-ink';
 }
 
-function DayColumn({ day, today, current, rows, selectedId, isPhone, onPickDay, onOpen }: DayColumnProps) {
+function DayColumn({ day, today, current, rows, selectedId, isPhone, ofsDecide, onPickDay, onOpen }: DayColumnProps) {
   const isToday = day === today;
   const tint = isToday ? 'bg-accent-soft' : '';
   return (
@@ -60,7 +63,13 @@ function DayColumn({ day, today, current, rows, selectedId, isPhone, onPickDay, 
       {rows.length > 0 ? (
         <div className={`flex flex-col gap-1.5 ${isPhone ? 'px-4 pb-3' : 'p-1.5'}`}>
           {rows.map((r, i) => (
-            <EntryLine key={r.id ?? `${day}-${String(i)}`} row={r} selected={r.id !== null && r.id === selectedId} onOpen={onOpen} />
+            <EntryLine
+              key={r.id ?? `${day}-${String(i)}`}
+              row={r}
+              selected={r.id !== null && r.id === selectedId}
+              ofsDecide={ofsDecide}
+              onOpen={onOpen}
+            />
           ))}
         </div>
       ) : null}
@@ -68,7 +77,7 @@ function DayColumn({ day, today, current, rows, selectedId, isPhone, onPickDay, 
   );
 }
 
-export function WeekView({ projectId, day, today, selectedId, isPhone, onDay, onPickDay, onOpen }: WeekViewProps) {
+export function WeekView({ projectId, day, today, selectedId, isPhone, ofsDecide, onDay, onPickDay, onOpen }: WeekViewProps) {
   const { from, to } = weekOf(day);
   const cal = useIrCalendar(projectId, from, to);
   const days = daysFrom(from, 7);
@@ -113,6 +122,7 @@ export function WeekView({ projectId, day, today, selectedId, isPhone, onDay, on
               rows={cal.data.filter((r) => r.request_date === d)}
               selectedId={selectedId}
               isPhone={isPhone}
+              ofsDecide={ofsDecide}
               onPickDay={onPickDay}
               onOpen={onOpen}
             />

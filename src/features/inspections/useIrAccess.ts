@@ -7,8 +7,16 @@ export interface IrCan {
   viewAll: boolean;
   decide: boolean;
   gcApprove: boolean;
+  /** The deputy's rights (0061): decides, and reads, the OFS requests the inspector sent to OFS. Nothing else. */
+  ofsDecide: boolean;
+  ofsView: boolean;
   /** Share the job's request link (members.manage). */
   share: boolean;
+}
+
+/** May use the Inspections tool at all: asks, reads or decides requests; the deputy too (his OFS requests only). */
+export function seesInspections(can: IrCan): boolean {
+  return can.request || can.viewAll || can.decide || can.ofsDecide || can.ofsView;
 }
 
 export interface IrJob {
@@ -30,9 +38,11 @@ export function useIrAccess(projectId: string): Access {
   const viewAll = useCapability(projectId, 'ir.view_all');
   const decide = useCapability(projectId, 'ir.decide');
   const gcApprove = useCapability(projectId, 'ir.gc_approve');
+  const ofsDecide = useCapability(projectId, 'ir.ofs_decide');
+  const ofsView = useCapability(projectId, 'ir.ofs_view');
   const share = useCapability(projectId, 'members.manage');
   const project = useProject(projectId);
-  const queries = [request, viewAll, decide, gcApprove, share, project];
+  const queries = [request, viewAll, decide, gcApprove, ofsDecide, ofsView, share, project];
 
   const failed = queries.find((q) => q.isError);
   if (failed) {
@@ -50,6 +60,8 @@ export function useIrAccess(projectId: string): Access {
     viewAll.data === undefined ||
     decide.data === undefined ||
     gcApprove.data === undefined ||
+    ofsDecide.data === undefined ||
+    ofsView.data === undefined ||
     share.data === undefined
   ) {
     return { state: 'loading' };
@@ -57,7 +69,15 @@ export function useIrAccess(projectId: string): Access {
   const p = project.data;
   return {
     state: 'ready',
-    can: { request: request.data, viewAll: viewAll.data, decide: decide.data, gcApprove: gcApprove.data, share: share.data },
+    can: {
+      request: request.data,
+      viewAll: viewAll.data,
+      decide: decide.data,
+      gcApprove: gcApprove.data,
+      ofsDecide: ofsDecide.data,
+      ofsView: ofsView.data,
+      share: share.data,
+    },
     job: {
       id: p.id,
       orgId: p.org_id,

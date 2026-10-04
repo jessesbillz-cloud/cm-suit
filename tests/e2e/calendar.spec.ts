@@ -5,9 +5,11 @@
 // still lists the week. Runs on desktop and phone (the right column parts on desktop only).
 // Contract with the mock: 'pm' manages the calendar and decides inspections on both sample jobs; the inspections mock
 // seeds requests on every weekday around today on both jobs; the calendar mock has "Sample OAC meeting" on job-a on
-// this week's Wednesday (meetings show by default). Days are the job's (America/Los_Angeles). Test ids: calendar,
-// cal-day-<day>, cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request, cal-others,
-// cal-type-<kind>, cal-view-week, cal-subscribe, cal-subscribe-panel, ir-pane.
+// this week's Wednesday (meetings show by default). Days are the job's (America/Los_Angeles). The fire marshal's
+// deputy ('ahj', on Sample Science Building) holds only the OFS pair: his calendar is the OFS requests sent to OFS
+// (0061; the mock seeds IR 3 six days out, sent, and IR 4 eight days out, still with the inspector). Test ids:
+// calendar, cal-day-<day>, cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request,
+// cal-others, cal-type-<kind>, cal-view-week, cal-subscribe, cal-subscribe-panel, cal-block-time, ir-pane.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -18,6 +20,14 @@ function thisWeek(offset: number): string {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
   const d = new Date(`${today}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The day `n` days from today in the jobs' zone. */
+function fromToday(n: number): string {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
 
@@ -87,6 +97,28 @@ test.describe('calendar (SPEC §7.6)', () => {
     await expect(page.getByTestId('calendar')).toBeVisible();
     await expect(page.getByTestId(`cal-day-${wed}`)).toHaveAttribute('aria-pressed', 'true');
     await expect(card).toHaveClass(/ring-accent/);
+  });
+
+  test("the deputy's calendar: the OFS requests sent to OFS, nothing still on its way, no blocked time", async ({ page }) => {
+    // The GC team sees both requests; the one with OFS reads "With OFS" to them.
+    await page.goto(`/p/job-s/calendar?day=${fromToday(6)}`);
+    const detail = page.getByTestId('cal-day-detail');
+    await expect(detail.getByTestId('cal-request')).toContainText('With OFS');
+    await page.goto(`/p/job-s/calendar?day=${fromToday(8)}`);
+    await expect(detail.getByTestId('cal-request')).toContainText('IR 4');
+
+    // The deputy (a later init script wins): his own request reads Pending; the other one is not on his calendar.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'ahj');
+    });
+    await page.goto(`/p/job-s/calendar?day=${fromToday(6)}`);
+    await expect(detail.getByTestId('cal-request')).toContainText('IR 3');
+    await expect(detail.getByTestId('cal-request')).toContainText('Pending');
+    await expect(page.getByTestId('cal-block-time')).toHaveCount(0);
+    await page.goto(`/p/job-s/calendar?day=${fromToday(8)}`);
+    await expect(page.getByTestId(`cal-day-${fromToday(8)}`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('cal-day-title')).toBeVisible();
+    await expect(detail.getByTestId('cal-request')).toHaveCount(0);
   });
 
   test('the type toggles hide and show a kind', async ({ page }) => {

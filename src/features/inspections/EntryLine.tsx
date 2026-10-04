@@ -7,11 +7,13 @@ import { clockLabel } from './time';
 interface EntryLineProps {
   row: CalendarRow;
   selected: boolean;
+  /** I decide OFS requests (the deputy). */
+  ofsDecide: boolean;
   onOpen: (id: string) => void;
 }
 
-export function EntryLine({ row, selected, onOpen }: EntryLineProps) {
-  const chip = rowChip(row);
+export function EntryLine({ row, selected, ofsDecide, onOpen }: EntryLineProps) {
+  const chip = rowChip(row, ofsDecide);
   const when = row.duration_kind === 'all_day' ? 'All day' : clockLabel(row.start_time);
   const openable = row.id !== null && !row.is_block;
   const attendance = attendanceLabel(row.attendance);

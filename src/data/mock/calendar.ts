@@ -163,10 +163,12 @@ export async function rotateFeed(): Promise<string> {
 }
 
 /** A job's inspections for the month view (calendar_inspections): the inspections mock's lines with each request's
- *  attachments and postponements, for people who may see them. */
+ *  attachments and postponements, for people who may see them. The deputy (the OFS pair) gets his OFS requests sent
+ *  to OFS and nothing else: no other kind, no blocked time (0061). */
 export async function inspections(projectId: string, from: string, to: string): Promise<Omit<CalendarInspection, 'project_id'>[]> {
   // As the database: no inspections for me on a job, no rows (not an error).
-  const allowed = await Promise.all(['ir.request', 'ir.view_all', 'ir.decide'].map((cap) => capability(cap)));
+  const rights = ['ir.request', 'ir.view_all', 'ir.decide', 'ir.ofs_view', 'ir.ofs_decide'];
+  const allowed = await Promise.all(rights.map((cap) => capability(cap)));
   if (!allowed.includes(true)) return [];
   const rows = await mockIr.calendar(projectId, from, to);
   const full = await mockIr.list(projectId, (r) => r.request_date >= from && r.request_date <= to);

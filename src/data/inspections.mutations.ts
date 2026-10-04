@@ -29,7 +29,9 @@ type IrRpcName =
   | 'ir_assign_helper'
   | 'ir_claim'
   | 'ir_helper_report'
-  | 'ir_delete_pdf';
+  | 'ir_delete_pdf'
+  | 'ir_send_ofs'
+  | 'ir_unsend_ofs';
 
 /** The request fields a write needs: which one, and the version I saw (the database refuses a stale one). */
 export type IrRef = Pick<IrRequest, 'id' | 'version' | 'project_id'>;
@@ -77,6 +79,9 @@ export function useSubmitIr() {
       p_attachment_ids: v.attachmentIds,
       ...whenArgs(v),
       ...(v.specialKindId !== null ? { p_special_kind_id: v.specialKindId } : {}),
+      // 0061: the OFS request's one question, and the inspector's one statement when he files it himself.
+      ...(v.specialRequired !== null ? { p_special_required: v.specialRequired } : {}),
+      ...(v.inspectorAck ? { p_inspector_ack: true } : {}),
     }),
   );
 }

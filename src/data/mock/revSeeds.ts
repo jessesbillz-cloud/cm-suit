@@ -1,7 +1,8 @@
 // Synthetic revs for the e2e mock and the preview (CLAUDE.md rule 8: obviously fake) on Sample Science Building (the
 // permit jobs' OFS job): one list with the eight revs of a fire marshal job (synthetic trades), six walls on Level 01
 // and Level 02 (all but one drawn on the synthetic plan set), two N/A marks, and three OFS requests around today: TOW
-// passed and signed, HOW cavity with one wall failed, and CJ requested with a map the requester drew. Placed relative
+// passed and signed and HOW cavity with one wall failed (both sent to OFS by the inspector and decided by the deputy,
+// 0061), and CJ requested with a map the requester drew, through the GC and still with the inspector. Placed relative
 // to today like the other inspection seeds.
 import { addDays, format, parseISO } from 'date-fns';
 import type { Tables } from '../database.types';
@@ -12,7 +13,10 @@ const ORG = 'org-owner';
 const AT = '2026-09-01T16:00:00Z';
 const SETUP_BY = 'mock-user-inspector';
 const REQUESTER = 'mock-user-sub';
+const GC = 'mock-user-pm';
 const INSPECTOR = 'mock-user-inspector';
+/** The fire marshal's deputy: OFS requests sent to OFS are his to decide. */
+const DEPUTY = 'mock-user-ahj';
 const FIRESTOP = 'Sample Firestop Co';
 const DRYWALL = 'Sample Drywall Co';
 
@@ -90,7 +94,7 @@ export function seedCells(): Tables<'ir_rev_items'>[] {
   return CELLS.map(([req, area, rev, item, color, result, note], i) => ({
     id: `mock-ir-rev-item-${String(i + 1)}`, created_at: AT, updated_at: AT, created_by: REQUESTER, version: 1, org_id: ORG,
     project_id: REVS_JOB, request_id: revRequestId(req), area_id: areaId(area), item_id: itemId(rev, item), color, result,
-    result_note: note ?? null, result_at: result === null ? null : AT, result_by: result === null ? null : INSPECTOR,
+    result_note: note ?? null, result_at: result === null ? null : AT, result_by: result === null ? null : DEPUTY,
   }));
 }
 
@@ -136,15 +140,16 @@ export function revsJobRequests(today: string): IrRowRaw[] {
       created_by: REQUESTER, created_at: AT, updated_at: AT, deleted_at: null, company: FIRESTOP, request_date: day,
       start_time: '09:00', duration_kind: 'timed', duration_min: 60, kind: 'ofs', special_kind_id: null, items,
       attachment_ids: [], notice_ack_at: AT, status: state === 'approved' ? 'complete' : done ? 'confirmed' : 'pending',
-      gc_by: null, gc_at: null, gc_note: null, owner_id: done ? INSPECTOR : null, helper_id: null, confirm_note: null,
+      gc_by: GC, gc_at: AT, gc_note: null, owner_id: done ? DEPUTY : null, helper_id: null, confirm_note: null,
       attendance: null, result: state === 'approved' ? 'approved' : done ? 'not_approved' : null,
       result_note: state === 'failed' ? `Corridor 110 north wall (B / 2–5) · HOW Cavity Spray: ${FAIL_NOTE}` : null,
-      result_photo_ids: [], result_at: done ? at : null, result_by: done ? INSPECTOR : null, helper_report: null,
+      result_photo_ids: [], result_at: done ? at : null, result_by: done ? DEPUTY : null, helper_report: null,
       helper_note: null, helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null, postponed_at: null,
       postpone_count: 0, ir_file_id: state === 'approved' ? `mock-ir-pdf-revs-${String(n)}` : null,
       content_hash: state === 'approved' ? 'sample' : null, signed_at: state === 'approved' ? at : null,
-      signed_by: state === 'approved' ? INSPECTOR : null, pdf_stale: false, pdf_postponed: false, results_sent_at: null,
+      signed_by: state === 'approved' ? DEPUTY : null, pdf_stale: false, pdf_postponed: false, results_sent_at: null,
       summary: null, permit_id: null, requester_name: null, requester_phone: null, requester_email: null,
+      ofs_sent_at: done ? AT : null, ofs_sent_by: done ? INSPECTOR : null, special_required: false,
     };
   });
 }

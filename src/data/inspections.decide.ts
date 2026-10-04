@@ -1,6 +1,6 @@
-// Inspection writes, inspector side (ir.decide). Each step is its own small RPC; the database checks that I own the
-// request (or am its helper) and the version. The IR PDF and the results email are edge functions (server-made,
-// signed): they are not in the e2e mock.
+// Inspection writes, on the side of whoever decides the request (ir.decide; ir.ofs_decide on an OFS request sent to
+// OFS, 0061). Each step is its own small RPC; the database checks that I own the request (or am its helper) and the
+// version. The IR PDF and the results email are edge functions (server-made, signed): they are not in the e2e mock.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { callFunction } from './functions';
 import { qk } from './keys';
@@ -52,6 +52,16 @@ export function usePostponeIr() {
   return useIrMutation((v: { row: IrRef; reason: string; note: string; until: string | null }) =>
     irRpc('ir_postpone', { ...base(v.row), p_reason: v.reason, ...text('p_note', v.note), ...(v.until ? { p_until: v.until } : {}) }),
   );
+}
+
+/** The inspector's one step on an OFS request (0061): it goes to OFS and is the deputy's from there. */
+export function useSendOfs() {
+  return useIrMutation((row: IrRef) => irRpc('ir_send_ofs', base(row)));
+}
+
+/** Undo of the send: the inspector who sent it, until the deputy has acted on it. */
+export function useUnsendOfs() {
+  return useIrMutation((row: IrRef) => irRpc('ir_unsend_ofs', base(row)));
 }
 
 export function useAssignHelper() {

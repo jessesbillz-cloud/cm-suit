@@ -1,9 +1,10 @@
 // The revs request from the QR / link with no login (0057) against the e2e mock (job-s, Sample Science Building): the
-// members' Revs picker (wall buttons, then up to three item buttons, the sheet among the picked walls' sheets), the
-// map drawn right after sending by the receipt (marks save themselves, another page of the plan set clears them with
-// Undo, Make map), and the status link showing the map with Download and Edit map. The mock user 'anon' has no
-// session; the mock sheet is a synthetic three-page set. The map PDF is server-only, so Make map here only marks the
-// map as made.
+// members' Revs picker (wall buttons, then up to three item buttons, the sheet among the picked walls' sheets), the one
+// question every OFS request answers (0061: special inspection required?), the map drawn right after sending by the
+// receipt (marks save themselves, another page of the plan set clears them with Undo, Make map), and the status link
+// showing the map with Download and Edit map. A visitor's OFS request waits on the GC; its tracker has the OFS step.
+// The mock user 'anon' has no session; the mock sheet is a synthetic three-page set. The map PDF is server-only, so
+// Make map here only marks the map as made.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -63,10 +64,17 @@ test.describe('OFS request with revs from the link, no login', () => {
     await page.getByTestId('public-phone').fill('555 010 2030');
     await expect(page.getByTestId('public-submit')).toBeDisabled();
     await page.getByTestId('public-ack').check();
+    // One question, nothing preselected, needed to send; Yes shows the notice.
+    await expect(page.getByTestId('public-submit')).toBeDisabled();
+    await page.getByTestId('public-special-required-yes').click();
+    await expect(page.getByTestId('public-special-required-notice')).toHaveText("Have the special inspector's reports on site for the fire marshal.");
     await page.getByTestId('public-submit').click();
 
-    // The receipt, and the map right under it: the request's colors, the picked sheet, page 1 of the set.
+    // The receipt: it waits on the GC, then the inspector, then OFS. The map right under it: the request's colors,
+    // the picked sheet, page 1 of the set.
     await expect(page.getByTestId('public-receipt')).toBeVisible();
+    await expect(page.getByTestId('public-ir-status')).toContainText('Waiting on the GC.');
+    await expect(page.getByTestId('public-receipt').getByTestId('ir-tracker')).toContainText('OFS');
     const number = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
     const map = page.getByTestId('public-map');
     await expect(map.getByTestId('markup-color-2')).toContainText('First Side - Second Layer');

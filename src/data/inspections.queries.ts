@@ -1,5 +1,6 @@
 // Inspection reads (SPEC §13.2). The calendar is live: it refetches every 30 seconds while on screen.
-// Requesters get other people's requests only through ir_calendar (anonymized by the database).
+// Requesters get other people's requests only through the calendar (calendar_inspections over ir_calendar: anonymized
+// by the database). The deputy's calendar is his own: the OFS requests sent to OFS, nothing else (0061).
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from './client';
@@ -23,7 +24,9 @@ const LIVE_MS = 30_000;
 
 async function fetchCalendar(projectId: string, from: string, to: string): Promise<CalendarRow[]> {
   if (isMock()) return mock.calendar(projectId, from, to);
-  const data: unknown = throwIfError(await supabase.rpc('ir_calendar', { p_project_id: projectId, p_from: from, p_to: to }));
+  // calendar_inspections is ir_calendar's rows plus whether an OFS request is with OFS (0061); the extra columns the
+  // month calendar reads are dropped by the schema.
+  const data: unknown = throwIfError(await supabase.rpc('calendar_inspections', { p_project_id: projectId, p_from: from, p_to: to }));
   return z.array(calendarRowSchema).parse(data);
 }
 
@@ -54,7 +57,8 @@ async function fetchRequest(requestId: string): Promise<IrRequest | null> {
   return throwIfErrorMaybe(await supabase.from('inspection_requests').select(IR_COLS).eq('id', requestId).maybeSingle());
 }
 
-/** One request in full (the requester's own, or anyone's for the GC team and inspectors). null = not visible. */
+/** One request in full (the requester's own, anyone's for the GC team and inspectors, an OFS request sent to OFS for
+ *  the deputy). null = not visible. */
 export function useIrRequest(projectId: string, requestId: string) {
   return useQuery({
     queryKey: qk.inspectionsPart(projectId, 'request', requestId),
@@ -89,7 +93,7 @@ async function fetchReview(projectId: string): Promise<IrRequest[]> {
   );
 }
 
-/** Requests waiting on the GC (the GC review list; it shows only when the job has the GC step on). */
+/** Requests waiting on the GC (the GC review list: the job has the GC step on, or takes OFS requests). */
 export function useIrReview(projectId: string) {
   return useQuery({ queryKey: qk.inspectionsPart(projectId, 'review'), queryFn: () => fetchReview(projectId), refetchInterval: LIVE_MS });
 }
@@ -110,7 +114,7 @@ export function useIrEvents(projectId: string, requestId: string | null) {
 }
 
 async function fetchRecipients(requestId: string): Promise<IrRecipient[]> {
-  if (isMock()) return mock.recipients();
+  if (isMock()) return mock.recipients(requestId);
   return throwIfError(await supabase.rpc('ir_recipients', { p_request_id: requestId }));
 }
 

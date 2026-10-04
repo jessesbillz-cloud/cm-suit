@@ -1,7 +1,8 @@
 // Revs (migration 0056) against the e2e mock. Sample Science Building (job-s) has one list (the eight revs of a fire
 // marshal job), six walls on Level 01 and Level 02, and three OFS requests (src/data/mock/revSeeds.ts): TOW passed on
 // the three Level 01 walls (IR 5), HOW cavity stuff and spray on two of them with spray failed on Corridor 110 (IR 6),
-// and CJ requested on two Level 02 walls (IR 7). 'pm' reads and requests; 'inspector' also manages (revs.manage).
+// and CJ requested on two Level 02 walls (IR 7). 'pm' reads and requests; 'inspector' also manages (revs.manage). An
+// OFS request answers one question before it is sent (0061: ir-special-required-<yes|no>).
 // Test ids: rev-view-<view>, rev-wall-<area> (a tile; data-failed), rev-wall-page (the wall's own page), rev-wall-name,
 // rev-wall-progress (data-passed / data-needed), rev-wall-3d (the drawing; data-focus = the part shown; each part a
 // [data-part] with data-state), wall3d-label, rev-facts (data-status), rev-item-<item> (a button; aria-pressed when
@@ -279,6 +280,7 @@ test.describe('revs', () => {
   test("a request's map draws its walls from the plan, one mark per wall and item", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The map opens in the right column.');
     await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-4,mock-rev-area-5&items=mock-rev-item-3-1,mock-rev-item-3-2');
+    await page.getByTestId('ir-special-required-no').click();
     await page.getByTestId('ir-ack').check();
     await page.getByTestId('ir-submit').click();
     await expect(page.getByTestId('sheet-frame')).toBeVisible({ timeout: 15_000 });

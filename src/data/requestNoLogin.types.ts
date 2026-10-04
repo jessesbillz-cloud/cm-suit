@@ -49,6 +49,8 @@ export const requestFactsSchema = z.object({
   result_note: z.string().nullable(),
   /** The job has the GC step on, or this request went through it. */
   gc_step: z.boolean(),
+  /** An OFS request the inspector has sent to OFS (0061): the tracker's OFS step. */
+  ofs_sent: z.boolean(),
 });
 export type RequestFacts = z.infer<typeof requestFactsSchema>;
 
@@ -74,6 +76,8 @@ export interface PublicRequestInput {
   kind: IrKind;
   specialKindId: string | null;
   items: string;
+  /** An OFS request's one extra question (0061): special inspection required? null on any other kind. */
+  specialRequired: boolean | null;
   /** Picked photos (compressed on send) and PDFs, 3 at most. */
   files: File[];
 }
@@ -164,5 +168,7 @@ export interface PublicOfsInput {
   areaIds: string[];
   itemIds: string[];
   sheetFileId: string | null;
+  /** Special inspection required? (0061; every OFS request answers it.) */
+  specialRequired: boolean;
   files: File[];
 }
