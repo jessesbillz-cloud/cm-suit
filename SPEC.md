@@ -1,4 +1,4 @@
-# FUTURE_NAME — Construction Management Suite — Build Spec v1.1
+# FUTURE_NAME — Construction Management Suite — Build Spec v1.2
 
 **Name:** not decided yet. Use the placeholder `FUTURE_NAME` everywhere: UI, emails, config and docs. It lives in **one** constant (`src/lib/brand.ts`, plus `BRAND_NAME` in env for server code), so renaming later is a one-line change. Don't hard-code the name anywhere else.
 
@@ -18,6 +18,8 @@ If this spec and those notes disagree, stop and ask Jesse.
 ---
 
 ## 0. How to use this spec (Fable, read first)
+
+**v1.2 (Oct 3, 2026): §18 (roles and processes) is the current build plan. Where §18 and an earlier section disagree, §18 wins. Start at §18.7 step 6a.**
 
 1. **Read `CLAUDE.md` before every session.** Its rules are hard rules.
 2. **Build one phase at a time, in order** (§10 onward). A phase is done when:
@@ -1149,6 +1151,288 @@ Each one is tagged with the phase it blocks.
 - `docs/decisions.md` has a short entry for each non-obvious choice.
 - `CLAUDE.md` is updated only if a rule changed, and it stays under 200 lines.
 - Jesse has walked through the phase and said go.
+
+---
+
+## 18. Phase 6 — Roles and processes (Jesse, Oct 3, 2026)
+
+Written from Jesse's role-by-role walkthrough on the evening of Oct 3, after a day of research into what each role on a
+California commercial / public job actually does (Cal/OSHA Title 8, AIA A201-2017, ConsensusDocs, the California
+prompt-payment, retention and lien statutes, DSA's IR A-8 and PR 13-01, OSFM's 2026 permitting guidelines, CSU's plan
+review program, UC campus fire-marshal procedures, GC job descriptions, practitioner write-ups and vendor docs).
+**Where §18 and an earlier section disagree, §18 wins.** It supersedes in particular: §1 "Not goals" about markup (the
+IR map highlighter and the Bluebeam round trip are in), §13.1's fixed daily form (forms are configurable, below), §13.2's
+OFS flow (the route below), and §15's ordering.
+
+### 18.1 Principles (every phase from here)
+
+1. **Process, not features.** Jesse: "We're not just adding a bunch of shit and dumping it in here as 'look at all the
+   stuff our thing can do' — that's what everybody else has done, and poorly." Streamline the process; make everything
+   talk to everything; show a good amount, not everything. If a screen grows a pile of options, the process is wrong.
+2. **Kill the paper chain.** Today: fill out paper → photograph it → attach to an email → someone downloads it →
+   re-enters it somewhere else. Every step happens once, in the app, by the person doing the work; everyone else pulls
+   it from where it lives. Nothing is passed around or downloaded to be re-uploaded.
+3. **Give people something back.** People only feed a system that pays them back: smart processes that save time,
+   remember for them and capture everything. Accurate documentation; no action a person repeats that an algorithm can
+   do.
+4. **One source, many views.** A record is stored once. Logs, the permit's record, reports, the board and the zip
+   exports all read it. When the deputy approves an inspection it is in his record set because it is the same record.
+5. **The job is typed once.** Whoever creates the job enters its facts (name, number, address, ZIP, phone, owner,
+   permit numbers, people). Every document prefills from them; nobody types an address again.
+   - **Weather is automatic:** the National Weather Service API (free, no key) for the job's location, recorded on each
+     daily (high / low / conditions); the person can correct it. The address is geocoded once, at job creation, with the
+     US Census geocoder (free, no key). (External services approved by Jesse Oct 3.)
+6. **All my jobs is the to-do list.** The landing page feeds everything a person owes or must act on, from every job, in
+   one place, most urgent first: due dates, notice clocks ("4 days left to submit this"), failed tests, unsigned T&M,
+   overdue tailgates. A morning briefing; on Monday, "this is your week." Deadlines are shown as they are: no leeway.
+7. **Every repeated record is a document and a log line.** Dailies, sign-in sheets, inspections, special inspection
+   reports, minutes, T&M tickets, safety inspections: each is its own signed PDF and a line on its log. **Every log
+   downloads as a zip** for a week, a month or the whole log (like MDR's IR result log).
+8. **Frequencies are theirs.** Daily / weekly / as needed / every N working days are settings with sensible defaults.
+   Legal minimums are rules the app watches (e.g. tailgates every 10 working days per crew).
+9. **Colors stay ours** (lib/status): red = late, rejected, failed; yellow = pending, due soon; green = approved,
+   confirmed, done.
+10. **Forms: ours, configurable, or theirs.** Every form (dailies, minutes, T&M, safety inspection, pay app) comes as
+    our standard with every field worth having; each company ticks the fields it wants, renames and reorders them,
+    adds its own. Or it uploads its own form once and maps the fields (§8.3, the VIS daily pattern), and we fill it.
+    "That's not ours to dictate."
+11. **Settings stay open.** Each person picks their tools (rail Edit) and ticks the notifications they want ("tell me
+    every time an RFI is answered"). Gate only what must be gated: money stays in pricing tables (rule 3); the owner
+    doesn't see the GC's pay internals; subs don't see budgets.
+12. **Not ours: accounting, payroll filing, legal advice.** We track the paperwork and the dates and raise flags; a
+    person verifies. E.g. the payroll cross-check says only "looks fine" or "found inconsistencies — double-check".
+
+### 18.2 Where things stand (Oct 3, evening)
+
+- **Live on staging** (main `d383a4c`, migrations 0001–0059): bids (Phase 1 core), files, calendar, dailies (company
+  forms, VIS), inspections (member form, GC step, no-login QR requests 0055, Requester role), deliveries, corrections,
+  RFIs (route strip, signed sections), permits + stamping (0052–0053), comments (0050), the job-only rail (0058), and
+  **Revs** (0056–0059): rev lists pasted from the legend, walls by level and drawn on the plan sheet, wall pages with the
+  3-D wall, the OFS request with its IR map (3 colors, drawn from the walls), the deputy's pass/fail and signature.
+- **Built, not live** — branch `wave2` (main + 0060 Safety + 0061 OFS permits + 0062 Schedule) and branches
+  `wave2-requirements` (0063) and `wave2-dailies` (0064), all on GitHub. The last two still need merging into wave2:
+  most conflicts are "both sides appended to a list"; migrations that re-create `job_rail_tools()` (and other shared
+  functions) must end with the union of every tool. 0060–0064 are not applied to staging, so their files may still be
+  edited. Changes each needs before it goes live are in §18.7.
+- **Build environment notes:** npm is blocked in the cloud container (pdf.js is vendored, `src/vendor/pdfjs`); vitest,
+  knip and `vite build` run only in CI; migrations are applied with the Supabase MCP `apply_migration` using the file's
+  exact text, then the stored SHA-256 is checked; edge functions are deployed from bundles and read back byte for byte
+  (agents have mis-copied files twice). Details: `claude/handoff-next-session.md` in the project.
+
+### 18.3 Accounts (roles)
+
+Roles are data (`roles`, `role_permissions`); capabilities only, never role names in code (rule 2). Each role below is
+its **default**; the person can add tools (rail Edit) and notifications (checkboxes) within what the role may see.
+
+| Account | Is | Sees | Never sees | Default tools |
+|---|---|---|---|---|
+| **Inspector** (IOR; `inspector`, `inspector_admin`) | Jesse's role; already built from MDR | Everything on the job's documents: plans, specs, submittals, RFIs, CCDs (as soon as the architect posts them), the punch list, dailies | The GC's money | Inspections, plans/specs/submittals/RFIs, the inspection log, the inspection schedule page, punch list, dailies, hours |
+| **Superintendent** ("super tools") | The GC's field lead | The whole field: sign-ins and live manpower by company, dailies, deliveries, inspections, the look-ahead, safety, T&M, punch list, RFIs, submittals | Pricing | Board, the day's crew / manpower, daily, inspections, deliveries, look-ahead, safety, punch list |
+| **Foreman / field lead** (`foreman`) | The sub's (or GC's) crew lead: "that lower level of management that's still super important" | Their crew, their daily, their requests, their T&M, their tailgates, their punch items, the look-ahead, plans/specs | Other subs' paperwork, money | Crew sign-in, daily, inspections, T&M, tailgates, punch list |
+| **PM/PE** (`pm`, `pe`: one account in the picker, same capabilities) | Interchangeable in practice ("PMs wind up doing a lot of PE work") | All documents and logs; money (pricing roles) | — | Board, requirements, submittals, RFIs, change events, minutes, schedule, files; they choose the rest |
+| **Safety manager** (`safety`) | Minimal: "there's not much for them to do" | Safety: tailgates, the safety library, site safety inspections, incidents | Everything else unless granted | Safety |
+| **Owner's rep / CM** (`owner_rep`) | The district's or university's person | All RFIs and CM documents, meeting minutes, safety briefs, dailies, the punch list; **allowance and contingency logs** (they approve each item and every spend) | The GC's pay and money internals | Board, RFIs, minutes, dailies, allowances, punch list |
+| **Architect / consultant** (`architect`; consultants are the same account type) | Design team; engineers sometimes answer without the architect | RFIs, submittals, ASIs and field orders, plans/specs, minutes, punch list | Money (except change orders they sign) | Review queue (RFIs + submittals), ASIs / field orders, punch list, files |
+| **Fire marshal** (`ahj`) | OFS deputy / AHJ | Permits, Revs, OFS inspections routed to them, the permit's record, plans | Money | Permits, inspections, Revs |
+| **Special inspector / lab** (`special_inspector`) | Gets requests through the inspector | **View-only** plans, specs, RFIs, submittals (no edits; downloads off by default) and their own requests | Everything else | Their requests, their reports |
+| **Sub company office** (`sub`) | The sub's PM / admin behind the foreman | What they owe on every job (on All my jobs and per job), their foremen's work, their pay package | Other subs, the GC's money, budgets | Board, what I owe, submittals, RFIs, pay package |
+| **Requester** (no login, 0055) | Sub in the field via QR | Their own requests and status | Everything else | — |
+| **Meeting sign-in** (no login) | Anyone at a tailgate, job meeting or the morning crew sign-in, via its QR | That meeting's sign-in page only: sign your name, done | Everything | — |
+
+Estimator / bidder / viewer are unchanged (Phase 1). **Provisional:** the matrix rows added on Oct 3 (safety,
+schedule, requirements, revs.manage) are Jesse's to confirm.
+
+### 18.4 Processes
+
+**P1. Inspection requests: the route is the readiness check.**
+1. The sub (member, or no-login QR) requests → **the GC reviews and confirms what's ready** (the existing GC step, as in
+   MDR) → **the inspector** decides, and routes it on:
+   - **special inspection:** the inspector gets an **email** for each one and forwards it to the lab (it works today;
+     keep it).
+   - **OFS:** the inspector sends it to the deputy. The deputy confirms, inspects, passes/fails per wall and item.
+2. **No per-item yes/N/A readiness boxes** (remove 0061's checklist). Every step is already on record because the route
+   recorded it. When the **inspector files a request themselves**, one acknowledgment, once: "submitting as the
+   inspector, I state the following is true", not a box per item.
+3. **One extra question: special inspection required?** If yes, a small notice: "Have the special inspector's reports
+   on site and available for the fire marshal."
+4. **Numbers:** the IR number and the OFS IR number are assigned **when the request is submitted**, by the database
+   from a locked counter (as MDR's Oct 2 fix: a typed number is only the requester's own reference).
+5. **Revs out of order: no warning.** Opening the wall shows what's already signed off.
+6. **Signatures:** the deputy signs and dates a passed OFS IR; an extra project signature box is available, never
+   required.
+7. **Results feed everything:** a failed result or failed test shows **red** on the board of everyone who chose to know;
+   every OFS inspection and every rev (as created) feeds the permit's record automatically.
+
+**P2. The field day.**
+1. **Morning crew sign-in.** Each foreman signs their guys in on their phone (yesterday's crew, a tap each), or
+   everyone signs in at the morning QR (the same no-login sign-in page as meetings). No paper roster. The **super sees
+   live manpower by company** ("the electricians only have two guys here today"). This is the day's record of who was
+   on the job.
+2. **The super's daily is built from the sign-in.** Manpower, deliveries, inspections and results, weather (automatic),
+   tailgates held come in by themselves; the super adds work performed, delays and anything else, and signs. Our
+   standard form (fields ticked on/off per company) or their own mapped form. No separate "for the record" line.
+3. **The foreman's daily** fills the same way (crew and hours from the sign-in); they add work by area, quantities,
+   materials, delays.
+4. **Payroll cross-check (public works):** compares sign-in hours with what the company reports, and only says
+   "looks fine" or "found inconsistencies — double-check this." We are not responsible for payroll.
+5. **T&M tickets:** the crew checks in with whoever is watching the work (foreman, super, PE or inspector — anyone with
+   the right), who verifies through the day and **signs the same day**: check-in, photo, description, signature. It's
+   only a verification signature. Unsigned turns yellow, then red the next day. A ticket can attach to a change event
+   (P5).
+6. **Tailgate safety meetings** (built, 0060): run by the crew's own supervisor at least every **10 working days per
+   crew** (8 CCR 1509(e)); topic from the library (OSHA / NIOSH public-domain talks we may host; CPWR and Cal/OSHA only
+   by link) or their own upload; attendees sign in on the meeting's **public QR page** (the only no-login page besides
+   QR requests); a signed sign-in sheet PDF. "Due soon" to the foreman on day 8, "overdue" on day 10 (then the super and
+   safety manager see it too).
+7. **Super tools:** the site safety inspection is **as needed**: the super starts one and the app fills what it knows.
+   Incidents: a serious injury shows a red banner "report to Cal/OSHA within 8 hours" (8 CCR 342); the app doesn't file
+   it.
+8. **No job hazard analyses / pre-task plans** for now (a safety-department form, not a legal daily task).
+9. **Spanish only where a state or federal rule requires it** (e.g. the heat illness plan, required postings). Leave
+   the rest alone for now.
+
+**P3. Documents and reviews.**
+1. **RFIs:** the existing route and signed sections. Option per job: **the inspector holds an RFI before it goes to the
+   architect** (some inspectors do it, and DSA jobs lean that way; Jesse doesn't). The architect answers fast: their **stamp** (an
+   image they upload once) is placed on the RFI in the app, with a comment — seconds, not a download / stamp / re-upload.
+   Consultants answer and sign their own section; sometimes without the architect.
+2. **Submittals: one register for everyone**, built from the spec book (P4). The PE sees everything they owe without
+   being told; the architect sees everything they're expecting and checks items off by spec section as they arrive;
+   anyone with the right uploads (intern, PM, PE). The architect stamps in the app the same way. Inspectors aren't
+   notified of new submittals; they look them up.
+3. **ASIs and field orders:** their own log.
+4. **CCDs and DSA documents:** we don't produce DSA forms. We store them, and **connect to Box** (DSA works in DSAbox) so
+   a CCD posted there shows up here — the inspector sees it as soon as the architect posts it.
+5. **Bluebeam round trip:** architects live in Bluebeam (markups, Studio, BIM). Make opening a sheet in Bluebeam and
+   bringing the marked-up file back as the next version one step each way.
+6. **Plan links (later step, P-order 6g):** like Forma — tap a detail bubble, land on that sheet; specs and submittals
+   linked; tap a wall and the right column shows a light summary (its submittal, its spec section), never the full
+   documents (keep the backend light). An answered RFI that names its detail ("detail 10 on S10.5") links itself onto
+   that sheet; others are placed by hand if someone wants them there.
+7. **Special inspection log:** special inspectors upload their reports here (they email them today); lab test reports
+   are uploaded by hand. The log builds itself; clocks per §18.5.
+
+**P4. The spec book → the requirements register → the schedule.**
+1. **Requirements register** (built, 0063): everything the books commit someone to — submittals (action /
+   informational / closeout / maintenance material), tests and witnessing, manufacturer field reps (flexible: "not every
+   manufacturer sends a rep, sometimes they just take pictures"), special warranties, attic stock, training, mockups,
+   notices, recurring reports, owner-furnished (OFCI) items — each with the source paragraph, who owns it, its trigger
+   and its due date. AI drafts from a spec section; a person confirms every line (rule 12).
+2. **The procurement chain:** need date (from the schedule activity) → order-by (minus lead time) → submit-by (minus
+   review times from 01 33 00). Yellow, then red.
+3. **OFCI:** the notice-to-owner date counted back from the need date. Jesse's example: the contractor must tell the
+   owner 60 days ahead for the Hunter Hall restroom accessories — when restroom finishes first appear in the two-month
+   look-ahead, the PE's board says "order the OFCI accessories."
+4. **Closeout from day one:** the same register filtered to closeout items, each owned by a sub, visible to that sub on
+   day one (and on their All my jobs).
+5. **Schedule** (built, 0062): one Upload button — PDF or photo first (what supers actually hand out), then P6 XER
+   (common on CA public work), MS Project XML, CSV / the super's Excel look-ahead. No live API feeds yet (Project Online
+   retired Sep 30, 2026; Autodesk Build has no schedule API; Procore later). Activities matched to register lines by ID,
+   codes, keywords/CSI, then AI — a person confirms each match; matches survive monthly updates by activity ID. The
+   3-week look-ahead is the super's weekly view; the monthly update rides with the pay app. Reminder rules are data.
+
+**P5. From a change to getting paid.**
+1. **A field event, CCD or RFI answer starts a change event in one tap** and starts its **notice clock** (the contract's
+   own days; defaults: A201 claims 21 days, concealed conditions 14; ConsensusDocs 14), shown up front on the board.
+   The app never says "notice given" unless the notice was sent the way the contract requires.
+2. Signed T&M tickets attach; sub quotes → the GC's proposal to the owner → executed change order → a line on the next
+   pay app.
+3. **The pay app package (monthly):** their own pay app PDF mapped once and filled, or our standard one (schedule of
+   values, percent complete from the super's walk, change orders, retention). The package fills itself and shows what's
+   missing per sub: the updated schedule, **conditional lien waivers** (the four California statutory forms, CC
+   8132–8138; an unconditional waiver is never recorded before payment shows as paid), the payroll flag, as-builts
+   reviewed. Clocks per §18.5.
+4. **Owner money:** allowance and contingency logs; the owner's rep approves each one and every spend under it.
+5. **Budget / cost forecasting:** not built in for everyone; an option a job turns on when there's a need.
+
+**P6. Meetings and minutes.** Our standard minutes (attendees, the standing sections, items carried forward with who /
+due / resolved) — the standing sections fill themselves from the live logs (open RFIs, submittals due, change status,
+pay app status); they add their own fields, rename and move them. Who writes them is a job setting. Attendance by the
+meeting's QR sign-in.
+
+**P7. One punch list.** One live list per job — never three or four versions on the site. Anyone with an account adds
+items (open, photo, one line, done); every item shows who added it; sort and filter by who added it (inspector,
+architect, owner, GC). Sign-off by whoever added it, or by a person or group allowed to (e.g. the architect may sign off
+the inspector's items). The architect's substantial-completion punch goes on the same list. Separate from the
+inspector's corrections log, linkable.
+
+**P8. Permits and the OFS record.** Keep 0061's fixes that match OSFM's process: deferred items, addenda and change
+orders are **reviews under one permit**; several reviews open at once; the stage after Issued is **Inspected (IS)**
+(every required inspection passed); expiry is 12 months from issue **or the last inspection**, whichever is later. The
+permitted plan set comes in when the job is created / its first plans are uploaded, and markups go back in as new
+versions. Every OFS inspection and every rev feeds the permit's record (P1.7). Later: correction notices from failed
+items with a prefilled reinspection, system tests (sprinkler hydros, alarm acceptance, fire pump, dampers, generator),
+NFPA 13 / 72 completion records, a one-page job card per permit.
+
+**P9. Logs and exports.** Every log: filter, the record's PDF one tap away, a zip of a week / month / everything (§18.1
+#7). Downloads logged (rule 13).
+
+### 18.5 Rules as data (defaults; a job's contract or spec overrides)
+
+| Rule | Value | Source |
+|---|---|---|
+| Tailgate meeting per crew | at least every 10 working days; records kept 1 year | 8 CCR 1509(e), 3203(b)(2) |
+| Serious injury report | within 8 hours (banner only) | 8 CCR 342 |
+| High heat | pre-shift meeting at 95°F | 8 CCR 3395 |
+| Claim notice | 21 days (A201 15.1.3); concealed conditions 14 days (3.7.4); ConsensusDocs 14 | AIA / ConsensusDocs |
+| Pay app | submitted 10 days before the pay date; architect certifies within 7 | A201 9.3.1, 9.4.1 |
+| Pay subs | within 7 days of being paid | B&P 7108.5 |
+| Retention | public ≤5%; released 60 days after completion, then 7 days to subs (private: 45 / 10) | PCC 7201, 7107; CC 8812/8814 |
+| Lien waivers | four statutory forms (conditional / unconditional × progress / final) | CC 8132–8138 |
+| Preliminary notice | within 20 days of first furnishing | CC 8200 ff. |
+| Certified payroll | to DIR eCPR at least monthly (weekly if the contract says) | LC 1771.4 |
+| Apprenticeship (DAS 140) | within 10 days of signing | LC 1777.5 |
+| Insurance certificate | reminder 30 days before expiry | practice |
+| Special inspector daily | within 1 day; nonconforming results immediately | CBC 1704; DSA PR 13-01 |
+| Lab report | within 1 working day (on site), 7 days at most | DSA PR 13-01 |
+| IOR review of test reports | by the end of the next working day | DSA IR A-8 |
+| DSA semi-monthly (DSA 155) | 1st and 16th | DSA IR A-8 |
+| Fire marshal request notice | 48 h (UC campus practice) — **confirm with the OFS deputy** | UCI procedure |
+| OSFM permit | expires 12 months from issue or the last inspection; at most 2 extensions of ≤180 days | OSFM guidelines 2026 |
+| OSFM IR map | one map per IR, 3 colors max, never two alike, title with both IR numbers, phase, date and what; deputy signs passes, writes why on fails | Hunter Hall convention — confirm with the deputy |
+| Closeout | O&M draft 30 days before training; training booked with 14 days' notice; correction period 1 year from substantial completion | typical specs; A201 12.2.2 |
+
+### 18.6 Not now
+
+- The building metadata / spec digest for inspection cards (MDR's inspector tools): a later phase, elsewhere.
+- A live, marked-up master plan set ("the biggest hurdle"): not until Jesse decides it's ours to solve.
+- Accounting, payroll filing, budget forecasting for everyone (optional module only), Cal/OSHA 300 logs.
+- Spanish beyond what a rule requires; job hazard analyses; live schedule APIs (Procore later); weather-driven
+  triggers beyond recording the day's weather.
+
+### 18.7 Build order
+
+Each step: CI green, live on staging, Jesse walks it (§0). Matrix changes stay provisional until he confirms.
+
+- **6a — Monday, Oct 5 (the OFS deputy's first look).** Run Revs end to end on staging with the A202 sheet (Jesse
+  uploads it; Claude may not upload files): walls on Level 02 drawn on the plan, an OFS request with its map, the
+  deputy's pass/fail, signature. Rework the OFS route per P1 (sub → GC → inspector → OFS; inspector acknowledgment;
+  special-inspection notice) and **remove 0061's readiness checklist**; keep 0061's permit fixes (P8) and the permit
+  link; merge and ship.
+- **6b — Ship the rest of wave 2 with tonight's changes.** Merge `wave2-requirements` and `wave2-dailies` into
+  `wave2` (union every shared list; `job_rail_tools()` ends with every tool). Changes: dailies weather from the NWS
+  API (typed override) and per-company field ticks / rename / add; super's and foreman's manpower from the crew
+  sign-in (6c); requirements visible to each sub for their own lines; Safety as built (QR is meetings only).
+- **6c — The field day:** foreman crew sign-in + live manpower, T&M tickets, super tools (site safety inspection),
+  logs with zip export, job facts typed once + geocode + weather.
+- **6d — Documents:** one punch list (P7); the submittal register (expected list / owed list); the architect's stamp
+  in the app; ASIs / field orders log; the optional inspector RFI hold; special inspector view-only access, report
+  upload and the special inspection log; failed results red on boards; notification checkboxes; the morning briefing
+  and Monday "this is your week."
+- **6e — Spec → schedule triggers:** the procurement chain, OFCI notices, closeout from day one, notice clocks.
+- **6f — Money:** change events with notice clocks, the pay app package (theirs mapped or ours), lien waivers, the
+  payroll flag, allowance / contingency logs (owner approves), budget as an optional module. **Matt reviews first.**
+- **6g — Connections:** Box (DSAbox) for CCDs and DSA documents; the Bluebeam round trip; plan links (detail bubbles,
+  RFIs on sheets).
+
+### 18.8 Open questions
+
+- **For the OFS deputy (Monday):** who builds the revs and may change them; who assigns the OFS IR number today; whether
+  OSFM's Procore requirement (Info Bulletin 24-010) applies to CSU jobs; request notice period; whether "Revs" and the
+  map rules are OFS practice or Hunter Hall's; what record OFS must own; who gets `revs.manage`.
+- **For Matt:** how deep the money goes (6f); pay app format; budget module.
+- **For Jesse:** confirm the provisional matrix rows (safety, schedule, requirements, revs.manage); the special
+  inspector download setting; whether the lab gets its own account or only the inspector's forwarded email.
 
 ---
 
