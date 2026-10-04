@@ -82,6 +82,8 @@ insert into public.files (id, org_id, project_id, folder_id, storage_path, origi
   ('e0000000-0000-0000-0000-000000000531', 'b0000000-0000-0000-0000-000000000531', 'c0000000-0000-0000-0000-000000000531',
    'd0000000-0000-0000-0000-000000000531', 'test/ofs-permits/l01.pdf', 'Sample L01.pdf', 'application/pdf',
    'a0000000-0000-0000-0000-000000000531', 'clean');
+-- Finished uploads (0067: a sheet is a file whose upload finished).
+update public.files set upload_complete = true where id::text like 'e0000000-0000-0000-0000-0000000005%' or id::text like 'e0000000-0000-0000-0000-0000000004%';
 
 -- The deputy's permits: P issued today (24-0001), Q a draft (24-0002).
 set local role authenticated;

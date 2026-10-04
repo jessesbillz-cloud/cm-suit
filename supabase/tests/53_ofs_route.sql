@@ -95,6 +95,8 @@ insert into public.files (id, org_id, project_id, folder_id, storage_path, origi
    pg_temp.rid('attach'), 'test/route/ior.jpg', 'Sample ior.jpg', 'image/jpeg', 'a0000000-0000-0000-0000-000000000544', 'clean'),
   ('e0000000-0000-0000-0000-000000000543', 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541',
    pg_temp.rid('attach'), 'test/route/ofs.jpg', 'Sample ofs.jpg', 'image/jpeg', 'a0000000-0000-0000-0000-000000000544', 'clean');
+-- Finished uploads (0067: a sheet is a file whose upload finished).
+update public.files set upload_complete = true where id::text like 'e0000000-0000-0000-0000-0000000005%' or id::text like 'e0000000-0000-0000-0000-0000000004%';
 insert into public.ir_blocks (org_id, project_id, block_date, created_by)
 values ('b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541', pg_temp.d(3), 'a0000000-0000-0000-0000-000000000542');
 

@@ -1,8 +1,7 @@
-// The plan sheets a wall can be given (0056 rev_sheet_ok): the job's PDFs I can read (RLS on files and folders), each
-// with its folder's name, by folder then name. Someone else's unfinished upload isn't a file yet, and an infected one
-// is never offered. Under the job's revs prefix, so a revs write refreshes it with the rest.
+// The plan sheets a wall can be given (0067 rev_sheet_ok): the job's PDFs I can read (RLS on files and folders), each
+// with its folder's name, by folder then name. An upload that never finished isn't a file (nothing to draw), and an
+// infected one is never offered. Under the job's revs prefix, so a revs write refreshes it with the rest.
 import { useQuery } from '@tanstack/react-query';
-import { useUser } from './auth';
 import { supabase } from './client';
 import { throwIfError } from './errors';
 import { qk } from './keys';
@@ -24,7 +23,6 @@ interface SheetFile {
   size: number;
   scan_status: string;
   upload_complete: boolean;
-  created_by: string | null;
 }
 
 interface SheetFolder {
@@ -42,7 +40,7 @@ async function fetchRaw(projectId: string): Promise<{ files: SheetFile[]; folder
   const [files, folders] = await Promise.all([
     supabase
       .from('files')
-      .select('id, folder_id, original_name, mime, size, scan_status, upload_complete, created_by')
+      .select('id, folder_id, original_name, mime, size, scan_status, upload_complete')
       .eq('project_id', projectId)
       .eq('mime', 'application/pdf')
       .is('deleted_at', null)
@@ -52,11 +50,11 @@ async function fetchRaw(projectId: string): Promise<{ files: SheetFile[]; folder
   return { files: throwIfError(files), folders: throwIfError(folders) };
 }
 
-async function fetchSheets(projectId: string, userId: string): Promise<RevSheet[]> {
+async function fetchSheets(projectId: string): Promise<RevSheet[]> {
   const { files, folders } = await fetchRaw(projectId);
   const folderOf = new Map(folders.map((f) => [f.id, f]));
   return files
-    .filter((f) => f.mime === 'application/pdf' && f.scan_status !== 'infected' && (f.upload_complete || f.created_by === userId))
+    .filter((f) => f.mime === 'application/pdf' && f.scan_status !== 'infected' && f.upload_complete)
     .flatMap((f) => {
       const folder = folderOf.get(f.folder_id);
       return folder ? [{ file: f, folder }] : [];
@@ -67,6 +65,5 @@ async function fetchSheets(projectId: string, userId: string): Promise<RevSheet[
 
 /** The job's PDFs I may pick as a wall's plan sheet. */
 export function useRevSheets(projectId: string) {
-  const user = useUser();
-  return useQuery({ queryKey: qk.revsPart(projectId, 'sheets'), queryFn: () => fetchSheets(projectId, user.id) });
+  return useQuery({ queryKey: qk.revsPart(projectId, 'sheets'), queryFn: () => fetchSheets(projectId) });
 }
