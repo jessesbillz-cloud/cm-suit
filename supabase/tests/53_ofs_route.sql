@@ -1,5 +1,5 @@
 begin;
-select plan(131);
+select plan(139);
 -- Migration 0061, the OFS route (SPEC §18.4 P1; Jesse, Oct 3): sub -> GC -> inspector -> OFS, and the two sides kept apart.
 --   * The matrix: the fire marshal holds the OFS pair only; the inspector files requests.
 --   * Where a new request starts, by who files it and its kind. IOR and special requests start where they always did.
@@ -214,6 +214,9 @@ select throws_ok($$ select public.ir_send_ofs(pg_temp.rid('S'), pg_temp.ver('S')
   'nor a special one');
 select is((public.ir_postpone(pg_temp.rid('A'), pg_temp.ver('A'), 'not_ready')).status, 'postponed',
   'the inspector may postpone it before sending (MDR''s postpone, unchanged)');
+select is((public.ir_move(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(4), '10:00', 'timed', 60)).status, 'pending',
+  'the inspector moves it himself: waiting for his send, never "confirmed"');
+select is((public.ir_postpone(pg_temp.rid('A'), pg_temp.ver('A'), 'not_ready')).status, 'postponed', 'postponed again');
 select pg_temp.login('a0000000-0000-0000-0000-000000000544');
 select is((select array[(r).status, ((r).ofs_sent_at is null)::text] from (select public.ir_move(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(5), '08:00', 'timed', 60) as r) x),
   array['pending', 'true'], 'the sub picks a new day: with the inspector again, still not sent');
@@ -310,6 +313,28 @@ select is((select array[(r).result, (r).status] from (select public.ir_set_resul
   array['approved', 'confirmed'], 'the deputy records the result');
 select is(((public.ir_sign(pg_temp.rid('A'), pg_temp.ver('A'), repeat('b', 64))).signed_by = auth.uid()), true, 'the deputy signs');
 select isnt_empty($$ select 1 from public.ir_recipients(pg_temp.rid('A')) $$, 'the deputy picks who gets the results');
+-- Send results: his own IR (a file he made, in the OFS folder he doesn't browse) goes out; the inspector's IR never does.
+reset role;
+insert into ids values ('ofs_folder', public.ir_folder_make('c0000000-0000-0000-0000-000000000541', 'ofs_reports')),
+                       ('ior_folder', public.ir_folder_make('c0000000-0000-0000-0000-000000000541', 'reports'));
+insert into public.files (id, org_id, project_id, folder_id, storage_path, original_name, mime, created_by, scan_status) values
+  ('e0000000-0000-0000-0000-000000000544', 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541',
+   pg_temp.rid('ofs_folder'), 'test/route/ofs-ir.pdf', 'Sample OFS IR.pdf', 'application/pdf', 'a0000000-0000-0000-0000-000000000543', 'clean'),
+  ('e0000000-0000-0000-0000-000000000545', 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541',
+   pg_temp.rid('ior_folder'), 'test/route/ior-ir.pdf', 'Sample IOR IR.pdf', 'application/pdf', 'a0000000-0000-0000-0000-000000000542', 'clean');
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000000543');
+select ok(not public.folder_can_read(pg_temp.rid('ofs_folder')), 'the deputy doesn''t browse the OFS IR folder (unsent requests'' maps are filed there)');
+select lives_ok($$ select public.create_transmittal('c0000000-0000-0000-0000-000000000541', array['probe+rt-sub@example.test'], '{}',
+  array['e0000000-0000-0000-0000-000000000544'::uuid], 'IR results', '') $$, 'the deputy sends the IR he made');
+select lives_ok($$ insert into public.share_links (created_by, org_id, project_id, target_type, target_id, recipient_email)
+  values (auth.uid(), 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541', 'file',
+          'e0000000-0000-0000-0000-000000000544', 'probe+rt-sub@example.test') $$, '... as a share link');
+select throws_ok($$ select public.create_transmittal('c0000000-0000-0000-0000-000000000541', array['probe+rt-sub@example.test'], '{}',
+  array['e0000000-0000-0000-0000-000000000545'::uuid], 'IR results', '') $$, null, null, 'the deputy can''t send the inspector''s IR');
+select throws_ok($$ insert into public.share_links (created_by, org_id, project_id, target_type, target_id, recipient_email)
+  values (auth.uid(), 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541', 'file',
+          'e0000000-0000-0000-0000-000000000545', 'probe+rt-sub@example.test') $$, '42501', null, '... nor link to it');
 select is((select (r).result from (select public.ir_rev_results(pg_temp.rid('W'), pg_temp.ver('W'),
              (select jsonb_agg(jsonb_build_object('area_id', c.area_id, 'item_id', c.item_id, 'result', 'passed'))
                 from public.ir_rev_items c where c.request_id = pg_temp.rid('W'))) as r) x), 'approved',
@@ -358,6 +383,7 @@ select throws_ok($$ select public.ir_folder('c0000000-0000-0000-0000-00000000054
   'the inspector''s IR folder is not the deputy''s');
 select lives_ok($$ insert into ids select 'ofs_reports', public.ir_folder('c0000000-0000-0000-0000-000000000541', 'ofs_reports') $$,
   'OFS IRs and maps have their own folder');
+select is(pg_temp.rid('ofs_reports'), pg_temp.rid('ofs_folder'), 'one such folder per job');
 select pg_temp.login('a0000000-0000-0000-0000-000000000542');
 select throws_ok($$ select public.ir_folder('c0000000-0000-0000-0000-000000000541', 'ofs_reports') $$, '42501', null,
   '... which the inspector doesn''t file into');

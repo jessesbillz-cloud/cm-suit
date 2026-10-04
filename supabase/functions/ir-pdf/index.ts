@@ -116,6 +116,7 @@ async function render(client: Db, service: Db, row: IrRow, signer: Signer, signe
     job: { name: job.name, number: job.number, address: job.address },
     gc: job.gc,
     inspector: signer.name,
+    inspectorLabel: row.kind === 'ofs' ? 'Fire marshal' : 'Inspector',
     number: row.number,
     dateLabel: dayLabel(row.request_date),
     timeLabel: timeLabel(row.start_time),

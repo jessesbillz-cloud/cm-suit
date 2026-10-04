@@ -108,7 +108,7 @@ select is((select array_agg(role order by role) from public.role_permissions whe
   '{architect,inspector_admin,pe,pm,project_admin}'::text[],
   'matrix: permits.respond is the design team''s (and inspector_admin follows the project admin, 0044)');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'ahj'),
-  '{calendar.read,comments.write,files.read_project,ir.ofs_decide,ir.ofs_view,members.view,permits.manage,permits.read,revs.manage,revs.read,safety.read,schedule.read}'::text[],
+  '{calendar.read,comments.write,files.read_project,ir.ofs_decide,ir.ofs_view,members.view,permits.manage,permits.read,revs.manage,revs.read,safety.read,schedule.read,transmittals.send}'::text[],
   'matrix: the official''s whole list (revs from 0056, safety from 0060, schedule from 0062; OFS requests only, 0061)');
 select ok('permits' = any (public.job_rail_tools()), 'Permits is a job tool on the rail');
 select ok((select 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000451')

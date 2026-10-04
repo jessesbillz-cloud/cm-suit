@@ -1,5 +1,5 @@
 begin;
-select plan(77);
+select plan(80);
 -- Migration 0061, the permit side: the one extra question on every OFS request (special inspection required?; member
 -- form, revs request, the link's two), an OFS request from a Revs list carrying the list's permit, the map's facts (the
 -- permit number), the stage Inspected (IS) in place of "Inspections" and what holds it, the expiry by the last
@@ -268,6 +268,11 @@ select is((select array[x.state, x.days::text] from public.permit_progress(null,
   array['current', '30'], 'old Inspections time adds to Issued');
 select is((select jsonb_agg(e ->> 'stage') from public.permit_detail(pg_temp.rid('R')) d, jsonb_array_elements(d -> 'events') e),
   '["issued", "issued"]'::jsonb, 'and the history says Issued');
+select is((public.permit_move(pg_temp.rid('R'), null, 'inspected')).stage, 'inspected', 'the old permit moves on to Inspected');
+select is((public.permit_undo_move(pg_temp.rid('R'), (pg_temp.pmt(pg_temp.rid('R'))).version)).stage, 'issued',
+  'Undo of that move lands on Issued, not on the old stage the database refuses');
+select throws_ok($$ select public.permit_create('c0000000-0000-0000-0000-000000000531', '24-0011', 'Typed at the old stage',
+  'building', '{}', null, '', 'inspections') $$, '22023', 'Unknown stage.', 'a new permit can''t be typed in at the old stage');
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 5. Permit kinds; reviews under one permit

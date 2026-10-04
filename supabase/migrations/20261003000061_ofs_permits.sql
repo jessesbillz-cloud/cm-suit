@@ -36,11 +36,14 @@
 -- requests (Jesse, Oct 3). Renamed, not removed. The inspector files requests too.
 --   ir.ofs_decide  the deputy's steps on an OFS request sent to OFS: confirm, postpone, results, sign, send.
 --   ir.ofs_view    reads an OFS request sent to OFS (ir.ofs_decide reads them too).
+--   transmittals.send  for the fire marshal: Send results on his own IRs (a file he made or may read, below).
 -- ---------------------------------------------------------------------------------------------------------------------
 update public.role_permissions set capability = 'ir.ofs_decide' where role = 'ahj' and capability = 'ir.decide';
 update public.role_permissions set capability = 'ir.ofs_view' where role = 'ahj' and capability = 'ir.view_all';
 insert into public.role_permissions (role, capability, requires_aal2) values
-  ('ahj', 'ir.ofs_decide', false), ('ahj', 'ir.ofs_view', false), ('inspector', 'ir.request', false)
+  ('ahj', 'ir.ofs_decide', false), ('ahj', 'ir.ofs_view', false), ('inspector', 'ir.request', false),
+  -- The deputy sends the results of his own IRs (Send results, as the inspector does for his).
+  ('ahj', 'transmittals.send', false)
 on conflict do nothing;
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -52,7 +55,8 @@ alter table public.inspection_requests
   add column ofs_sent_by uuid references auth.users(id),
   add column special_required boolean;
 
--- The OFS requests made before today: one somebody already acted on is with OFS (sent by that person); helpers come off.
+-- The OFS requests made before today: one somebody already acted on is with OFS (sent by that person) and nobody's
+-- among the deputies; helpers come off.
 do $$
 begin
   perform set_config('app.ir_action', 'send_ofs', true);
@@ -60,7 +64,7 @@ begin
      set helper_id = null, helper_report = null, helper_note = null, helper_at = null
    where kind = 'ofs' and helper_id is not null;
   update public.inspection_requests
-     set ofs_sent_at = created_at, ofs_sent_by = coalesce(owner_id, result_by, signed_by)
+     set ofs_sent_at = created_at, ofs_sent_by = coalesce(owner_id, result_by, signed_by), owner_id = null
    where kind = 'ofs' and ofs_sent_at is null and coalesce(owner_id, result_by, signed_by) is not null
      and (status in ('confirmed', 'postponed', 'complete') or result is not null);
 end $$;
@@ -838,7 +842,8 @@ begin
   end if;
   v_was := r.status;
   if v_inspector then
-    v_status := case when r.status = 'postponed' then 'confirmed' else r.status end;
+    v_status := case when r.status <> 'postponed' then r.status
+                     when r.kind = 'ofs' and r.ofs_sent_at is null then 'pending' else 'confirmed' end;
   elsif r.status in ('gc_review', 'returned') then
     v_status := public.ir_first_status(r.project_id, r.kind);
   else
@@ -1386,6 +1391,46 @@ select f.id, 'ir.ofs_decide', false, true
  where f.parent_id is null and f.name = 'Inspection requests'
    and exists (select 1 from public.folder_access a where a.folder_id = f.id and a.capability = 'ir.request')
    and not exists (select 1 from public.folder_access a where a.folder_id = f.id and a.capability = 'ir.ofs_decide');
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Send results. A transmittal carries files the sender may see: a readable folder (as before) or a file they made
+-- (the IR they signed). The deputy signs OFS IRs but doesn't browse their folder, so "readable folder" alone left him
+-- unable to send his own results.
+-- ---------------------------------------------------------------------------------------------------------------------
+create or replace function public.create_transmittal(p_project_id uuid, p_to_emails text[], p_to_members uuid[], p_file_ids uuid[], p_subject text, p_message text)
+returns public.transmittals
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare t public.transmittals; oid uuid; fid uuid;
+begin
+  if not public.has_capability(p_project_id, 'transmittals.send') then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  foreach fid in array p_file_ids loop
+    if not exists (select 1 from public.files f where f.id = fid and f.project_id = p_project_id and f.deleted_at is null and f.scan_status = 'clean' and public.file_may_see(f.project_id, f.created_by, f.folder_id)) then
+      raise exception 'file % is not sendable (missing, not clean, or not readable)', fid;
+    end if;
+  end loop;
+  select org_id into oid from public.projects where id = p_project_id;
+  insert into public.transmittals (org_id, project_id, number, from_user, to_emails, to_members, file_ids, subject, message, created_by)
+  values (oid, p_project_id, public.next_number(p_project_id, 'transmittal'), auth.uid(),
+          coalesce((select array_agg(lower(e)) from unnest(p_to_emails) e), '{}'::text[]), p_to_members, p_file_ids, p_subject, p_message, auth.uid())
+  returning * into t;
+  return t;
+end;
+$$;
+
+alter policy "share_links: senders create" on public.share_links
+  with check (created_by = auth.uid() and public.has_capability(project_id, 'transmittals.send')
+    and ((target_type = 'file' and exists (
+            select 1 from public.files f
+             where f.id = share_links.target_id and f.project_id = share_links.project_id
+               and public.file_may_see(f.project_id, f.created_by, f.folder_id)))
+         or (target_type = 'folder' and exists (
+            select 1 from public.folders fo where fo.id = share_links.target_id and fo.project_id = share_links.project_id)
+             and public.folder_can_read(target_id))));
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- The old forms of the rules above are retired, so nothing can decide by them again.
@@ -2089,6 +2134,88 @@ begin
                  and x.status <> 'withdrawn' and public.ir_may_see(x.project_id, x.requested_by, x.kind, x.ofs_sent_at)
                order by x.request_date desc, x.number desc limit 50) q
         left join public.ir_special_kinds k on k.id = q.special_kind_id), '[]'::jsonb) else '[]'::jsonb end);
+end;
+$$;
+
+-- =====================================================================================================================
+-- Two fixes on the old stage (found while building the screens)
+-- =====================================================================================================================
+-- 0052's Undo of a move puts the permit back at its previous event's stage: an old move to "Inspections" reads as Issued
+-- (the stage check refuses the old word).
+create or replace function public.permit_undo_move(p_permit_id uuid, p_version integer)
+returns public.permits
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.permits; e public.permit_stage_events; prev public.permit_stage_events;
+begin
+  r := public.permit_lock(p_permit_id, p_version);
+  if not public.has_capability(r.project_id, 'permits.manage') then raise exception 'forbidden' using errcode = '42501'; end if;
+  select * into e from public.permit_stage_events
+   where permit_id = r.id and undone_at is null order by at desc, id desc limit 1;
+  select * into prev from public.permit_stage_events
+   where permit_id = r.id and undone_at is null and id <> e.id order by at desc, id desc limit 1;
+  if e.id is null or prev.id is null or e.stage <> r.stage or e.actor is distinct from auth.uid()
+     or e.at < now() - interval '15 minutes'
+     or exists (select 1 from public.permit_approved_sets s where s.permit_id = r.id and s.created_at >= e.at) then
+    raise exception 'That move can''t be undone now.' using errcode = '22023';
+  end if;
+  update public.permit_stage_events set undone_at = now(), undone_by = auth.uid() where id = e.id;
+  update public.permits
+     set stage = case prev.stage when 'inspections' then 'issued' else prev.stage end, stage_since = prev.at,
+         issued_on = case when e.prior ? 'issued_on' then (e.prior ->> 'issued_on')::date else r.issued_on end,
+         expires_on = case when e.prior ? 'expires_on' then (e.prior ->> 'expires_on')::date else r.expires_on end
+   where id = r.id
+   returning * into r;
+  perform public.audit('permit.undo_move', 'permit', r.id, r.project_id, r.org_id,
+                       jsonb_build_object('number', r.primary_number, 'stage', r.stage, 'undone', e.stage));
+  perform public.post_activity(r.project_id, 'permit.stage',
+    left(public.permit_label(r.primary_number) || ' back to ' || lower(public.permit_stage_label(r.stage)) || ': '
+         || r.title, 500), 'permit', r.id, 'permits.read');
+  return r;
+end;
+$$;
+
+-- 0052's new permit: the old stage is unknown here too (it answered with the table's check, not in words).
+create or replace function public.permit_create(p_project_id uuid, p_primary_number text, p_title text, p_kind text default 'building'::text, p_agency_numbers text[] default '{}'::text[], p_assigned_to uuid default null::uuid, p_notes text default ''::text, p_stage text default 'draft'::text, p_key uuid default null::uuid)
+returns public.permits
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_uid uuid := auth.uid(); p public.projects; r public.permits; v_stage text := coalesce(p_stage, 'draft');
+begin
+  if v_uid is null or not public.has_capability(p_project_id, 'permits.manage') then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  select * into p from public.projects where id = p_project_id and deleted_at is null;
+  if p.id is null then raise exception 'not_found' using errcode = 'P0002'; end if;
+  if not ('permits' = any (p.modules)) then raise exception 'Permits are off for this job.' using errcode = '22023'; end if;
+  if p_key is not null then
+    perform pg_advisory_xact_lock(hashtext('permit_create:' || v_uid::text || ':' || p_key::text));
+    select * into r from public.permits where created_by = v_uid and request_key = p_key;
+    if r.id is not null then return r; end if;
+  end if;
+  perform public.permit_check(p_primary_number, p_agency_numbers, p_title, p_kind, p_notes);
+  if not public.permit_stage_ok(v_stage) or v_stage = 'rejected' then
+    raise exception 'Unknown stage.' using errcode = '22023';
+  end if;
+  if not public.permit_official_ok(p.id, p_assigned_to) then
+    raise exception 'Pick someone on this job who handles permits.' using errcode = '22023';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('permit_number:' || p.id::text));
+  perform public.permit_number_free(p.id, p_primary_number, null);
+  insert into public.permits (org_id, project_id, primary_number, agency_numbers, title, kind, stage, stage_since,
+                              assigned_to, notes, created_by, request_key)
+  values (p.org_id, p.id, btrim(p_primary_number), public.permit_clean_numbers(p_primary_number, p_agency_numbers),
+          btrim(p_title), p_kind, v_stage, now(), p_assigned_to, btrim(coalesce(p_notes, '')), v_uid, p_key)
+  returning * into r;
+  insert into public.permit_stage_events (permit_id, project_id, org_id, stage, at, actor)
+  values (r.id, r.project_id, r.org_id, r.stage, r.stage_since, v_uid);
+  perform public.post_activity(r.project_id, 'permit.created',
+    left('New ' || public.permit_label(r.primary_number) || ': ' || r.title, 500), 'permit', r.id, 'permits.read');
+  return r;
 end;
 $$;
 
