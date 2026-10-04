@@ -2,7 +2,8 @@
 // Role probe, Requirements own lines (0073): a sub reads only the lines of the company its own membership carries (not
 // another company's, not one with no company), through the table and the list; a requester with the same company reads
 // nothing (no capability); the sub writes only its evidence on its own line (not the status, not the picker, not a
-// save, not another company's line) and the spec reader answers it nothing; the foreman still reads the register.
+// save, not another company's line) and the spec reader answers it nothing; a foreman of another company reads that
+// company's line only.
 // Called by role-probe.ts with its seeded job and signed-in clients.
 import { randomUUID } from 'node:crypto';
 import { type Client, type Report, rowsOf } from './_lib';
@@ -65,7 +66,7 @@ export async function checkRequirementsOwn(p: RequirementsOwnProbe): Promise<voi
     report.check('requirements', `${key}: reads no line`, got.length === 0, `${got.length} rows`);
   }
   const foreman = await seen('foreman');
-  report.check('requirements', 'foreman: reads the register (0069)', [mine, theirs, nobodys].every((id) => foreman.includes(id)), `${foreman.length} rows`);
+  report.check('requirements', 'foreman: reads its own company\'s line and no other (SPEC 18.3)', foreman.includes(theirs) && foreman.length === 1, `${foreman.length} rows`);
 
   const list = rows(await p.as('sub').rpc('requirements_list', { p_project_id: p.projectId }), 'requirements_list as sub');
   const only = list.length === 1 ? list[0] : undefined;

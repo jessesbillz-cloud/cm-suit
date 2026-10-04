@@ -69,8 +69,8 @@ select 'b0000000-0000-0000-0000-000000000551', m.project, u.id, u.email, m.role,
 -- The matrix, the rail and the module, as data
 -- ---------------------------------------------------------------------------------------------------------------------
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'requirements.read'),
-  '{architect,foreman,inspector,inspector_admin,owner_rep,pe,pm,project_admin,safety,special_inspector,superintendent}'::text[],
-  'matrix: the GC team, the inspectors, the owner rep and the architect read');
+  '{architect,inspector,inspector_admin,owner_rep,pe,pm,project_admin,safety,special_inspector,superintendent}'::text[],
+  'matrix: the GC team, the inspectors, the owner rep and the architect read (not the foreman: SPEC 18.3)');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'requirements.manage'),
   '{inspector_admin,pe,pm,project_admin}'::text[], 'matrix: the PE, the PM, the project admin (and inspector_admin, 0044) manage');
 select ok(not exists (select 1 from public.role_permissions where capability like 'requirements.%' and requires_aal2),

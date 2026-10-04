@@ -101,7 +101,7 @@ select is((select array_agg(role order by role) from public.role_permissions whe
 select ok(not exists (select 1 from public.role_permissions where capability = 'requirements.read_own' and requires_aal2),
   'matrix: no second factor needed');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'requirements.read'),
-  '{architect,foreman,inspector,inspector_admin,owner_rep,pe,pm,project_admin,safety,special_inspector,superintendent}'::text[],
+  '{architect,inspector,inspector_admin,owner_rep,pe,pm,project_admin,safety,special_inspector,superintendent}'::text[],
   'matrix: who reads the whole register is as 0069 left it');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'requirements.manage'),
   '{inspector_admin,pe,pm,project_admin}'::text[], 'matrix: who manages is as 0069 left it');
@@ -244,7 +244,7 @@ select is(pg_temp.seen('a1', 'c0000000-0000-0000-0000-000000000612'), '{}'::text
 select is(pg_temp.seen('a2', 'c0000000-0000-0000-0000-000000000612'), '{"Alpha line on X"}'::text[], 'read: it is by the one who is');
 select is(cardinality(pg_temp.seen('super')), 5, 'read: a reader reads every kept line, as before');
 select is(cardinality(pg_temp.seen('pe')), 6, 'read: a manager reads the draft too, as before');
-select is(cardinality(pg_temp.seen('foreman')), 5, 'read: the foreman reads every kept line, as 0069 gave him');
+select is(pg_temp.seen('foreman'), pg_temp.seen('a1'), 'read: Alpha''s foreman reads Alpha''s lines and no other company''s');
 select pg_temp.login(pg_temp.u('a1'));
 select is((select count(*)::int from public.requirements where draft or company_org_id is distinct from 'b0000000-0000-0000-0000-000000000613'),
   0, 'read: no draft and no other company''s row, however the table is asked');
@@ -316,7 +316,7 @@ select throws_ok($$ select public.requirements_folder('c0000000-0000-0000-0000-0
   'folder: the manager''s folder call is not his');
 select pg_temp.login(pg_temp.u('foreman'));
 select throws_ok(format('select public.requirement_set_status(%L, %s, %L)', pg_temp.rid('alpha'), pg_temp.ver('alpha'), 'done'),
-  '42501', 'forbidden', 'status: the foreman reads, does not set (as before)');
+  'P0002', 'not_found', 'status: nor does Alpha''s foreman');
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- The Requirements folder: a company's own people add, never read

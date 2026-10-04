@@ -4504,16 +4504,19 @@ export type Database = {
       requirement_reminders: {
         Row: {
           due_on: string
+          rearmed_at: string | null
           reminded_at: string
           requirement_id: string
         }
         Insert: {
           due_on: string
+          rearmed_at?: string | null
           reminded_at?: string
           requirement_id: string
         }
         Update: {
           due_on?: string
+          rearmed_at?: string | null
           reminded_at?: string
           requirement_id?: string
         }

@@ -3,7 +3,7 @@
 -- responsibilities based on who owns that item ... boom, 60 days out ... did you order your owner-furnished restroom
 -- accessories? ... Be flexible, not rigid: not every manufacturer sends a rep, sometimes they just take pictures").
 --   * Roles and capabilities as data (provisional; Jesse reviews): requirements.read for the GC team (superintendent,
---     foreman, pe, pm, project_admin, safety), the inspectors (inspector, inspector_admin, special_inspector), the owner
+--     pe, pm, project_admin, safety), the inspectors (inspector, inspector_admin, special_inspector), the owner
 --     rep and the architect; requirements.manage (add, edit, status, keep or drop drafts, read the spec book with AI):
 --     pe, pm, project_admin and inspector_admin (it follows the project admin, 0044). Requirements joins the
 --     recommended rail before Files (else at the end) for the pe, the pm and the superintendent. Not the project admin
@@ -36,7 +36,9 @@
 -- Roles and capabilities, as data
 -- =====================================================================================================================
 insert into public.role_permissions (role, capability, requires_aal2) values
-  ('superintendent', 'requirements.read', false), ('foreman', 'requirements.read', false), ('pe', 'requirements.read', false),
+  -- Not the foreman: a crew lead never reads other subs' paperwork (SPEC 18.3); his own company's lines come with
+  -- requirements.read_own (0073).
+  ('superintendent', 'requirements.read', false), ('pe', 'requirements.read', false),
   ('pm', 'requirements.read', false), ('project_admin', 'requirements.read', false), ('safety', 'requirements.read', false),
   ('inspector', 'requirements.read', false), ('inspector_admin', 'requirements.read', false),
   ('special_inspector', 'requirements.read', false), ('owner_rep', 'requirements.read', false),
@@ -250,11 +252,13 @@ alter table public.requirements enable row level security;
 create index requirements_project_due on public.requirements (project_id, due_on) where deleted_at is null;
 
 -- Which due dates were reminded (the reminder's own bookkeeping, so a reminder never bumps a row's version). Service
--- role only.
+-- role only. Nothing is deleted here: a reminder that may go out again (requirement_rearm) is marked rearmed_at, and
+-- reminding again clears the mark.
 create table public.requirement_reminders (
   requirement_id uuid not null references public.requirements(id),
   due_on date not null,
   reminded_at timestamptz not null default now(),
+  rearmed_at timestamptz,
   primary key (requirement_id, due_on)
 );
 alter table public.requirement_reminders enable row level security;
@@ -351,7 +355,7 @@ returns void
 language sql
 set search_path = public, pg_temp
 as $$
-  delete from public.requirement_reminders where requirement_id = p_id;
+  update public.requirement_reminders set rearmed_at = now() where requirement_id = p_id and rearmed_at is null;
 $$;
 
 -- The reminder's words: "Notify the owner: Restroom accessories (OFCI) - due Nov 2" (lib/requirements' kind labels).
@@ -760,7 +764,8 @@ begin
         from public.requirements q
        where q.project_id = p.id and q.deleted_at is null and not q.draft and q.status in ('open', 'requested')
          and q.required <> 'optional' and q.due_on is not null and q.due_on <= v_today + 7
-         and not exists (select 1 from public.requirement_reminders rr where rr.requirement_id = q.id and rr.due_on = q.due_on)
+         and not exists (select 1 from public.requirement_reminders rr
+                          where rr.requirement_id = q.id and rr.due_on = q.due_on and rr.rearmed_at is null)
        order by q.due_on, q.created_at
     loop
       v_line := public.requirement_reminder_line(r.kind, r.title, r.due_on, v_today);
@@ -772,7 +777,8 @@ begin
         perform public.create_task(p.id, u, 'requirements.due', v_line, 'requirement', r.id,
           ((r.due_on + 1)::timestamp at time zone p.timezone) - interval '1 second');
       end loop;
-      insert into public.requirement_reminders (requirement_id, due_on) values (r.id, r.due_on) on conflict do nothing;
+      insert into public.requirement_reminders (requirement_id, due_on) values (r.id, r.due_on)
+      on conflict (requirement_id, due_on) do update set reminded_at = now(), rearmed_at = null;
       v_n := v_n + 1;
     end loop;
   end loop;

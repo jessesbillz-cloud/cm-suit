@@ -51,7 +51,7 @@ function role(): string {
   return mockUser().id.replace(/^mock-user-/, '');
 }
 
-const READERS = ['pm', 'pe', 'project_admin', 'inspector_admin', 'super', 'foreman', 'safety', 'inspector', 'owner_rep', 'architect'];
+const READERS = ['pm', 'pe', 'project_admin', 'inspector_admin', 'super', 'safety', 'inspector', 'owner_rep', 'architect'];
 const MANAGERS = ['pm', 'pe', 'project_admin', 'inspector_admin'];
 /** requirements.read_own: the sub's office and the foreman. */
 const OWN = ['sub', 'foreman'];

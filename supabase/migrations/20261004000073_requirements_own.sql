@@ -355,7 +355,8 @@ begin
       -- Another company's line now: the old company's tasks are done; if the line was already reminded for this due
       -- date, the new company's people get theirs now (else the morning check does it).
       perform public.requirement_own_tasks_done(r.id);
-      if exists (select 1 from public.requirement_reminders rr where rr.requirement_id = r.id and rr.due_on = r.due_on) then
+      if exists (select 1 from public.requirement_reminders rr
+                  where rr.requirement_id = r.id and rr.due_on = r.due_on and rr.rearmed_at is null) then
         perform public.requirement_own_tasks(r.id, (now() at time zone v_tz)::date);
       end if;
     end if;
@@ -510,7 +511,8 @@ begin
         from public.requirements q
        where q.project_id = p.id and q.deleted_at is null and not q.draft and q.status in ('open', 'requested')
          and q.required <> 'optional' and q.due_on is not null and q.due_on <= v_today + 7
-         and not exists (select 1 from public.requirement_reminders rr where rr.requirement_id = q.id and rr.due_on = q.due_on)
+         and not exists (select 1 from public.requirement_reminders rr
+                          where rr.requirement_id = q.id and rr.due_on = q.due_on and rr.rearmed_at is null)
        order by q.due_on, q.created_at
     loop
       v_line := public.requirement_reminder_line(r.kind, r.title, r.due_on, v_today);
@@ -524,7 +526,8 @@ begin
       end loop;
       -- The line's own company's people (requirements.read_own), when it has a company.
       perform public.requirement_own_tasks(r.id, v_today);
-      insert into public.requirement_reminders (requirement_id, due_on) values (r.id, r.due_on) on conflict do nothing;
+      insert into public.requirement_reminders (requirement_id, due_on) values (r.id, r.due_on)
+      on conflict (requirement_id, due_on) do update set reminded_at = now(), rearmed_at = null;
       v_n := v_n + 1;
     end loop;
   end loop;

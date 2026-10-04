@@ -37,7 +37,7 @@ jobs:
       - run: |
           deno lint --config supabase/functions/deno.json supabase/functions
           deno check --config supabase/functions/deno.json --node-modules-dir=none supabase/functions/*/index.ts
-          deno test --config supabase/functions/deno.json --node-modules-dir=none supabase/functions/_shared/pdf
+          deno test --config supabase/functions/deno.json --node-modules-dir=none --allow-read --allow-env supabase/functions/_shared
 
   database:
     name: migrations from zero + pgTAP + probes
