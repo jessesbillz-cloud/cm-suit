@@ -1,9 +1,9 @@
 // The OSFM inspection map (Revs, migration 0056): ONE 11x17 landscape page with the plan sheet's page embedded as vectors
 // (scaled to fit, 18 pt margin, its /Rotate honored), the inspected walls highlighted over it in up to three colors, the
 // title in red bold at the top left on a white box with the permit number under it (0061), the legend (swatch + item
-// name), the request's readiness checklist (0061: each item with Yes or N/A) and, on an IR that passed and is signed,
-// the deputy's signature and date in that same box under them through the ONE stamp (stamp.ts), so nothing on the
-// sheet (its number, its title block) is covered.
+// name) and, on an IR that passed and is signed, the deputy's signature and date in that same box under them through
+// the ONE stamp (stamp.ts), so nothing on the sheet (its number, its title block) is covered. No checklist: the
+// request's route is the readiness check (SPEC §18.4 P1).
 // The page content is embedded, not its annotations: old markups on an uploaded sheet never show (OSFM: no previously
 // inspected work on a map), and the sheet viewer leaves them off too. Pure: bytes in, bytes out. Tests: irMap_test.ts.
 import {
@@ -33,12 +33,6 @@ export interface MapLegendItem {
   name: string;
 }
 
-/** One item of the readiness checklist with its answer ("Yes" / "N/A"): _shared/readiness.ts readinessLines. */
-export interface ChecklistLine {
-  label: string;
-  answer: string;
-}
-
 export interface IrMapInput {
   /** The sheet PDF's bytes. */
   sheet: Uint8Array;
@@ -49,8 +43,6 @@ export interface IrMapInput {
   legend: readonly MapLegendItem[];
   /** "Permit 24-0001" under the title, when the request is on a permit. */
   permit?: string | null | undefined;
-  /** The readiness checklist under the legend (an OFS request's; none before 0061). */
-  checklist?: readonly ChecklistLine[] | undefined;
   /** A passed, signed IR: the deputy's signature (PNG or none), name and signed time. */
   stamp: { signaturePng: Uint8Array | null; name: string; signedAtLabel: string } | null;
 }
@@ -119,8 +111,6 @@ const TITLE_LEAD = 17;
 const PERMIT_SIZE = 11;
 const LEGEND_SIZE = 11;
 const LEGEND_LEAD = 13.5;
-const CHECK_SIZE = 9.5;
-const CHECK_LEAD = 12;
 const PAD = 9;
 const SWATCH = { width: 28, height: 12 } as const;
 /** The title box never covers more than this much of the sheet's width. */
@@ -140,43 +130,25 @@ interface TitleBox {
   title: string;
   permit: string | null;
   legend: readonly MapLegendItem[];
-  checklist: readonly ChecklistLine[];
   sign: SignRow | null;
 }
 
-interface Fonts {
-  bold: PDFFont;
-  regular: PDFFont;
-}
-
-/** Between the checklist's labels and their answers (the answers line up in one column). */
-const CHECK_GAP = 10;
-
-/** "Previous required inspections complete" and "Yes": the label regular, the answer bold. */
-function checkParts(line: ChecklistLine): { label: string; answer: string } {
-  return { label: pdfSafe(line.label), answer: pdfSafe(line.answer) };
-}
-
 /**
- * Title, permit number, legend and checklist at the top left, on a white box with a thin red edge, and on a passed,
- * signed IR a signature row under them: answers the spot for the stamp there. Long names wrap; nothing is cut.
+ * Title, permit number and legend at the top left, on a white box with a thin red edge, and on a passed, signed IR a
+ * signature row under them: answers the spot for the stamp there. Long names wrap; nothing is cut.
  */
-function drawTitleBox(page: PDFPage, fonts: Fonts, box: TitleBox): StampSpot | null {
-  const { bold, regular } = fonts;
+function drawTitleBox(page: PDFPage, bold: PDFFont, box: TitleBox): StampSpot | null {
   const { sign } = box;
   const titleLines = wrapText(box.title, bold, TITLE_SIZE, BOX_MAX_TEXT);
   const permitLines = box.permit ? wrapText(box.permit, bold, PERMIT_SIZE, BOX_MAX_TEXT) : [];
   const nameMax = BOX_MAX_TEXT - SWATCH.width - 8;
   const rows = box.legend.map((it) => ({ it, lines: wrapText(it.name, bold, LEGEND_SIZE, nameMax) }));
-  const checks = box.checklist.map(checkParts);
-  const labelWidth = Math.max(0, ...checks.map((c) => regular.widthOfTextAtSize(c.label, CHECK_SIZE)));
   const signWidth = sign === null ? 0 : (sign.image ? SIGNATURE.width + STAMP_GAP : 0) + sign.textWidth;
   const widest = Math.max(
     signWidth,
     ...titleLines.map((l) => bold.widthOfTextAtSize(l, TITLE_SIZE)),
     ...permitLines.map((l) => bold.widthOfTextAtSize(l, PERMIT_SIZE)),
     ...rows.flatMap((r) => r.lines.map((l) => SWATCH.width + 8 + bold.widthOfTextAtSize(l, LEGEND_SIZE))),
-    ...checks.map((c) => labelWidth + CHECK_GAP + bold.widthOfTextAtSize(c.answer, CHECK_SIZE)),
   );
   const left = MARGIN + 6;
   const top = MAP_SIZE.height - MARGIN - 6;
@@ -204,19 +176,6 @@ function drawTitleBox(page: PDFPage, fonts: Fonts, box: TitleBox): StampSpot | n
     cursor -= h + 5;
     return t;
   });
-  // The checklist: a hairline under the legend, then one line per item.
-  let checkRule: number | null = null;
-  let checkBase: number[] = [];
-  if (checks.length > 0) {
-    checkRule = bottom - 6;
-    cursor = checkRule - 5;
-    checkBase = checks.map(() => {
-      const base = cursor - CHECK_SIZE * 0.74;
-      cursor -= CHECK_LEAD;
-      bottom = base - CHECK_SIZE * 0.22;
-      return base;
-    });
-  }
   // The signature row: a hairline under the rest, then the signature's box with the line beside it. Without an image
   // the box is empty, so the line starts at the text's left edge (stamp.ts writes it STAMP_GAP past the box).
   let spot: StampSpot | null = null;
@@ -232,8 +191,8 @@ function drawTitleBox(page: PDFPage, fonts: Fonts, box: TitleBox): StampSpot | n
   page.drawRectangle({
     x: left, y: bottom - PAD, width: widest + 2 * PAD, height: top - bottom + PAD, color: WHITE, borderColor: RED, borderWidth: 0.75,
   });
-  for (const y of [checkRule, rule]) {
-    if (y !== null) page.drawLine({ start: { x: left + PAD, y }, end: { x: left + PAD + widest, y }, thickness: 0.5, color: RULE });
+  if (rule !== null) {
+    page.drawLine({ start: { x: left + PAD, y: rule }, end: { x: left + PAD + widest, y: rule }, thickness: 0.5, color: RULE });
   }
 
   titleLines.forEach((line, i) => {
@@ -252,11 +211,6 @@ function drawTitleBox(page: PDFPage, fonts: Fonts, box: TitleBox): StampSpot | n
       const y = t - 1.5 - LEGEND_SIZE * 0.74 - k * LEGEND_LEAD;
       page.drawText(line, { x: left + PAD + SWATCH.width + 8, y, size: LEGEND_SIZE, font: bold, color: INK });
     });
-  });
-  checks.forEach((c, i) => {
-    const y = checkBase[i] ?? bottom;
-    page.drawText(c.label, { x: left + PAD, y, size: CHECK_SIZE, font: regular, color: INK });
-    page.drawText(c.answer, { x: left + PAD + labelWidth + CHECK_GAP, y, size: CHECK_SIZE, font: bold, color: INK });
   });
   return spot;
 }
@@ -287,17 +241,15 @@ export async function buildIrMap(input: IrMapInput): Promise<Uint8Array> {
   drawStrokes(page, input.strokes, place.box);
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const regular = await doc.embedFont(StandardFonts.Helvetica);
   const stamp = input.stamp;
   // The stamp writes its line in Helvetica: measured the same way, so the box holds it.
-  const sign = stamp ? { image: stamp.signaturePng !== null, textWidth: regular.widthOfTextAtSize(signedByLine(stamp), STAMP_TEXT_SIZE) } : null;
-  const spot = drawTitleBox(page, { bold, regular }, {
-    title: input.title,
-    permit: input.permit ? pdfSafe(input.permit) : null,
-    legend: input.legend,
-    checklist: input.checklist ?? [],
-    sign,
-  });
+  const sign = stamp
+    ? {
+      image: stamp.signaturePng !== null,
+      textWidth: (await doc.embedFont(StandardFonts.Helvetica)).widthOfTextAtSize(signedByLine(stamp), STAMP_TEXT_SIZE),
+    }
+    : null;
+  const spot = drawTitleBox(page, bold, { title: input.title, permit: input.permit ? pdfSafe(input.permit) : null, legend: input.legend, sign });
 
   // Without object streams: much less work for a big sheet, and nothing is compressed twice.
   const bytes = await doc.save({ useObjectStreams: false });

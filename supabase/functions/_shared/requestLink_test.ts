@@ -91,6 +91,7 @@ const FACTS = {
   result: null,
   result_note: null,
   gc_step: false,
+  ofs_sent: false,
 };
 
 Deno.test('calendar answer: time, length, type and color per row; nothing about anyone', () => {
@@ -115,6 +116,24 @@ Deno.test('status answer: the tracker facts and the result line only', () => {
   check(JSON.stringify(Object.keys(out).sort()) === JSON.stringify(Object.keys(FACTS).sort()), 'keys');
   const text = JSON.stringify(out);
   check(!text.includes('Sample Visitor') && !text.includes('555') && !text.includes('Gate') && !text.includes(USER), 'no contact, notes or people');
+});
+
+Deno.test('status answer (0061): whether an OFS request is with OFS, as a yes or no; never when or who sent it', () => {
+  const out = statusAnswer({ ...FACTS, kind: 'ofs', ofs_sent: true, ofs_sent_at: '2026-10-03T17:00:00Z', ofs_sent_by: USER, special_required: true });
+  check(out.ofs_sent === true, 'with OFS');
+  const text = JSON.stringify(out);
+  check(!text.includes('ofs_sent_at') && !text.includes(USER) && !text.includes('special_required'), 'no time, no sender, no answer');
+  check(statusAnswer(FACTS).ofs_sent === false, 'an IOR request is never with OFS');
+  for (const bad of [undefined, null, 'true', 1]) {
+    let threw = false;
+    try {
+      statusAnswer({ ...FACTS, ofs_sent: bad });
+    } catch {
+      threw = true;
+    }
+    check(threw, `ofs_sent is a boolean: ${String(bad)} fails loudly`);
+  }
+  check(submitAnswer({ ...FACTS, ofs_sent: false, receipt: TOKEN }).ofs_sent === false, 'the receipt carries it too');
 });
 
 Deno.test('submit answer: the facts plus the receipt token; a malformed receipt fails loudly', () => {
@@ -165,9 +184,6 @@ Deno.test('submit body: every member-form field plus a contact; strict and bound
   check(SubmitBody.safeParse({ ...SUBMIT, phone: '', email: ' Visitor@Example.TEST ' }).success, 'an email only');
   check(SubmitBody.safeParse({ ...SUBMIT, time: null, duration_kind: 'all_day', duration_min: null }).success, 'Flexible, all day');
   check(SubmitBody.safeParse({ ...SUBMIT, kind: 'special', special_kind_id: HUB }).success, 'a special with its kind');
-  const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' };
-  check(SubmitBody.safeParse({ ...SUBMIT, kind: 'ofs', readiness: READY }).success, 'an OFS request with its checklist (0061)');
-  check(SubmitBody.safeParse({ ...SUBMIT, readiness: null }).success, 'no checklist on an IOR request');
   const bad = [
     { ...SUBMIT, phone: '', email: '' },
     { ...SUBMIT, phone: 'call me' },
@@ -177,11 +193,6 @@ Deno.test('submit body: every member-form field plus a contact; strict and bound
     { ...SUBMIT, duration_kind: 'timed', duration_min: null },
     { ...SUBMIT, kind: 'special', special_kind_id: null },
     { ...SUBMIT, items: '   ' },
-    { ...SUBMIT, kind: 'ofs' },
-    { ...SUBMIT, kind: 'ofs', readiness: null },
-    { ...SUBMIT, kind: 'ofs', readiness: { ...READY, gc: 'no' } },
-    { ...SUBMIT, kind: 'ofs', readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'yes' } },
-    { ...SUBMIT, kind: 'ofs', readiness: { ...READY, extra: 'yes' } },
     { ...SUBMIT, name: 'A'.repeat(121) },
     // Never an uploader, a path, a number or a status from the body.
     { ...SUBMIT, requested_by: USER },
@@ -190,4 +201,35 @@ Deno.test('submit body: every member-form field plus a contact; strict and bound
     { ...SUBMIT, status: 'confirmed' },
   ];
   for (const b of bad) check(!SubmitBody.safeParse(b).success, `refused: ${JSON.stringify(b).slice(0, 80)}`);
+});
+
+/** The words a refused body carries for one field (what parseText hands the page as details.fieldErrors). */
+function fieldErrors(body: unknown, field: string): string[] {
+  const r = SubmitBody.safeParse(body);
+  return r.success ? [] : (r.error.flatten().fieldErrors as Record<string, string[] | undefined>)[field] ?? [];
+}
+
+Deno.test('submit body (0061): an OFS request answers "special inspection required?"; no other kind carries it', () => {
+  const ASK = 'Answer the special inspection question.';
+  const yes = SubmitBody.safeParse({ ...SUBMIT, kind: 'ofs', special_required: true });
+  check(yes.success && yes.data.special_required === true, 'OFS: yes');
+  const no = SubmitBody.safeParse({ ...SUBMIT, kind: 'ofs', special_required: false });
+  check(no.success && no.data.special_required === false, 'OFS: no is an answer');
+  check(SubmitBody.safeParse(SUBMIT).success, 'IOR: absent');
+  check(SubmitBody.safeParse({ ...SUBMIT, special_required: null }).success, 'IOR: null');
+  check(SubmitBody.safeParse({ ...SUBMIT, kind: 'special', special_kind_id: HUB, special_required: null }).success, 'special: null');
+
+  check(fieldErrors({ ...SUBMIT, kind: 'ofs' }, 'special_required')[0] === ASK, 'OFS, absent: asked in words');
+  check(fieldErrors({ ...SUBMIT, kind: 'ofs', special_required: null }, 'special_required')[0] === ASK, 'OFS, null: asked in words');
+  check(fieldErrors({ ...SUBMIT, kind: 'ofs', special_required: 'yes' }, 'special_required')[0] === ASK, 'true or false, not a word');
+  check(fieldErrors({ ...SUBMIT, kind: 'ofs', special_required: 1 }, 'special_required')[0] === ASK, 'true or false, not a number');
+  for (const v of [true, false]) {
+    const ior = fieldErrors({ ...SUBMIT, special_required: v }, 'special_required');
+    check(ior.length === 1 && ior[0] !== ASK && /OFS/.test(ior[0] ?? ''), `IOR with an answer (${String(v)}): refused in words`);
+    check(!SubmitBody.safeParse({ ...SUBMIT, kind: 'special', special_kind_id: HUB, special_required: v }).success, `special with an answer (${String(v)}): refused`);
+  }
+  // The checklist of the first 0061 is gone: its body is an unknown key now, refused like any other.
+  const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' };
+  check(!SubmitBody.safeParse({ ...SUBMIT, kind: 'ofs', special_required: true, readiness: READY }).success, 'no readiness body');
+  check(!SubmitBody.safeParse({ ...SUBMIT, readiness: null }).success, 'not even an empty one');
 });

@@ -1,9 +1,8 @@
 // The request link's contract (SPEC §6.4 #4, §13.2): what a call to the public request-link function may carry and
 // what an answer may contain. Pure (no I/O), so the whitelist is unit-tested (requestLink_test.ts). The SQL side
-// (link_request_* in migrations 0046 and 0055) already returns only these fields; the function passes everything through
-// these projections as well, so a later change to the SQL can never widen what the public pages see.
+// (link_request_* in migrations 0046, 0055 and 0061) already returns only these fields; the function passes everything
+// through these projections as well, so a later change to the SQL can never widen what the public pages see.
 import { uuid, z } from './validate.ts';
-import type { ReadinessKey } from './readiness.ts';
 
 /** 32 random bytes as base64url: the shape rotate_request_link, rotate_request_hub and a receipt hand out. */
 export const token = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Malformed token');
@@ -43,12 +42,14 @@ export const visitorFields = {
   notice_ack: z.literal(true),
 };
 
-const answer = z.enum(['yes', 'na']);
-/** The OFS request's readiness checklist (0061): the five items of readiness.ts, each Yes or N/A, nothing else. */
-export const ReadinessBody = z
-  .object({ previous: answer, trade: answer, gc: answer, ior: answer, special: answer } satisfies Record<ReadinessKey, typeof answer>)
-  .strict();
-const READINESS_RULE = { message: 'Answer the checklist.', path: ['readiness'] };
+const SPECIAL_ASK = 'Answer the special inspection question.';
+/**
+ * The one extra question on an OFS request (0061; SPEC §18.4 P1): "special inspection required?", true or false. Every
+ * OFS request answers it; no other kind carries it. No per-item checklist: the request's route is the readiness check.
+ */
+export const specialRequired = z.boolean({ required_error: SPECIAL_ASK, invalid_type_error: SPECIAL_ASK });
+const SPECIAL_RULE = { message: SPECIAL_ASK, path: ['special_required'] };
+const SPECIAL_OFS_ONLY = { message: 'Only an OFS request answers the special inspection question.', path: ['special_required'] };
 
 /** A phone or an email (at least one). */
 export const hasContact = (b: { phone: string; email: string }): boolean => b.phone !== '' || b.email !== '';
@@ -70,14 +71,15 @@ export const SubmitBody = z
     kind: z.enum(['ior', 'special', 'ofs']),
     special_kind_id: uuid.nullable(),
     items: clean(4000),
-    /** On an OFS request, the checklist (required); none on the others. */
-    readiness: ReadinessBody.nullish(),
+    /** On an OFS request, the answer (required); absent or null on the others (refused there, as a special kind is). */
+    special_required: specialRequired.nullish(),
   })
   .strict()
   .refine(hasContact, CONTACT_RULE)
   .refine(lengthFits, LENGTH_RULE)
   .refine((b) => (b.kind === 'special') === (b.special_kind_id !== null), { message: 'Pick the special inspection.', path: ['special_kind_id'] })
-  .refine((b) => b.kind !== 'ofs' || (b.readiness ?? null) !== null, READINESS_RULE);
+  .refine((b) => b.kind !== 'ofs' || (b.special_required ?? null) !== null, SPECIAL_RULE)
+  .refine((b) => b.kind === 'ofs' || (b.special_required ?? null) === null, SPECIAL_OFS_ONLY);
 export type SubmitRequest = z.infer<typeof SubmitBody>;
 
 const Opened = z.object({ project_name: z.string() });
@@ -100,7 +102,7 @@ const Calendar = z.object({
   rows: z.array(DayRow),
 });
 
-/** The visitor's own request as the status link shows it: the tracker's facts and the inspector's result line. */
+/** The visitor's own request as the status link shows it: the tracker's facts and the result line. */
 const Facts = z.object({
   project_name: z.string(),
   number: z.number().int(),
@@ -114,6 +116,8 @@ const Facts = z.object({
   result: z.string().nullable(),
   result_note: z.string().nullable(),
   gc_step: z.boolean(),
+  /** An OFS request the inspector has sent to OFS (0061): the tracker's OFS step. False on every other request. */
+  ofs_sent: z.boolean(),
 });
 /** ...and, once, the private receipt token for the status link. */
 const Submitted = Facts.extend({ receipt: token });

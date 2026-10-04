@@ -14,8 +14,10 @@
 //             parts (photos or PDFs by their bytes, <= 10 MB each, _shared/requestFiles.ts). The files are registered in
 //             the job's request folder by the database and stored here at the path it gives, then the request is made
 //             (link_request_submit, 0055): numbered by the database, the GC step and board lines as for a member. An
-//             OFS request carries the readiness checklist (0061). The answer carries the private receipt token once;
-//   status    by that receipt alone: the tracker's facts and the inspector's result line;
+//             OFS request answers one extra question, special inspection required? (`special_required`, 0061; no
+//             other kind may carry it), and always takes the GC step, then the inspector, who sends it to OFS. The
+//             answer carries the private receipt token once;
+//   status    by that receipt alone: the tracker's facts (with whether an OFS request is with OFS) and the result line;
 //   join      AFTER the visitor proved their email with the Auth email code ("Sign in to see all your requests"):
 //             records a requester invite on that job for the signed-in address (from the session, never the body);
 //             accept_invites then binds it. An address already on the job is never changed; a revoked or ended one is
@@ -25,7 +27,7 @@
 //             names), for the revs request: a `submit` naming `area_ids` / `item_ids` is an OFS request made through
 //             link_request_submit_ofs (0055's visitor rules and ir_submit_ofs' walls rules);
 //   map, map_save, sheet, map_render, map_download   (0057) by a request's receipt alone: that request's map (read and
-//             draw until the inspector records a result), its sheet and its PDF (revs.ts).
+//             draw until a result is recorded), its sheet and its PDF (revs.ts).
 // This endpoint grants no access to anything else: membership comes from the email code, accept_invites and RLS, and a
 // People revoke ends it. Answers carry only what the pages show, enforced twice: by the service-role-only SQL
 // (link_request_* in 0046, 0055 and 0057) and by the projections in _shared/requestLink.ts and requestLinkRevs.ts; a
@@ -124,7 +126,7 @@ async function submit(req: Request, service: Db, ip: string): Promise<Response> 
       p_item_ids: sent.body.item_ids,
       p_sheet_file_id: sent.body.sheet_file_id,
       p_attachment_ids: ids,
-      p_readiness: sent.body.readiness,
+      p_special_required: sent.body.special_required,
     })
     : await publicRpc<unknown>(service, 'link_request_submit', {
       ...link,
@@ -133,7 +135,7 @@ async function submit(req: Request, service: Db, ip: string): Promise<Response> 
       p_items: sent.body.items,
       p_special_kind_id: sent.body.special_kind_id,
       p_attachment_ids: ids,
-      p_readiness: sent.body.readiness ?? null,
+      p_special_required: sent.body.special_required ?? null,
     });
   if (raw === null) throw new HttpError(404, NOT_ACTIVE);
   const answer = submitAnswer(raw);

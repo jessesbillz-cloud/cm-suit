@@ -158,31 +158,27 @@ Deno.test('irMap: a passed IR carries the stamp; a missing page or a non-PDF is 
   check(junk instanceof Error && junk.message === 'The sheet could not be read as a PDF.', 'not a PDF');
 });
 
-Deno.test('irMap (0061): the permit under the title, the checklist under the legend, the signature under both', async () => {
-  const checklist = [
-    { label: 'Previous required inspections complete', answer: 'Yes' },
-    { label: 'Trade contractor inspection complete', answer: 'Yes' },
-    { label: 'GC inspection complete', answer: 'Yes' },
-    { label: 'IOR inspection complete', answer: 'Yes' },
-    { label: 'Special inspection complete', answer: 'N/A' },
-  ];
-  const doc = await PDFDocument.load(await buildIrMap({
+Deno.test('irMap (0061): the permit under the title, then the legend, then the signature; no checklist', async () => {
+  const input = {
     sheet: await sampleSheet(), page: 1, strokes: STROKES, title: 'IR 377 - OFS IR #0065 - PH III', legend: LEGEND,
-    permit: 'Permit 24-0001', checklist,
     stamp: { signaturePng: null, name: 'Pat Sample', signedAtLabel: 'Oct 5, 2026, 4:05 PM PDT' },
-  }));
-  const content = pageContent(doc);
+  };
+  const content = pageContent(await PDFDocument.load(await buildIrMap({ ...input, permit: 'Permit 24-0001' })));
   const title = textAt(content, 'IR 377 - OFS IR #0065 - PH III');
   const permit = textAt(content, 'Permit 24-0001');
+  const firstItem = textAt(content, LEGEND[0]?.name ?? '');
   const lastItem = textAt(content, LEGEND[2]?.name ?? '');
-  const first = textAt(content, 'Previous required inspections complete');
-  const last = textAt(content, 'Special inspection complete');
   const signed = textAt(content, 'Signed by Pat Sample · Oct 5, 2026, 4:05 PM PDT');
-  check(permit.y < title.y && permit.y > lastItem.y && Math.abs(permit.x - title.x) < 1, 'the permit right under the title');
-  check(first.y < lastItem.y && last.y < first.y && Math.abs(first.x - title.x) < 1, 'the checklist under the legend, in order');
-  check(signed.y < last.y, 'the signature row under the checklist');
-  const yes = textAt(content, 'Yes');
-  const na = textAt(content, 'N/A');
-  check(Math.abs(yes.x - na.x) < 0.01 && yes.x > first.x + 150, 'the answers in one column, right of the labels');
-  check(last.y > MAP_SIZE.height / 2, 'all of it in the top half, clear of the title block');
+  check(permit.y < title.y && permit.y > firstItem.y && Math.abs(permit.x - title.x) < 1, 'the permit right under the title, over the legend');
+  check(signed.y < lastItem.y, 'the signature row under the legend');
+  check(signed.y > MAP_SIZE.height / 2, 'all of it in the top half, clear of the title block');
+  // The route is the readiness check (SPEC §18.4 P1): no item of the old checklist is printed, with or without a permit.
+  for (const gone of ['inspections complete', 'inspection complete', 'N/A']) {
+    check(!content.includes(hexOf(gone)), `no checklist line: ${gone}`);
+  }
+  // Without a permit the box is as it was before 0061: title, legend, signature, each where it was.
+  const plain = pageContent(await PDFDocument.load(await buildIrMap(input)));
+  check(!plain.includes(hexOf('Permit')), 'no permit, no line');
+  check(textAt(plain, LEGEND[0]?.name ?? '').y > firstItem.y, 'the legend moves up when there is no permit line');
+  check(Math.abs(textAt(plain, 'IR 377 - OFS IR #0065 - PH III').y - title.y) < 0.01, 'the title stays put');
 });
