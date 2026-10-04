@@ -1,8 +1,8 @@
 // One report being written. Work log: weather, work log, notes, photos. A form (SPEC §8.3): its day's values and tables
-// (FormFields) and photos; a draft fills in what the job knows that day (useDayPrefill). Field Mode (the phone's default,
-// except for a form with tables, which opens whole): a big Camera button and the notes. Autosaves (useReportDraft); a
-// submitted report opens read-only until Edit. The bottom bar holds Submit (or Download / Send once submitted) and the
-// autosave line.
+// (FormFields) and photos; a draft fills in what the job knows that day (useDayPrefill) and the day's weather
+// (useWeatherFill). Field Mode (the phone's default, except for a form with tables, which opens whole): a big Camera
+// button and the notes. Autosaves (useReportDraft); a submitted report opens read-only until Edit. The bottom bar holds
+// Submit (or Download / Send once submitted) and the autosave line.
 import { useState } from 'react';
 import { Pencil, RotateCw, Smartphone, Trash2 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
@@ -24,6 +24,7 @@ import { PhotoList } from './PhotoList';
 import { SubmitArea } from './SubmitArea';
 import { useDayPrefill } from './useDayPrefill';
 import { useReportDraft } from './useReportDraft';
+import { useWeatherFill } from './useWeatherFill';
 import { WorkLogBody } from './WorkLogBody';
 
 interface EditorHeaderProps {
@@ -98,6 +99,7 @@ export function ReportEditor(props: ReportEditorProps) {
   const [editing, setEditing] = useState(false);
   const c = draft.content;
   const prefill = useDayPrefill({ projectId, report, form, tz: header.timezone, content: c, edit: draft.edit });
+  useWeatherFill({ projectId, report, form, content: c, edit: draft.edit });
   const stale = needsResubmit(report, photos) || (report.status === 'submitted' && draft.status !== 'saved');
   const locked = report.status === 'submitted' && !editing && !stale;
   const uploading = uploads.items.some((i) => i.status === 'queued' || i.status === 'uploading');

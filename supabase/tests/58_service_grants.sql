@@ -15,6 +15,7 @@ insert into want values
   ('csi_divisions', 'SELECT'), ('csi_sections', 'SELECT'), ('ir_maps', 'SELECT'), ('ir_rev_items', 'SELECT'),
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
   ('safety_signins', 'SELECT'), ('safety_topics', 'SELECT'), ('schedule_activities', 'SELECT'),
+  ('project_places', 'SELECT'), ('project_weather', 'SELECT'),
   ('schedule_versions', 'SELECT'), ('role_permissions', 'SELECT'), ('roles', 'SELECT'), ('job_kinds', 'SELECT'),
   ('folder_templates', 'SELECT'), ('owner_lookup', 'SELECT'), ('security_switches', 'SELECT'),
   ('signin_allowlist', 'SELECT'), ('testing_superusers', 'SELECT'), ('testing_role_home', 'SELECT'),

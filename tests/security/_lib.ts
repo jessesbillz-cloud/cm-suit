@@ -149,6 +149,8 @@ export const PUBLIC_TABLES = [
   'schedule_versions', 'schedule_activities',
   // Requirements (0069)
   'requirements', 'requirement_reminders',
+  // Weather on dailies (0071): where the job is, and each day's weather
+  'project_places', 'project_weather',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -307,4 +309,13 @@ export const DAILY_FORMS_RPCS: [string, Record<string, unknown>][] = [
   ['daily_form_store', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1, p_add: null }],
   ['daily_form_setup_problem', { p_setup: FORM_SETUP }],
   ['finish_daily_submit_0023', { p_report_id: ZERO_UUID, p_version: 1, p_content_hash: '0'.repeat(64), p_file_id: ZERO_UUID, p_filename: 'x.pdf' }],
+];
+
+/** Weather on dailies (0071) for the anon probe: the typed location and the server's two stores. */
+export const WEATHER_RPCS: [string, Record<string, unknown>][] = [
+  ['project_place_set', { p_project_id: ZERO_UUID, p_lat: 1, p_lon: 1 }],
+  ['project_place_store', { p_project_id: ZERO_UUID, p_lat: 1, p_lon: 1, p_matched: 'probe', p_address: 'probe', p_replace_typed: true }],
+  ['project_weather_store', {
+    p_project_id: ZERO_UUID, p_day: '2026-01-05', p_high_f: 70, p_low_f: 60, p_conditions: 'probe', p_source: 'nws_observed', p_lat: 1, p_lon: 1,
+  }],
 ];
