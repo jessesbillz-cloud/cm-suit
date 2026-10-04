@@ -1,20 +1,24 @@
-// e2e mock of permit reviews and comments (0052), with the database's rules: one open review at a time (the first is
-// the initial review, later ones backchecks), comments only on the open review and numbered per permit, answers by
-// the design team (permits.respond) while open (a replaced answer stays on the comment), close / reopen by the
-// official (the latest cycle), and naming the
-// permit an inspection request is for (through the inspections mock, so the request carries it like the real row).
+// e2e mock of permit reviews and comments (0052, 0061), with the database's rules: reviews under one permit, each with
+// its kind, its number on the permit and its backchecks (every row one cycle); several reviews open at once, one open
+// cycle per review; deferred items only once the permit is issued; comments only on an open cycle and numbered per
+// permit, answers by the design team (permits.respond) while open (a replaced answer stays on the comment), close /
+// reopen by the official, and naming the permit an inspection request is for (through the inspections mock, so the
+// request carries it like the real row).
 import { conflictError } from '../errors';
 import type { PermitComment, PermitReview } from '../permits.types';
 import { todayInZone } from '../../lib/dates';
 import { mockUser } from './index';
 import * as inspections from './inspections';
 import { permitJobZone } from './permitJobs';
-import type { PermitMockState, StoredComment, StoredReview } from './permitSeeds';
+import type { PermitMockState, StoredComment, StoredPermit, StoredReview } from './permitSeeds';
 import { fail, mustHave, nameOf, read, stored, write } from './permitStore';
 import { delay } from './store';
 
 function reviewOf(r: StoredReview): PermitReview {
-  return { id: r.id, permit_id: r.permit_id, cycle: r.cycle, kind: r.kind, received_on: r.received_on, returned_on: r.returned_on, outcome: r.outcome, version: r.version };
+  return {
+    id: r.id, permit_id: r.permit_id, cycle: r.cycle, review_no: r.review_no, backcheck: r.backcheck, kind: r.kind,
+    received_on: r.received_on, returned_on: r.returned_on, outcome: r.outcome, version: r.version,
+  };
 }
 
 function commentOf(c: StoredComment): PermitComment {
@@ -25,24 +29,57 @@ function next(s: PermitMockState, counter: string): number {
   return s.counters[counter] ?? 1;
 }
 
-export async function reviewOpen(permitId: string, key: string): Promise<PermitReview> {
+/** The kinds a new review takes (permit_review_kind_ok without the unnamed 'deferred' of before 0061). */
+const NEW_KINDS = ['initial', 'deferred_fire_alarm', 'deferred_sprinkler', 'deferred_errcs', 'addendum', 'change_order'];
+const CLOSED = ['complete', 'cancelled'];
+const ISSUED = ['issued', 'inspected', 'approved'];
+
+/** One more cycle on the permit (the next cycle number), with the counter it took its review or backcheck number from. */
+function addCycle(p: StoredPermit, of: Pick<StoredReview, 'review_no' | 'backcheck' | 'kind'>, key: string, counter: string, used: number): PermitReview {
+  const cycles = `permit_review:${p.id}`;
+  const cycle = next(read(), cycles);
+  const r: StoredReview = {
+    id: `${p.id}-r${String(cycle)}`, permit_id: p.id, cycle, review_no: of.review_no, backcheck: of.backcheck, kind: of.kind,
+    received_on: todayInZone(permitJobZone(p.project_id)), returned_on: null, outcome: null, version: 1, created_by: mockUser().id,
+    request_key: key,
+  };
+  write((x) => ({ ...x, reviews: [...x.reviews, r], counters: { ...x.counters, [counter]: used + 1, [cycles]: cycle + 1 } }));
+  return reviewOf(r);
+}
+
+/** permit_review_open: a new review of a kind, numbered per permit. Several may be open at once. */
+export async function reviewOpen(permitId: string, kind: string, key: string): Promise<PermitReview> {
   await delay();
   const s = read();
   const p = stored(s, permitId);
   mustHave('permits.manage');
   const again = s.reviews.find((r) => r.request_key === key && r.created_by === mockUser().id);
   if (again) return reviewOf(again);
-  if (p.stage === 'complete' || p.stage === 'cancelled') throw fail('This permit is closed.');
-  if (s.reviews.some((r) => r.permit_id === p.id && r.outcome === null)) throw fail('Close the open review first.');
-  const counter = `permit_review:${p.id}`;
-  const cycle = next(s, counter);
-  const r: StoredReview = {
-    id: `${p.id}-r${String(cycle)}`, permit_id: p.id, cycle, kind: cycle === 1 ? 'initial' : 'backcheck',
-    received_on: todayInZone(permitJobZone(p.project_id)), returned_on: null, outcome: null, version: 1, created_by: mockUser().id,
-    request_key: key,
-  };
-  write((x) => ({ ...x, reviews: [...x.reviews, r], counters: { ...x.counters, [counter]: cycle + 1 } }));
-  return reviewOf(r);
+  if (CLOSED.includes(p.stage)) throw fail('This permit is closed.');
+  if (!NEW_KINDS.includes(kind)) throw fail('Unknown review kind.');
+  if (kind.startsWith('deferred_') && !ISSUED.includes(p.stage)) throw fail('Deferred items open once the permit is issued.');
+  const counter = `permit_review_no:${p.id}`;
+  const reviewNo = next(s, counter);
+  return addCycle(p, { review_no: reviewNo, backcheck: 0, kind }, key, counter, reviewNo);
+}
+
+/** permit_review_backcheck: the next backcheck of the review this cycle belongs to, once none of its cycles is open. */
+export async function reviewBackcheck(reviewId: string, key: string): Promise<PermitReview> {
+  await delay();
+  const s = read();
+  const r = s.reviews.find((x) => x.id === reviewId);
+  if (!r) throw fail('That item no longer exists.', 'P0002');
+  const p = stored(s, r.permit_id);
+  mustHave('permits.manage');
+  const again = s.reviews.find((x) => x.request_key === key && x.created_by === mockUser().id);
+  if (again) return reviewOf(again);
+  if (CLOSED.includes(p.stage)) throw fail('This permit is closed.');
+  if (s.reviews.some((x) => x.permit_id === p.id && x.review_no === r.review_no && x.outcome === null)) {
+    throw fail('Close the open review first.');
+  }
+  const counter = `permit_bc:${p.id}:${String(r.review_no)}`;
+  const backcheck = next(s, counter);
+  return addCycle(p, { review_no: r.review_no, backcheck, kind: r.kind }, key, counter, backcheck);
 }
 
 export async function reviewClose(reviewId: string, version: number, outcome: string | null): Promise<PermitReview> {
@@ -54,7 +91,10 @@ export async function reviewClose(reviewId: string, version: number, outcome: st
   mustHave('permits.manage');
   if (r.outcome === outcome) return reviewOf(r);
   if (r.version !== version) throw conflictError();
-  if (outcome === null && s.reviews.some((x) => x.permit_id === p.id && x.outcome === null)) throw fail('Close the open review first.');
+  // Opening a cycle again (the Undo) waits for its review's open one.
+  if (outcome === null && s.reviews.some((x) => x.permit_id === p.id && x.review_no === r.review_no && x.outcome === null)) {
+    throw fail('Close the open review first.');
+  }
   const nextRow: StoredReview = {
     ...r, outcome, returned_on: outcome === null ? null : todayInZone(permitJobZone(p.project_id)), version: r.version + 1,
   };

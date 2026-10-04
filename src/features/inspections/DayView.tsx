@@ -1,5 +1,6 @@
 // The inspector's day (SPEC §13.2): every request and blocked time on one day, live. Confirm is one tap from here
-// (tap budget §7.9: 2). Removing blocked time is undoable.
+// (tap budget §7.9: 2), on the requests I decide: never on an OFS request for the inspector (he sends it on from the
+// request), always for the deputy, whose day is the OFS requests sent to OFS. Removing blocked time is undoable.
 import { Plus } from 'lucide-react';
 import { useConfirmIr } from '../../data/inspections.decide';
 import { useRemoveBlock } from '../../data/inspections.mutations';
@@ -13,11 +14,14 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
 import { DayNav } from './DayNav';
+import { decidesRequest, routesOnly } from './model';
 import { QueueRow } from './QueueRow';
 import { addDaysTo } from './time';
 
 interface DayViewProps {
   projectId: string;
+  /** What I hold of the two rights that decide requests. */
+  can: { decide: boolean; ofsDecide: boolean };
   day: string;
   today: string;
   selectedId: string | null;
@@ -27,7 +31,7 @@ interface DayViewProps {
   onRequest?: (() => void) | undefined;
 }
 
-export function DayView({ projectId, day, today, selectedId, onDay, onOpen, onRequest }: DayViewProps) {
+export function DayView({ projectId, can, day, today, selectedId, onDay, onOpen, onRequest }: DayViewProps) {
   const cal = useIrCalendar(projectId, day, day);
   const confirm = useConfirmIr();
   const removeBlock = useRemoveBlock(projectId);
@@ -107,6 +111,8 @@ export function DayView({ projectId, day, today, selectedId, onDay, onOpen, onRe
               key={r.id ?? `row-${String(i)}`}
               row={r}
               selected={r.id !== null && r.id === selectedId}
+              ofsDecide={can.ofsDecide}
+              canConfirm={decidesRequest(r, can) && !routesOnly(r)}
               confirming={confirm.isPending && confirm.variables.row.id === r.id}
               onOpen={onOpen}
               onConfirm={doConfirm}

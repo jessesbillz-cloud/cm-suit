@@ -17,6 +17,7 @@ import {
   AccessLinkPage,
   HubPage,
   KeyLoginPage,
+  MeetingSigninPage,
   NewJobPage,
   PublicDeliveriesPage,
   RequestLinkPage,
@@ -47,6 +48,8 @@ interface ToolSearch {
   level?: string;
   wall?: string;
   place?: string;
+  /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
+  range?: string;
 }
 
 function str(v: unknown): string | undefined {
@@ -73,6 +76,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const level = str(s['level']);
   const wall = idList(s['wall']);
   const place = idList(s['place']);
+  const range = str(s['range']);
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
@@ -86,6 +90,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(level && level.length <= 40 ? { level } : {}),
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
+    ...(range === '2m' ? { range } : {}),
   };
 }
 
@@ -183,6 +188,13 @@ const requestLinkRoute = createRoute({
 });
 /** A request sent with no login, by its private status link (0055): the tracker and the result line. */
 const requestStatusRoute = createRoute({ getParentRoute: () => rootRoute, path: '/r/$projectId/s/$receipt', component: RequestStatusPage });
+/** A meeting's sign-in page (SPEC §6.4 #8, 0060): the QR on a tailgate or job meeting's screen; its token. */
+const meetingSigninRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/m/$meetingId',
+  validateSearch: parseAccessSearch,
+  component: MeetingSigninPage,
+});
 /** One link for all the jobs a person takes inspection requests on. */
 const hubRoute = createRoute({ getParentRoute: () => rootRoute, path: '/h/$hubId', validateSearch: parseAccessSearch, component: HubPage });
 
@@ -239,6 +251,7 @@ const routeTree = rootRoute.addChildren([
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
   allPermitsRoute.addChildren([allPermitsItemRoute]),
   requestStatusRoute,
+  meetingSigninRoute,
 ]);
 
 export const router = createRouter({ routeTree, defaultPreload: false, basepath: __BASE_PATH__ });

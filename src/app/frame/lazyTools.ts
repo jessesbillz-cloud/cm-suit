@@ -33,6 +33,10 @@ export const CorrectionsTool = lazyRouteComponent(() =>
 );
 export const RfisTool = lazyRouteComponent(() => import('../../features/rfis/RfisTool').then((m) => ({ default: m.RfisTool })));
 export const PermitsTool = lazyRouteComponent(() => import('../../features/permits/PermitsTool').then((m) => ({ default: m.PermitsTool })));
+export const SafetyTool = lazyRouteComponent(() => import('../../features/safety/SafetyTool').then((m) => ({ default: m.SafetyTool })));
+export const ScheduleTool = lazyRouteComponent(() =>
+  import('../../features/schedule/ScheduleTool').then((m) => ({ default: m.ScheduleTool })),
+);
 export const HoursTool = lazyRouteComponent(() => import('../../features/hours/HoursTool').then((m) => ({ default: m.HoursTool })));
 export const TimesheetsTool = lazyRouteComponent(() =>
   import('../../features/timesheets/TimesheetsTool').then((m) => ({ default: m.TimesheetsTool })),
@@ -58,6 +62,10 @@ export const CorrectionItem = lazyRouteComponent(() =>
 );
 export const RfiItem = lazyRouteComponent(() => import('../../features/rfis/RfiItem').then((m) => ({ default: m.RfiItem })));
 export const PermitItem = lazyRouteComponent(() => import('../../features/permits/PermitItem').then((m) => ({ default: m.PermitItem })));
+export const SafetyItem = lazyRouteComponent(() => import('../../features/safety/SafetyItem').then((m) => ({ default: m.SafetyItem })));
+export const ScheduleItem = lazyRouteComponent(() =>
+  import('../../features/schedule/ScheduleItem').then((m) => ({ default: m.ScheduleItem })),
+);
 export const HoursItem = lazyRouteComponent(() => import('../../features/hours/HoursItem').then((m) => ({ default: m.HoursItem })));
 export const TimesheetsItem = lazyRouteComponent(() =>
   import('../../features/timesheets/TimesheetsItem').then((m) => ({ default: m.TimesheetsItem })),
@@ -103,6 +111,10 @@ function partsOf(tool: Tool, onJob: boolean): readonly Part[] {
       return [RfisTool, RfiItem];
     case 'permits':
       return [PermitsTool, PermitItem];
+    case 'safety':
+      return [SafetyTool, SafetyItem];
+    case 'schedule':
+      return [ScheduleTool, ScheduleItem];
     case 'hours':
       return [HoursTool, HoursItem];
     case 'timesheets':

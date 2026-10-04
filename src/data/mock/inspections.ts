@@ -1,14 +1,23 @@
-// Mock inspections for e2e: synthetic requests kept in sessionStorage (its own key), the same rules the RPCs apply in
-// short form. PDFs and email are server-only and are not mocked.
+// Mock inspections for e2e: synthetic requests kept in sessionStorage (its own key), read and changed by the database's
+// rules (mock/irRules: who holds which right, who reads a request, who decides it now, the route of an OFS request,
+// each step's refusals). PDFs and email are server-only and are not mocked. `list`, `request`, `events` and `calendar`
+// answer as the signed-in mock user reads them; the `server*` reads are what the database's own functions see (the
+// link's receipts and day, the revs status).
 import { todayInZone } from '../../lib/dates';
+import { parseProjectSettings } from '../../lib/settings';
 import { conflictError } from '../errors';
 import type { CalendarRow, FormContext, IrEvent, IrRecipient, IrRequest, IrRowRaw, NewBlock } from '../inspections.types';
 import { SEED_IR } from './boardSeeds';
+import { MOCK_PEOPLE } from './fixtures';
+import { calendarRows, type MockBlock } from './irCalendar';
 import { permitJobRequests, seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
-import { permitJobRole } from './permitJobs';
+import { STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, type Args } from './irRules';
+import { projectSettings } from './jobs';
+import { has as hasPermitRight } from './permitStore';
 import { revsJobRequests } from './revSeeds';
-import { delay } from './store';
+import { read as readRevs } from './revs';
+import { delay, readMock } from './store';
 
 const KEY = 'e2e-mock-ir';
 const TZ = 'America/Los_Angeles';
@@ -20,17 +29,6 @@ const KINDS = [
   { id: 'kind-masonry', name: 'Masonry' },
   { id: 'kind-anchors', name: 'Post-installed anchors' },
 ];
-
-export interface MockBlock {
-  id: string;
-  version: number;
-  project_id: string;
-  block_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  repeat_weekly: boolean;
-  deleted: boolean;
-}
 
 interface IrState {
   requests: IrRowRaw[];
@@ -69,96 +67,97 @@ function withKind(r: IrRowRaw): IrRequest {
   return { ...r, ir_special_kinds: name === null ? null : { name } };
 }
 
-/** The server's ir_status_key, for the mock. */
-export function statusKey(r: Pick<IrRowRaw, 'status' | 'result' | 'helper_id'>): string {
-  if (r.status === 'postponed') return 'postponed';
-  if (r.status === 'gc_review') return 'gc_review';
-  if (r.status === 'returned') return 'blocked';
-  if (r.result === 'approved' || r.result === 'not_approved') return r.result;
-  if (r.status === 'confirmed' && r.helper_id !== null) return 'assigned';
-  return r.status === 'confirmed' || r.status === 'complete' ? 'confirmed' : 'pending';
+/** ir_status_key (the permits mock reads it from here). */
+export { statusKey } from './irRules';
+
+/** The job's calendar rows in a range, as `viewer` may read them (ir_calendar_rows). */
+function rowsFor(projectId: string, from: string, to: string, viewer: string | null, team: boolean, decide: boolean): CalendarRow[] {
+  const s = read();
+  return calendarRows({ requests: s.requests, blocks: s.blocks, kindName }, { projectId, from, to }, { viewer, team, decide });
 }
 
-function toCalendar(r: IrRowRaw): CalendarRow {
-  return {
-    id: r.id, number: r.number, version: r.version, full_detail: true, mine: r.requested_by === mockUser().id, is_block: false,
-    request_date: r.request_date, start_time: r.start_time, duration_kind: r.duration_kind, duration_min: r.duration_min,
-    kind: r.kind, special_kind: kindName(r.special_kind_id), status: r.status, status_key: statusKey(r), result: r.result,
-    attendance: r.attendance, company: r.company, items: r.items, owner_id: r.owner_id, helper_id: r.helper_id,
-    postpone_reason: r.postpone_reason, postpone_until: r.postpone_until,
-  };
+/** has_capability for the ir.* rows, as the signed-in mock user. */
+export async function capability(cap: string): Promise<boolean> {
+  await delay();
+  return holds(mockUser().id, cap);
 }
 
-function blockRow(b: MockBlock, day: string): CalendarRow {
-  const [sh = 0, sm = 0] = (b.start_time ?? '0:0').split(':').map(Number);
-  const [eh = 0, em = 0] = (b.end_time ?? '0:0').split(':').map(Number);
-  return {
-    id: b.id, number: null, version: b.version, full_detail: true, mine: false, is_block: true, request_date: day,
-    start_time: b.start_time, duration_kind: b.start_time === null ? 'all_day' : 'timed',
-    duration_min: b.start_time === null ? null : eh * 60 + em - (sh * 60 + sm), kind: 'block', special_kind: null,
-    status: 'blocked', status_key: 'blocked', result: null, attendance: null, company: null, items: null, owner_id: null,
-    helper_id: null, postpone_reason: null, postpone_until: null,
-  };
-}
-
-/** Days from `from` to `to` that are the block's day or, when weekly, the same weekday after it. */
-function blockDays(b: MockBlock, from: string, to: string): string[] {
-  const days: string[] = [];
-  for (let d = Date.parse(`${from}T12:00:00Z`); d <= Date.parse(`${to}T12:00:00Z`); d += 86_400_000) {
-    const day = new Date(d).toISOString().slice(0, 10);
-    const diff = Math.round((Date.parse(`${day}T12:00:00Z`) - Date.parse(`${b.block_date}T12:00:00Z`)) / 86_400_000);
-    if (diff === 0 || (b.repeat_weekly && diff > 0 && diff % 7 === 0)) days.push(day);
-  }
-  return days;
-}
-
+/**
+ * calendar_inspections (over ir_calendar): nothing for someone with no inspection right; the deputy's is the OFS
+ * requests sent to OFS, in full, with nothing of any other kind and no inspector's blocked time; everyone else's is
+ * the job's calendar (in full for the team, my own in full for a requester).
+ */
 export async function calendar(projectId: string, from: string, to: string): Promise<CalendarRow[]> {
   await delay();
-  const s = read();
-  const rows = s.requests
-    .filter((r) => r.project_id === projectId && r.status !== 'withdrawn' && r.request_date >= from && r.request_date <= to)
-    .map(toCalendar);
-  const blocks = s.blocks.filter((b) => b.project_id === projectId && !b.deleted).flatMap((b) => blockDays(b, from, to).map((d) => blockRow(b, d)));
-  return [...rows, ...blocks].sort((a, b) => a.request_date.localeCompare(b.request_date) || (a.start_time ?? '').localeCompare(b.start_time ?? ''));
+  const me = mockUser().id;
+  const decide = holds(me, 'ir.decide');
+  const team = decide || holds(me, 'ir.view_all');
+  if (holds(me, 'ir.request') || team) return rowsFor(projectId, from, to, me, team, decide);
+  if (!holds(me, 'ir.ofs_view') && !holds(me, 'ir.ofs_decide')) return [];
+  return rowsFor(projectId, from, to, me, true, false).filter((r) => !r.is_block && r.kind === 'ofs' && r.ofs_sent);
+}
+
+/** The job's day as the request link's function reads it for a visitor: time, length, type and color only. */
+export async function serverDay(projectId: string, day: string): Promise<CalendarRow[]> {
+  await delay();
+  return rowsFor(projectId, day, day, null, false, false);
 }
 
 export async function formContext(projectId: string): Promise<FormContext> {
   await delay();
+  const settings = parseProjectSettings(projectSettings(projectId));
   return {
-    // The permit jobs are the fire marshal's (OFS) jobs.
-    gc: 'Sample Builders', inspectors: ['Sample Inspector'], gc_step: false, ofs: permitJobRole(projectId) !== null, kinds: KINDS,
+    gc: 'Sample Builders', inspectors: ['Sample Inspector'], gc_step: settings.ir_gc_approval, ofs: settings.ir_ofs_allowed, kinds: KINDS,
     companies: ['Sample Concrete Co', 'Sample Steel Co'], my_company: 'Sample Concrete Co', today: todayInZone(TZ),
   };
 }
 
+/** One request, if the signed-in mock user may read it in full (RLS: ir_may_see). */
 export async function request(requestId: string): Promise<IrRequest | null> {
+  await delay();
+  const r = read().requests.find((x) => x.id === requestId);
+  return r && maySee(mockUser().id, r) ? withKind(r) : null;
+}
+
+/** The job's requests the signed-in mock user may read in full (RLS). */
+export async function list(projectId: string, filter: (r: IrRowRaw) => boolean): Promise<IrRequest[]> {
+  await delay();
+  const me = mockUser().id;
+  return read().requests.filter((r) => r.project_id === projectId && maySee(me, r) && filter(r)).map(withKind);
+}
+
+/** One request as the database's own functions read it (a link receipt's request; no caller behind it). */
+export async function serverRequest(requestId: string): Promise<IrRequest | null> {
   await delay();
   const r = read().requests.find((x) => x.id === requestId);
   return r ? withKind(r) : null;
 }
 
-export async function list(projectId: string, filter: (r: IrRowRaw) => boolean): Promise<IrRequest[]> {
+/** Every request of the job, as the database's own functions read them (the revs status counts them all). */
+export async function serverList(projectId: string, filter: (r: IrRowRaw) => boolean): Promise<IrRequest[]> {
   await delay();
   return read().requests.filter((r) => r.project_id === projectId && filter(r)).map(withKind);
 }
 
+/** A request's history, for who may read the request. */
 export async function events(requestId: string): Promise<IrEvent[]> {
   await delay();
-  return read().events.filter((e) => e.request_id === requestId).reverse();
+  const s = read();
+  const r = s.requests.find((x) => x.id === requestId);
+  if (!r || !maySee(mockUser().id, r)) return [];
+  return s.events.filter((e) => e.request_id === requestId).reverse();
 }
 
-export async function recipients(): Promise<IrRecipient[]> {
+/** ir_recipients: who the results can go to, for the one who decides the request now. */
+export async function recipients(requestId: string): Promise<IrRecipient[]> {
   await delay();
   const me = mockUser().id;
+  const r = read().requests.find((x) => x.id === requestId);
+  if (!r || !ownerOk(me, r)) throw forbidden();
   return [{ member_id: 'member-self', user_id: me, full_name: 'Sample Requester', company: 'Sample Concrete Co', role: 'sub', preselect: true }];
 }
 
-function opt(a: Record<string, unknown>, k: string): string | null {
-  const v = a[k];
-  return typeof v === 'string' ? v : null;
-}
-
-function newRow(a: Record<string, unknown>, number: number): IrRowRaw {
+function newRow(a: Args, number: number): IrRowRaw {
   const me = mockUser().id;
   const now = new Date().toISOString();
   const str = (k: string): string | null => opt(a, k);
@@ -176,6 +175,7 @@ function newRow(a: Record<string, unknown>, number: number): IrRowRaw {
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
+    ofs_sent_at: null, ofs_sent_by: null, special_required: null,
   };
 }
 
@@ -186,66 +186,88 @@ function withOfs(row: IrRowRaw, s: IrState): IrRowRaw {
   return { ...row, ofs_number: Math.max(0, ...used) + 1 };
 }
 
-type Change = (r: IrRowRaw, a: Record<string, unknown>, me: string) => Partial<IrRowRaw>;
-
-const CHANGES: Record<string, Change> = {
-  ir_confirm: (r, a, me) => ({ status: r.ir_file_id ? 'complete' : 'confirmed', owner_id: me, confirm_note: opt(a, 'p_note'), postpone_reason: null, postpone_note: null, postpone_until: null }),
-  ir_unconfirm: () => ({ status: 'pending' }),
-  ir_set_attendance: (_r, a, me) => ({ attendance: opt(a, 'p_attendance'), owner_id: me }),
-  ir_set_result: (r, a, me) => ({
-    result: opt(a, 'p_result'), result_note: opt(a, 'p_note'), owner_id: me, status: r.status === 'pending' ? 'confirmed' : r.status,
-    result_photo_ids: Array.isArray(a['p_photo_ids']) ? (a['p_photo_ids'] as string[]) : [],
-  }),
-  ir_postpone: (r, a) => ({
-    status: 'postponed', postpone_reason: opt(a, 'p_reason'), postpone_note: opt(a, 'p_note'), postpone_until: opt(a, 'p_until'),
-    postpone_count: r.postpone_count + (r.status === 'postponed' ? 0 : 1),
-  }),
-  ir_move: (r, a) => ({
-    request_date: opt(a, 'p_request_date') ?? r.request_date, start_time: opt(a, 'p_start_time'),
-    duration_kind: opt(a, 'p_duration_kind') ?? 'timed',
-    duration_min: typeof a['p_duration_min'] === 'number' ? a['p_duration_min'] : null,
-    status: r.owner_id === mockUser().id ? r.status : 'pending',
-  }),
-  ir_withdraw: () => ({ status: 'withdrawn' }),
-  ir_restore: () => ({ status: 'pending' }),
-  ir_gc_decide: (_r, a) => ({ status: a['p_approve'] === true ? 'pending' : 'returned', gc_note: opt(a, 'p_note') }),
-  ir_claim: (r, _a, me) => (r.owner_id === null ? { owner_id: me } : { helper_id: me }),
-  ir_assign_helper: (_r, a) => ({ helper_id: opt(a, 'p_helper_id') }),
-  ir_helper_report: (_r, a) => ({ helper_report: opt(a, 'p_report'), helper_note: opt(a, 'p_note') }),
-  // Permits (0052): the permit the request is for.
-  set_request_permit: (_r, a) => ({ permit_id: opt(a, 'p_permit_id') }),
-};
-
-/** The history word the server writes for each RPC. */
-function actionOf(name: string, a: Record<string, unknown>): string {
-  if (name === 'ir_gc_decide') return a['p_approve'] === true ? 'gc_approve' : 'gc_return';
-  const map: Record<string, string> = {
-    ir_set_result: 'result', ir_set_attendance: 'attendance', ir_assign_helper: 'helper', set_request_permit: 'permit',
+/** What ir_first_status reads of the job: its GC step setting, and whether somebody active can do the GC step. */
+function jobFacts(projectId: string): { gcStep: boolean; gcApprover: boolean } {
+  const revoked = readMock().revoked;
+  return {
+    gcStep: parseProjectSettings(projectSettings(projectId)).ir_gc_approval,
+    gcApprover: MOCK_PEOPLE.some((p) => p.status === 'active' && !revoked.includes(p.member_id) && holds(p.user_id, 'ir.gc_approve')),
   };
-  return map[name] ?? name.replace(/^ir_/, '');
 }
 
-/** The IR RPCs, mocked: a version check, the change, the history line. */
-export async function rpc(name: string, a: Record<string, unknown>): Promise<IrRowRaw> {
+/**
+ * A new request (the shared end of ir_submit, ir_submit_ofs and link_request_make; `by` null: a visitor on the link, who
+ * is nobody on the job): an OFS request answers the special inspection question; an inspector's own OFS request needs
+ * his one statement and goes straight to OFS; every other request starts where ir_first_status puts it. `a` takes
+ * ir_submit's argument names.
+ */
+function fileRequest(a: Args, by: string | null, patch: Partial<IrRowRaw>): IrRowRaw {
+  const projectId = opt(a, 'p_project_id') ?? '';
+  const kind = opt(a, 'p_kind') ?? 'ior';
+  if (by !== null && !holds(by, 'ir.request')) throw forbidden();
+  if (a['p_notice_ack'] !== true) throw refuse('Check the notice box first.');
+  if (kind === 'ofs' && !parseProjectSettings(projectSettings(projectId)).ir_ofs_allowed) throw refuse('OFS is off for this job.');
+  const special = a['p_special_required'];
+  if (kind === 'ofs' && typeof special !== 'boolean') throw refuse('Answer the special inspection question.');
+  const sent = kind === 'ofs' && holds(by, 'ir.decide');
+  if (sent && a['p_inspector_ack'] !== true) throw refuse("Check the inspector's statement first.");
+  const s = read();
+  const number = s.next[projectId] ?? 1;
+  const fresh = newRow(a, number);
+  const row = withOfs(
+    {
+      ...fresh, status: firstStatus(by, kind, jobFacts(projectId)), special_required: kind === 'ofs' && typeof special === 'boolean' ? special : null,
+      ofs_sent_at: sent ? fresh.created_at : null, ofs_sent_by: sent ? by : null, ...patch,
+    },
+    s,
+  );
+  write((x) => ({ ...x, requests: [...x.requests, row], next: { ...x.next, [projectId]: number + 1 },
+    events: [...x.events, { id: x.events.length + 1, request_id: row.id, action: 'submit', actor_id: by, created_at: row.created_at }] }));
+  return row;
+}
+
+/** ir_for_update: the request, if the signed-in mock user may read it in full. */
+function readable(requestId: unknown): IrRowRaw {
+  const r = read().requests.find((x) => x.id === requestId);
+  if (!r || !maySee(mockUser().id, r)) throw notFound();
+  return r;
+}
+
+/** ir_decider, for the walls' results (mock/revRequests): the request, if I decide it now and saw this version. */
+export function decider(requestId: string, version: number): IrRowRaw {
+  const r = readable(requestId);
+  if (r.version !== version) throw conflictError();
+  mustDecide(mockUser().id, r);
+  return r;
+}
+
+/** The IR RPCs, mocked: who may see the request, the version check, the step's own rules (mock/irRules), the history
+ *  line. A step that changes nothing answers the row as it is. */
+export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   await delay();
   const me = mockUser().id;
-  if (name === 'ir_submit') {
-    const projectId = opt(a, 'p_project_id') ?? '';
-    const number = (read().next[projectId] ?? 1);
-    const row = withOfs(newRow(a, number), read());
-    write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
-      events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: me, created_at: row.created_at }] }));
-    return row;
-  }
-  const change = CHANGES[name];
-  const current = read().requests.find((r) => r.id === a['p_request_id']);
-  if (!change || !current) throw new Error('That inspection no longer exists.');
-  if (current.version !== a['p_version']) throw conflictError();
-  const next: IrRowRaw = { ...current, ...change(current, a, me), version: current.version + 1, updated_at: new Date().toISOString() };
+  if (name === 'ir_submit') return fileRequest(a, me, {});
+  const step = STEPS[name];
+  if (!step) throw notFound();
+  const current = readable(a['p_request_id']);
+  // The permit link checks the version only once it has something to change (set_request_permit).
+  const late = name === 'set_request_permit';
+  if (!late && current.version !== a['p_version']) throw conflictError();
+  const now = new Date().toISOString();
+  const change = step(current, a, {
+    me,
+    now,
+    first: (kind) => firstStatus(me, kind, jobFacts(current.project_id)),
+    wallResult: readRevs().cells.some((c) => c.request_id === current.id && c.result !== null),
+    permits: { manage: hasPermitRight('permits.manage'), read: hasPermitRight('permits.read') },
+  });
+  if (change === null) return current;
+  if (late && current.version !== a['p_version']) throw conflictError();
+  const next: IrRowRaw = { ...current, ...change, version: current.version + 1, updated_at: now };
   write((s) => ({
     ...s,
     requests: s.requests.map((r) => (r.id === next.id ? next : r)),
-    events: [...s.events, { id: s.events.length + 1, request_id: next.id, action: actionOf(name, a), actor_id: me, created_at: next.updated_at }],
+    events: [...s.events, { id: s.events.length + 1, request_id: next.id, action: actionOf(name, a, change), actor_id: me, created_at: now }],
   }));
   return next;
 }
@@ -269,28 +291,19 @@ export function folder(projectId: string): string {
 }
 
 /** A request sent through the public link with no login (0055): numbered like any, no member behind it, the visitor's
- *  name, phone and email on the row. `a` takes ir_submit's argument names. */
-export async function addLinkRequest(a: Record<string, unknown>, who: { name: string; phone: string; email: string }): Promise<IrRowRaw> {
+ *  name, phone and email on the row. A visitor is nobody on the job: an OFS request takes the GC step (0061). `a` takes
+ *  ir_submit's argument names. */
+export async function addLinkRequest(a: Args, who: { name: string; phone: string; email: string }): Promise<IrRowRaw> {
   await delay();
-  const projectId = opt(a, 'p_project_id') ?? '';
-  const number = read().next[projectId] ?? 1;
-  const row: IrRowRaw = {
-    ...withOfs(newRow(a, number), read()), requested_by: null, created_by: null, requester_name: who.name,
-    requester_phone: who.phone === '' ? null : who.phone, requester_email: who.email === '' ? null : who.email.toLowerCase(),
-  };
-  write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
-    events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: null, created_at: row.created_at }] }));
-  return row;
+  return fileRequest(a, null, {
+    requested_by: null, created_by: null, requester_name: who.name, requester_phone: who.phone === '' ? null : who.phone,
+    requester_email: who.email === '' ? null : who.email.toLowerCase(),
+  });
 }
 
 /** A revs request (0056): an OFS request numbered like any, with the next OFS IR number (mock/revRequests adds its
  *  cells and map). `a` takes ir_submit's argument names. */
-export async function addOfsRequest(a: Record<string, unknown>): Promise<IrRowRaw> {
+export async function addOfsRequest(a: Args): Promise<IrRowRaw> {
   await delay();
-  const projectId = opt(a, 'p_project_id') ?? '';
-  const number = read().next[projectId] ?? 1;
-  const row = withOfs(newRow({ ...a, p_kind: 'ofs' }, number), read());
-  write((s) => ({ ...s, requests: [...s.requests, row], next: { ...s.next, [projectId]: number + 1 },
-    events: [...s.events, { id: s.events.length + 1, request_id: row.id, action: 'submit', actor_id: row.requested_by, created_at: row.created_at }] }));
-  return row;
+  return fileRequest({ ...a, p_kind: 'ofs' }, mockUser().id, {});
 }

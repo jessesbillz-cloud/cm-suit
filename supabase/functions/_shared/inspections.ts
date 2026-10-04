@@ -1,5 +1,6 @@
-// Inspection requests on the server (SPEC §13.2): the one row shape the IR functions read (as the caller), the signed
-// content and its hash, and the labels the PDF and the results email print. Pure except loadRequest.
+// Inspection requests on the server (SPEC §13.2, §18.4 P1): the one row shape the IR functions read (as the caller), who
+// decides a request now and where its server-made PDFs are filed (0061), the signed content and its hash, and the labels
+// the PDF and the results email print. Pure except loadRequest.
 import { type Db, must } from './db.ts';
 import { contentHash } from './crypto.ts';
 import { HttpError } from './http.ts';
@@ -22,6 +23,8 @@ const irRowSchema = z.object({
   kind: z.enum(['ior', 'special', 'ofs']),
   items: z.string(),
   status: z.string(),
+  /** An OFS request: when the inspector sent it to OFS (0061); null until then, and on every other kind. */
+  ofs_sent_at: z.string().nullable(),
   owner_id: z.string().nullable(),
   result: z.enum(['approved', 'not_approved']).nullable(),
   result_note: z.string().nullable(),
@@ -40,8 +43,9 @@ const irRowSchema = z.object({
 export type IrRow = z.infer<typeof irRowSchema>;
 
 const IR_COLS = 'id, org_id, project_id, number, version, requested_by, requester_name, company, request_date, start_time, ' +
-  'duration_kind, duration_min, kind, items, status, owner_id, result, result_note, result_photo_ids, ir_file_id, content_hash, ' +
-  'signed_at, signed_by, pdf_stale, pdf_postponed, postpone_reason, postpone_note, postpone_until, ir_special_kinds(name)';
+  'duration_kind, duration_min, kind, items, status, ofs_sent_at, owner_id, result, result_note, result_photo_ids, ' +
+  'ir_file_id, content_hash, signed_at, signed_by, pdf_stale, pdf_postponed, postpone_reason, postpone_note, postpone_until, ' +
+  'ir_special_kinds(name)';
 
 /** The request AS THE CALLER (RLS): someone who may not see it gets 404. */
 export async function loadRequest(client: Db, requestId: string): Promise<IrRow> {
@@ -51,6 +55,24 @@ export async function loadRequest(client: Db, requestId: string): Promise<IrRow>
   );
   if (row === null) throw new HttpError(404, 'Inspection not found');
   return irRowSchema.parse(row);
+}
+
+/**
+ * Who decides THIS request now: the database's ir_decide_cap (0061), which signed-in callers can't run. An OFS request
+ * the inspector has sent to OFS is decided by whoever holds ir.ofs_decide and by nobody else; every other request, and
+ * an OFS one not sent yet, by whoever holds ir.decide. The IR functions test this capability, never a fixed one.
+ */
+export function decideCapability(row: Pick<IrRow, 'kind' | 'ofs_sent_at'>): 'ir.decide' | 'ir.ofs_decide' {
+  return row.kind === 'ofs' && row.ofs_sent_at !== null ? 'ir.ofs_decide' : 'ir.decide';
+}
+
+/**
+ * Where a request's IR PDF and map are filed (ir_folder / ir_folder_make's p_which): an OFS request's in "OFS inspection
+ * reports", every other request's in "Inspection reports". By the request's kind alone, so the two sides' documents
+ * never share a folder.
+ */
+export function reportFolder(row: Pick<IrRow, 'kind'>): 'reports' | 'ofs_reports' {
+  return row.kind === 'ofs' ? 'ofs_reports' : 'reports';
 }
 
 /**

@@ -144,6 +144,10 @@ export interface NewOfsRequest {
   durationKind: 'timed' | 'all_day' | 'periodic';
   durationMin: number | null;
   attachmentIds: string[];
+  /** The one extra question on an OFS request (0061): special inspection required? */
+  specialRequired: boolean;
+  /** The inspector's one statement when he files the request himself. */
+  inspectorAck: boolean;
 }
 
 function byPlace(a: { position: number; name: string; id: string }, b: { position: number; name: string; id: string }): number {

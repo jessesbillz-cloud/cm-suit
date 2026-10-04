@@ -146,6 +146,8 @@ describe('jobs', () => {
       'permits',
       'deliveries',
       'corrections',
+      'safety',
+      'schedule',
       'people',
       'hours',
     ]);
@@ -175,6 +177,20 @@ describe('jobs', () => {
       'files',
     ]);
     expect(railModel('a', [{ project_id: 'a', modules: FIELD }], { a: rec }, {}).job).toEqual(['calendar', 'inspections', 'files']);
+  });
+  it('Safety: a job tool after Corrections, on for jobs being built (0060), after Dailies for the field positions', () => {
+    expect(JOB_TOOLS.indexOf('safety')).toBe(JOB_TOOLS.indexOf('corrections') + 1);
+    expect(toolIsOn('safety', FIELD)).toBe(false);
+    expect(toolIsOn('safety', [...FIELD, 'safety'])).toBe(true);
+    const field = ['board', 'calendar', 'dailies', 'safety', 'inspections', 'deliveries'];
+    expect(railModel('j', [{ project_id: 'j', modules: [...FIELD, 'safety'] }], { j: field }, {}).job).toEqual([
+      'calendar',
+      'dailies',
+      'safety',
+      'inspections',
+      'deliveries',
+      'files',
+    ]);
   });
   it('Hours and Timesheets land on each other between a job and All my jobs', () => {
     expect(allJobsTool('hours')).toBe('timesheets');

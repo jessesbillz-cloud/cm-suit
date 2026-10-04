@@ -1,6 +1,8 @@
 // The official's stage moves (the database's permit_next_stages, via permit_detail.moves): one primary button for the
 // usual next stage; the other moves (reject, back to review, cancel ...) in a small menu. No "are you sure": every move
-// comes with Undo (CLAUDE.md rule 16), which puts it back where it was.
+// comes with Undo (CLAUDE.md rule 16), which puts it back where it was. From Issued the next stage is Inspected, which
+// the database refuses while a required inspection is open: the count shows next to the button ("6 inspections open")
+// and a tap answers with the database's own words.
 import { useState } from 'react';
 import { ArrowRight, Ellipsis } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -8,7 +10,7 @@ import { useMovePermit, useUndoMove } from '../../data/permits.mutations';
 import type { PermitDetail } from '../../data/permits.types';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
-import { moveLabel, movedLabel } from './model';
+import { inspectedHold, moveLabel, movedLabel } from './model';
 
 interface PermitMovesProps {
   detail: PermitDetail;
@@ -21,6 +23,7 @@ export function PermitMoves({ detail }: PermitMovesProps) {
   const [menu, setMenu] = useState(false);
   const [primary, ...others] = detail.moves;
   if (primary === undefined) return null;
+  const hold = inspectedHold(detail.moves, detail.open_inspections);
 
   function go(stage: string) {
     setMenu(false);
@@ -73,6 +76,11 @@ export function PermitMoves({ detail }: PermitMovesProps) {
             setMenu(!menu);
           }}
         />
+      ) : null}
+      {hold ? (
+        <span className="text-[13px] leading-5 text-ink-2" data-testid="permit-move-hold">
+          {hold}
+        </span>
       ) : null}
       {menu ? (
         <div role="menu" className="absolute left-0 top-full z-20 mt-1 flex min-w-[12rem] flex-col rounded-lg border border-line bg-card py-1 shadow-pop">

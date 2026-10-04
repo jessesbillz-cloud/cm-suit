@@ -1,16 +1,20 @@
-// e2e mock of permits (0052) with the database's rules: the log and the caseload by number, the trackers, one permit in
-// full, who can be assigned, a new permit (the official only; numbers unique per job; the form's key returns the same
-// row), edits with a version check, moves along permit_next_stages (the same move again is a no-op) and Undo of my own
-// last move. Reviews, comments and linked inspections are in mock/permitReviews.
+// e2e mock of permits (0052, 0061) with the database's rules: the log and the caseload by number, the trackers, one
+// permit in full (open reviews first, the required inspections still open), who can be assigned, a new permit (the
+// official only; one of the four kinds; numbers unique per job; the form's key returns the same row), edits with a
+// version check, moves along permit_next_stages (the same move again is a no-op; Inspected only once every required
+// inspection passed), Undo of my own last move, and the expiry: 12 months from issue or from the last inspection on the
+// permit, whichever is later. Reviews, comments and linked inspections are in mock/permitReviews.
 import { conflictError } from '../errors';
 import type { NewPermitInput, PermitDetail, PermitEdit, PermitListRow, PermitPerson, PermitRef, PermitRow, PermitStep } from '../permits.types';
-import { todayInZone } from '../../lib/dates';
+import { formatInZone, todayInZone } from '../../lib/dates';
 import { mockUser } from './index';
 import * as inspections from './inspections';
 import { permitJobName, permitJobRows, permitJobZone } from './permitJobs';
 import { permitSteps } from './permitProgress';
 import { OFFICIAL, OFFICIAL_2, yearOn, type PermitMockState, type StoredPermit } from './permitSeeds';
 import { fail, has, mustHave, nameOf, read, readable, stored, write } from './permitStore';
+import * as revRequests from './revRequests';
+import * as revs from './revs';
 import { delay } from './store';
 
 export async function capability(cap: string): Promise<boolean> {
@@ -27,10 +31,43 @@ const NEXT: Record<string, readonly string[]> = {
   in_review: ['comments_out', 'issued', 'cancelled'],
   comments_out: ['backcheck', 'cancelled'],
   backcheck: ['in_review', 'comments_out', 'issued', 'cancelled'],
-  issued: ['inspections', 'cancelled'],
-  inspections: ['approved', 'cancelled'],
+  issued: ['inspected', 'cancelled'],
+  inspected: ['approved', 'issued', 'cancelled'],
   approved: ['complete', 'cancelled'],
 };
+
+/** permit_kind_ok: deferred items, addenda and change orders are reviews, not permits. */
+const KINDS = ['building', 'structure', 'site_utility', 'other'];
+
+/**
+ * permit_open_inspections: each wall x item of a live Revs list on the permit that isn't passed or N/A, and each
+ * request on it still waiting for its result (not withdrawn) that has no walls.
+ */
+async function openInspections(p: StoredPermit): Promise<number> {
+  const r = revs.read();
+  const lists = r.lists.filter((l) => l.permit_id === p.id && l.deleted_at === null).map((l) => l.id);
+  const walls = r.areas.filter((a) => lists.includes(a.list_id)).map((a) => a.id);
+  const cells = walls.length === 0 ? [] : (await revRequests.status(p.project_id)).filter((c) => walls.includes(c.area_id));
+  const waiting = await inspections.list(
+    p.project_id,
+    (q) => q.permit_id === p.id && q.deleted_at === null && q.result === null && q.status !== 'withdrawn' && !r.cells.some((c) => c.request_id === q.id),
+  );
+  return cells.filter((c) => c.status !== 'passed' && c.status !== 'na').length + waiting.length;
+}
+
+/**
+ * permit_expiry_touch: while issued or inspected, 12 months from the last inspection result on the permit when that is
+ * later than the day it has (never earlier: a day the official typed stands).
+ */
+async function expiresOn(p: StoredPermit): Promise<string | null> {
+  if (p.issued_on === null || (p.stage !== 'issued' && p.stage !== 'inspected')) return p.expires_on;
+  const tz = permitJobZone(p.project_id);
+  const done = await inspections.list(p.project_id, (q) => q.permit_id === p.id && q.deleted_at === null && q.result !== null);
+  return done.reduce((due, q) => {
+    const from = q.result_at === null ? due : yearOn(formatInZone(q.result_at, tz, 'yyyy-MM-dd'));
+    return from > due ? from : due;
+  }, p.expires_on ?? yearOn(p.issued_on));
+}
 
 function rowOf(p: StoredPermit): PermitRow {
   return {
@@ -61,7 +98,7 @@ function visible(s: PermitMockState, projectId: string | null): StoredPermit[] {
 export async function list(projectId: string | null): Promise<PermitListRow[]> {
   await delay();
   const s = read();
-  return visible(s, projectId).map((p) => listRow(s, p));
+  return Promise.all(visible(s, projectId).map(async (p) => listRow(s, { ...p, expires_on: await expiresOn(p) })));
 }
 
 export async function progress(projectId: string | null, permitId: string | null): Promise<PermitStep[]> {
@@ -86,25 +123,27 @@ export async function detail(id: string): Promise<PermitDetail> {
   const linked = await inspections.list(p.project_id, (r) => r.permit_id === p.id);
   const open = manage ? await inspections.list(p.project_id, (r) => r.permit_id === null && r.status !== 'withdrawn') : [];
   const link = (r: (typeof linked)[number]) => ({
-    id: r.id, number: r.number, kind: r.kind, special_kind: r.ir_special_kinds?.name ?? null, request_date: r.request_date,
-    items: r.items, status_key: inspections.statusKey(r), version: r.version,
+    id: r.id, number: r.number, ofs_number: r.ofs_number, kind: r.kind, special_kind: r.ir_special_kinds?.name ?? null,
+    request_date: r.request_date, items: r.items, status_key: inspections.statusKey(r), version: r.version,
   });
   const newest = (a: { request_date: string }, b: { request_date: string }) => b.request_date.localeCompare(a.request_date);
   return {
-    permit: rowOf(p),
+    permit: { ...rowOf(p), expires_on: await expiresOn(p) },
     project_name: permitJobName(p.project_id),
     timezone: permitJobZone(p.project_id),
     assigned_name: nameOf(p.assigned_to),
     created_by_name: nameOf(p.created_by) ?? '',
     can: { manage, respond: has('permits.respond'), link: manage },
     moves: manage ? [...(NEXT[p.stage] ?? [])] : [],
+    open_inspections: await openInspections(p),
     steps: permitSteps(p, s.events, permitJobZone(p.project_id), new Date()),
+    // Open cycles first, then newest first.
     reviews: s.reviews
       .filter((r) => r.permit_id === p.id)
-      .sort((a, b) => b.cycle - a.cycle)
+      .sort((a, b) => Number(b.outcome === null) - Number(a.outcome === null) || b.cycle - a.cycle)
       .map((r) => ({
-        id: r.id, permit_id: r.permit_id, cycle: r.cycle, kind: r.kind, received_on: r.received_on, returned_on: r.returned_on,
-        outcome: r.outcome, version: r.version,
+        id: r.id, permit_id: r.permit_id, cycle: r.cycle, review_no: r.review_no, backcheck: r.backcheck, kind: r.kind,
+        received_on: r.received_on, returned_on: r.returned_on, outcome: r.outcome, version: r.version,
         comments: s.comments
           .filter((c) => c.review_id === r.id)
           .sort((a, b) => a.number - b.number)
@@ -116,9 +155,11 @@ export async function detail(id: string): Promise<PermitDetail> {
   };
 }
 
-function checkFields(s: PermitMockState, projectId: string, number: string, title: string, except: string | null): void {
+function checkFields(s: PermitMockState, projectId: string, f: { primaryNumber: string; title: string; kind: string }, except: string | null): void {
+  const number = f.primaryNumber;
   if (number.trim() === '') throw fail('Add the permit number.');
-  if (title.trim() === '') throw fail('Add what it covers.');
+  if (f.title.trim() === '') throw fail('Add what it covers.');
+  if (!KINDS.includes(f.kind)) throw fail('Unknown kind.');
   const n = number.trim().toLowerCase();
   if (s.permits.some((p) => p.project_id === projectId && p.id !== except && p.primary_number.toLowerCase() === n)) {
     throw fail(`Permit ${number.trim()} is already on this job.`);
@@ -140,7 +181,9 @@ export async function create(v: NewPermitInput): Promise<PermitRow> {
   const again = s.permits.find((p) => p.request_key === v.key && p.created_by === mockUser().id);
   if (again) return rowOf(again);
   if (!permitJobRows().some((j) => j.id === v.projectId && j.modules.includes('permits'))) throw fail('Permits are off for this job.');
-  checkFields(s, v.projectId, v.primaryNumber, v.title, null);
+  checkFields(s, v.projectId, v, null);
+  // A permit already under way starts at its stage: any place on the tracker but Rejected.
+  if (v.stage === 'rejected' || (NEXT[v.stage] === undefined && v.stage !== 'complete')) throw fail('Unknown stage.');
   if (v.assignedTo !== null && v.assignedTo !== OFFICIAL && v.assignedTo !== OFFICIAL_2) {
     throw fail('Pick someone on this job who handles permits.');
   }
@@ -170,7 +213,7 @@ export async function update(ref: PermitRef, e: PermitEdit): Promise<PermitRow> 
   const p = stored(s, ref.id);
   mustHave('permits.manage');
   if (p.version !== ref.version) throw conflictError();
-  checkFields(s, p.project_id, e.primaryNumber, e.title, p.id);
+  checkFields(s, p.project_id, e, p.id);
   if (e.issuedOn !== null && e.expiresOn !== null && e.expiresOn < e.issuedOn) throw fail("It can't expire before it was issued.");
   return save({
     ...p, primary_number: e.primaryNumber.trim(), agency_numbers: otherNumbers(e.primaryNumber, e.otherNumbers), title: e.title.trim(),
@@ -187,6 +230,10 @@ export async function move(ref: PermitRef, stage: string): Promise<PermitRow> {
   if (p.stage === stage) return rowOf(p);
   if (p.version !== ref.version) throw conflictError();
   if (!(NEXT[p.stage] ?? []).includes(stage)) throw fail("It can't go there from here.");
+  if (stage === 'inspected') {
+    const open = await openInspections(p);
+    if (open > 0) throw fail(`${open === 1 ? '1 inspection' : `${String(open)} inspections`} not passed yet.`);
+  }
   const now = new Date().toISOString();
   const issued = stage === 'issued' ? (p.issued_on ?? todayInZone(permitJobZone(p.project_id))) : p.issued_on;
   const expires = stage === 'issued' ? (p.expires_on ?? (issued === null ? null : yearOn(issued))) : p.expires_on;

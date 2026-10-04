@@ -1,12 +1,14 @@
-// A request's body: who asked through the public link (if they did), what to inspect, then only the notes that exist (the inspector's note for the GC, a GC return
-// reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is one. An OFS
-// request with walls shows its walls, items and why each failed below (RevCells), so they aren't repeated here.
+// A request's body: who asked through the public link (if they did), what to inspect, an OFS request's answer to
+// "Special inspection required?" (with the notice on Yes), then only the notes that exist (the inspector's note for the
+// GC, a GC return reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is
+// one. An OFS request with walls shows its walls, items and why each failed below (RevCells), so they aren't repeated
+// here.
 import type { ReactNode } from 'react';
 import { FileText } from 'lucide-react';
 import type { IrRequest } from '../../data/inspections.types';
 import { formatDay, formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
-import { attendanceLabel, postponeLabel, resultLabel } from './model';
+import { SPECIAL_NOTICE, attendanceLabel, postponeLabel, resultLabel } from './model';
 
 interface RequestDetailsProps {
   row: IrRequest;
@@ -55,8 +57,10 @@ function ViaLink({ row }: { row: IrRequest }) {
 export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain, walls }: RequestDetailsProps) {
   const result = resultLabel(row.result);
   const attendance = attendanceLabel(row.attendance);
+  const special = row.kind === 'ofs' ? row.special_required : null;
   const notes =
     !walls ||
+    special !== null ||
     row.requester_name !== null ||
     Boolean(row.gc_note) ||
     Boolean(row.confirm_note) ||
@@ -71,6 +75,11 @@ export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain, walls }
         <div className="divide-y divide-line rounded-lg border border-line">
           <ViaLink row={row} />
           {walls ? null : <Note label="Items">{row.items}</Note>}
+          {special !== null ? (
+            <Note label="Special inspection" testId="ir-special">
+              {special ? `Yes\n${SPECIAL_NOTICE}` : 'No'}
+            </Note>
+          ) : null}
           {row.gc_note ? <Note label={row.status === 'returned' ? 'Returned' : 'GC note'}>{row.gc_note}</Note> : null}
           {row.confirm_note ? <Note label="Inspector note">{row.confirm_note}</Note> : null}
           {attendance ? <Note label="Attendance">{attendance}</Note> : null}

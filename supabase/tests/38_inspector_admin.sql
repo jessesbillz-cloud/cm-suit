@@ -37,7 +37,7 @@ select set_eq(
       where role in ('inspector', 'project_admin') and capability not like 'bids.%' group by capability $$,
   'capabilities: the inspector''s and the project admin''s, bids.* left out, the second factor kept');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'inspector_admin'),
-  '{audit.export,calendar.manage,calendar.read,comments.write,corrections.close,corrections.create,corrections.mark_ready,corrections.view,dailies.read_all,dailies.write,deliveries.manage,deliveries.post,deliveries.view,files.manage,files.read_project,files.write_project,ir.decide,ir.gc_approve,ir.request,ir.view_all,members.manage,members.view,permits.read,permits.respond,project.manage,revs.manage,revs.read,rfi.create_draft,rfi.sign_issue,rfi.view_internal_research,transmittals.send}'::text[],
+  '{audit.export,calendar.manage,calendar.read,comments.write,corrections.close,corrections.create,corrections.mark_ready,corrections.view,dailies.read_all,dailies.write,deliveries.manage,deliveries.post,deliveries.view,files.manage,files.read_project,files.write_project,ir.decide,ir.gc_approve,ir.request,ir.view_all,members.manage,members.view,permits.read,permits.respond,project.manage,revs.manage,revs.read,rfi.create_draft,rfi.sign_issue,rfi.view_internal_research,safety.manage,safety.read,safety.run,schedule.manage,schedule.read,transmittals.send}'::text[],
   'capabilities: the list Jesse reviews');
 select is_empty($$ select capability from public.role_permissions where role = 'inspector_admin' and capability like 'bids.%' $$,
   'capabilities: no bid management, pricing or findings');

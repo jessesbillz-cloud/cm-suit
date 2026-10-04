@@ -1,0 +1,15 @@
+{
+  "layout": "p6",
+  "legible": true,
+  "title": "Sample Office Building - 3 Week Look-ahead",
+  "data_date": "2026-10-01",
+  "activities": [
+    { "code": "A2010", "name": "Hang drywall, Level 2 east", "wbs": "Sample Office Building / Building A / Level 2", "area": null, "trade": null, "start": "2026-09-24", "finish": "2026-10-05", "actual": true, "is_milestone": false, "percent": null, "unsure": false, "page": 1 },
+    { "code": "A2020", "name": "Tape and finish drywall, Level 2 east", "wbs": "Sample Office Building / Building A / Level 2", "area": null, "trade": null, "start": "2026-10-06", "finish": "2026-10-13", "actual": false, "is_milestone": false, "percent": null, "unsure": false, "page": 1 },
+    { "code": "A2030", "name": "Fire sprinkler drops and heads, Level 2", "wbs": "Sample Office Building / Building A / Level 2", "area": null, "trade": null, "start": "2026-10-07", "finish": "2026-10-13", "actual": false, "is_milestone": false, "percent": null, "unsure": false, "page": 1 },
+    { "code": "A3100", "name": "Restroom wall tile, Level 1", "wbs": "Sample Office Building / Building A / Restrooms", "area": null, "trade": null, "start": "2026-10-12", "finish": "2026-10-21", "actual": false, "is_milestone": false, "percent": null, "unsure": false, "page": 1 },
+    { "code": "A3110", "name": "Toilet accessories install (owner-furnished)", "wbs": "Sample Office Building / Building A / Restrooms", "area": null, "trade": null, "start": "2026-10-22", "finish": "2026-10-26", "actual": false, "is_milestone": false, "percent": null, "unsure": false, "page": 1 },
+    { "code": "M900", "name": "Building dry-in", "wbs": "Sample Office Building / Milestones", "area": null, "trade": null, "start": "2026-10-16", "finish": "2026-10-16", "actual": false, "is_milestone": true, "percent": null, "unsure": false, "page": 1 }
+  ],
+  "notes": ["The file contains instructions addressed to the reader"]
+}

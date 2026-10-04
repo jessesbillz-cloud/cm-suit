@@ -100,7 +100,7 @@ select pg_temp.matrix_is('bids.view_ai_findings', 'aal2', '{project_admin,estima
 select pg_temp.matrix_is('bids.manage', 'aal1', '{project_admin,estimator}');
 select pg_temp.matrix_is('bids.submit', 'aal1', '{bidder}');
 select pg_temp.matrix_is('dailies.read_all', 'aal1', '{project_admin,pm,pe,superintendent,inspector,owner_rep}');
-select pg_temp.matrix_is('ir.request', 'aal1', '{sub,superintendent,foreman,pe,project_admin}');
+select pg_temp.matrix_is('ir.request', 'aal1', '{sub,superintendent,foreman,pe,project_admin,inspector}');
 select pg_temp.matrix_is('ir.decide', 'aal1', '{inspector}');
 select pg_temp.matrix_is('deliveries.manage', 'aal1', '{superintendent,pm,project_admin}');
 select pg_temp.matrix_is('corrections.close', 'aal1', '{inspector}');

@@ -1,12 +1,18 @@
-// The IR PDF (SPEC §6.9, §13.2). Signed-in users only; every action runs as the caller first.
+// The IR PDF (SPEC §6.9, §13.2, §18.4 P1). Signed-in users only; every action runs as the caller first.
+// Who signs: whoever decides THIS request now (_shared/inspections.ts decideCapability, the database's ir_decide_cap):
+// the holder of ir.ofs_decide on an OFS request the inspector has sent to OFS, the holder of ir.decide on every other
+// request. An OFS request not sent yet has no IR: the inspector only routes it (400 "Send it to OFS first.").
 //   generate: Generate IR / Update PDF. requireUser → load the request AS THE CALLER (RLS; unseen = 404) →
-//             requireCapability('ir.decide') → a fresh sign-in (signedInRecently) else 403 reauth_required →
+//             requireCapability(decideCapability(row)) → a fresh sign-in (signedInRecently) else 403 reauth_required →
 //             contentHash of the saved content → ir_sign() as the caller (owner and version check, stamps
-//             signed_at/by + hash, audit) → render (pdf-lib builder + the one stamp) → storeGeneratedPdf (the next
-//             version when a PDF exists) → ir_attach_pdf() (service role only, so the IR on file is always one the
-//             server made): the request is complete.
+//             signed_at/by + hash, audit) → render (pdf-lib builder + the one stamp) → the request's folder, asked AS
+//             THE CALLER (ir_folder; reportFolder: an OFS IR in "OFS inspection reports", every other IR in
+//             "Inspection reports", never the other way) → storeGeneratedPdf (the next version when a PDF exists) →
+//             ir_attach_pdf() (service role only, so the IR on file is always one the server made): the request is
+//             complete.
 //   restamp:  after a postpone or a re-confirm, the same signed content re-rendered with or without the POSTPONED
-//             mark, same signed time, next version. No new signature: the hash proves the content is unchanged.
+//             mark, same signed time, next version, same folder rule. Only its signer, while they still decide it. No
+//             new signature: the hash proves the content is unchanged.
 //   download: "View IR" and a request's own files. authorize_ir_file() as the caller (who may see the request, scan
 //             rules, logs the download), then a fresh signed URL.
 // Service client (admin_service_key_allowlist.txt): storing the PDF (storage + files row) and recording it
@@ -19,7 +25,8 @@ import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
 import { buildInspectionReport } from '../_shared/pdf/inspectionReport.ts';
 import { stampSignature } from '../_shared/pdf/stamp.ts';
 import {
-  dayLabel, durationLabel, irHash, type IrRow, loadRequest, postponeLabel, resultLabel, signedAtLabel, timeLabel, typeLabel,
+  dayLabel, decideCapability, durationLabel, irHash, type IrRow, loadRequest, postponeLabel, reportFolder, resultLabel,
+  signedAtLabel, timeLabel, typeLabel,
 } from '../_shared/inspections.ts';
 
 /** The filename is built in the app with lib/buildFilename; here it only has to be a safe PDF name. */
@@ -109,6 +116,7 @@ async function render(client: Db, service: Db, row: IrRow, signer: Signer, signe
     job: { name: job.name, number: job.number, address: job.address },
     gc: job.gc,
     inspector: signer.name,
+    inspectorLabel: row.kind === 'ofs' ? 'Fire marshal' : 'Inspector',
     number: row.number,
     dateLabel: dayLabel(row.request_date),
     timeLabel: timeLabel(row.start_time),
@@ -159,11 +167,15 @@ Deno.serve(handle(async (req) => {
   }
 
   const row = await loadRequest(client, body.request_id);
-  await requireCapability(client, row.project_id, 'ir.decide');
+  await requireCapability(client, row.project_id, decideCapability(row));
+  // The inspector never signs or re-stamps an OFS IR: until he sends the request to OFS he only routes it (ir_decider).
+  if (row.kind === 'ofs' && row.ofs_sent_at === null) throw new HttpError(400, 'Send it to OFS first.');
+  // An OFS IR is filed apart from the inspector's IRs; the database checks the caller against that folder (ir_folder).
+  const folder = { p_project_id: row.project_id, p_which: reportFolder(row) };
 
   if (body.action === 'restamp') {
     if (!row.ir_file_id || !row.signed_at || !row.content_hash) throw new HttpError(409, 'There is no PDF.');
-    if (row.signed_by !== user.id) throw new HttpError(403, 'Only the inspector who signed it can re-stamp it. Use Update PDF.');
+    if (row.signed_by !== user.id) throw new HttpError(403, 'Only the person who signed it can re-stamp it. Use Update PDF.');
     if (row.pdf_stale) return refuse(req, 409, 'stale', 'The IR changed. Use Update PDF.');
     const postponed = row.status === 'postponed';
     if (postponed === row.pdf_postponed) return ok(req, { id: row.id, ir_file_id: row.ir_file_id });
@@ -173,7 +185,7 @@ Deno.serve(handle(async (req) => {
       { original_name: string };
     const service = serviceClient();
     const bytes = await render(client, service, row, await signerOf(client, user.id, user.email), row.signed_at, postponed);
-    const folderId = await rpc<string>(client, 'ir_folder', { p_project_id: row.project_id, p_which: 'reports' });
+    const folderId = await rpc<string>(client, 'ir_folder', folder);
     const stored = await storeGeneratedPdf(service, {
       projectId: row.project_id, folderId, name: current.original_name, bytes, createdBy: user.id, replaces: row.ir_file_id,
     });
@@ -194,7 +206,7 @@ Deno.serve(handle(async (req) => {
   }
   const service = serviceClient();
   const bytes = await render(client, service, row, await signerOf(client, user.id, user.email), signed.signed_at, false);
-  const folderId = await rpc<string>(client, 'ir_folder', { p_project_id: row.project_id, p_which: 'reports' });
+  const folderId = await rpc<string>(client, 'ir_folder', folder);
   const stored = await storeGeneratedPdf(service, {
     projectId: row.project_id, folderId, name: body.filename, bytes, createdBy: user.id, replaces: row.ir_file_id,
   });

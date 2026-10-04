@@ -2,11 +2,14 @@
 //   1. register the files row (the database picks the id and the storage path)
 //   2. TUS upload to that path, resuming a previous attempt when there is one
 //   3. mark upload_complete and queue the virus scan (idempotent: scan_file:<file_id>)
+// A row whose upload never finishes (storage refused it, the person stopped it) is taken back with
+// removeUnfinishedUpload, or reused when the same file is picked again (findUnfinished).
 import { z } from 'zod';
 import { SUPABASE_KEY, SUPABASE_URL, accessToken, supabase } from './client';
 import { DataError, throwIfError, throwIfErrorMaybe, toDataError } from './errors';
 import * as mock from './mock/api';
 import { isMock } from './mock';
+import { plainUploadError, shouldRetryUpload, uploadStatus } from './uploadErrors';
 
 const CHUNK_SIZE = 6 * 1024 * 1024; // Supabase requires exactly 6 MiB chunks for resumable uploads.
 const RETRY_DELAYS = [0, 3000, 5000, 10000, 20000];
@@ -18,6 +21,12 @@ interface UploadArgs {
   userId: string;
   onProgress: (loaded: number, total: number) => void;
   signal: AbortSignal;
+  /** Told the files row's id as soon as it is registered, before any bytes go up (what Remove takes back). */
+  onRegistered?: ((fileId: string) => void) | undefined;
+}
+
+function abortError(): DOMException {
+  return new DOMException('Upload cancelled', 'AbortError');
 }
 
 const registeredSchema = z.object({
@@ -70,9 +79,16 @@ async function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void>
   // The TUS client loads with the first upload, not with the app.
   const { Upload } = await import('tus-js-client');
   return new Promise((resolve, reject) => {
+    // Stopped before the first byte: an abort that already happened fires no event.
+    if (a.signal.aborted) {
+      reject(abortError());
+      return;
+    }
     const upload = new Upload(file, {
       endpoint: `${SUPABASE_URL}/storage/v1/upload/resumable`,
       retryDelays: RETRY_DELAYS,
+      // A refusal (too large, no access) fails at once: the same request would get the same answer.
+      onShouldRetry: (err) => shouldRetryUpload(uploadStatus(err), window.navigator.onLine),
       chunkSize: CHUNK_SIZE,
       uploadDataDuringCreation: false,
       removeFingerprintOnSuccess: true,
@@ -88,7 +104,9 @@ async function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void>
         a.onProgress(sent, total);
       },
       onError: (err) => {
-        reject(err);
+        // The TUS client's full error (method, url, response, request id) is for the console; people get a sentence.
+        console.warn('upload failed', err);
+        reject(plainUploadError(err));
       },
       onSuccess: () => {
         resolve();
@@ -99,7 +117,7 @@ async function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void>
       () => {
         upload.abort().then(
           () => {
-            reject(new DOMException('Upload cancelled', 'AbortError'));
+            reject(abortError());
           },
           (e: unknown) => {
             reject(e instanceof Error ? e : new Error('Could not cancel the upload'));
@@ -110,6 +128,8 @@ async function runTus(file: File, reg: Registered, a: UploadArgs): Promise<void>
     );
     upload.findPreviousUploads().then(
       (previous) => {
+        // Stopped while looking: start() would clear the client's own aborted flag and upload anyway.
+        if (a.signal.aborted) return;
         const last = previous[0];
         if (last) upload.resumeFromPreviousUpload(last);
         upload.start();
@@ -137,21 +157,32 @@ async function enqueueScan(fileId: string, projectId: string): Promise<void> {
   );
 }
 
+/** The same three steps against the mock: an unfinished row, the bytes (refused over the mock's cap), then complete. */
 async function mockUpload(a: UploadArgs): Promise<{ fileId: string }> {
   const total = a.file.size;
+  const reg = await mock.registerUpload(a.projectId, a.folderId, a.file.name, a.file.type || 'application/octet-stream', total);
+  a.onRegistered?.(reg.id);
+  if (total > mock.MOCK_STORAGE_CAP) {
+    const refusal = { getStatus: () => 413, getBody: () => 'Maximum size exceeded' };
+    throw plainUploadError(Object.assign(new Error('mock storage: response code: 413'), { originalResponse: refusal }));
+  }
+  // A bigger file takes longer, so there is time to stop it.
+  const wait = 80 + Math.min(1500, Math.round(total / 8192));
   for (let step = 1; step <= 4; step += 1) {
-    if (a.signal.aborted) throw new DOMException('Upload cancelled', 'AbortError');
-    await new Promise<void>((r) => window.setTimeout(r, 80));
+    if (a.signal.aborted) throw abortError();
+    await new Promise<void>((r) => window.setTimeout(r, wait));
     a.onProgress(Math.round((total * step) / 4), total);
   }
-  const row = await mock.addUploadedFile(a.projectId, a.folderId, a.file.name, a.file.type || 'application/octet-stream', total);
-  return { fileId: row.id };
+  if (a.signal.aborted) throw abortError();
+  await mock.completeUpload(reg.id);
+  return { fileId: reg.id };
 }
 
 /** Uploads one file end to end. Rejects with an AbortError DOMException when cancelled through `signal`. */
 export async function uploadFile(a: UploadArgs): Promise<{ fileId: string }> {
   if (isMock()) return mockUpload(a);
   const reg = await registerFile(a);
+  a.onRegistered?.(reg.id);
   await runTus(a.file, reg, a);
   await markUploadComplete(reg.id);
   await enqueueScan(reg.id, a.projectId);
@@ -160,4 +191,13 @@ export async function uploadFile(a: UploadArgs): Promise<{ fileId: string }> {
 
 export function isAbortError(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'AbortError';
+}
+
+/**
+ * Takes back the files row of an upload that never finished (remove_unfinished_upload): the caller's own row only,
+ * never a finished file, safe to repeat. The same file picked again then registers a new row and starts clean.
+ */
+export async function removeUnfinishedUpload(fileId: string): Promise<void> {
+  if (isMock()) return mock.removeUnfinishedUpload(fileId);
+  throwIfErrorMaybe(await supabase.rpc('remove_unfinished_upload', { p_file_id: fileId }));
 }

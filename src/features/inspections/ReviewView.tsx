@@ -1,4 +1,5 @@
-// GC review (only when the job has the GC step on): requests waiting on the GC, oldest day first.
+// GC review (the job has the GC step on, or takes OFS requests: those always pass the GC): requests waiting on the GC,
+// oldest day first.
 import { ChevronRight } from 'lucide-react';
 import { useIrReview } from '../../data/inspections.queries';
 import { formatDay } from '../../lib/dates';
@@ -30,6 +31,7 @@ export function ReviewView({ projectId, selectedId, onOpen }: ReviewViewProps) {
             <li key={r.id}>
               <button
                 type="button"
+                data-testid={`ir-review-${String(r.number)}`}
                 className={`flex min-h-[64px] w-full items-start gap-3 px-4 py-3 text-left sm:gap-4 ${r.id === selectedId ? SELECTED : 'hover:bg-page/60'}`}
                 onClick={() => {
                   onOpen(r.id);

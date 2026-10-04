@@ -1,5 +1,5 @@
 // One line of the inspector's day: the time (start bold, length under it), the type and IR number, what to inspect,
-// the company and attendance, the status chip; Confirm in one tap.
+// the company and attendance, the status chip; Confirm in one tap on a pending request I decide.
 import { CalendarOff, Check, X } from 'lucide-react';
 import type { CalendarRow } from '../../data/inspections.types';
 import { Button } from '../../ui/Button';
@@ -14,6 +14,10 @@ const SELECTED = 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DE
 interface QueueRowProps {
   row: CalendarRow;
   selected: boolean;
+  /** I decide OFS requests (the deputy): one sent to OFS reads Pending to me, "With OFS" to anyone else. */
+  ofsDecide: boolean;
+  /** Confirm is mine to tap on this request. */
+  canConfirm: boolean;
   confirming: boolean;
   onOpen: (id: string) => void;
   onConfirm: (row: CalendarRow) => void;
@@ -30,8 +34,8 @@ function TimeCell({ row }: { row: CalendarRow }) {
   );
 }
 
-export function QueueRow({ row, selected, confirming, onOpen, onConfirm, onRemoveBlock }: QueueRowProps) {
-  const chip = rowChip(row);
+export function QueueRow({ row, selected, ofsDecide, canConfirm, confirming, onOpen, onConfirm, onRemoveBlock }: QueueRowProps) {
+  const chip = rowChip(row, ofsDecide);
   const attendance = attendanceLabel(row.attendance);
 
   if (row.is_block) {
@@ -89,7 +93,7 @@ export function QueueRow({ row, selected, confirming, onOpen, onConfirm, onRemov
       <span className="hidden shrink-0 sm:block">
         <StatusChip status={chip.status} label={chip.label} />
       </span>
-      {row.status === 'pending' ? (
+      {row.status === 'pending' && canConfirm ? (
         <Button
           size="sm"
           variant="primary"

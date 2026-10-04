@@ -18,6 +18,15 @@ const PAGES = [
   '/p/job-s/revs',
   '/p/job-s/revs/mock-rev-area-2',
   '/p/job-s/revs?view=plan&level=Level%2002',
+  '/p/job-a/safety',
+  '/p/job-a/safety?view=library',
+  '/p/job-a/safety/mock-meeting-1',
+  '/p/job-a/safety/new',
+  '/p/job-a/schedule',
+  '/p/job-a/schedule?view=activities',
+  '/p/job-a/schedule?view=updates',
+  '/p/job-a/schedule/mock-sched-a3-a12',
+  '/p/job-a/schedule/v-mock-sched-a3',
 ];
 
 test.describe('phone width', () => {

@@ -89,7 +89,7 @@ select is_empty($$ select id from public.calendar_entries where source_type = 'p
 -- Field tools.
 update public.projects set modules = '{bids,files,calendar}', stage = 'construction' where id = 'c0000000-0000-0000-0000-000000000151';
 select is((select modules from public.projects where id = 'c0000000-0000-0000-0000-000000000151'),
-  '{bids,calendar,corrections,dailies,deliveries,files,inspections,permits,rfis}'::text[], 'field tools: a job moved to construction gets them');
+  '{bids,calendar,corrections,dailies,deliveries,files,inspections,permits,rfis,safety,schedule}'::text[], 'field tools: a job moved to construction gets them');
 insert into public.projects (id, org_id, name, stage, created_by)
 values ('c0000000-0000-0000-0000-000000000152', 'b0000000-0000-0000-0000-000000000151', 'Cal Job Two', 'construction',
         'a0000000-0000-0000-0000-000000000154');

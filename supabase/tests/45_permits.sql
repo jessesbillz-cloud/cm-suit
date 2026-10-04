@@ -1,5 +1,5 @@
 begin;
-select plan(91);
+select plan(92);
 -- Permits (migration 0052): the 'ahj' role and the capability matrix as data, the module and the rail, new permits
 -- (the official only; numbers typed and unique per job; p_key repeats), stage moves in order (no skipping to complete,
 -- rejected only from submitted, the review loop, cancel from anywhere, issue dates, a repeat is a no-op, versions),
@@ -108,8 +108,8 @@ select is((select array_agg(role order by role) from public.role_permissions whe
   '{architect,inspector_admin,pe,pm,project_admin}'::text[],
   'matrix: permits.respond is the design team''s (and inspector_admin follows the project admin, 0044)');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'ahj'),
-  '{calendar.read,comments.write,files.read_project,ir.decide,ir.view_all,members.view,permits.manage,permits.read,revs.manage,revs.read}'::text[],
-  'matrix: the official''s whole list (revs from 0056)');
+  '{calendar.read,comments.write,files.read_project,ir.ofs_decide,ir.ofs_view,members.view,permits.manage,permits.read,revs.manage,revs.read,safety.read,schedule.read,transmittals.send}'::text[],
+  'matrix: the official''s whole list (revs from 0056, safety from 0060, schedule from 0062; OFS requests only, 0061)');
 select ok('permits' = any (public.job_rail_tools()), 'Permits is a job tool on the rail');
 select ok((select 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000451')
           and (select not 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000454'),
@@ -149,7 +149,7 @@ select throws_ok($$ select public.permit_create('c0000000-0000-0000-0000-0000000
   '{}', 'a0000000-0000-0000-0000-000000000454') $$, '22023', 'Pick someone on this job who handles permits.',
   'only someone who handles permits can be assigned');
 select lives_ok($$ insert into ids select 'B', (public.permit_create('c0000000-0000-0000-0000-000000000451', '24-0002',
-  'Fire sprinkler (deferred)', 'deferred_sprinkler', '{}', 'a0000000-0000-0000-0000-000000000453')).id $$,
+  'Site utilities', 'site_utility', '{}', 'a0000000-0000-0000-0000-000000000453')).id $$,
   'another official can be assigned');
 select throws_ok($$ select public.permit_create('c0000000-0000-0000-0000-000000000454', '24-0003', 'Bidding job', 'building') $$,
   '22023', 'Permits are off for this job.', 'not on a job with Permits off');
@@ -188,9 +188,9 @@ select ok(exists (select 1 from public.calendar_entries
                      and read_capability = 'permits.read' and title = 'Permit 24-0001 expires: Building - new construction'),
   'the expiry is a milestone on the calendar for permit readers');
 select is((public.permit_move(pg_temp.rid('A'), 1, 'issued')).version, pg_temp.ver('A'), 'the same move again is a no-op');
-select throws_ok($$ select public.permit_move(pg_temp.rid('A'), 1, 'inspections') $$, '40001', null, 'a stale version is refused');
+select throws_ok($$ select public.permit_move(pg_temp.rid('A'), 1, 'inspected') $$, '40001', null, 'a stale version is refused');
 select pg_temp.login('a0000000-0000-0000-0000-000000000454');
-select throws_ok($$ select pg_temp.mv('A', 'inspections') $$, '42501', null, 'a PM can''t move it');
+select throws_ok($$ select pg_temp.mv('A', 'inspected') $$, '42501', null, 'a PM can''t move it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000453');
 select throws_ok($$ select public.permit_undo_move(pg_temp.rid('A'), pg_temp.ver('A')) $$, '22023',
   'That move can''t be undone now.', 'Undo: only my own last move');
@@ -246,8 +246,8 @@ select is((select array[outcome, returned_on::text] from public.permit_review_cl
 select throws_ok($$ select public.permit_comment_add(pg_temp.rid('R1'), 'Late comment') $$, '22023', 'This review is closed.',
   'no comments on a closed review');
 select lives_ok($$ insert into ids select 'R2', (public.permit_review_open(pg_temp.rid('A'))).id $$, 'the backcheck review');
-select is((select array[cycle::text, kind] from public.permit_reviews where id = pg_temp.rid('R2')), array['2', 'backcheck'],
-  'cycle 2, a backcheck');
+select is((select array[cycle::text, kind, review_no::text, backcheck::text] from public.permit_reviews where id = pg_temp.rid('R2')),
+  array['2', 'initial', '1', '1'], 'cycle 2: the initial review''s backcheck 1 (0061)');
 select is((public.permit_comment_add(pg_temp.rid('R2'), 'Rated door hardware schedule.', 'A8.10')).number, 3,
   'comment numbers run on across cycles');
 select is((select array[status, closed_cycle::text] from public.permit_comment_close(pg_temp.rid('C1'), pg_temp.cver('C1'))),
@@ -346,14 +346,15 @@ select is(pg_temp.track('e0000000-0000-0000-0000-0000000004b2', 'state'),
 select is(pg_temp.track('e0000000-0000-0000-0000-0000000004b2', 'days'), '-,-,-,3,16,1,-,-,-,-',
   'Y: a review loop adds the visits up (review 2 + 1, comments out 3 + 13; the backcheck it was at shows too)');
 select is(pg_temp.track('e0000000-0000-0000-0000-0000000004b3', 'stage') || ' / ' || pg_temp.track('e0000000-0000-0000-0000-0000000004b3', 'state'),
-  'draft,submitted,rejected,in_review,comments_out,backcheck,issued,inspections,approved,complete / done,done,failed,next,next,next,next,next,next,next',
+  'draft,submitted,rejected,in_review,comments_out,backcheck,issued,inspected,approved,complete / done,done,failed,next,next,next,next,next,next,next',
   'Z: rejected sits where accepted does, failed');
 select is(pg_temp.track('e0000000-0000-0000-0000-0000000004b4', 'stage') || ' / ' || pg_temp.track('e0000000-0000-0000-0000-0000000004b4', 'state')
           || ' / ' || pg_temp.track('e0000000-0000-0000-0000-0000000004b4', 'days'),
-  'draft,cancelled,accepted,in_review,comments_out,backcheck,issued,inspections,approved,complete / done,failed,next,next,next,next,next,next,next,next / 1,-,-,-,-,-,-,-,-,-',
+  'draft,cancelled,accepted,in_review,comments_out,backcheck,issued,inspected,approved,complete / done,failed,next,next,next,next,next,next,next,next / 1,-,-,-,-,-,-,-,-,-',
   'W: cancelled where it stopped, no time on the mark');
 select is(pg_temp.track('e0000000-0000-0000-0000-0000000004b5', 'state') || ' / ' || pg_temp.track('e0000000-0000-0000-0000-0000000004b5', 'days'),
-  'done,done,done,done,done,done,done,done,done,done / -,-,-,-,-,-,10,17,2,-', 'V: complete is done everywhere, no time at the end');
+  'done,done,done,done,done,done,done,done,done,done / -,-,-,-,-,-,27,-,2,-',
+  'V: complete is done everywhere, no time at the end; its move to the old Inspections stage counts as Issued (0061)');
 select is((select count(distinct permit_id)::int from public.permit_progress('c0000000-0000-0000-0000-000000000451')), 7,
   'the job''s tracker: every permit I may read, ten places each');
 select pg_temp.login('a0000000-0000-0000-0000-000000000456');
@@ -375,6 +376,13 @@ select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-00
 select pg_temp.login('a0000000-0000-0000-0000-000000000454');
 select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('A')) $$, '42501', null,
   'nor can a PM who neither asked for it nor decides it');
+select pg_temp.login('a0000000-0000-0000-0000-000000000452');
+select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('A')) $$, 'P0002', null,
+  'the official does not see an OFS request that has not been sent to OFS');
+reset role;
+update public.inspection_requests set ofs_sent_at = now(), ofs_sent_by = 'a0000000-0000-0000-0000-000000000459'
+ where id = 'd0000000-0000-0000-0000-000000000451';
+set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000452');
 select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('P2')) $$, 'P0002', null,
   'a permit of another job is refused');

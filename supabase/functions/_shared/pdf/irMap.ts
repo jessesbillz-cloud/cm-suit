@@ -1,8 +1,9 @@
 // The OSFM inspection map (Revs, migration 0056): ONE 11x17 landscape page with the plan sheet's page embedded as vectors
 // (scaled to fit, 18 pt margin, its /Rotate honored), the inspected walls highlighted over it in up to three colors, the
-// title in red bold at the top left on a white box with the legend (swatch + item name) under it, and, on an IR that
-// passed and is signed, the deputy's signature and date in that same box under the legend through the ONE stamp
-// (stamp.ts), so nothing on the sheet (its number, its title block) is covered.
+// title in red bold at the top left on a white box with the permit number under it (0061), the legend (swatch + item
+// name) and, on an IR that passed and is signed, the deputy's signature and date in that same box under them through
+// the ONE stamp (stamp.ts), so nothing on the sheet (its number, its title block) is covered. No checklist: the
+// request's route is the readiness check (SPEC §18.4 P1).
 // The page content is embedded, not its annotations: old markups on an uploaded sheet never show (OSFM: no previously
 // inspected work on a map), and the sheet viewer leaves them off too. Pure: bytes in, bytes out. Tests: irMap_test.ts.
 import {
@@ -40,6 +41,8 @@ export interface IrMapInput {
   strokes: readonly Stroke[];
   title: string;
   legend: readonly MapLegendItem[];
+  /** "Permit 24-0001" under the title, when the request is on a permit. */
+  permit?: string | null | undefined;
   /** A passed, signed IR: the deputy's signature (PNG or none), name and signed time. */
   stamp: { signaturePng: Uint8Array | null; name: string; signedAtLabel: string } | null;
 }
@@ -105,6 +108,7 @@ function drawStrokes(page: PDFPage, strokes: readonly Stroke[], box: SheetPlacem
 
 const TITLE_SIZE = 14;
 const TITLE_LEAD = 17;
+const PERMIT_SIZE = 11;
 const LEGEND_SIZE = 11;
 const LEGEND_LEAD = 13.5;
 const PAD = 9;
@@ -122,19 +126,29 @@ interface SignRow {
   textWidth: number;
 }
 
+interface TitleBox {
+  title: string;
+  permit: string | null;
+  legend: readonly MapLegendItem[];
+  sign: SignRow | null;
+}
+
 /**
- * Title and legend at the top left, on a white box with a thin red edge, and on a passed, signed IR a signature row
- * under the legend: answers the spot for the stamp there. Long names wrap; nothing is cut.
+ * Title, permit number and legend at the top left, on a white box with a thin red edge, and on a passed, signed IR a
+ * signature row under them: answers the spot for the stamp there. Long names wrap; nothing is cut.
  */
-function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: readonly MapLegendItem[], sign: SignRow | null): StampSpot | null {
-  const titleLines = wrapText(title, font, TITLE_SIZE, BOX_MAX_TEXT);
+function drawTitleBox(page: PDFPage, bold: PDFFont, box: TitleBox): StampSpot | null {
+  const { sign } = box;
+  const titleLines = wrapText(box.title, bold, TITLE_SIZE, BOX_MAX_TEXT);
+  const permitLines = box.permit ? wrapText(box.permit, bold, PERMIT_SIZE, BOX_MAX_TEXT) : [];
   const nameMax = BOX_MAX_TEXT - SWATCH.width - 8;
-  const rows = legend.map((it) => ({ it, lines: wrapText(it.name, font, LEGEND_SIZE, nameMax) }));
+  const rows = box.legend.map((it) => ({ it, lines: wrapText(it.name, bold, LEGEND_SIZE, nameMax) }));
   const signWidth = sign === null ? 0 : (sign.image ? SIGNATURE.width + STAMP_GAP : 0) + sign.textWidth;
   const widest = Math.max(
     signWidth,
-    ...titleLines.map((l) => font.widthOfTextAtSize(l, TITLE_SIZE)),
-    ...rows.flatMap((r) => r.lines.map((l) => SWATCH.width + 8 + font.widthOfTextAtSize(l, LEGEND_SIZE))),
+    ...titleLines.map((l) => bold.widthOfTextAtSize(l, TITLE_SIZE)),
+    ...permitLines.map((l) => bold.widthOfTextAtSize(l, PERMIT_SIZE)),
+    ...rows.flatMap((r) => r.lines.map((l) => SWATCH.width + 8 + bold.widthOfTextAtSize(l, LEGEND_SIZE))),
   );
   const left = MARGIN + 6;
   const top = MAP_SIZE.height - MARGIN - 6;
@@ -147,6 +161,13 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
     return base;
   });
   let bottom = (titleBase[titleBase.length - 1] ?? top) - TITLE_SIZE * 0.22;
+  cursor = bottom - 5;
+  const permitBase = permitLines.map(() => {
+    const base = cursor - PERMIT_SIZE * 0.74;
+    cursor -= LEGEND_LEAD;
+    bottom = base - PERMIT_SIZE * 0.22;
+    return base;
+  });
   cursor = bottom - 7;
   const rowTop = rows.map((r) => {
     const t = cursor;
@@ -155,8 +176,8 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
     cursor -= h + 5;
     return t;
   });
-  // The signature row: a hairline under the legend, then the signature's box with the line beside it. Without an
-  // image the box is empty, so the line starts at the text's left edge (stamp.ts writes it STAMP_GAP past the box).
+  // The signature row: a hairline under the rest, then the signature's box with the line beside it. Without an image
+  // the box is empty, so the line starts at the text's left edge (stamp.ts writes it STAMP_GAP past the box).
   let spot: StampSpot | null = null;
   let rule: number | null = null;
   if (sign !== null) {
@@ -175,7 +196,10 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
   }
 
   titleLines.forEach((line, i) => {
-    page.drawText(line, { x: left + PAD, y: titleBase[i] ?? top, size: TITLE_SIZE, font, color: RED });
+    page.drawText(line, { x: left + PAD, y: titleBase[i] ?? top, size: TITLE_SIZE, font: bold, color: RED });
+  });
+  permitLines.forEach((line, i) => {
+    page.drawText(line, { x: left + PAD, y: permitBase[i] ?? top, size: PERMIT_SIZE, font: bold, color: INK });
   });
   rows.forEach(({ it, lines }, i) => {
     const t = rowTop[i] ?? bottom;
@@ -185,7 +209,7 @@ function drawTitleBox(page: PDFPage, font: PDFFont, title: string, legend: reado
     });
     lines.forEach((line, k) => {
       const y = t - 1.5 - LEGEND_SIZE * 0.74 - k * LEGEND_LEAD;
-      page.drawText(line, { x: left + PAD + SWATCH.width + 8, y, size: LEGEND_SIZE, font, color: INK });
+      page.drawText(line, { x: left + PAD + SWATCH.width + 8, y, size: LEGEND_SIZE, font: bold, color: INK });
     });
   });
   return spot;
@@ -225,7 +249,7 @@ export async function buildIrMap(input: IrMapInput): Promise<Uint8Array> {
       textWidth: (await doc.embedFont(StandardFonts.Helvetica)).widthOfTextAtSize(signedByLine(stamp), STAMP_TEXT_SIZE),
     }
     : null;
-  const spot = drawTitleBox(page, bold, input.title, input.legend, sign);
+  const spot = drawTitleBox(page, bold, { title: input.title, permit: input.permit ? pdfSafe(input.permit) : null, legend: input.legend, sign });
 
   // Without object streams: much less work for a big sheet, and nothing is compressed twice.
   const bytes = await doc.save({ useObjectStreams: false });

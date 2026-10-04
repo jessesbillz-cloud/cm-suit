@@ -5,6 +5,7 @@ import type { TypeCount } from '../../lib/toolCounts';
 import { tasks } from './api';
 import { projects } from './jobs';
 import { me, waiting } from './rfis';
+import { myOpenMeetings } from './safety';
 
 /** Synthetic copy of the starting table for the roles the mock users take. */
 const RECOMMENDED: Record<string, readonly string[]> = {
@@ -16,6 +17,8 @@ const RECOMMENDED: Record<string, readonly string[]> = {
   architect: ['board', 'rfis', 'files'],
   bidder: ['bids'],
   ahj: ['board', 'calendar', 'permits', 'inspections', 'revs', 'files'],
+  superintendent: ['board', 'calendar', 'schedule', 'dailies', 'safety', 'inspections', 'deliveries'],
+  safety: ['board', 'safety', 'calendar'],
 };
 
 const ALWAYS_ON = ['board', 'people'];
@@ -36,5 +39,6 @@ export async function toolCounts(projectId: string | null): Promise<TypeCount[]>
   };
   for (const t of await tasks(projectId)) add(t.entity_type, t.entity_id ?? t.id);
   for (const w of await waiting()) if (projectId === null || w.project_id === projectId) add('rfi', w.id);
+  for (const id of myOpenMeetings(projectId)) add('safety_meeting', id);
   return [...records].map(([entity_type, ids]) => ({ entity_type, n: ids.size }));
 }

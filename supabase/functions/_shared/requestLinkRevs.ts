@@ -13,6 +13,7 @@ import {
   LENGTH_RULE,
   lengthFits,
   RequestLinkBody,
+  specialRequired,
   SubmitBody,
   type SubmitRequest,
   token,
@@ -84,6 +85,8 @@ export const SubmitOfsBody = z
     item_ids: z.array(uuid).min(1).max(3),
     /** One of the picked walls' sheets, or null for the first wall's. */
     sheet_file_id: uuid.nullable(),
+    /** Special inspection required? (0061): always answered, true or false. */
+    special_required: specialRequired,
   })
   .strict()
   .refine(hasContact, CONTACT_RULE)
@@ -127,7 +130,7 @@ const LinkMap = z.object({
   /** A map PDF is made (map_download answers it, made again first when out of date). */
   has_map: z.boolean(),
   stale: z.boolean(),
-  /** May the visitor draw now: until the inspector records a result. */
+  /** May the visitor draw now: until a result is recorded. */
   can_edit: z.boolean(),
   /** The request's walls' sheets the map may switch to, by level. */
   sheets: z.array(z.object({ file_id: uuid, label: z.string() })),

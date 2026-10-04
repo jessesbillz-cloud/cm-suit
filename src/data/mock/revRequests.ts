@@ -1,8 +1,10 @@
 // e2e mock of the revs request side (0056), with the database's rules in short form: the status of every wall x item
 // (na > passed > requested > failed > open), the revs request (1 to 3 items, walls of one list, passed and N/A cells
-// skipped, colors by item order, an OFS request numbered like any), the map (the requester before a result or an
-// inspector, never once signed; a version check) and the results per cell. The requests themselves live in
-// mock/inspections; the map PDF is server-only, so a render here answers a stand-in file id.
+// skipped, colors by item order, an OFS request numbered like any), the map (the requester before a result, or whoever
+// decides the request now; never once signed; a version check) and the results per cell (the deputy's, once the
+// request is with OFS: 0061). The requests themselves live in mock/inspections, read as the signed-in mock user may
+// (the status counts every request, as rev_status does); the map PDF is server-only, so a render here answers a
+// stand-in file id.
 import { conflictError } from '../errors';
 import { FunctionError } from '../functions';
 import type { Tables } from '../database.types';
@@ -11,18 +13,13 @@ import type { IrRequest, IrRowRaw } from '../inspections.types';
 import type { IrMapContext, IrRevItem, IrStroke, NewOfsRequest, RevResult, RevStatusRow } from '../revs.types';
 import { mockUser } from './index';
 import * as mockIr from './inspections';
+import { decideCap, holds } from './irRules';
 import { fail, has, read, write, type RevMockState } from './revs';
 
 type Cell = Tables<'ir_rev_items'>;
 
-const DECIDES = ['inspector', 'inspector_admin', 'ahj'];
-
-function decides(): boolean {
-  return DECIDES.includes(mockUser().id.replace(/^mock-user-/, ''));
-}
-
 async function requestsOf(projectId: string): Promise<Map<string, IrRequest>> {
-  const rows = await mockIr.list(projectId, (r) => r.status !== 'withdrawn' && r.deleted_at === null);
+  const rows = await mockIr.serverList(projectId, (r) => r.status !== 'withdrawn' && r.deleted_at === null);
   return new Map(rows.map((r) => [r.id, r]));
 }
 
@@ -75,8 +72,9 @@ export async function cells(requestId: string): Promise<IrRevItem[]> {
   return read().cells.filter((c) => c.request_id === requestId).sort((a, b) => a.color - b.color);
 }
 
-export async function mapContext(requestId: string): Promise<IrMapContext> {
-  const q = await mockIr.request(requestId);
+/** ir_map_context; `asServer`: as the link's own function reads it (a request by its receipt). */
+export async function mapContext(requestId: string, asServer = false): Promise<IrMapContext> {
+  const q = asServer ? await mockIr.serverRequest(requestId) : await mockIr.request(requestId);
   const s = read();
   const m = s.maps.find((x) => x.request_id === requestId);
   if (!q || !m) throw fail('That item no longer exists.', 'P0002');
@@ -93,13 +91,15 @@ export async function mapContext(requestId: string): Promise<IrMapContext> {
     phase: s.lists.find((l) => l.id === listId)?.phase ?? null, request_date: q.request_date,
     what: [levels, legend.map((l) => l.name).join(' & ')].filter((x) => x !== '').join(' '),
     sheet_file_id: m.sheet_file_id, page: m.page, strokes: m.strokes as IrStroke[], legend, result: q.result,
-    signed_at: q.signed_at, signer_name: q.signed_at === null ? null : 'Sample Inspector', version: m.version,
+    signed_at: q.signed_at, signer_name: q.signed_at === null ? null : 'Sample Deputy', version: m.version,
     map_file_id: m.map_file_id, stale: m.stale, can_edit: q.signed_at === null && q.status !== 'withdrawn' && canDraw(q, mine),
   };
 }
 
+/** ir_map_editor: whoever decides the request now, or its requester until there is a result. */
 function canDraw(q: IrRequest, mine: Cell[]): boolean {
-  return decides() || (q.requested_by === mockUser().id && q.result === null && mine.every((c) => c.result === null));
+  const me = mockUser().id;
+  return holds(me, decideCap(q)) || (q.requested_by === me && q.result === null && mine.every((c) => c.result === null));
 }
 
 /** ir_submit_ofs in short form. */
@@ -127,6 +127,7 @@ export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
   const row = await mockIr.addOfsRequest({
     p_project_id: v.projectId, p_company: v.company, p_request_date: v.date, p_items: text, p_start_time: v.startTime,
     p_duration_kind: v.durationKind, p_duration_min: v.durationMin, p_attachment_ids: v.attachmentIds,
+    p_notice_ack: v.noticeAck, p_special_required: v.specialRequired, p_inspector_ack: v.inspectorAck,
   });
   const now = new Date().toISOString();
   const me = mockUser().id;
@@ -171,9 +172,10 @@ export async function saveMap(v: { requestId: string; version: number; strokes: 
   return next;
 }
 
-/** The ir-map function in the mock: no PDF is made; the map counts as rendered (with the signature when signed). */
-export async function renderMap(requestId: string): Promise<{ file_id: string }> {
-  const q = await mockIr.request(requestId);
+/** The ir-map function in the mock: no PDF is made; the map counts as rendered (with the signature when signed).
+ *  `asServer`: for the link, by a request's receipt. */
+export async function renderMap(requestId: string, asServer = false): Promise<{ file_id: string }> {
+  const q = asServer ? await mockIr.serverRequest(requestId) : await mockIr.request(requestId);
   const map = read().maps.find((m) => m.request_id === requestId);
   if (!q || !map) throw fail('That item no longer exists.', 'P0002');
   // ir-map's own refusals (400).
@@ -191,9 +193,10 @@ export async function renderMap(requestId: string): Promise<{ file_id: string }>
   return { file_id: fileId };
 }
 
-/** ir_rev_results in short form: every cell once, failed says why; the request's result through ir_set_result. */
+/** ir_rev_results in short form: whoever decides the request now (never the inspector on an OFS request); every cell
+ *  once, failed says why; the request's result through ir_set_result. */
 export async function setResults(row: IrRef, results: RevResult[] | null): Promise<IrRowRaw> {
-  if (!decides()) throw fail("You don't have access to that.", '42501');
+  if (mockIr.decider(row.id, row.version).status === 'postponed') throw fail('Confirm it again first.');
   const s = read();
   const mine = s.cells.filter((c) => c.request_id === row.id);
   if (results !== null) {

@@ -1,7 +1,7 @@
-// Permit writes (migration 0052). Every write is its own RPC run as me, version-checked where it takes one; repeats are
-// safe (a new permit, review or comment carries the form's key; the same move again is a no-op). After each write the
-// permit queries, the board and the calendar (an issued permit's expiry) refresh; linking an inspection refreshes the
-// job's inspections too.
+// Permit writes (migrations 0052, 0061). Every write is its own RPC run as me, version-checked where it takes one;
+// repeats are safe (a new permit, review, backcheck or comment carries the form's key; the same move again is a
+// no-op). After each write the permit queries, the board and the calendar (an issued permit's expiry) refresh; linking
+// an inspection refreshes the job's inspections too.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
 import { throwIfError } from './errors';
@@ -127,13 +127,28 @@ export function useUndoMove() {
   });
 }
 
-/** A new review cycle (the first is the initial review, later ones backchecks). */
+/** A new review of the permit, numbered by the database: its kind (initial, a deferred item, an addendum, a change order). */
 export function useOpenReview() {
   const refresh = useRefresh();
   return useMutation({
-    mutationFn: async (v: { projectId: string; permitId: string; key: string }): Promise<PermitReview> => {
-      if (isMock()) return mockReviews.reviewOpen(v.permitId, v.key);
-      const data = throwIfError(await supabase.rpc('permit_review_open', { p_permit_id: v.permitId, p_key: v.key }));
+    mutationFn: async (v: { projectId: string; permitId: string; kind: string; key: string }): Promise<PermitReview> => {
+      if (isMock()) return mockReviews.reviewOpen(v.permitId, v.kind, v.key);
+      const data = throwIfError(
+        await supabase.rpc('permit_review_open', { p_permit_id: v.permitId, p_kind: v.kind, p_key: v.key }),
+      );
+      return permitReviewSchema.parse(one(data));
+    },
+    onSettled: (_r, _e, v) => refresh(v.projectId),
+  });
+}
+
+/** The next backcheck of the review a cycle belongs to (once none of its cycles is open). */
+export function useBackcheckReview() {
+  const refresh = useRefresh();
+  return useMutation({
+    mutationFn: async (v: { projectId: string; reviewId: string; key: string }): Promise<PermitReview> => {
+      if (isMock()) return mockReviews.reviewBackcheck(v.reviewId, v.key);
+      const data = throwIfError(await supabase.rpc('permit_review_backcheck', { p_review_id: v.reviewId, p_key: v.key }));
       return permitReviewSchema.parse(one(data));
     },
     onSettled: (_r, _e, v) => refresh(v.projectId),

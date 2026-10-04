@@ -7,7 +7,10 @@ import { degrees, PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, S
 export interface InspectionReportInput {
   job: { name: string; number: string | null; address: string | null };
   gc: string | null;
+  /** Who inspected and signed: the inspector, or the fire marshal on an OFS IR. */
   inspector: string;
+  /** The word in front of that name; "Inspector" unless given. */
+  inspectorLabel?: string;
   number: number;
   dateLabel: string;
   timeLabel: string;
@@ -247,7 +250,7 @@ export async function buildInspectionReport(input: InspectionReportInput): Promi
   fieldGrid(c, [
     ['Address', input.job.address ?? ''],
     ['General contractor', input.gc ?? ''],
-    ['Inspector', input.inspector],
+    [input.inspectorLabel ?? 'Inspector', input.inspector],
     ['Date', input.dateLabel],
     ['Time', `${input.timeLabel} · ${input.durationLabel}`],
     ['Type', input.typeLabel],

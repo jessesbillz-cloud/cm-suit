@@ -45,7 +45,7 @@ select ok('board' = any (public.job_rail_tools()) and 'calendar' = any (public.j
   'a job''s own Board and Calendar are job tools (0058); Timesheets is All my jobs only');
 select is_empty($$ select t from unnest(public.job_rail_tools()) t
                    where t not in ('board','files','bids','calendar','dailies','inspections','revs','rfis','permits',
-                                   'deliveries','corrections','people','hours') $$,
+                                   'deliveries','corrections','safety','schedule','people','hours') $$,
   'job tools are rail tools');
 
 -- ---------------------------------------------------------------------------------------------------------------

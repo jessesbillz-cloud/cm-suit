@@ -1,5 +1,5 @@
 // Inspection shapes the app reads (SPEC §13.2). Table rows derive from the generated types; RPC answers whose columns
-// the generator types as non-null (ir_calendar, the form context JSON) and the edge-function answers are parsed with
+// the generator types as non-null (the calendar, the form context JSON) and the edge-function answers are parsed with
 // zod at the boundary, so a changed contract fails loudly here.
 import { z } from 'zod';
 import type { Database, Tables } from './database.types';
@@ -9,7 +9,10 @@ type Fns = Database['public']['Functions'];
 export type DurationKind = 'timed' | 'all_day' | 'periodic';
 export type IrKind = 'ior' | 'special' | 'ofs';
 
-/** One line of ir_calendar: in full for my own and for the GC team / inspectors; others' carry time, type and color. */
+/**
+ * One line of the job's inspection calendar (calendar_inspections, 0061; the outsider's day is shaped like it): in full
+ * for my own and for the GC team / inspectors, and for the deputy his OFS requests; others' carry time, type and color.
+ */
 export const calendarRowSchema = z.object({
   id: z.string().nullable(),
   number: z.number().nullable(),
@@ -33,6 +36,8 @@ export const calendarRowSchema = z.object({
   helper_id: z.string().nullable(),
   postpone_reason: z.string().nullable(),
   postpone_until: z.string().nullable(),
+  /** An OFS request the inspector has sent to OFS (false on a line I don't read in full). */
+  ofs_sent: z.boolean(),
 });
 export type CalendarRow = z.infer<typeof calendarRowSchema>;
 
@@ -50,7 +55,7 @@ export type FormContext = z.infer<typeof formContextSchema>;
 
 // One literal, so supabase-js can type the rows from it.
 export const IR_COLS =
-  'id, project_id, number, ofs_number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ir_special_kinds(name)';
+  'id, project_id, number, ofs_number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ofs_sent_at, ofs_sent_by, special_required, ir_special_kinds(name)';
 
 export type IrRequest = Pick<
   Tables<'inspection_requests'>,
@@ -96,6 +101,9 @@ export type IrRequest = Pick<
   | 'results_sent_at'
   | 'summary'
   | 'created_at'
+  | 'ofs_sent_at'
+  | 'ofs_sent_by'
+  | 'special_required'
 > & { ir_special_kinds: { name: string } | null };
 
 /** What every IR RPC returns: the whole row (no embedded kind name). */
@@ -121,6 +129,10 @@ export interface NewIrRequest extends IrWhen {
   items: string;
   attachmentIds: string[];
   noticeAck: boolean;
+  /** An OFS request's one extra question: special inspection required? null on any other kind. */
+  specialRequired: boolean | null;
+  /** The inspector's one statement when he files an OFS request himself (it goes straight to OFS). */
+  inspectorAck: boolean;
 }
 
 export interface NewBlock {

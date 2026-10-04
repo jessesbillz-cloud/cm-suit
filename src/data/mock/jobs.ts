@@ -85,6 +85,11 @@ export async function projects(): Promise<MyProject[]> {
   }));
 }
 
+/** A job's settings as stored (with this test's edits); none for a job the mock user is not on. */
+export function projectSettings(projectId: string): unknown {
+  return projectRows().find((r) => r.id === projectId)?.settings ?? {};
+}
+
 export async function project(projectId: string): Promise<ProjectRow> {
   await delay();
   const row = projectRows().find((r) => r.id === projectId);

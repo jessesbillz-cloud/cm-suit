@@ -143,6 +143,10 @@ export const PUBLIC_TABLES = [
   'ir_link_receipts',
   // Revs (0056)
   'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
+  // Safety (0060)
+  'safety_topics', 'safety_meetings', 'safety_signins',
+  // Schedule (0062)
+  'schedule_versions', 'schedule_activities',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -150,8 +154,16 @@ export const BUCKETS = ['files', 'signatures', 'inbound', 'fixtures', 'org-logos
 
 export const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 
+// Safety (0060): its RPC list and the meeting-signin checks, for the anon probe.
+export { probeMeetingSignin, SAFETY_RPCS } from './_safety';
+export { OFS_PERMITS_RPCS } from './_ofsPermits';
+// Schedule (0062): its RPC list, for the anon probe.
+export { SCHEDULE_RPCS } from './_schedule';
+
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
+  // Removing an upload that never finished (0065): one function, listed here for the same reason.
+  ['remove_unfinished_upload', { p_file_id: ZERO_UUID }],
   ['permit_stamp_folders', { p_permit_id: ZERO_UUID }],
   ['permit_stamp_source', { p_permit_id: ZERO_UUID, p_file_id: ZERO_UUID }],
   ['permit_stamp_sources', { p_permit_id: ZERO_UUID }],

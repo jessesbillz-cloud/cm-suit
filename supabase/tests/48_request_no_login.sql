@@ -177,7 +177,7 @@ insert into res values ('s1', pg_temp.send('c0000000-0000-0000-0000-000000000481
   '(555) 010-2030', ' Visitor@Example.test ', pg_temp.d(2), '10:00', 'ior', 'North wall framing', true));
 select is(pg_temp.j('s1')->>'number', '3', 'submit: the next number from the job''s one numbering');
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('s1')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('project_name'), ('receipt'),
+  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('receipt'),
             ('request_date'), ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'submit: the receipt facts and the receipt token');
 select is(pg_temp.j('s1')->>'status', 'pending', 'submit: GC step off, straight to the inspector');
@@ -310,7 +310,7 @@ select throws_ok($$ select pg_temp.send('c0000000-0000-0000-0000-000000000481', 
 -- ---------------------------------------------------------------------------------------------------------------------
 insert into res values ('st', public.link_request_status('c0000000-0000-0000-0000-000000000481', pg_temp.h(pg_temp.j('s1')->>'receipt')));
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('st')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('project_name'), ('request_date'),
+  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('request_date'),
             ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'status: the tracker''s facts and the result line only');
 select ok(pg_temp.j('st')::text not like '%555%' and pg_temp.j('st')::text not like '%visitor@%'
@@ -390,10 +390,10 @@ select ok(not has_function_privilege('authenticated', 'public.link_request_calen
           and not has_function_privilege('authenticated', 'public.link_request_files(uuid, text, uuid, jsonb)', 'execute')
           and not has_function_privilege('authenticated', 'public.link_request_status(uuid, text)', 'execute')
           and not has_function_privilege('authenticated',
-            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[])', 'execute')
+            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[], boolean)', 'execute')
           and has_function_privilege('service_role', 'public.link_request_status(uuid, text)', 'execute')
           and has_function_privilege('service_role',
-            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[])', 'execute'),
+            'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time, text, integer, uuid, uuid[], boolean)', 'execute'),
   'grants: the link functions are service-role only');
 select ok(not has_function_privilege('authenticated', 'public.ir_folder_make(uuid, text)', 'execute')
           and not has_function_privilege('authenticated', 'public.ir_calendar_rows(uuid, date, date, uuid, boolean, boolean)', 'execute')

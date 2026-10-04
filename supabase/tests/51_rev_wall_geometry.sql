@@ -252,12 +252,12 @@ select lives_ok($$ select public.rev_area_place(pg_temp.rid('e'), pg_temp.ver('e
 select pg_temp.login('a0000000-0000-0000-0000-000000000513');
 insert into ids select 'q', (public.ir_submit_ofs('c0000000-0000-0000-0000-000000000511', 'Sample Firestop Co',
   ((now() at time zone 'America/Los_Angeles')::date + 3), true, array[pg_temp.rid('e'), pg_temp.rid('n')], array[pg_temp.rid('i_tow')],
-  null, '08:00', 'timed', 60)).id;
+  null, '08:00', 'timed', 60, p_special_required => false)).id;
 select is((select array[sheet_file_id::text, page::text] from public.ir_maps where request_id = pg_temp.rid('q')),
   array['e0000000-0000-0000-0000-000000000511', '3'], 'a request''s map starts on the first wall''s sheet at its page');
 insert into ids select 'q2', (public.ir_submit_ofs('c0000000-0000-0000-0000-000000000511', 'Sample Other Co',
   ((now() at time zone 'America/Los_Angeles')::date + 4), true, array[pg_temp.rid('e')], array[pg_temp.rid('i_tow')],
-  null, '09:00', 'timed', 60)).id;
+  null, '09:00', 'timed', 60, p_special_required => false)).id;
 select is((select array[sheet_file_id::text, page::text] from public.ir_maps where request_id = pg_temp.rid('q2')),
   array['e0000000-0000-0000-0000-000000000511', '7'], '... one on the east wall starts on page 7');
 

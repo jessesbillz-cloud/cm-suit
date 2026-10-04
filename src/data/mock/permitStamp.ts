@@ -58,7 +58,7 @@ function saveRows(next: Row[]): void {
 }
 
 /** permit_stamp_mode: issue where the permit may be issued next, a revision once issued and building. */
-const MODE: Readonly<Record<string, StampMode>> = { in_review: 'issue', backcheck: 'issue', issued: 'revise', inspections: 'revise', approved: 'revise' };
+const MODE: Readonly<Record<string, StampMode>> = { in_review: 'issue', backcheck: 'issue', issued: 'revise', inspected: 'revise', approved: 'revise' };
 
 function permitOf(id: string): StoredPermit {
   return stored(read(), id);

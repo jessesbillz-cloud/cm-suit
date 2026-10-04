@@ -5,7 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from './auth';
 import { messageOf } from './errors';
 import { qk } from './keys';
-import { isAbortError, uploadFile } from './upload';
+import { isAbortError, removeUnfinishedUpload, uploadFile } from './upload';
+import { isTooBig } from './uploadErrors';
 
 const MAX_PARALLEL = 3;
 
@@ -16,6 +17,15 @@ export interface UploadItem {
   loaded: number;
   status: 'queued' | 'uploading' | 'done' | 'failed' | 'cancelled';
   error: string | null;
+  /** False when trying again cannot work (storage refused the file as too big). */
+  retryable: boolean;
+  /**
+   * The files row registered for this upload while it is unfinished: what Remove takes back. Null before the row is
+   * registered and once the file is stored.
+   */
+  unfinishedId: string | null;
+  /** True while Remove is taking that row back; the line goes when it is gone. */
+  removing: boolean;
   /** What the after-upload step reported (e.g. "Received #12"); null when there was none. */
   note: string | null;
   projectId: string;
@@ -31,8 +41,11 @@ export type AfterUpload = (fileId: string, file: File) => Promise<string | null>
 interface UploadQueueValue {
   items: UploadItem[];
   enqueue: (files: File[], projectId: string, folderId: string, afterUpload?: AfterUpload) => void;
+  /** Stop: ends an upload that is waiting or running. Its line stays, to try again or remove. */
   cancel: (key: number) => void;
   retry: (key: number) => void;
+  /** Takes a failed or stopped line away, and with it the unfinished files row it registered. */
+  remove: (key: number) => void;
   clearFinished: () => void;
 }
 
@@ -59,6 +72,28 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
     setItems((list) => list.map((it) => (it.key === key ? { ...it, ...p } : it)));
   }, []);
 
+  // The lines as last shown, for an upload's own callbacks (they outlive the render that started it).
+  const shown = useRef(items);
+  useEffect(() => {
+    shown.current = items;
+  }, [items]);
+
+  /**
+   * An upload registered its files row. A stopped or failed line that holds the same row is the same file added
+   * again (upload.ts findUnfinished reuses the row to resume): that line is this upload now, so it goes.
+   */
+  const registered = useCallback((key: number, fileId: string) => {
+    const stale = shown.current
+      .filter((i) => i.key !== key && i.unfinishedId === fileId && (i.status === 'failed' || i.status === 'cancelled'))
+      .map((i) => i.key);
+    for (const k of stale) {
+      files.current.delete(k);
+      afterUploads.current.delete(k);
+      started.current.delete(k);
+    }
+    setItems((list) => list.filter((i) => !stale.includes(i.key)).map((i) => (i.key === key ? { ...i, unfinishedId: fileId } : i)));
+  }, []);
+
   const start = useCallback(
     (item: UploadItem, userId: string) => {
       const file = files.current.get(item.key);
@@ -78,8 +113,13 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
         onProgress: (loaded) => {
           patch(item.key, { loaded });
         },
+        onRegistered: (fileId) => {
+          registered(item.key, fileId);
+        },
       })
         .then(async ({ fileId }) => {
+          // Stored: from here on it is a file, not an unfinished upload.
+          patch(item.key, { unfinishedId: null });
           const after = afterUploads.current.get(item.key);
           const note = after ? await after(fileId, file) : null;
           patch(item.key, { status: 'done', loaded: item.size, note });
@@ -89,13 +129,13 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
         })
         .catch((e: unknown) => {
           if (isAbortError(e)) patch(item.key, { status: 'cancelled' });
-          else patch(item.key, { status: 'failed', error: messageOf(e) });
+          else patch(item.key, { status: 'failed', error: messageOf(e), retryable: !isTooBig(e) });
         })
         .finally(() => {
           controllers.current.delete(item.key);
         });
     },
-    [patch, qc],
+    [patch, qc, registered],
   );
 
   // Keep up to MAX_PARALLEL uploads running; the rest wait their turn.
@@ -117,7 +157,20 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
       nextKey.current += 1;
       files.current.set(key, file);
       if (afterUpload) afterUploads.current.set(key, afterUpload);
-      return { key, name: file.name, size: file.size, loaded: 0, status: 'queued', error: null, note: null, projectId, folderId };
+      return {
+        key,
+        name: file.name,
+        size: file.size,
+        loaded: 0,
+        status: 'queued',
+        error: null,
+        retryable: true,
+        unfinishedId: null,
+        removing: false,
+        note: null,
+        projectId,
+        folderId,
+      };
     });
     setItems((list) => [...list, ...added]);
   }, []);
@@ -139,10 +192,44 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
     [patch],
   );
 
+  const remove = useCallback(
+    (key: number) => {
+      const item = items.find((i) => i.key === key);
+      // A waiting or running upload is stopped first (cancel); a finished one is a file, cleared with clearFinished.
+      if (!item || item.removing || (item.status !== 'failed' && item.status !== 'cancelled')) return;
+      const drop = () => {
+        files.current.delete(key);
+        afterUploads.current.delete(key);
+        started.current.delete(key);
+        setItems((list) => list.filter((i) => i.key !== key));
+      };
+      if (item.unfinishedId === null) {
+        drop();
+        return;
+      }
+      patch(key, { removing: true });
+      removeUnfinishedUpload(item.unfinishedId)
+        .then(async () => {
+          // The folder's list first, so the row is never seen without its line.
+          await qc.invalidateQueries({ queryKey: qk.files(item.folderId) });
+          drop();
+        })
+        .catch((e: unknown) => {
+          // Not removed: the line stays and says why.
+          patch(key, { removing: false, status: 'failed', error: messageOf(e) });
+        });
+    },
+    [items, patch, qc],
+  );
+
+  // Stopped and failed lines stay until they are removed or tried again: each still holds an unfinished files row.
   const clearFinished = useCallback(() => {
-    setItems((list) => list.filter((i) => i.status === 'queued' || i.status === 'uploading' || i.status === 'failed'));
+    setItems((list) => list.filter((i) => i.status !== 'done'));
   }, []);
 
-  const value = useMemo(() => ({ items, enqueue, cancel, retry, clearFinished }), [items, enqueue, cancel, retry, clearFinished]);
+  const value = useMemo(
+    () => ({ items, enqueue, cancel, retry, remove, clearFinished }),
+    [items, enqueue, cancel, retry, remove, clearFinished],
+  );
   return <UploadQueueContext.Provider value={value}>{children}</UploadQueueContext.Provider>;
 }

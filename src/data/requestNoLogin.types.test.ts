@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { asPublicRevs, publicMapAnswerSchema, publicRevsSchema } from './requestNoLogin.types';
+import { asPublicRevs, publicMapAnswerSchema, publicRevsSchema, requestFactsSchema, submittedSchema } from './requestNoLogin.types';
 
 const LINK = {
   lists: [{ id: 'l1', name: 'Sample Rated Walls', phase: 'PH III', position: 1 }],
@@ -43,5 +43,22 @@ describe('a link request\'s map (0057)', () => {
 
   it('fails loudly on strokes the database would refuse', () => {
     expect(publicMapAnswerSchema.safeParse({ map: { ...map, strokes: [{ c: 4, w: 0.01, p: [[0, 0], [1, 1]] }] } }).success).toBe(false);
+  });
+});
+
+describe("a link request's facts (0061)", () => {
+  const facts = {
+    project_name: 'Sample Science Building', number: 12, request_date: '2026-10-05', start_time: null, duration_kind: 'periodic',
+    duration_min: null, kind: 'ofs', special_kind: null, status: 'pending', result: null, result_note: null, gc_step: true, ofs_sent: true,
+  };
+
+  it('carry whether the request is with OFS (the tracker\'s OFS step); the receipt adds its token', () => {
+    expect(requestFactsSchema.parse(facts).ofs_sent).toBe(true);
+    expect(submittedSchema.parse({ ...facts, ofs_sent: false, receipt: 'A'.repeat(43) }).ofs_sent).toBe(false);
+  });
+
+  it('fail loudly when the answer leaves it out', () => {
+    const old = Object.fromEntries(Object.entries(facts).filter(([k]) => k !== 'ofs_sent'));
+    expect(requestFactsSchema.safeParse(old).success).toBe(false);
   });
 });

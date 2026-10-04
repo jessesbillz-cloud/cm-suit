@@ -3,6 +3,7 @@
 import { messageOf } from '../../../data/errors';
 import { useDownloadIrFile } from '../../../data/inspections.mutations';
 import { useIrRequest } from '../../../data/inspections.queries';
+import { useCapability } from '../../../data/queries';
 import { formatDay } from '../../../lib/dates';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { StatusChip } from '../../../ui/StatusChip';
@@ -13,6 +14,8 @@ import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
 export function InspectionEntity({ frame, id }: KindProps) {
   const q = useIrRequest(frame.projectId, id);
+  // The deputy reads an OFS request sent to OFS as Pending; everyone else as "With OFS".
+  const ofsDecide = useCapability(frame.projectId, 'ir.ofs_decide');
   const download = useDownloadIrFile();
   const toast = useToast();
 
@@ -21,7 +24,7 @@ export function InspectionEntity({ frame, id }: KindProps) {
   if (q.data === null) return <EntityPane frame={{ ...frame, open: null }} label="Inspection" title="This inspection isn't here." />;
 
   const r = q.data;
-  const chip = requestChip(r);
+  const chip = requestChip(r, ofsDecide.data === true);
   return (
     <EntityPane
       frame={frame}

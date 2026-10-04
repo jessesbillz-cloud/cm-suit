@@ -20,12 +20,15 @@ import type {
 } from '../bids.types';
 import { mockUser } from './index';
 import * as mockCorrections from './corrections';
+import * as mockIr from './inspections';
 import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import * as mockPackages from './packages';
 import * as mockPermits from './permits';
 import * as mockRevs from './revs';
 import * as mockRfis from './rfis';
+import * as mockSafety from './safety';
+import * as mockSchedule from './schedule';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
 
@@ -35,12 +38,16 @@ function isBidder(): boolean {
   return mockUser().id === 'mock-user-bidder';
 }
 
-/** has_capability in the mock: the bidder can only submit; everyone else can do everything else. */
+/** has_capability in the mock: the bidder can only submit; everyone else can do everything else, but for the tools
+ *  that keep their own matrix (corrections, inspections, RFIs, permits, revs, safety, the schedule). */
 export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('corrections.')) return mockCorrections.capability(cap);
+  if (cap.startsWith('ir.')) return mockIr.capability(cap);
   if (cap.startsWith('rfi.')) return mockRfis.capability(cap);
   if (cap.startsWith('permits.')) return mockPermits.capability(cap);
   if (cap.startsWith('revs.')) return mockRevs.capability(cap);
+  if (cap.startsWith('safety.')) return mockSafety.capability(cap);
+  if (cap.startsWith('schedule.')) return mockSchedule.capability(cap);
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
 }

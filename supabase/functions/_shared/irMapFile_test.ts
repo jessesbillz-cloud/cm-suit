@@ -1,6 +1,6 @@
 // `deno test supabase/functions/_shared/irMapFile_test.ts` — the map PDF's facts, signer and content (0056, 0057).
 import { contentHash } from './crypto.ts';
-import { mapContent, type MapFacts, mapFactsSchema, signerOf, titleOf } from './irMapFile.ts';
+import { mapContent, type MapFacts, mapFactsSchema, permitLine, signerOf, titleOf } from './irMapFile.ts';
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error(`failed: ${what}`);
@@ -53,4 +53,25 @@ Deno.test('content: the hash moves with what the map shows, not with its stale m
   check(base !== await contentHash(mapContent({ ...facts, page: 2 }, null)), 'page');
   check(base !== await contentHash(mapContent({ ...facts, what: 'Level 03 HOW Cavity Stuff' }, null)), 'title');
   check(base !== await contentHash(mapContent(facts, signerOf(SIGNED, 'Sample Deputy'))), 'the signature');
+});
+
+Deno.test('facts (0061): the permit number, optional; no checklist (the route is the readiness check)', () => {
+  const old = mapFactsSchema.parse(FACTS);
+  check(old.permit_number === null && permitLine(old) === null, 'a map before 0061: no permit, no line');
+  const f = mapFactsSchema.parse({ ...FACTS, permit_number: '24-0001' });
+  check(f.permit_number === '24-0001' && permitLine(f) === 'Permit 24-0001', 'the permit line');
+  check(mapFactsSchema.parse({ ...FACTS, permit_number: null }).permit_number === null, 'no live permit on the request');
+  // ir_map_facts has no readiness key any more; one sent anyway is dropped like every other unknown key.
+  const stray = mapFactsSchema.parse({ ...FACTS, readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' } });
+  check(!('readiness' in stray), 'no readiness in the facts');
+});
+
+Deno.test('content (0061): a map with no permit keeps its hash; the permit moves it; a checklist is not content', async () => {
+  const facts: MapFacts = mapFactsSchema.parse(FACTS);
+  const base = await contentHash(mapContent(facts, null));
+  check(base === await contentHash(mapContent({ ...facts, permit_number: null }, null)), 'none: same hash');
+  check(base !== await contentHash(mapContent({ ...facts, permit_number: '24-0001' }, null)), 'the permit');
+  check(!('readiness' in mapContent(facts, null)), 'no checklist in what the map shows');
+  const stray = mapFactsSchema.parse({ ...FACTS, readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' } });
+  check(base === await contentHash(mapContent(stray, null)), 'a stray checklist never moves the hash');
 });

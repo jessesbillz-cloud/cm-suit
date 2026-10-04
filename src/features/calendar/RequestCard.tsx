@@ -6,6 +6,7 @@ import { Pause, Paperclip } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
 import { useIrFileNames } from '../../data/inspections.queries';
+import { useCapability } from '../../data/queries';
 import { formatDay } from '../../lib/dates';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
@@ -83,7 +84,9 @@ function Chips({ entry }: { entry: IrEntry }) {
 
 export function RequestCard({ entry, showJob, selected, done, onOpen }: RequestCardProps) {
   const { row } = entry;
-  const chip = rowChip(row);
+  // The deputy reads an OFS request sent to OFS as Pending; everyone else as "With OFS" (cached per job).
+  const ofsDecide = useCapability(entry.projectId, 'ir.ofs_decide');
+  const chip = rowChip(row, ofsDecide.data === true);
   const type = typeLabel(row.kind, row.special_kind);
   const title = showJob ? entry.projectName : type;
   const sub = [showJob ? type : null, row.company].filter((v): v is string => v !== null && v !== '').join(' · ');

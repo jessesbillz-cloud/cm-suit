@@ -3,7 +3,17 @@
 // Item code loads on first use (lazyTools), with the usual loading line meanwhile.
 import { Suspense } from 'react';
 import type { Tool } from '../../lib/layout';
-import { BILLING_ITEM, CONTRACT_ITEM, NEW_ITEM, SHARE_ITEM, WALLS_ITEM } from '../../lib/itemIds';
+import {
+  BILLING_ITEM,
+  CONTRACT_ITEM,
+  DRAFT_ITEM_PREFIX,
+  NEW_ITEM,
+  NEW_TOPIC_ITEM,
+  SHARE_ITEM,
+  TOPIC_ITEM_PREFIX,
+  VERSION_ITEM_PREFIX,
+  WALLS_ITEM,
+} from '../../lib/itemIds';
 import { EmptyState, LoadingState } from '../../ui/States';
 import { commentTarget } from './commentTarget';
 import {
@@ -20,6 +30,8 @@ import {
   PermitItem,
   RevsItem,
   RfiItem,
+  SafetyItem,
+  ScheduleItem,
   TimesheetsItem,
 } from './lazyTools';
 import type { FrameModel } from './useFrameModel';
@@ -80,6 +92,8 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   if (tool === 'permits') {
     return <PermitItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
   }
+  if (tool === 'safety' && model.loc.projectId !== null) return <SafetyItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'schedule' && model.loc.projectId !== null) return <ScheduleItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
   if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
@@ -119,6 +133,8 @@ export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'corrections') return 'Corrections';
   if (tool === 'rfis') return 'RFI';
   if (tool === 'permits') return 'Permit';
+  if (tool === 'safety') return itemId === NEW_TOPIC_ITEM || itemId.startsWith(TOPIC_ITEM_PREFIX) ? 'Topic' : 'Meeting';
+  if (tool === 'schedule') return itemId.startsWith(DRAFT_ITEM_PREFIX) ? 'Draft' : itemId.startsWith(VERSION_ITEM_PREFIX) ? 'Update' : 'Activity';
   if (tool === 'hours') return itemId === CONTRACT_ITEM ? 'Contract hours' : 'Hours';
   if (tool === 'timesheets') return itemId === BILLING_ITEM ? 'Billing' : 'Invoice';
   return 'Item';

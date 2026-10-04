@@ -39,11 +39,12 @@ returns jsonb language sql as $$
     p_company => 'Sample Firestop Co', p_phone => p_phone, p_email => p_email, p_request_date => pg_temp.d(3),
     p_notice_ack => true, p_area_ids => array(select pg_temp.rid(a) from unnest(p_areas) a),
     p_item_ids => array(select pg_temp.rid(i) from unnest(p_items) i), p_sheet_file_id => p_sheet, p_start_time => '09:00',
-    p_duration_kind => 'timed', p_duration_min => 60) $$;
+    p_duration_kind => 'timed', p_duration_min => 60, p_special_required => false) $$;
 grant execute on all functions in schema pg_temp to public;
 
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000501', 'probe+lr-insp@example.test', 'Ivy Inspector');
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000502', 'probe+lr-sub@example.test', 'Sam Sub');
+select pg_temp.mk_user('a0000000-0000-0000-0000-000000000503', 'probe+lr-ahj@example.test', 'Dana Deputy');
 
 insert into public.orgs (id, name, kind, created_by) values
   ('b0000000-0000-0000-0000-000000000501', 'Sample Link Revs GC', 'gc', 'a0000000-0000-0000-0000-000000000501');
@@ -59,7 +60,9 @@ insert into public.project_members (org_id, project_id, user_id, invite_email, r
   ('b0000000-0000-0000-0000-000000000501', 'c0000000-0000-0000-0000-000000000501', 'a0000000-0000-0000-0000-000000000501',
    'probe+lr-insp@example.test', 'inspector', 'active'),
   ('b0000000-0000-0000-0000-000000000501', 'c0000000-0000-0000-0000-000000000501', 'a0000000-0000-0000-0000-000000000502',
-   'probe+lr-sub@example.test', 'sub', 'active');
+   'probe+lr-sub@example.test', 'sub', 'active'),
+  ('b0000000-0000-0000-0000-000000000501', 'c0000000-0000-0000-0000-000000000501', 'a0000000-0000-0000-0000-000000000503',
+   'probe+lr-ahj@example.test', 'ahj', 'active');
 
 -- Two plan sheets (Level 01, Level 02), a photo, another job's PDF, and a map PDF the server made.
 insert into public.folders (id, org_id, project_id, name, created_by) values
@@ -108,7 +111,7 @@ reset role;
 -- ---------------------------------------------------------------------------------------------------------------------
 select is_empty($$ select f from unnest(array[
     'public.link_request_revs(uuid, text, uuid)',
-    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[])',
+    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean)',
     'public.link_request_map(uuid, text)', 'public.link_request_map_save(uuid, text, integer, jsonb, uuid, integer)',
     'public.link_request_map_facts(uuid, text)', 'public.link_request_map_file(uuid, text, text, text)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
@@ -120,7 +123,7 @@ select is_empty($$ select f from unnest(array[
     'public.ir_map_write(public.inspection_requests, public.ir_maps, integer, jsonb, uuid, integer, boolean)',
     'public.link_request_receipt(uuid, text)', 'public.link_request_map_editor(uuid)', 'public.link_request_map_sheets(uuid)',
     'public.link_request_map_view(uuid)',
-    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid)']) f
+    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, boolean)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE') $$,
   'grants: the shared bodies are internal');
 set local role authenticated;
@@ -170,11 +173,11 @@ select is(public.link_request_revs('c0000000-0000-0000-0000-000000000502', pg_te
 insert into res values ('s1', pg_temp.ofs('c0000000-0000-0000-0000-000000000501', pg_temp.h('job-token'), 'Sample Visitor',
   array['wA', 'wB', 'wC'], array['stuff', 'tow']));
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('s1')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('project_name'), ('receipt'),
+  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('receipt'),
             ('request_date'), ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'submit: the same receipt as any link request');
-select is(array[pg_temp.j('s1')->>'number', pg_temp.j('s1')->>'kind', pg_temp.j('s1')->>'status'], array['1', 'ofs', 'pending'],
-  'submit: an OFS request, numbered by the database');
+select is(array[pg_temp.j('s1')->>'number', pg_temp.j('s1')->>'kind', pg_temp.j('s1')->>'status'], array['1', 'ofs', 'gc_review'],
+  'submit: an OFS request, numbered by the database; a visitor''s starts with the GC (0061)');
 reset role;
 insert into ids values ('S1', pg_temp.req('s1'));
 select is((select array[(requested_by is null)::text, requester_name, requester_phone, company, ofs_number::text, items]
@@ -191,8 +194,8 @@ select is((select array_agg(a.name || ' ' || i.name || ' ' || c.color || ' ' || 
   'submit: a cell per wall x item, the N/A one skipped, colors by item order, no member behind them');
 select is((select array[sheet_file_id::text, version::text, (updated_by is null)::text] from public.ir_maps where request_id = pg_temp.rid('S1')),
   array['e0000000-0000-0000-0000-000000000501', '1', 'true'], 'submit: the map starts on the first wall''s sheet');
-select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('S1') and kind = 'ir.requested'
-                  and summary like 'IR 1 (OFS 1) requested · Sample Visitor (Sample Firestop Co) · %'),
+select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('S1') and kind = 'ir.gc_review'
+                  and summary like 'IR 1 (OFS 1) to review · Sample Visitor (Sample Firestop Co) · %'),
   'submit: the board line names the OFS number and the visitor');
 select ok(exists (select 1 from public.audit_events where action = 'request_link.submit' and entity_id = pg_temp.rid('S1')
                   and actor_kind = 'public_link' and details->>'cells' = '5' and details->>'ofs_number' = '1'),
@@ -343,7 +346,7 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000501');
 select is((public.ir_map_context(pg_temp.rid('S1')) ->> 'can_edit'), 'true', 'inspector: reads and may draw the visitor''s map');
 select pg_temp.login('a0000000-0000-0000-0000-000000000502');
 insert into ids select 'M', (public.ir_submit_ofs('c0000000-0000-0000-0000-000000000501', 'Sample Firestop Co', pg_temp.d(4), true,
-  array[pg_temp.rid('wA')], array[pg_temp.rid('spray')], null, '08:00', 'timed', 60)).id;
+  array[pg_temp.rid('wA')], array[pg_temp.rid('spray')], null, '08:00', 'timed', 60, p_special_required => false)).id;
 select is((select sheet_file_id from public.ir_maps where request_id = pg_temp.rid('M')), 'e0000000-0000-0000-0000-000000000501'::uuid,
   'member: ir_submit_ofs still makes its cells and map (first wall''s sheet)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000501');
@@ -353,11 +356,17 @@ insert into res select 'resS1', jsonb_agg(jsonb_build_object('area_id', c.area_i
 insert into res select 'resM', jsonb_agg(jsonb_build_object('area_id', c.area_id, 'item_id', c.item_id, 'result', 'failed',
   'note', 'Gaps at the deflection track')) from public.ir_rev_items c where c.request_id = pg_temp.rid('M');
 set local role authenticated;
+-- The route (0061): the GC approves, the inspector sends each to OFS, the deputy records the results.
 select pg_temp.login('a0000000-0000-0000-0000-000000000501');
+select public.ir_gc_decide(pg_temp.rid('S1'), pg_temp.rver(pg_temp.rid('S1')), true);
+select public.ir_send_ofs(pg_temp.rid('S1'), pg_temp.rver(pg_temp.rid('S1')));
+select public.ir_gc_decide(pg_temp.rid('M'), pg_temp.rver(pg_temp.rid('M')), true);
+select public.ir_send_ofs(pg_temp.rid('M'), pg_temp.rver(pg_temp.rid('M')));
+select pg_temp.login('a0000000-0000-0000-0000-000000000503');
 select lives_ok($$ select public.ir_rev_results(pg_temp.rid('S1'), pg_temp.rver(pg_temp.rid('S1')), pg_temp.j('resS1')) $$,
-  'inspector: every cell of the visitor''s request passed');
+  'deputy: every cell of the visitor''s request passed');
 select lives_ok($$ select public.ir_rev_results(pg_temp.rid('M'), pg_temp.rver(pg_temp.rid('M')), pg_temp.j('resM')) $$,
-  'inspector: the member''s request failed, with why');
+  'deputy: the member''s request failed, with why');
 reset role;
 set local role service_role;
 select pg_temp.login_service();
