@@ -3,6 +3,7 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
+import { HomeLink } from '../ui/HomeLink';
 import {
   AllBidsRoute,
   AllBoardRoute,
@@ -121,7 +122,7 @@ function parsePipelineSearch(s: Record<string, unknown>): { sort?: string; stage
 }
 
 function NotFound() {
-  return <EmptyState title="That page does not exist." hint="Use the job picker or the rail to get where you were going." />;
+  return <EmptyState title="That page does not exist." action={<HomeLink />} />;
 }
 
 const rootRoute = createRootRoute({ component: RootLayout, notFoundComponent: NotFound });
