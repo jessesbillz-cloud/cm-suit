@@ -3,7 +3,7 @@
 // itself and answers null when it opens nothing; the receipt reaches that one request's map and its sheet, nothing else.
 //   revs          link_request_revs → the lists, revs, items, walls and each cell's status only.
 //   map           link_request_map → the visitor's map (or {map: null}: a request without walls).
-//   map_save      link_request_map_save → ir_map_save's rules until the inspector records a result → the map.
+//   map_save      link_request_map_save → ir_map_save's rules until a result is recorded → the map.
 //   sheet         link_request_map_facts → the sheet's row (same job, at most 40 MB) → link_request_map_file('sheet')
 //                 (scan rules, a download line) → a 10-minute URL without the download header (the sheet viewer).
 //   map_render    link_request_map_facts → ensureMap (_shared/irMapFile.ts, the one way ir-map makes it too) → the map.
@@ -61,9 +61,10 @@ async function fileOf(service: Db, at: ReceiptArgs, which: 'sheet' | 'map', ip: 
 
 /** The map PDF on file for these facts (made now when out of date). No member behind it: stored with no creator. */
 async function madeMap(service: Db, facts: MapFacts): Promise<string> {
-  const signed = signerOf(await loadRequest(service, facts.request_id), facts.signer_name);
+  const row = await loadRequest(service, facts.request_id);
+  const signed = signerOf(row, facts.signer_name);
   const job = must(await service.from('projects').select('name, timezone').eq('id', facts.project_id).single(), 'project') as MapJob;
-  return await ensureMap(service, facts, { createdBy: null, signed, job });
+  return await ensureMap(service, facts, { createdBy: null, signed, job, kind: row.kind });
 }
 
 /** Building a map reads the whole sheet: a few an hour per request, and per address. */

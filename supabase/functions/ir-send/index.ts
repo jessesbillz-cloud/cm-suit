@@ -1,10 +1,12 @@
-// Send results (SPEC §13.2): the ONE results email. A person picks the recipients and presses Send; nothing sends on
-// its own. Signed-in users only.
+// Send results (SPEC §13.2, §18.4 P1): the ONE results email. A person picks the recipients and presses Send; nothing
+// sends on its own. Signed-in users only. Who sends: whoever decides THIS request now and owns it: the holder of
+// ir.ofs_decide on an OFS request sent to OFS, the holder of ir.decide on every other request (decideCapability in
+// _shared/inspections.ts, the database's ir_decide_cap; ir_recipients applies the same rule to the picker).
 //
-// requireUser → load the request AS THE CALLER → requireCapability('ir.decide') → the caller owns it → a current,
-// signed PDF (complete, not stale) → the recipients' addresses read AS THE CALLER from project_members (ids from the
-// picker, never addresses from the body) → create_transmittal() and the share links as the caller (every send is a
-// transmittal; the IR goes as a permanent share link) → the emails (service client: email_outbound is not
+// requireUser → load the request AS THE CALLER → requireCapability(decideCapability(row)) → the caller owns it → a
+// current, signed PDF (complete, not stale) → the recipients' addresses read AS THE CALLER from project_members (ids
+// from the picker, never addresses from the body) → create_transmittal() and the share links as the caller (every send
+// is a transmittal; the IR goes as a permanent share link) → the emails (service client: email_outbound is not
 // user-writable) → the transmittal's delivery fields (service client: no user update policy) → ir_mark_sent() (service
 // role only, so "results sent" always means an email went: send time, audit with the content hash, board lines).
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
@@ -13,7 +15,7 @@ import { requireCapability, requireUser } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { irResultsEmail, sendEach, sendEmail, type SendStatus } from '../_shared/email.ts';
 import { BRAND_NAME, appUrl } from '../_shared/env.ts';
-import { dayLabel, loadRequest, resultLabel, typeLabel } from '../_shared/inspections.ts';
+import { dayLabel, decideCapability, loadRequest, resultLabel, typeLabel } from '../_shared/inspections.ts';
 
 const Body = z.object({
   request_id: uuid,
@@ -52,8 +54,8 @@ Deno.serve(handle(async (req) => {
   const body = await parseJson(req, Body, 8192);
 
   const row = await loadRequest(client, body.request_id);
-  await requireCapability(client, row.project_id, 'ir.decide');
-  if (row.owner_id !== user.id) throw new HttpError(403, 'Only the inspector who owns this IR sends its results');
+  await requireCapability(client, row.project_id, decideCapability(row));
+  if (row.owner_id !== user.id) throw new HttpError(403, 'Only the person who owns this IR sends its results');
   if (row.status !== 'complete' || !row.ir_file_id || row.pdf_stale) {
     return refuse(req, 409, 'not_ready', 'Generate the IR first.');
   }

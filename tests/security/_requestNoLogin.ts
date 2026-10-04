@@ -18,7 +18,7 @@ interface NoLoginProbe {
 }
 
 const DAY_KEYS = 'duration_kind,duration_min,kind,start_time,status_key';
-const FACT_KEYS = 'duration_kind,duration_min,gc_step,kind,number,project_name,request_date,result,result_note,special_kind,start_time,status';
+const FACT_KEYS = 'duration_kind,duration_min,gc_step,kind,number,ofs_sent,project_name,request_date,result,result_note,special_kind,start_time,status';
 
 const keysOf = (o: unknown): string => Object.keys(o ?? {}).sort().join(',');
 

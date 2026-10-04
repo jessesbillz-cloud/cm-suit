@@ -1,9 +1,15 @@
 // OSFM inspection maps (Revs, migration 0056): one 11x17 map per IR, the inspected walls highlighted on the plan sheet.
-// Signed-in users only; every action runs as the caller first.
+// Signed-in users only; every action runs as the caller first. This function tests no capability of its own: the gate is
+// the database's, as the caller. ir_map_context opens the map to whoever may see the request (ir_may_see, 0061: the
+// requester, the GC team and the inspectors; the holder of ir.ofs_decide / ir.ofs_view only once an OFS request is sent
+// to OFS, and never an IOR or special request). Who DRAWS is ir_map_save's rule (ir_map_editor: whoever decides the
+// request now, or its requester until there is a result). The PDF is only the saved drawing printed, so anyone the map
+// is open to gets the current one.
 //   render:   requireUser → ir_map_context AS THE CALLER (anyone who can't see the request is refused there) → the
-//             request's signer (read as the caller) and the job → ensureMap (_shared/irMapFile.ts, the one way to make
-//             the map PDF: the map on file when it already shows exactly this, else built, stored in Reports /
-//             Inspection reports as the previous map's next version, and recorded by ir_map_attach) → { file_id }.
+//             request (its signer and kind, read as the caller) and the job → ensureMap (_shared/irMapFile.ts, the one
+//             way to make the map PDF: the map on file when it already shows exactly this, else built, stored in the
+//             request's own folder (an OFS request's map in Reports / OFS inspection reports, apart from the inspector's
+//             IRs) as the previous map's next version, and recorded by ir_map_attach) → { file_id }.
 //   download / view: render, then authorize_ir_file() as the caller (the request's own gate, scan rules, logged as a
 //             download) and a fresh signed URL of the map, with / without the download header.
 //   sheet:    the map's sheet for the in-app viewer: at most 40 MB (the viewer reads it whole), then authorize_ir_file()
@@ -12,8 +18,9 @@
 //             THE CALLER (whoever reads revs, for a sheet a wall is on; a manager, any PDF of the job he may read; the
 //             scan rules; logged as a download), at most 40 MB, then a 10-minute signed URL without the download header.
 // Service client (admin_service_key_allowlist.txt): the sheet's files row and bytes, the signer's signature image, the
-// map's own row, the Reports folder (ir_folder_make: the requester may lack ir.decide), storing and recording the map
-// and signing URLs; each only after ir_map_context (or, for 'plan', authorize_rev_sheet) ran as the caller.
+// map's own row, the map's folder (ir_folder_make: nobody writes the OFS folder by hand, and a requester holds neither
+// deciding capability), storing and recording the map and signing URLs; each only after ir_map_context (or, for 'plan',
+// authorize_rev_sheet) ran as the caller.
 import { handle, HttpError, ok } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, signedViewUrl } from '../_shared/db.ts';
 import { requireUser } from '../_shared/auth.ts';
@@ -68,10 +75,11 @@ Deno.serve(handle(async (req) => {
     return ok(req, { url: await signedViewUrl(service, f.storage_path) });
   }
 
-  // The signer and the job, read as the caller (who passed ir_map_context).
-  const signed = signerOf(await loadRequest(client, ctx.request_id), ctx.signer_name);
+  // The request (its signer and its kind) and the job, read as the caller (who passed ir_map_context).
+  const row = await loadRequest(client, ctx.request_id);
+  const signed = signerOf(row, ctx.signer_name);
   const job = must(await client.from('projects').select('name, timezone').eq('id', ctx.project_id).single(), 'project') as MapJob;
-  const fileId = await ensureMap(service, ctx, { createdBy: user.id, signed, job });
+  const fileId = await ensureMap(service, ctx, { createdBy: user.id, signed, job, kind: row.kind });
   if (body.action === 'render') return ok(req, { file_id: fileId });
   const f = await authorized(client, ctx.request_id, fileId);
   const url = body.action === 'view'

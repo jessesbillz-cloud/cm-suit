@@ -70,12 +70,14 @@ const SUBMIT = {
   duration_min: 60,
   notice_ack: true,
 };
-const READY = { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'yes', special: 'na' };
-const OFS = { ...SUBMIT, area_ids: [AREA], item_ids: [ITEM], sheet_file_id: null, readiness: READY };
+const OFS = { ...SUBMIT, area_ids: [AREA], item_ids: [ITEM], sheet_file_id: null, special_required: false };
 
 Deno.test('submit payload: walls make it the revs request; otherwise 0055\'s request', () => {
   const ofs = submitPayload(JSON.stringify(OFS));
   check(ofs.ofs && ofs.body.name === 'Sample Visitor' && ofs.body.area_ids[0] === AREA, 'the revs request, trimmed');
+  check(ofs.ofs && ofs.body.special_required === false, 'special inspection required? No is an answer');
+  const yes = submitPayload(JSON.stringify({ ...OFS, special_required: true }));
+  check(yes.ofs && yes.body.special_required === true, 'special inspection required? Yes');
   const plain = submitPayload(JSON.stringify({ ...SUBMIT, kind: 'ior', special_kind_id: null, items: 'North wall' }));
   check(!plain.ofs && plain.body.items === 'North wall', '0055\'s request');
   const bad = [
@@ -91,10 +93,11 @@ Deno.test('submit payload: walls make it the revs request; otherwise 0055\'s req
     { ...OFS, number: 1 },
     { ...OFS, requested_by: USER },
     { ...OFS, sheet_file_id: 'not-a-uuid' },
-    // The readiness checklist (0061): all five, Yes or N/A.
-    { ...OFS, readiness: undefined },
-    { ...OFS, readiness: { ...READY, special: 'no' } },
-    { ...OFS, readiness: { ...READY, previous: undefined } },
+    // Special inspection required? (0061): always answered, true or false; the old checklist is no longer a field.
+    { ...OFS, special_required: undefined },
+    { ...OFS, special_required: null },
+    { ...OFS, special_required: 'yes' },
+    { ...OFS, readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'yes', special: 'na' } },
   ];
   for (const b of bad) {
     let refused = false;
@@ -106,6 +109,19 @@ Deno.test('submit payload: walls make it the revs request; otherwise 0055\'s req
     check(refused, `refused with 400: ${JSON.stringify(b).slice(0, 90)}`);
   }
   check(throws(() => submitPayload('[1, 2]')) && throws(() => submitPayload('not json')), 'an object, as JSON');
+  // The refusal says what to do, in the field's own words (the page shows details.fieldErrors).
+  let asked: unknown = null;
+  try {
+    submitPayload(JSON.stringify({ ...OFS, special_required: undefined }));
+  } catch (e) {
+    asked = e instanceof HttpError ? e.details : null;
+  }
+  check(JSON.stringify(asked).includes('Answer the special inspection question.'), 'a missing answer is asked for in words');
+  // 0055's request (no walls) of kind OFS answers the same question.
+  const typed = { ...SUBMIT, kind: 'ofs', special_kind_id: null, items: 'Fire caulk at Level 2' };
+  const sent = submitPayload(JSON.stringify({ ...typed, special_required: true }));
+  check(!sent.ofs && sent.body.special_required === true, 'a typed OFS request with its answer');
+  check(throws(() => submitPayload(JSON.stringify(typed))), 'a typed OFS request without it is refused');
 });
 
 Deno.test('revs answer: the walls and status only; failed is never a status here', () => {
