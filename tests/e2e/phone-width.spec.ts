@@ -33,6 +33,7 @@ const PAGES = [
   '/p/job-a/requirements/mock-req-ofci',
   '/p/job-a/requirements/new',
   '/p/job-a/requirements/read',
+  '/p/job-g/dailies',
 ];
 
 test.describe('phone width', () => {

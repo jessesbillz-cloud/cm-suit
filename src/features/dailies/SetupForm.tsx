@@ -1,4 +1,5 @@
-// Dailies setup for me on this job (SPEC §13.1, §8.3): the form I write (the work log or a company form), the schedule,
+// Dailies setup for me on this job (SPEC §13.1, §8.3): the form I write (the work log, the superintendent's or the
+// foreman's daily, or a company form; my role's form until I pick one), the schedule,
 // the report's name, filename and next number, a company form's job values (typed once, printed on every report) and
 // the standing note; everything prefilled. Saved as I leave each box (version-checked). The next number is kept by the
 // database, so an earlier numbering carries on.
@@ -20,6 +21,7 @@ import {
   type ReportForm,
 } from '../../lib/dailies';
 import { todayInZone } from '../../lib/dates';
+import { ChipPick } from '../../ui/ChipPick';
 import { CheckField, SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
@@ -134,15 +136,20 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
       <div className="flex flex-col gap-3 p-3">
         <Section title="Report">
           <div className="flex flex-col gap-3">
-            <SelectField
-              label="Form"
-              value={reportType}
-              options={FORM_CHOICES}
-              testId="daily-form"
-              onChange={(v) => {
-                choose.mutate({ reportType: v, settingsIfNew: settingsFor(v) }, { onError: (e) => { setProblem(messageOf(e)); } });
-              }}
-            />
+            <div className={LABEL}>
+              Form
+              <ChipPick
+                label="Form"
+                chips={FORM_CHOICES}
+                picked={[reportType]}
+                testId="daily-form"
+                onChange={(picked) => {
+                  const v = picked[0];
+                  if (v === undefined || v === reportType) return;
+                  choose.mutate({ reportType: v, settingsIfNew: settingsFor(v) }, { onError: (e) => { setProblem(messageOf(e)); } });
+                }}
+              />
+            </div>
             <TextField label="Name" value={draft.label} onChange={(label) => { change({ label }, false); }} onBlur={commit} />
             <div className="flex flex-col gap-1">
               <TextField
@@ -195,7 +202,7 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
             </label>
           </div>
         </Section>
-        {form ? (
+        {form && form.locked.length > 0 ? (
           <Section title="Job info">
             <JobFields
               fields={form.locked}

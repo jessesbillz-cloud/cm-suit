@@ -293,3 +293,9 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_geom_check', { p_project_id: ZERO_UUID, p_sheet_file_id: ZERO_UUID, p_page: 1, p_geom: [[0, 0], [1, 1]], p_was: null }],
   ['rev_wall_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
 ];
+
+/** Dailies for any company and trade (0070) for the anon probe: the role's form and the day's facts. */
+export const DAILY_FORMS_RPCS: [string, Record<string, unknown>][] = [
+  ['my_daily_form', { p_project_id: ZERO_UUID }],
+  ['daily_day_facts', { p_project_id: ZERO_UUID, p_day: '2026-01-05' }],
+];

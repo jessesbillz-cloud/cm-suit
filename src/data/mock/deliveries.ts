@@ -1,5 +1,6 @@
-// Synthetic deliveries for the e2e mock: a few "Sample" deliveries on Sample Job A around today, the job's company
-// list, the link and the monthly review. State lives in sessionStorage (its own key), like the rest of the mock.
+// Synthetic deliveries for the e2e mock: a few "Sample" deliveries on Sample Job A around today (and two today on the GC
+// job), the company list, the link and the monthly review. State lives in sessionStorage (its own key), like the rest
+// of the mock.
 import { fromZonedInput, todayInZone } from '../../lib/dates';
 import { byTime, findOverlap, shiftDay } from '../../lib/deliveries';
 import { conflictError } from '../errors';
@@ -55,6 +56,9 @@ function seed(): State {
       seedRow(1, today, '07:00', 60, 'Sample Concrete Co', 'Sample slab pour'),
       seedRow(2, today, null, 30, 'Sample Lumber', 'Sample blocking'),
       seedRow(3, shiftDay(today, 2), '09:00', 90, 'Sample Steel Co', 'Sample joists'),
+      // Today on the GC job (data/mock/gcJobs): what its superintendent's daily fills in.
+      { ...seedRow(1, today, '06:30', 60, 'Sample Concrete Co', 'Sample footing pour'), id: 'mock-delivery-g1', project_id: 'job-g' },
+      { ...seedRow(2, today, '10:00', 30, 'Sample Steel Co', 'Sample embeds'), id: 'mock-delivery-g2', project_id: 'job-g' },
     ],
     companies: ['Sample Concrete Co', 'Sample Steel Co', 'Sample Lumber', 'Sample Builders'],
     history: [],

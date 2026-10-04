@@ -5,10 +5,20 @@ import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from './auth';
 import { supabase } from './client';
 import type { Json } from './database.types';
-import { PHOTO_COLS, REPORT_COLS, SETUP_COLS, type DailyPhotoRow, type DailyReportRow, type DailySetupRow } from './dailies.types';
+import {
+  PHOTO_COLS,
+  REPORT_COLS,
+  SETUP_COLS,
+  dayFactsSchema,
+  type DailyPhotoRow,
+  type DailyReportRow,
+  type DailySetupRow,
+  type DayFacts,
+} from './dailies.types';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mockDailies from './mock/dailies';
+import * as mockDailyFacts from './mock/dailyFacts';
 import { isMock } from './mock';
 
 const LIST_LIMIT = 200;
@@ -132,6 +142,33 @@ export function useDailyPhotos(projectId: string, reportId: string) {
               .order('taken_at', { ascending: true })
               .order('id', { ascending: true }),
           ),
+  });
+}
+
+/** My role's daily form on this job (roles.daily_form, e.g. the superintendent's daily), or null: the default until I
+ *  pick a form in Setup. */
+export function useMyDailyForm(projectId: string) {
+  return useQuery({
+    queryKey: qk.dailiesPart(projectId, 'role-form'),
+    queryFn: async (): Promise<string | null> =>
+      isMock()
+        ? mockDailyFacts.myDailyForm(projectId)
+        : throwIfErrorMaybe(await supabase.rpc('my_daily_form', { p_project_id: projectId })),
+  });
+}
+
+/** What the job knows on a day (sign-ins, closed meetings, deliveries, inspection requests), as far as I may read it.
+ *  Asked again each time a report opens, so what was posted since fills in. */
+export function useDayFacts(projectId: string, day: string, enabled: boolean) {
+  return useQuery({
+    queryKey: qk.dailiesPart(projectId, 'facts', day),
+    queryFn: enabled
+      ? async (): Promise<DayFacts> =>
+          isMock()
+            ? mockDailyFacts.dayFacts(projectId, day)
+            : dayFactsSchema.parse(throwIfError(await supabase.rpc('daily_day_facts', { p_project_id: projectId, p_day: day })))
+      : skipToken,
+    refetchOnMount: 'always',
   });
 }
 

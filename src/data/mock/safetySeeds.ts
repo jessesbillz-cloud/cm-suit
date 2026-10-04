@@ -196,7 +196,8 @@ const CREW: [string, string, string][] = [
   ['Sample Plumber', 'Sample Plumbing', 'Plumber'],
 ];
 
-/** Two past meetings on Sample Job A (a tailgate and a precon), closed, with their sheets. */
+/** Two past meetings on Sample Job A (a tailgate and a precon), closed, with their sheets; and this morning's tailgate on
+ *  the GC job. */
 export function seedMeetings(now: number, today: (at: Date) => string): { meetings: StoredMeeting[]; signins: StoredSignin[] } {
   const ladders = STARTER_TOPICS.find((t) => t.slug === 'ladders');
   const at = (days: number, hours = 0) => new Date(now - days * DAY + hours * HOUR).toISOString();
@@ -220,5 +221,33 @@ export function seedMeetings(now: number, today: (at: Date) => string): { meetin
       signed_at: at(3, 0.2 + i * 0.02), created_at: at(3, 0.2 + i * 0.02), signature: sampleSignature(i + 2), removed: false,
     })),
   ];
-  return { meetings, signins };
+  const gc = gcJobToday(now, today);
+  return { meetings: [...meetings, gc.meeting], signins: [...signins, ...gc.signins] };
+}
+
+const GC_CREW: [string, string, string][] = [
+  ['Sample Laborer', 'Sample Builders', 'Laborer'],
+  ['Sample Framer One', 'Sample Framing Co', 'Framer'],
+  ['Sample Framer Two', 'Sample Framing Co', 'Framer'],
+  ['Sample Framer Three', 'Sample Framing Co', 'Framer'],
+  ['Sample Electrician', 'Sample Electric', 'Electrician'],
+  ['Sample Apprentice', 'Sample Electric', 'Electrician'],
+];
+
+/** This morning's tailgate on the GC job (data/mock/gcJobs), closed, six signed in: what its dailies fill in. */
+function gcJobToday(now: number, today: (at: Date) => string): { meeting: StoredMeeting; signins: StoredSignin[] } {
+  const heat = STARTER_TOPICS.find((t) => t.slug === 'heat-illness');
+  const at = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
+  const meeting: StoredMeeting = {
+    id: 'mock-meeting-g1', project_id: 'job-g', number: 1, kind: 'tailgate', held_on: today(new Date(now)), topic_id: heat?.id ?? null,
+    title: 'Heat illness', notes: '', points: heat?.points ?? [], questions: heat?.questions ?? [], source: heat?.source ?? null,
+    source_url: heat?.source_url ?? null, file_id: null, leader_id: 'mock-user-super', leader_name: 'Sample Super', location: 'Gate 2',
+    status: 'closed', opened_at: at(40), closed_at: at(25), closed_by: 'mock-user-super', token: null, token_made_at: null,
+    pdf_file_id: 'mock-safety-sheet-g1', version: 3,
+  };
+  const signins = GC_CREW.map(([name, company, trade], i): StoredSignin => ({
+    id: `mock-signin-g1-${String(i + 1)}`, meeting_id: meeting.id, name, company, trade, via: 'link', person_id: null,
+    signed_at: at(38 - i), created_at: at(38 - i), signature: sampleSignature(i), removed: false,
+  }));
+  return { meeting, signins };
 }

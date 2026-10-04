@@ -5249,16 +5249,19 @@ export type Database = {
       }
       roles: {
         Row: {
+          daily_form: string | null
           description: string
           name: string
           recommended_tools: string[]
         }
         Insert: {
+          daily_form?: string | null
           description?: string
           name: string
           recommended_tools?: string[]
         }
         Update: {
+          daily_form?: string | null
           description?: string
           name?: string
           recommended_tools?: string[]
@@ -7030,6 +7033,10 @@ export type Database = {
         Returns: string
       }
       daily_carryover: { Args: { p_prev: Json }; Returns: Json }
+      daily_day_facts: {
+        Args: { p_day: string; p_project_id: string }
+        Returns: Json
+      }
       daily_ensure_at: {
         Args: {
           p_at: string
@@ -9863,6 +9870,7 @@ export type Database = {
         Returns: Json
       }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
+      my_daily_form: { Args: { p_project_id: string }; Returns: string }
       my_daily_today: {
         Args: never
         Returns: {
