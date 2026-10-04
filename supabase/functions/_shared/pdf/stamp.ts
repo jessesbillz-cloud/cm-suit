@@ -33,9 +33,10 @@ const SIG_MAX_HEIGHT = 54;
 /** The "Signed by" line's size (Helvetica), for a page that lays out room for it (the inspection map's title box). */
 export const STAMP_TEXT_SIZE = 8;
 
-/** The words the stamp writes beside the signature. */
+/** The words the stamp writes beside the signature, as the standard font can draw them (a name or a time the font
+ *  can't encode must never stop a signature). */
 export function signedByLine(input: Pick<StampInput, 'name' | 'signedAtLabel'>): string {
-  return `Signed by ${input.name} · ${input.signedAtLabel}`;
+  return pdfSafe(`Signed by ${input.name} · ${input.signedAtLabel}`).replace(/\s+/g, ' ').trim();
 }
 
 /** Stamps the last page, bottom right (or left), or the given spot. Returns new PDF bytes; the input is not modified. */
