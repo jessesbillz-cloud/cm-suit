@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Requirement } from '../../data/requirements.types';
 import {
+  companyMatch,
   draftRows,
   dueRows,
   dueWords,
+  groupingsFor,
   groupRows,
   headerCounts,
   parseGrouping,
@@ -12,6 +14,7 @@ import {
   readWords,
   rowFacts,
   triggerWords,
+  viewFor,
   viewsFor,
 } from './model';
 
@@ -21,6 +24,7 @@ function req(over: Partial<Requirement>): Requirement {
     required: 'yes', notice_days: null, lead_days: null, activity_code: '', activity_name: '', trigger_date: null, due_on: null,
     days_left: null, status: 'open', status_at: null, evidence_note: '', evidence_file_id: null, evidence_file_name: null, origin: 'hand',
     draft: false, source_file_id: null, source_file_name: null, source_page: null, source_quote: '', created_at: '2026-10-01T00:00:00Z',
+    company_org_id: null, mine: false,
     ...over,
   };
 }
@@ -33,7 +37,46 @@ describe('requirements views', () => {
     expect(parseView('drafts')).toBe('drafts');
     expect(parseView('nonsense')).toBe('due');
     expect(parseGrouping('section')).toBe('section');
+    expect(parseGrouping('company')).toBe('company');
     expect(parseGrouping(undefined)).toBe('kind');
+  });
+
+  it('Drafts is the managers\' view: anyone else who lands there gets Due', () => {
+    expect(viewFor('drafts', true)).toBe('drafts');
+    expect(viewFor('drafts', false)).toBe('due');
+    expect(viewFor('all', false)).toBe('all');
+  });
+
+  it('By company for whoever reads more than their own company\'s lines', () => {
+    expect(groupingsFor(false).map((g) => g.value)).toEqual(['kind', 'section', 'company']);
+    expect(groupingsFor(true).map((g) => g.value)).toEqual(['kind', 'section']);
+  });
+
+  it('All by company: by name, the lines with no company last', () => {
+    const rows = [
+      req({ id: '1', responsible: 'Owner' }),
+      req({ id: '2', responsible: 'Sample Roofing', company_org_id: 'org-r' }),
+      req({ id: '3', responsible: 'Sample Drywall', company_org_id: 'org-d' }),
+      req({ id: '4', responsible: 'Sample Roofing', company_org_id: 'org-r' }),
+    ];
+    expect(groupRows(rows, 'company').map((g) => [g.key, g.label, g.rows.map((r) => r.id)])).toEqual([
+      ['org-d', 'Sample Drywall', ['3']],
+      ['org-r', 'Sample Roofing', ['2', '4']],
+      ['none', 'No company', ['1']],
+    ]);
+  });
+
+  it('words that are exactly a company\'s name pick it; anything else picks none', () => {
+    const companies = [
+      { org_id: 'org-d', name: 'Sample Drywall' },
+      { org_id: 'org-r', name: 'Sample Roofing' },
+    ];
+    expect(companyMatch(companies, '  sample drywall ')).toBe('org-d');
+    expect(companyMatch(companies, 'Sample Roofing')).toBe('org-r');
+    expect(companyMatch(companies, 'Roofing sub')).toBeNull();
+    expect(companyMatch(companies, 'Sample Roof')).toBeNull();
+    expect(companyMatch(companies, '')).toBeNull();
+    expect(companyMatch([], 'Sample Drywall')).toBeNull();
   });
 
   it('Due: kept, still to do, late or within 60 days', () => {

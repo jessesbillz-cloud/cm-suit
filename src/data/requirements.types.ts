@@ -1,6 +1,7 @@
-// Requirements shapes (migration 0069): the job's register as requirements_list answers it (drafts only for managers,
-// days left on the job's clock), the spec book's sections, a save, and what a read of a section with AI added. Parsed
-// with zod at the edge of the data layer, so a changed answer fails loudly.
+// Requirements shapes (migrations 0069, 0073): the job's register as requirements_list answers it (drafts only for
+// managers, days left on the job's clock, the line's company and whether it is my company's), the companies on the job,
+// the spec book's sections, a save, and what a read of a section with AI added. Parsed with zod at the edge of the data
+// layer, so a changed answer fails loudly.
 import { z } from 'zod';
 import { KIND_VALUES, REQUIRED_VALUES, STATUS_VALUES, type RequiredOption, type RequirementKind } from '../lib/requirements';
 
@@ -40,8 +41,16 @@ export const requirementSchema = z.object({
   source_page: z.number().int().nullable(),
   source_quote: z.string(),
   created_at: z.string(),
+  /** The company on the job the line belongs to (a manager picks it); null: only the words say who. */
+  company_org_id: z.string().nullable(),
+  /** My own company's line (requirements.read_own): I may add its evidence. */
+  mine: z.boolean(),
 });
 export type Requirement = z.infer<typeof requirementSchema>;
+
+/** A company on the job (requirement_companies): what a manager picks a line's company from. */
+export const requirementCompanySchema = z.object({ org_id: z.string(), name: z.string() });
+export type RequirementCompany = z.infer<typeof requirementCompanySchema>;
 
 /** A section of a spec book in the job's Specs folder (requirements_spec_sections); section null: none found yet. */
 export const specSectionSchema = z.object({
@@ -85,6 +94,8 @@ export interface RequirementInput {
   specTitle: string;
   specRef: string;
   responsible: string;
+  /** The company on the job it belongs to; null: none (the words say who). Its name becomes the words. */
+  companyOrgId: string | null;
   required: RequiredOption;
   noticeDays: number | null;
   leadDays: number | null;

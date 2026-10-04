@@ -1,5 +1,6 @@
-// Requirements reads (migration 0069): the job's register (requirements_list runs as me: RLS shows drafts to managers
-// only, and a file's name only when I may see the file) and the spec book's sections found from the page text. Every
+// Requirements reads (migrations 0069, 0073): the job's register (requirements_list runs as me: RLS shows drafts to
+// managers only, my own company's lines when that is all I may read, and a file's name only when I may see the file),
+// the companies on the job (for the manager's picker) and the spec book's sections found from the page text. Every
 // query of a job sits under qk.requirements(job), so one refresh after any write.
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -8,7 +9,14 @@ import { throwIfError } from './errors';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mock from './mock/requirements';
-import { requirementSchema, specSectionSchema, type Requirement, type SpecSection } from './requirements.types';
+import {
+  requirementCompanySchema,
+  requirementSchema,
+  specSectionSchema,
+  type Requirement,
+  type RequirementCompany,
+  type SpecSection,
+} from './requirements.types';
 
 async function fetchRequirements(projectId: string): Promise<Requirement[]> {
   if (isMock()) return mock.list(projectId);
@@ -16,7 +24,7 @@ async function fetchRequirements(projectId: string): Promise<Requirement[]> {
   return z.array(requirementSchema).parse(rows);
 }
 
-/** The job's requirements, by due date (undated last), drafts included when I manage them. */
+/** The job's requirements, by due date (undated last): drafts when I manage them; my company's lines only when that is all I read. */
 export function useRequirements(projectId: string) {
   return useQuery({ queryKey: qk.requirementsPart(projectId, 'list'), queryFn: () => fetchRequirements(projectId) });
 }
@@ -34,4 +42,15 @@ export function useSpecSections(projectId: string, enabled: boolean) {
     queryFn: enabled ? () => fetchSections(projectId) : skipToken,
     staleTime: 60_000,
   });
+}
+
+async function fetchCompanies(projectId: string): Promise<RequirementCompany[]> {
+  if (isMock()) return mock.companies(projectId);
+  const rows: unknown = throwIfError(await supabase.rpc('requirement_companies', { p_project_id: projectId }));
+  return z.array(requirementCompanySchema).parse(rows);
+}
+
+/** The companies on the job, by name (the add / edit form's picker; requirements.manage). */
+export function useRequirementCompanies(projectId: string) {
+  return useQuery({ queryKey: qk.requirementsPart(projectId, 'companies'), queryFn: () => fetchCompanies(projectId), staleTime: 60_000 });
 }

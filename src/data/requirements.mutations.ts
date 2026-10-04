@@ -1,7 +1,8 @@
-// Requirements writes (migration 0069). Each is its own RPC run as me (add or change, the one-tap status, keep or drop
-// a draft, remove, the evidence), version-checked where it takes one; reading a spec section with AI goes through the
-// requirements-extract function. The status, Keep and Drop show at once (the list is patched, and put back if the
-// server says no); every write then refreshes the job's requirements.
+// Requirements writes (migrations 0069, 0073). Each is its own RPC run as me (add or change, the one-tap status, keep
+// or drop a draft, remove, the evidence: the manager's, or a company's own on its own line), version-checked where it
+// takes one; reading a spec section with AI goes through the requirements-extract function. The status, Keep and Drop
+// show at once (the list is patched, and put back if the server says no); every write then refreshes the job's
+// requirements.
 import { useCallback } from 'react';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -86,7 +87,7 @@ export function useSaveRequirement(projectId: string) {
           p_title: v.title, p_details: v.details, p_spec_section: v.specSection, p_spec_title: v.specTitle, p_spec_ref: v.specRef,
           p_responsible: v.responsible, p_required: v.required, p_notice_days: sqlNull(v.noticeDays),
           p_lead_days: sqlNull(v.leadDays), p_activity_code: v.activityCode, p_activity_name: v.activityName,
-          p_trigger_date: sqlNull(v.triggerDate),
+          p_trigger_date: sqlNull(v.triggerDate), p_company_org_id: sqlNull(v.companyOrgId),
         }),
       );
       return first(z.array(savedSchema).parse(rows));
@@ -158,17 +159,18 @@ export function useRemoveRequirement(projectId: string) {
   });
 }
 
-/** The evidence: a note and/or a file. */
-export function useRequirementEvidence(projectId: string) {
+/** The evidence: a note and/or a file. `own`: my company's own line (requirement_evidence_own), not the manager's write. */
+export function useRequirementEvidence(projectId: string, own: boolean) {
   const w = useWrite(projectId);
   return useMutation({
     scope: w.scope,
     mutationFn: async (v: { id: string; version: number; note: string; fileId: string | null }): Promise<Saved> => {
       const version = w.version(v.id, v.version);
-      if (isMock()) return mock.evidence(v.id, version, v.note, v.fileId);
-      const rows: unknown = throwIfError(
-        await supabase.rpc('requirement_evidence', { p_id: v.id, p_version: version, p_note: v.note, p_file_id: sqlNull(v.fileId) }),
-      );
+      if (isMock()) return own ? mock.evidenceOwn(v.id, version, v.note, v.fileId) : mock.evidence(v.id, version, v.note, v.fileId);
+      const args = { p_id: v.id, p_version: version, p_note: v.note, p_file_id: sqlNull(v.fileId) };
+      const rows: unknown = own
+        ? throwIfError(await supabase.rpc('requirement_evidence_own', args))
+        : throwIfError(await supabase.rpc('requirement_evidence', args));
       return first(z.array(savedSchema).parse(rows));
     },
     onSuccess: w.bump,
@@ -192,27 +194,32 @@ export function useExtractRequirements(projectId: string) {
   });
 }
 
-async function requirementsFolder(projectId: string): Promise<string> {
-  if (isMock()) return mock.folder(projectId);
-  return z.string().parse(throwIfError(await supabase.rpc('requirements_folder', { p_project_id: projectId })));
+/** The job's Requirements folder: the manager's call, or the one for a company's own evidence (they add, never read it). */
+async function requirementsFolder(projectId: string, own: boolean): Promise<string> {
+  if (isMock()) return mock.folder(projectId, own);
+  const args = { p_project_id: projectId };
+  const id: unknown = own
+    ? throwIfError(await supabase.rpc('requirements_folder_own', args))
+    : throwIfError(await supabase.rpc('requirements_folder', args));
+  return z.string().parse(id);
 }
 
 /** Uploads one file (a photo, a report, a letter) into the job's Requirements folder and resolves to its file id. */
-export function useRequirementsUpload(projectId: string) {
+export function useRequirementsUpload(projectId: string, own: boolean) {
   const user = useUser();
   const qc = useQueryClient();
   const userId = user.id;
   return useCallback(
     async (file: File, signal: AbortSignal): Promise<string> => {
       const folderId = await qc.query({
-        queryKey: qk.requirementsPart(projectId, 'folder'),
-        queryFn: () => requirementsFolder(projectId),
+        queryKey: qk.requirementsPart(projectId, own ? 'folder-own' : 'folder'),
+        queryFn: () => requirementsFolder(projectId, own),
         staleTime: Infinity,
       });
       const { fileId } = await uploadFile({ file, projectId, folderId, userId, signal, onProgress: () => undefined });
       return fileId;
     },
-    [qc, projectId, userId],
+    [qc, projectId, userId, own],
   );
 }
 

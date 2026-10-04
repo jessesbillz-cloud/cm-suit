@@ -1,7 +1,7 @@
 // One requirement beside the list (the phone's full screen): its kind, the whole title, when it is due (red when late),
 // the status (one tap for whoever manages them), who, where in the book, the trigger in words, the details, the
-// sentence it came from, and the evidence. A draft shows Keep / Drop instead of the status. Edit swaps in the form;
-// Remove has Undo.
+// sentence it came from, and the evidence (written by the managers, or by the line's own company on its own line). A
+// draft shows Keep / Drop instead of the status. Edit swaps in the form; Remove has Undo.
 import { useState, type ReactNode } from 'react';
 import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -117,7 +117,7 @@ function Details({ projectId, row, canManage, onEdit, onClose }: { projectId: st
         {row.draft ? null : (
           <section className="flex flex-col gap-2">
             <h3 className="text-[13px] font-medium text-ink-2">Evidence</h3>
-            {canManage ? <EvidenceField key={row.id} projectId={projectId} row={row} /> : <EvidenceView row={row} />}
+            {canManage || row.mine ? <EvidenceField key={row.id} projectId={projectId} row={row} own={!canManage} /> : <EvidenceView row={row} />}
           </section>
         )}
         {canManage && !row.draft ? (

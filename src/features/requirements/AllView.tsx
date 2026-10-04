@@ -1,5 +1,6 @@
-// All: every kept line, grouped by kind or by spec section (the toggle). Each line: the whole title, its status chip,
-// who and where in the book (or its kind, grouped by section), and the due day (red when late). A tap opens it.
+// All: every kept line, grouped by kind, by spec section or by company (the toggle). Each line: the whole title, its
+// status chip, who and where in the book (its kind instead of what the group already says), and the due day (red when
+// late). A tap opens it.
 import type { Requirement } from '../../data/requirements.types';
 import { phoneRowClass } from '../../ui/Table';
 import { DueText, KindChip, RequiredNote, StatusOf } from './RequirementBits';
@@ -13,7 +14,7 @@ interface AllViewProps {
 }
 
 function AllRow({ row, by, selected, onOpen }: { row: Requirement; by: Grouping; selected: boolean; onOpen: (id: string) => void }) {
-  const facts = by === 'section' ? row.responsible : rowFacts(row);
+  const facts = by === 'section' ? row.responsible : by === 'company' ? rowFacts({ ...row, responsible: '' }) : rowFacts(row);
   return (
     <li>
       <button
@@ -30,7 +31,7 @@ function AllRow({ row, by, selected, onOpen }: { row: Requirement; by: Grouping;
           </span>
         </span>
         <span className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-5 text-ink-2">
-          {by === 'section' ? <KindChip row={row} /> : null}
+          {by === 'kind' ? null : <KindChip row={row} />}
           {facts !== '' ? <span>{facts}</span> : null}
           <RequiredNote row={row} />
           <span className="ml-auto">
