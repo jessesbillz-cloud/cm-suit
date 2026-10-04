@@ -1,14 +1,14 @@
-// permit_progress in the e2e mock (0052), with the database's rules: ten places per permit; done, current, next, or
-// failed (rejected at place 3; a cancelled permit where it stopped); complete is done everywhere; the days at a stage
-// add up every visit, each counted on the job's clock (under 24 hours = 0, else calendar days, at least 1); undone
-// moves never count; no time on the cancelled mark or the end.
+// permit_progress in the e2e mock (0052, 0061), with the database's rules: ten places per permit (Inspected at 8);
+// done, current, next, or failed (rejected at place 3; a cancelled permit where it stopped); complete is done
+// everywhere; the days at a stage add up every visit, each counted on the job's clock (under 24 hours = 0, else
+// calendar days, at least 1); undone moves never count; no time on the cancelled mark or the end.
 import { formatInZone } from '../../lib/dates';
 import type { PermitStep } from '../permits.types';
 import type { StoredEvent, StoredPermit } from './permitSeeds';
 
 const DAY = 86_400_000;
 
-const PLACES = ['draft', 'submitted', 'accepted', 'in_review', 'comments_out', 'backcheck', 'issued', 'inspections', 'approved', 'complete'];
+const PLACES = ['draft', 'submitted', 'accepted', 'in_review', 'comments_out', 'backcheck', 'issued', 'inspected', 'approved', 'complete'];
 
 /** permit_stage_pos: rejected sits where accepted does; cancelled has no place. */
 function stagePos(stage: string): number | null {

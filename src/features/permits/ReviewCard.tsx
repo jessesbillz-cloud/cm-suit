@@ -1,10 +1,11 @@
-// One review cycle: "Review 2 · Backcheck", received and returned, its outcome, and its comments as a tight list. While
-// it is open the official adds comments (sheet, detail, code reference, comment) and closes it with the outcome, with
-// Undo (which opens it again).
+// One cycle of a review: "Review 2 BC 1 · Fire sprinkler (deferred)" (the review's number on the permit, its backcheck,
+// its kind), received and returned, its outcome, and its comments as a tight list. While it is open the official adds
+// comments (sheet, detail, code reference, comment) and closes it with the outcome, with Undo (which opens it again).
+// Once it came back to be resubmitted, "Backcheck" opens the review's next cycle.
 import { useState } from 'react';
 import { Lock, Plus } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useAddComment, useCloseReview } from '../../data/permits.mutations';
+import { useAddComment, useBackcheckReview, useCloseReview } from '../../data/permits.mutations';
 import type { PermitReviewWithComments } from '../../data/permits.types';
 import { formatDay } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -13,13 +14,15 @@ import { FIELD_AREA, FIELD_LABEL, SelectField, TextField } from '../../ui/Fields
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { CommentRow } from './CommentRow';
-import { OUTCOMES, outcomeLabel, reviewKindLabel } from './model';
+import { OUTCOMES, outcomeLabel, reviewKindLabel, reviewTitle } from './model';
 
 interface ReviewCardProps {
   projectId: string;
   review: PermitReviewWithComments;
   canManage: boolean;
   canRespond: boolean;
+  /** The official may open this review's next backcheck from here. */
+  canBackcheck: boolean;
 }
 
 const OUTCOME_CHIP: Record<string, StatusKey> = {
@@ -103,7 +106,7 @@ function CloseReview({ projectId, review }: { projectId: string; review: PermitR
             {
               onSuccess: (row) => {
                 toast.show({
-                  message: `Review ${String(review.cycle)} closed.`,
+                  message: `${reviewTitle(review.review_no, review.backcheck)} closed.`,
                   action: { label: 'Undo', onClick: () => { close.mutate({ projectId, review: row, outcome: null }, { onError: failed }); } },
                 });
               },
@@ -118,16 +121,43 @@ function CloseReview({ projectId, review }: { projectId: string; review: PermitR
   );
 }
 
-export function ReviewCard({ projectId, review, canManage, canRespond }: ReviewCardProps) {
+function Backcheck({ projectId, reviewId }: { projectId: string; reviewId: string }) {
+  const backcheck = useBackcheckReview();
+  const toast = useToast();
+  // The button's key: a repeat of the same tap returns the same cycle.
+  const [key] = useState(() => crypto.randomUUID());
+  return (
+    <div className="flex justify-end border-t border-line pt-3">
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={Plus}
+        loading={backcheck.isPending}
+        data-testid="permit-review-backcheck"
+        onClick={() => {
+          backcheck.mutate({ projectId, reviewId, key }, { onError: (e) => { toast.show({ tone: 'error', message: messageOf(e) }); } });
+        }}
+      >
+        Backcheck
+      </Button>
+    </div>
+  );
+}
+
+export function ReviewCard({ projectId, review, canManage, canRespond, canBackcheck }: ReviewCardProps) {
   const open = review.outcome === null;
   const received = `Received ${formatDay(review.received_on, 'MMM d')}`;
   const returned = review.returned_on ? `Returned ${formatDay(review.returned_on, 'MMM d')}` : null;
   return (
-    <section className="flex flex-col gap-1 rounded-lg border border-line bg-card p-3.5" data-testid={`permit-review-${String(review.cycle)}`}>
+    <section
+      className="flex flex-col gap-1 rounded-lg border border-line bg-card p-3.5"
+      data-testid={`permit-review-${String(review.cycle)}`}
+      data-open={open ? 'true' : 'false'}
+    >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold leading-5 text-ink">
-            Review {review.cycle} · {reviewKindLabel(review.kind)}
+            {reviewTitle(review.review_no, review.backcheck)} · {reviewKindLabel(review.kind)}
           </h3>
           <p className="text-[13px] leading-5 text-ink-2">
             <span className="whitespace-nowrap">{received}</span>
@@ -145,6 +175,7 @@ export function ReviewCard({ projectId, review, canManage, canRespond }: ReviewC
       ) : null}
       {open && canManage ? <AddComment projectId={projectId} reviewId={review.id} /> : null}
       {open && canManage ? <CloseReview projectId={projectId} review={review} /> : null}
+      {canBackcheck ? <Backcheck projectId={projectId} reviewId={review.id} /> : null}
     </section>
   );
 }

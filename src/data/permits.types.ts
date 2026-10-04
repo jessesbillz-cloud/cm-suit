@@ -1,6 +1,6 @@
-// Permits (migration 0052): what permit_list / my_permits, permit_progress, permit_detail and permit_people return,
-// parsed at the boundary, and the write inputs. The database decides who may do what (permit_detail.can and .moves);
-// the UI only shows it. Stage and kind words live in features/permits/model.
+// Permits (migrations 0052, 0061): what permit_list / my_permits, permit_progress, permit_detail and permit_people
+// return, parsed at the boundary, and the write inputs. The database decides who may do what (permit_detail.can and
+// .moves); the UI only shows it. Stage and kind words live in features/permits/model.
 import { z } from 'zod';
 
 /** Every permits column the RPCs return (permit_detail.permit and each write). */
@@ -84,10 +84,14 @@ export const permitCommentSchema = z.object({
 });
 export type PermitComment = z.infer<typeof permitCommentSchema>;
 
+/** One cycle of a review (0061): the review's number on its permit and its backcheck (0 = the submittal, then BC 1, 2 ...). */
 export const permitReviewSchema = z.object({
   id: z.string(),
   permit_id: z.string(),
+  /** 1, 2, ... across the permit: every cycle of every review. */
   cycle: z.number().int(),
+  review_no: z.number().int(),
+  backcheck: z.number().int(),
   kind: z.string(),
   received_on: z.string(),
   returned_on: z.string().nullable(),
@@ -103,6 +107,8 @@ export type PermitReviewWithComments = z.infer<typeof reviewWithCommentsSchema>;
 const permitInspectionSchema = z.object({
   id: z.string(),
   number: z.number().int(),
+  /** The OFS IR number, on an OFS request. */
+  ofs_number: z.number().int().nullable(),
   kind: z.string(),
   special_kind: z.string().nullable(),
   request_date: z.string(),
@@ -129,9 +135,13 @@ export const permitDetailSchema = z.object({
   can: z.object({ manage: z.boolean(), respond: z.boolean(), link: z.boolean() }),
   /** Where I may move it, the usual next stage first (empty unless I manage permits). */
   moves: z.array(z.string()),
+  /** Required inspections not passed yet: while any is, the database refuses the move to Inspected. */
+  open_inspections: z.number().int(),
   steps: z.array(permitStepSchema),
+  /** Every cycle, open ones first, then newest first. */
   reviews: z.array(reviewWithCommentsSchema),
   events: z.array(permitEventSchema),
+  /** The requests on the permit that I may see. */
   inspections: z.array(permitInspectionSchema),
   linkable: z.array(permitInspectionSchema),
 });

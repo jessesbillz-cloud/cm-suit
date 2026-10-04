@@ -1,12 +1,13 @@
-// The inspection requests for this permit: number, type, day and what is inspected on one line with its status chip; a
-// tap opens it in the job's Inspections. The official (or an inspector) links one of the job's requests, or takes one
-// off, with Undo.
+// The inspection requests for this permit: number (with its OFS IR number on an OFS request), type, day and what is
+// inspected on one line with its status chip; a tap opens it in the job's Inspections. The official (or an inspector)
+// links one of the job's requests, or takes one off, with Undo.
 import { useNavigate } from '@tanstack/react-router';
 import { X } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useLinkInspection } from '../../data/permits.mutations';
 import type { PermitDetail } from '../../data/permits.types';
 import { formatDay } from '../../lib/dates';
+import { ofsIrLabel } from '../../lib/markup';
 import { STATUS, type StatusKey } from '../../lib/status';
 import { Button } from '../../ui/Button';
 import { SelectField } from '../../ui/Fields';
@@ -22,8 +23,9 @@ function chipKey(key: string | undefined): StatusKey {
   return key !== undefined && key in STATUS ? (key as StatusKey) : 'pending';
 }
 
-function line(r: { number: number; kind: string; special_kind: string | null; request_date: string }): string {
-  return `IR ${String(r.number)} · ${typeLabel(r.kind, r.special_kind)} · ${formatDay(r.request_date, 'MMM d')}`;
+function line(r: { number: number; ofs_number: number | null; kind: string; special_kind: string | null; request_date: string }): string {
+  const ir = r.ofs_number === null ? `IR ${String(r.number)}` : `IR ${String(r.number)} · ${ofsIrLabel(r.ofs_number)}`;
+  return `${ir} · ${typeLabel(r.kind, r.special_kind)} · ${formatDay(r.request_date, 'MMM d')}`;
 }
 
 export function PermitInspections({ detail }: PermitInspectionsProps) {
