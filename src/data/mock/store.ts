@@ -33,6 +33,8 @@ interface MockState {
   readMarks: Record<string, string>;
   folders: FolderRow[];
   files: FileRow[];
+  /** Ids of unfinished uploads their uploader removed (remove_unfinished_upload): the rows stay, hidden from every read. */
+  removedUploads: string[];
   profile: ProfileRow | null;
   revoked: string[];
   bidder: MockBidderState;
@@ -51,6 +53,7 @@ const EMPTY: MockState = {
   readMarks: {},
   folders: [],
   files: [],
+  removedUploads: [],
   profile: null,
   revoked: [],
   bidder: { acks: {}, intents: {}, submissions: [], questions: [] },

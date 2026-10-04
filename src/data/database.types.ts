@@ -10536,6 +10536,10 @@ export type Database = {
         Args: { p_photo_id: string; p_version: number }
         Returns: undefined
       }
+      remove_unfinished_upload: {
+        Args: { p_file_id: string }
+        Returns: undefined
+      }
       reopen_task: {
         Args: { p_task_id: string; p_version: number }
         Returns: {

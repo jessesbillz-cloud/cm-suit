@@ -1,6 +1,6 @@
 // In-memory stand-ins for every data-layer call, used only when isMock() is true.
 import { LAYOUT_DEFAULTS, type LayoutChoices } from '../../lib/layout';
-import { conflictError } from '../errors';
+import { conflictError, toDataError } from '../errors';
 import type {
   ActivityRow,
   BoardLine,
@@ -128,10 +128,10 @@ export async function setFolderAiReads(folderId: string, aiReads: boolean, versi
   return next.version;
 }
 
-/** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test. */
+/** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test, less the removed uploads. */
 function allFiles(): FileRow[] {
-  const saved = readMock().files;
-  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved];
+  const { files: saved, removedUploads } = readMock();
+  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter((f) => !removedUploads.includes(f.id));
 }
 
 export async function files(folderId: string): Promise<FileRow[]> {
@@ -161,6 +161,50 @@ export async function addUploadedFile(projectId: string, folderId: string, name:
   };
   writeMock((m) => ({ ...m, files: [...m.files, row] }));
   return row;
+}
+
+/** What the mock storage refuses, like the hosted size cap (a server setting the app cannot read). */
+export const MOCK_STORAGE_CAP = 50 * 1024 * 1024;
+
+/** register_file as the uploader uses it: my unfinished row for this file, the one an earlier try left when there is one. */
+export async function registerUpload(projectId: string, folderId: string, name: string, mime: string, size: number): Promise<FileRow> {
+  await delay();
+  const me = mockUser().id;
+  const left = allFiles().find(
+    (f) => f.folder_id === folderId && f.original_name === name && f.size === size && f.created_by === me && !f.upload_complete,
+  );
+  if (left) return left;
+  const row: FileRow = {
+    id: `mock-file-${String(readMock().files.length + 1)}`,
+    project_id: projectId,
+    folder_id: folderId,
+    original_name: name,
+    mime,
+    size,
+    scan_status: 'pending',
+    upload_complete: false,
+    created_at: new Date().toISOString(),
+    created_by: me,
+  };
+  writeMock((m) => ({ ...m, files: [...m.files, row] }));
+  return row;
+}
+
+/** The bytes are stored: the row becomes a file. */
+export async function completeUpload(fileId: string): Promise<void> {
+  await delay();
+  writeMock((m) => ({ ...m, files: m.files.map((f) => (f.id === fileId ? { ...f, upload_complete: true } : f)) }));
+}
+
+/** remove_unfinished_upload: my own unfinished row goes; anyone else's is not found; a finished file is refused; repeats are fine. */
+export async function removeUnfinishedUpload(fileId: string): Promise<void> {
+  await delay();
+  const s = readMock();
+  if (s.removedUploads.includes(fileId)) return;
+  const row = s.files.find((f) => f.id === fileId);
+  if (!row || row.created_by !== mockUser().id) throw toDataError({ message: 'not_found', code: 'P0002' });
+  if (row.upload_complete) throw toDataError({ message: 'That file finished uploading.', code: '42501' });
+  writeMock((m) => ({ ...m, removedUploads: [...m.removedUploads, fileId] }));
 }
 
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {
