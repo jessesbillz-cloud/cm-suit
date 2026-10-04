@@ -3689,6 +3689,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome: string | null
+          outcome_retired_0061: string
           permit_id: string
           project_id: string
           received_on: string
@@ -3707,6 +3708,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome?: string | null
+          outcome_retired_0061?: string
           permit_id: string
           project_id: string
           received_on: string
@@ -3725,6 +3727,7 @@ export type Database = {
           kind?: string
           org_id?: string
           outcome?: string | null
+          outcome_retired_0061?: string
           permit_id?: string
           project_id?: string
           received_on?: string
@@ -10160,6 +10163,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome: string | null
+          outcome_retired_0061: string
           permit_id: string
           project_id: string
           received_on: string
@@ -10192,6 +10196,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome: string | null
+          outcome_retired_0061: string
           permit_id: string
           project_id: string
           received_on: string
@@ -10229,6 +10234,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome: string | null
+          outcome_retired_0061: string
           permit_id: string
           project_id: string
           received_on: string
@@ -10261,6 +10267,7 @@ export type Database = {
           kind: string
           org_id: string
           outcome: string | null
+          outcome_retired_0061: string
           permit_id: string
           project_id: string
           received_on: string

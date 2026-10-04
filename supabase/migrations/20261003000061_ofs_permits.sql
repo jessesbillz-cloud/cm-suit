@@ -23,7 +23,7 @@
 --      row is still one cycle. Several reviews may be open at once, one open cycle per review. Deferred reviews open
 --      once the permit is issued (G26 p. 7). Existing reviews are numbered from their history.
 -- Nothing is dropped but three CHECKs (stage and the two kinds: now function-based, so the next change is a function,
--- not a constraint swap) and the one-open-review-per-permit index (replaced by one open cycle per review). Functions
+-- not a constraint swap); the one-open-review-per-permit index is retired in place (see section 5). Functions
 -- whose signature changes are new; the old ones are retired (renamed, closed to everyone), as 0054 retired
 -- permit_record_stamped_set.
 
@@ -1901,8 +1901,24 @@ alter table public.permit_reviews
   add constraint permit_reviews_backcheck_check check (backcheck >= 0),
   add constraint permit_reviews_kind_check check (public.permit_review_kind_ok(kind)),
   add constraint permit_reviews_permit_id_review_no_backcheck_key unique (permit_id, review_no, backcheck);
--- Several reviews open at once; one open cycle per review.
-drop index public.permit_reviews_open;
+-- Several reviews open at once; one open cycle per review. 0052's index (one open review per permit) can't be dropped
+-- here (the hosted tool refuses to remove an index), so it is retired in place: the column it reads is renamed and filled, which
+-- leaves that index empty for good, and "outcome" is a new column with the same values and checks. Every function reads
+-- the column by name, so they all read the new one.
+alter table public.permit_reviews
+  drop constraint permit_reviews_outcome_check,
+  drop constraint permit_reviews_check;
+alter table public.permit_reviews rename column outcome to outcome_retired_0061;
+alter index public.permit_reviews_open rename to permit_reviews_open_retired_0061;
+alter table public.permit_reviews add column outcome text;
+update public.permit_reviews set outcome = outcome_retired_0061;
+update public.permit_reviews set outcome_retired_0061 = 'retired';
+alter table public.permit_reviews
+  alter column outcome_retired_0061 set default 'retired',
+  alter column outcome_retired_0061 set not null,
+  add constraint permit_reviews_outcome_check
+    check (outcome in ('approved', 'approved_as_noted', 'revise_resubmit', 'rejected')),
+  add constraint permit_reviews_check check ((outcome is null) = (returned_on is null));
 create unique index permit_reviews_open_cycle on public.permit_reviews (permit_id, review_no) where outcome is null;
 
 -- next_number's counters for the numbers given above: reviews per permit, backchecks per review.

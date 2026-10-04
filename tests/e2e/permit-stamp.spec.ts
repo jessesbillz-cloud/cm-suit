@@ -10,12 +10,19 @@ import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 
-/** Switches the mock user and opens a page. The mock's data stays in this tab's sessionStorage. */
+/** Switches the mock user and opens a page. The mock's data stays in this tab's sessionStorage. The first page of a
+ *  test can reload itself once (a new build taking over) while this navigation starts: open it again (rfis.spec). */
 async function openAs(page: Page, who: string, path: string): Promise<void> {
   await page.evaluate((w: string) => {
     window.localStorage.setItem('e2e-mock-user', w);
   }, who);
-  await page.goto(path);
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
 }
 
 test.describe('permit stamp', () => {
