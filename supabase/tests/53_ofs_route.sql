@@ -1,5 +1,5 @@
 begin;
-select plan(139);
+select plan(142);
 -- Migration 0061, the OFS route (SPEC §18.4 P1; Jesse, Oct 3): sub -> GC -> inspector -> OFS, and the two sides kept apart.
 --   * The matrix: the fire marshal holds the OFS pair only; the inspector files requests.
 --   * Where a new request starts, by who files it and its kind. IOR and special requests start where they always did.
@@ -394,6 +394,20 @@ select ok(public.folder_can_read(pg_temp.rid('ofs_reports')) and not public.fold
 insert into ids select 'reports', public.ir_folder('c0000000-0000-0000-0000-000000000541', 'reports');
 select ok(pg_temp.rid('reports') <> pg_temp.rid('ofs_reports'), 'two folders: the inspector''s IRs and the OFS IRs never share one');
 select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000543', pg_temp.rid('reports')), 'the deputy can''t read the inspector''s IR folder');
+-- Both names are the server's (0068): nobody makes an "OFS inspection reports" folder by hand for the IRs to land in.
+select pg_temp.login('a0000000-0000-0000-0000-000000000541');
+select ok(public.folder_name_reserved('c0000000-0000-0000-0000-000000000541',
+            (select parent_id from public.folders where id = pg_temp.rid('ofs_reports')), 'OFS inspection reports')
+          and public.folder_name_reserved('c0000000-0000-0000-0000-000000000541',
+            (select parent_id from public.folders where id = pg_temp.rid('ofs_reports')), 'Inspection reports'),
+  'under Reports, both IR folder names are reserved');
+select ok(public.folder_name_reserved('c0000000-0000-0000-0000-000000000541',
+            (select parent_id from public.folders where id = pg_temp.rid('ofs_reports')), 'Closeout reports') is not true,
+  '... and another name is free');
+select throws_ok($$ insert into public.folders (org_id, project_id, parent_id, name, created_by)
+                    select f.org_id, f.project_id, f.parent_id, ' OFS inspection reports ', 'a0000000-0000-0000-0000-000000000541'
+                      from public.folders f where f.id = pg_temp.rid('ofs_reports') $$,
+  '23505', 'That name is used by the system. Pick another.', 'a person cannot make a folder of that name');
 
 -- The inspector's own work is untouched: IOR and special requests run as they did.
 select pg_temp.login('a0000000-0000-0000-0000-000000000542');
