@@ -6,6 +6,7 @@ import { getRouteApi, useParams, useSearch } from '@tanstack/react-router';
 import { usePrefetchBoardFeed } from '../../data/queries';
 import { opensInMain } from '../../lib/itemIds';
 import { isTool, type Tool } from '../../lib/layout';
+import { HomeLink } from '../../ui/HomeLink';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { Frame } from './Frame';
 import { ItemView } from './ItemView';
@@ -50,7 +51,7 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
     return <ErrorState error={model.jobRailsQuery.error} onRetry={() => void model.jobRailsQuery.refetch()} />;
   }
   if (loc.projectId !== null && !model.projects.some((p) => p.project_id === loc.projectId)) {
-    return <EmptyState title="This job is not in your list." hint="Your access may have ended. Pick another job from the home screen." />;
+    return <EmptyState title="This job is not in your list." action={<HomeLink />} />;
   }
 
   if (windowMode && loc.itemId !== null) {
@@ -67,7 +68,7 @@ export function ProjectToolRoute() {
   const { projectId, tool } = toolRoute.useParams();
   const search = toolRoute.useSearch();
   const { itemId } = useParams({ strict: false });
-  if (!isTool(tool)) return <EmptyState title="That page does not exist." />;
+  if (!isTool(tool)) return <EmptyState title="That page does not exist." action={<HomeLink />} />;
   return (
     <FrameSwitch
       loc={{ projectId, tool, itemId: itemId ?? null }}
