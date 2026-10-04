@@ -104,4 +104,5 @@ export const SEED_DAILY: DailyReportRow = {
   submitted_at: '2026-09-25T23:30:00Z',
   pdf_file_id: DAILY_PDF_ID,
   filename: 'Sample Daily Report 7.pdf',
+  form: null,
 };

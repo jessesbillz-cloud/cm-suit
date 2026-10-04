@@ -1697,6 +1697,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string
@@ -1724,6 +1725,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           filename?: string | null
+          form?: Json | null
           header?: Json
           hours?: number | null
           id?: string
@@ -1751,6 +1753,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           filename?: string | null
+          form?: Json | null
           header?: Json
           hours?: number | null
           id?: string
@@ -6349,6 +6352,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_daily_form_field: {
+        Args: {
+          p_form: string
+          p_label: string
+          p_long?: boolean
+          p_org_id: string
+          p_setup: Json
+          p_table?: string
+          p_version: number
+        }
+        Returns: Json
+      }
       add_daily_photo: {
         Args: {
           p_caption: string
@@ -6511,6 +6526,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string
@@ -7046,6 +7062,17 @@ export type Database = {
         }
         Returns: string
       }
+      daily_form_setup_problem: { Args: { p_setup: Json }; Returns: string }
+      daily_form_store: {
+        Args: {
+          p_add: Json
+          p_form: string
+          p_org_id: string
+          p_setup: Json
+          p_version: number
+        }
+        Returns: Json
+      }
       daily_is_scheduled: {
         Args: { p_day: string; p_settings: Json }
         Returns: boolean
@@ -7076,6 +7103,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string
@@ -7311,6 +7339,7 @@ export type Database = {
           p_content_hash: string
           p_file_id: string
           p_filename: string
+          p_form?: Json
           p_report_id: string
           p_version: number
         }
@@ -7322,6 +7351,50 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
+          header: Json
+          hours: number | null
+          id: string
+          number: number | null
+          org_id: string
+          pdf_file_id: string | null
+          project_id: string
+          report_date: string
+          report_type: string
+          sign_pending_at: string | null
+          sign_pending_hash: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signed_version: number | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finish_daily_submit_0023: {
+        Args: {
+          p_content_hash: string
+          p_file_id: string
+          p_filename: string
+          p_report_id: string
+          p_version: number
+        }
+        Returns: {
+          author_id: string
+          content: Json
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string
@@ -12621,6 +12694,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string
@@ -12646,6 +12720,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_daily_form: {
+        Args: {
+          p_form: string
+          p_org_id: string
+          p_setup: Json
+          p_version: number
+        }
+        Returns: Json
       }
       save_daily_photo: {
         Args: {
@@ -13075,6 +13158,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           filename: string | null
+          form: Json | null
           header: Json
           hours: number | null
           id: string

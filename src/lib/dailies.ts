@@ -1,6 +1,8 @@
 // Daily reports: the ONE content schema, setup settings schema (defaults) and shared rules live with the edge functions
 // (supabase/functions/_shared/dailies.ts), and so do the forms (_shared/reportForms.ts), so the browser and the server
-// read a report the same way. Here: which form a person writes, and a new setup's settings for it.
+// read a report the same way; a company's version of a form (its fields ticked, renamed, reordered, its own added) is
+// resolved there too (reportForms companyForm / reportForm). Here: which form a person writes, and a new setup's
+// settings for it.
 import { DAILY_REPORT_TYPE, DAILY_SETTINGS_DEFAULTS, type DailySettings } from '../../supabase/functions/_shared/dailies';
 import { formIdOf, formOf, newLockedValues, REPORT_FORMS, type KnownJob } from '../../supabase/functions/_shared/reportForms';
 
@@ -23,11 +25,20 @@ export {
   type WorkRow,
 } from '../../supabase/functions/_shared/dailies';
 export {
+  FORM_SETUP_LIMITS,
+  addedKey,
+  companyForms,
   dailyValues,
   formOf,
+  formSetupSchema,
+  formSnapshot,
+  fullSetup,
+  isAddedKey,
+  reportForm,
   tablesOf,
   type FormColumn,
   type FormField,
+  type FormSetup,
   type FormTable,
   type ReportForm,
 } from '../../supabase/functions/_shared/reportForms';

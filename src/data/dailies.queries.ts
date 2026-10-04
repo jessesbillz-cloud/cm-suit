@@ -5,11 +5,14 @@ import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from './auth';
 import { supabase } from './client';
 import type { Json } from './database.types';
+import { companyForms } from '../lib/dailies';
 import {
   PHOTO_COLS,
   REPORT_COLS,
   SETUP_COLS,
+  companyFormsRowSchema,
   dayFactsSchema,
+  type CompanyForms,
   type DailyPhotoRow,
   type DailyReportRow,
   type DailySetupRow,
@@ -19,6 +22,7 @@ import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mockDailies from './mock/dailies';
 import * as mockDailyFacts from './mock/dailyFacts';
+import * as mockDailyForms from './mock/dailyForms';
 import { isMock } from './mock';
 
 const LIST_LIMIT = 200;
@@ -154,6 +158,23 @@ export function useMyDailyForm(projectId: string) {
       isMock()
         ? mockDailyFacts.myDailyForm(projectId)
         : throwIfErrorMaybe(await supabase.rpc('my_daily_form', { p_project_id: projectId })),
+  });
+}
+
+/** The job's company's version of its daily forms (fields ticked, renamed, reordered, its own added), and the company
+ *  row's version a save carries. Everyone on the job reads it (the orgs read rule). Waits until the company is known. */
+export function useCompanyForms(orgId: string | undefined) {
+  return useQuery({
+    queryKey: qk.companyForms(orgId ?? ''),
+    queryFn:
+      orgId === undefined
+        ? skipToken
+        : async (): Promise<CompanyForms> => {
+            if (isMock()) return mockDailyForms.read(orgId);
+            const row: unknown = throwIfError(await supabase.from('orgs').select('version, settings').eq('id', orgId).single());
+            const org = companyFormsRowSchema.parse(row);
+            return { version: org.version, forms: companyForms(org.settings) };
+          },
   });
 }
 

@@ -163,10 +163,11 @@ export async function saveOrg(orgId: string, patch: OrgPatch, version: number): 
   return next.version;
 }
 
-/** The mock user runs every company they belong to. */
+/** The mock user runs every company they belong to. The mock 'foreman' works for a sub: on the job, not in the
+ *  company that runs it. */
 export async function isOrgAdmin(orgId: string): Promise<boolean> {
   await delay();
-  return allOrgs().some((o) => o.org_id === orgId);
+  return mockUser().id !== 'mock-user-foreman' && allOrgs().some((o) => o.org_id === orgId);
 }
 
 /** Mock companies have bid reading on, so the e2e flows can use Read / Read all; the sample inspection company writes

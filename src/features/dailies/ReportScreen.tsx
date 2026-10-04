@@ -1,12 +1,23 @@
 // An opened daily report (right column on desktop, full screen on the phone). The author gets the editor; someone
-// reading the job's submitted reports (dailies.read_all) gets the signed PDF.
+// reading the job's submitted reports (dailies.read_all) gets the signed PDF. The editor shows the form as the job's
+// company uses it (lib/dailies reportForm: a draft follows the company's form, a submitted report keeps the form it
+// was signed on).
 import { useState } from 'react';
 import { Download, FileText } from 'lucide-react';
 import { useUser } from '../../data/auth';
-import { useDailyPhotos, useDailyReport, useDailySetups, useNextDailyNumber } from '../../data/dailies.queries';
+import { useCompanyForms, useDailyPhotos, useDailyReport, useDailySetups, useNextDailyNumber } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
 import { downloadErrorMessage, downloadFile } from '../../data/download';
-import { DAILY_REPORT_TYPE, dailyContentSchema, dailyHeaderSchema, formOf, parseDailySettings, type DailyHeader } from '../../lib/dailies';
+import { useProject } from '../../data/queries';
+import {
+  DAILY_REPORT_TYPE,
+  dailyContentSchema,
+  dailyHeaderSchema,
+  formOf,
+  parseDailySettings,
+  reportForm,
+  type DailyHeader,
+} from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
@@ -85,6 +96,8 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
   const setups = useDailySetups(projectId);
   const reportType = report.data?.report_type ?? DAILY_REPORT_TYPE;
   const next = useNextDailyNumber(projectId, reportType, mine);
+  const project = useProject(projectId);
+  const company = useCompanyForms(project.data?.org_id);
   // Bumped by Reload after a conflict: the editor starts over from the saved report.
   const [generation, setGeneration] = useState(0);
 
@@ -97,10 +110,17 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
   }
   if (!mine) return <SignedCopy report={report.data} header={header.data} />;
 
-  if (photos.isPending || setups.isPending) return <LoadingState label="Loading report" />;
   if (photos.isError) return <ErrorState error={photos.error} onRetry={() => void photos.refetch()} />;
   if (setups.isError) return <ErrorState error={setups.error} onRetry={() => void setups.refetch()} />;
+  if (project.isError) return <ErrorState error={project.error} onRetry={() => void project.refetch()} />;
+  if (company.isError) return <ErrorState error={company.error} onRetry={() => void company.refetch()} />;
+  if (photos.isPending || setups.isPending || company.isPending) return <LoadingState label="Loading report" />;
   const setup = setups.data.find((s) => s.report_type === reportType);
+  const builtIn = formOf(reportType);
+  const form = builtIn === null ? null : reportForm(builtIn, report.data, company.data.forms[reportType] ?? null);
+  if (builtIn !== null && form === null) {
+    return <ErrorState error={new Error('This report could not be read.')} title="This report did not load." />;
+  }
 
   return (
     <ReportEditor
@@ -110,7 +130,7 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
       report={report.data}
       header={header.data}
       content={content.data}
-      form={formOf(reportType)}
+      form={form}
       photos={photos.data}
       nextNumber={next.data}
       recipients={parseDailySettings(setup?.settings).recipients}

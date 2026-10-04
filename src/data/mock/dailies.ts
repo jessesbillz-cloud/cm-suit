@@ -9,6 +9,7 @@ import type { DailyPhotoRow, DailyReportRow, DailySetupRow, EmailResult, SubmitR
 import { DataError, conflictError } from '../errors';
 import * as api from './api';
 import { SEED_DAILY } from './boardSeeds';
+import { signedOn } from './dailyForms';
 import { dailySetupSeeds } from './dailySetupSeeds';
 import { HOURS_SEED_NEXT, hoursSeedReports } from './hoursSeeds';
 import { mockUser } from './index';
@@ -122,6 +123,7 @@ async function makeReport(projectId: string, reportType: string, date: string): 
     pdf_file_id: null,
     filename: null,
     hours: null,
+    form: null,
   };
   write((m) => ({ ...m, reports: [...m.reports, row] }));
   return id;
@@ -294,6 +296,7 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
   const r = live(read(), id);
   if (!r) throw gone();
   if (r.version !== version) throw conflictError();
+  const form = await signedOn(r);
   const key = numberKey(r.project_id, r.report_type);
   const number = r.number ?? read().next[key] ?? 1;
   const settings = parseDailySettings(setupOf(read(), r.project_id, r.report_type)?.settings);
@@ -308,7 +311,7 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
     next: r.number === null ? { ...m.next, [key]: number + 1 } : m.next,
     reports: m.reports.map((x) =>
       x.id === id
-        ? { ...x, status: 'submitted', number, filename, pdf_file_id: file.id, version: x.version + 2, signed_version: x.version + 2, signed_at: signedAt, submitted_at: x.submitted_at ?? signedAt }
+        ? { ...x, status: 'submitted', number, filename, pdf_file_id: file.id, version: x.version + 2, signed_version: x.version + 2, signed_at: signedAt, submitted_at: x.submitted_at ?? signedAt, form }
         : x,
     ),
   }));

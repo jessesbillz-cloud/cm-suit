@@ -1,10 +1,14 @@
 // `deno test --config supabase/functions/deno.json supabase/functions/_shared/pdf` — the superintendent's and the
 // foreman's daily (reportForms.ts) on synthetic reports: the title block, the weather line, each table with its column
 // titles and totals, the long fields; empty parts left out; a long table flows onto more pages with its column titles
-// again and nothing dropped or drawn off a page; photos 1/2/4 a page; the ONE stamp signs the last page.
+// again and nothing dropped or drawn off a page; photos 1/2/4 a page; the ONE stamp signs the last page. And the form as
+// a company set it up (reportForms companyForm): a renamed, a hidden, a reordered and an added field and column; no setup
+// prints exactly as the built-in form; a submitted report prints the form it was signed on.
 import { PDFDocument } from 'pdf-lib';
 import { dailyContentSchema, type DailyHeader } from '../dailies.ts';
-import { dailyValues, REPORT_FORMS, type ReportForm } from '../reportForms.ts';
+import {
+  companyForm, dailyValues, formSetupSchema, formSnapshot, type FormSetup, fullSetup, REPORT_FORMS, type ReportForm, reportForm,
+} from '../reportForms.ts';
 import { type DailyPdfPhoto, type DrawnText, PhotoReadError, SIGN_SPACE } from './dailyReport.ts';
 import { buildFormDailyPdf, type FormDailyPdfInput } from './gcDaily.ts';
 import { stampSignature } from './stamp.ts';
@@ -179,4 +183,105 @@ Deno.test('gc daily pdf: the ONE stamp signs the last page', async () => {
   const stamped = await stampSignature(bytes, { signaturePng: PNG, name: 'Sam Super', signedAtLabel: 'Sep 29, 2026 4:05 PM PDT' });
   const doc = await PDFDocument.load(stamped);
   check(doc.getPageCount() === 2, 'the stamp adds no page');
+});
+
+/** The superintendent's daily as a company set it up. */
+function setupOf(change: (s: FormSetup) => void, seq = 0): FormSetup {
+  const s = fullSetup(GC, null);
+  s.seq = seq;
+  change(s);
+  return formSetupSchema.parse(s);
+}
+
+/** A company's setup: Delays renamed, Low and the Trade column and the Deliveries table off, High first and Notes above
+ *  Safety, and its own short field, long field and manpower column. */
+const THEIRS = setupOf((s) => {
+  for (const f of s.fields) {
+    if (f.key === 'delays') f.label = 'Problems';
+    if (f.key === 'low') f.on = false;
+  }
+  const at = (key: string) => s.fields.findIndex((f) => f.key === key);
+  s.fields.unshift(...s.fields.splice(at('high'), 1));
+  s.fields.splice(at('safety'), 0, ...s.fields.splice(at('notes'), 1));
+  s.fields.push({ key: 'x_1', on: true, label: 'Crew size', long: false }, { key: 'x_2', on: true, label: 'Owner comments', long: true });
+  for (const t of s.tables) {
+    if (t.key === 'deliveries') t.on = false;
+    if (t.key !== 'manpower') continue;
+    t.label = 'Crews on site';
+    for (const c of t.columns) if (c.key === 'trade') c.on = false;
+    t.columns.push({ key: 'x_3', on: true, label: 'Foreman' });
+  }
+}, 3);
+
+const THEIR_DAY = {
+  ...GC_DAY,
+  fields: { ...GC_DAY.fields, notes: 'Sample note of the day.', x_1: '14', x_2: 'Sample owner walked level 2.' },
+  tables: {
+    ...GC_DAY.tables,
+    manpower: [row('m1', { company: 'Sample Framing', trade: 'Framer', count: '4', hours: '32', x_3: 'Fay Sample' }, true),
+               row('m2', { company: 'Sample Electric', trade: 'Electrician', count: '2', hours: '15.5', x_3: 'Eli Sample' }, true)],
+  },
+};
+
+Deno.test('gc daily pdf: no company setup prints exactly as the built-in form', async () => {
+  const builtIn = await build(input(GC, GC_DAY));
+  check(companyForm(GC, null) === GC, 'no setup is the built-in form itself');
+  const standard = await build(input(companyForm(GC, fullSetup(GC, null)), GC_DAY));
+  check(JSON.stringify(standard.drawn) === JSON.stringify(builtIn.drawn), 'the standard setup draws the same text at the same places');
+});
+
+Deno.test('gc daily pdf: a renamed, a hidden, a reordered and an added field and column', async () => {
+  const { pages, drawn } = await build(input(companyForm(GC, THEIRS), THEIR_DAY));
+  check(pages === 1, `one page (${pages})`);
+  const lines = drawn.map((d) => d.text);
+  const text = lines.join('\n');
+  // Reordered (High first), hidden (Low), added (Crew size); a short field of the company's own: no "Weather" title.
+  check(text.includes('High: 78°F · Conditions: Clear, Wind · Crew size: 14'), 'the short line in the company\'s order, with its own field');
+  check(!text.includes('Low:') && !text.includes('61'), 'a hidden field is not printed, typed or not');
+  check(lines.includes('Daily activity') && !lines.includes('Weather'), 'the short fields\' title');
+  // Renamed: the label changes, the value (saved under the same key) stays.
+  check(lines.includes('Problems') && !lines.includes('Delays / issues'), 'a renamed field prints its new name');
+  check(text.includes('Waiting on sample RFI 14 at grid C.'), 'and keeps its value');
+  check(lines.indexOf('Notes') > -1 && lines.indexOf('Notes') < lines.indexOf('Safety'), 'the long fields in the company\'s order');
+  check(lines.includes('Owner comments') && text.includes('Sample owner walked level 2.'), 'an added long field');
+  // The table: renamed, a column hidden, a column added; totals still under Count and Hours.
+  check(lines.includes('Crews on site') && !lines.includes('Manpower'), 'a renamed table');
+  check(!lines.includes('Trade') && !text.includes('Framer') && !text.includes('Electrician'), 'a hidden column and its cells are not printed');
+  check(lines.includes('Foreman') && text.includes('Fay Sample') && text.includes('Eli Sample'), 'an added column and its cells');
+  const total = drawn.find((d) => d.text === 'Total');
+  const sameLine = drawn.filter((d) => d.page === total?.page && d.y === total.y).map((d) => d.text);
+  check(sameLine.includes('6') && sameLine.includes('47.5'), `count and hours are still totaled (${sameLine.join(' | ')})`);
+  check(!lines.includes('Deliveries') && !text.includes('Slab pour'), 'a hidden table is not printed');
+  check(lines.includes('Equipment') && lines.includes('Work performed') && lines.includes('Inspections'), 'the other tables print');
+  for (const d of drawn) check(d.x >= 48 && d.x < 612 - 48, `x inside the margins (${d.x}) for "${d.text.slice(0, 20)}"`);
+});
+
+Deno.test('gc daily pdf: a label the fonts cannot draw is cleaned, not a crash', async () => {
+  const odd = setupOf((s) => {
+    for (const f of s.fields) if (f.key === 'notes') f.label = 'Notes \u202f\u4e2d';
+  });
+  const { drawn } = await build(input(companyForm(GC, odd), GC_DAY));
+  check(drawn.some((d) => d.text === 'Notes  ?'), `the label goes through clean() (${drawn.map((d) => d.text).filter((t) => t.startsWith('Notes')).join(' | ')})`);
+});
+
+Deno.test('gc daily pdf: a submitted report prints the form it was signed on, whatever the company changed since', async () => {
+  const signedOn = companyForm(GC, THEIRS);
+  const first = await build(input(signedOn, THEIR_DAY));
+  // What finish_daily_submit stores, read back from the database.
+  const stored: unknown = JSON.parse(JSON.stringify(formSnapshot(signedOn)));
+  const since = setupOf((s) => {
+    for (const f of s.fields) {
+      if (f.key === 'delays') f.label = 'Issues today';
+      if (f.key === 'notes') f.on = false;
+    }
+    for (const t of s.tables) t.on = t.key === 'work';
+  }, 3);
+  const again = reportForm(GC, { status: 'submitted', form: stored }, since);
+  if (again === null) throw new Error('the saved form reads back');
+  const second = await build(input(again, THEIR_DAY));
+  check(JSON.stringify(second.drawn) === JSON.stringify(first.drawn), 'rendered again: the same text at the same places');
+  const draft = reportForm(GC, { status: 'draft', form: null }, since);
+  if (draft === null) throw new Error('a draft has a form');
+  const now = (await build(input(draft, THEIR_DAY))).drawn.map((d) => d.text);
+  check(now.includes('Issues today') && !now.includes('Problems') && !now.includes('Crews on site'), 'a new report follows the company\'s form as it is now');
 });

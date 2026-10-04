@@ -1,5 +1,7 @@
 // The built-in daily forms made of fields and tables (reportForms.ts: the superintendent's daily and the foreman's daily)
-// as a PDF (SPEC §13.1, §8.2). Pure: data in, bytes out (pdf-lib, standard fonts), drawn with the work log's page pieces
+// as a PDF (SPEC §13.1, §8.2). The form it is given is the form as the company uses it (reportForms companyForm: fields
+// ticked, renamed, reordered, the company's own added), or the form a submitted report was signed on; every label and
+// value is drawn through clean(). Pure: data in, bytes out (pdf-lib, standard fonts), drawn with the work log's page pieces
 // (dailyReport.ts) so every daily reads alike. Rendered only on the server from the saved report (submit-daily); the ONE
 // stamp (stamp.ts) signs the last page's corner afterwards, where room is kept for it.
 //
