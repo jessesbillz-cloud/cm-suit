@@ -1,5 +1,5 @@
 // Folder writes: create (files.manage; the database checks it again) and "Search and AI read this" (ai_reads),
-// saved with a version check (CLAUDE.md rule 7).
+// saved with a version check (CLAUDE.md rule 7). And Remove on an upload that an earlier visit left unfinished.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useUser } from './auth';
@@ -10,6 +10,7 @@ import * as mock from './mock/api';
 import { isMock } from './mock';
 import { FOLDER_COLS } from './queries';
 import type { FolderRow } from './types';
+import { removeUnfinishedUpload } from './upload';
 
 interface NewFolderInput {
   projectId: string;
@@ -72,5 +73,14 @@ export function useSetFolderAiReads() {
       );
     },
     onError: (_e, v) => qc.invalidateQueries({ queryKey: qk.folders(v.folder.project_id) }),
+  });
+}
+
+/** Takes back the files row of my upload that never finished (remove_unfinished_upload), then the folder's list reloads. */
+export function useRemoveUnfinishedUpload() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: { id: string; folder_id: string }) => removeUnfinishedUpload(file.id),
+    onSuccess: (_d, file) => qc.invalidateQueries({ queryKey: qk.files(file.folder_id) }),
   });
 }

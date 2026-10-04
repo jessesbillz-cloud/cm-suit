@@ -162,6 +162,8 @@ export { SCHEDULE_RPCS } from './_schedule';
 
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
+  // Removing an upload that never finished (0065): one function, listed here for the same reason.
+  ['remove_unfinished_upload', { p_file_id: ZERO_UUID }],
   ['permit_stamp_folders', { p_permit_id: ZERO_UUID }],
   ['permit_stamp_source', { p_permit_id: ZERO_UUID, p_file_id: ZERO_UUID }],
   ['permit_stamp_sources', { p_permit_id: ZERO_UUID }],

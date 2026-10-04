@@ -6,6 +6,7 @@ import { Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 import { useSession } from '../data/auth';
 import { LoadingState } from '../ui/States';
 import { SignIn } from './lazyPages';
+import { useFileDropGuard } from './useFileDropGuard';
 
 function isPublicPath(path: string): boolean {
   return ['/a/', '/s/', '/d/', '/r/', '/h/', '/m/', '/k/'].some((p) => path.startsWith(p));
@@ -14,6 +15,7 @@ function isPublicPath(path: string): boolean {
 export function RootLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const session = useSession();
+  useFileDropGuard();
 
   if (isPublicPath(path)) return <Outlet />;
   if (session.status === 'loading') return <LoadingState label="Starting" />;

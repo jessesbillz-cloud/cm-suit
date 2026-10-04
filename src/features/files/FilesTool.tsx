@@ -1,25 +1,26 @@
 // Files (SPEC §8.1, Phase 0 core): folder tree, file rows with one-click download, drag-and-drop and button upload
 // through the single uploader with per-file progress, and folder create for files.manage. The tree lists folders by
 // sort then name (each job opens with what its kind of user uses most) and hides an empty "Emailed in".
-import { useState, type DragEvent, type ReactNode } from 'react';
+// The whole file list is the drop target (useFileDrop). An upload that never finished is a line to remove, never a
+// file row (leftovers).
+import type { ReactNode } from 'react';
 import { useCanWriteFolder, useCapability, useFiles, useFolders, useProject } from '../../data/queries';
 import { useUploadQueue } from '../../data/UploadQueue';
-import { messageOf } from '../../data/errors';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
-import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
-import { collectDrop } from './collectDrop';
 import { FileRow, FileRowsHead } from './FileRow';
 import { FolderAiToggle } from './FolderAiToggle';
 import { defaultFolderId, folderPath, visibleFolders } from './folderOrder';
 import { FolderTree } from './FolderTree';
+import { leftoverUploads, storedFiles } from './leftovers';
 import { NewFolderForm } from './NewFolderForm';
 import { UploadButtons } from './UploadButtons';
 import { UploadList } from './UploadList';
 import { useDownload } from './useDownload';
+import { useFileDrop } from './useFileDrop';
 
 interface FilesToolProps {
   projectId: string;
@@ -52,69 +53,69 @@ function Frame({ meta, actions, below, children }: FrameProps) {
 interface FolderFilesProps {
   folder: FolderRow;
   writable: boolean;
+  /** Phones have nothing to drag from: the empty folder does not ask for it. */
+  isPhone: boolean;
   timeZone: string | null;
   selectedFileId: string | null;
   onFiles: (files: File[]) => void;
   onOpenFile: (fileId: string) => void;
 }
 
-function FolderFiles({ folder, writable, timeZone, selectedFileId, onFiles, onOpenFile }: FolderFilesProps) {
+function FolderFiles({ folder, writable, isPhone, timeZone, selectedFileId, onFiles, onOpenFile }: FolderFilesProps) {
   const files = useFiles(folder.id);
+  const queue = useUploadQueue();
   const download = useDownload();
-  const toast = useToast();
-  const [dragging, setDragging] = useState(false);
-
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (!writable) return;
-    collectDrop(e.dataTransfer)
-      .then(onFiles)
-      .catch((err: unknown) => {
-        toast.show({ tone: 'error', message: `Could not read what was dropped: ${messageOf(err)}` });
-      });
-  };
+  const drop = useFileDrop(writable, onFiles);
+  const rows = files.data ? storedFiles(files.data) : undefined;
+  const leftovers = files.data ? leftoverUploads(files.data, queue.items) : [];
 
   return (
-    <Card padded={false} className="overflow-hidden">
+    <Card padded={false}>
       <div
-        className={`min-h-48 ${dragging ? 'bg-accent-soft outline-dashed outline-2 -outline-offset-4 outline-accent' : ''}`}
-        onDragOver={(e) => {
-          if (!writable) return;
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => {
-          setDragging(false);
-        }}
-        onDrop={onDrop}
+        data-testid="files-drop"
+        className={`min-h-48 rounded-card ${drop.over ? 'bg-accent-soft outline-dashed outline-2 -outline-offset-4 outline-accent' : ''}`}
+        {...drop.handlers}
       >
-        <UploadList folderId={folder.id} />
-        {files.isPending ? <LoadingState label="Loading files" /> : null}
-        {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
-        {files.data?.length === 0 ? (
-          <EmptyState icon={META.icon} title="This folder is empty." hint={writable ? 'Drag files or a whole folder here, or use Upload.' : undefined} />
+        {drop.over ? (
+          // Zero height, so nothing moves; it stays in view while a long list is scrolled.
+          <div className="pointer-events-none sticky top-2 z-10 flex h-0 justify-center">
+            <p data-testid="files-drop-hint" className="mt-2 h-fit rounded-full bg-accent px-3 py-1 text-[13px] font-medium text-white shadow-pop">
+              Drop to upload
+            </p>
+          </div>
         ) : null}
-        {files.data && files.data.length > 0 ? (
-          <>
-            <FileRowsHead />
-            <ul className="divide-y divide-line">
-              {files.data.map((f) => (
-                <FileRow
-                  key={f.id}
-                  file={f}
-                  timeZone={timeZone}
-                  selected={f.id === selectedFileId}
-                  downloading={download.pendingId === f.id}
-                  onOpen={onOpenFile}
-                  onDownload={(file) => {
-                    download.start(file.id, file.size);
-                  }}
-                />
-              ))}
-            </ul>
-          </>
-        ) : null}
+        <div className="overflow-hidden rounded-card">
+          <UploadList folderId={folder.id} leftovers={leftovers} />
+          {files.isPending ? <LoadingState label="Loading files" /> : null}
+          {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
+          {rows?.length === 0 ? (
+            <EmptyState
+              icon={META.icon}
+              title="This folder is empty."
+              hint={writable && !isPhone ? 'Drag files or a whole folder here, or use Upload.' : undefined}
+            />
+          ) : null}
+          {rows && rows.length > 0 ? (
+            <>
+              <FileRowsHead />
+              <ul className="divide-y divide-line">
+                {rows.map((f) => (
+                  <FileRow
+                    key={f.id}
+                    file={f}
+                    timeZone={timeZone}
+                    selected={f.id === selectedFileId}
+                    downloading={download.pendingId === f.id}
+                    onOpen={onOpenFile}
+                    onDownload={(file) => {
+                      download.start(file.id, file.size);
+                    }}
+                  />
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </div>
       </div>
     </Card>
   );
@@ -159,6 +160,7 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
             key={current.id}
             folder={current}
             writable={writable}
+            isPhone={isPhone}
             timeZone={project.data?.timezone ?? null}
             selectedFileId={selectedFileId}
             onFiles={enqueue}
