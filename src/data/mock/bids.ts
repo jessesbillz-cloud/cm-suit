@@ -20,6 +20,7 @@ import type {
 } from '../bids.types';
 import { mockUser } from './index';
 import * as mockCorrections from './corrections';
+import * as mockIr from './inspections';
 import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import * as mockPackages from './packages';
@@ -37,9 +38,11 @@ function isBidder(): boolean {
   return mockUser().id === 'mock-user-bidder';
 }
 
-/** has_capability in the mock: the bidder can only submit; everyone else can do everything else. */
+/** has_capability in the mock: the bidder can only submit; everyone else can do everything else, but for the tools
+ *  that keep their own matrix (corrections, inspections, RFIs, permits, revs, safety, the schedule). */
 export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('corrections.')) return mockCorrections.capability(cap);
+  if (cap.startsWith('ir.')) return mockIr.capability(cap);
   if (cap.startsWith('rfi.')) return mockRfis.capability(cap);
   if (cap.startsWith('permits.')) return mockPermits.capability(cap);
   if (cap.startsWith('revs.')) return mockRevs.capability(cap);

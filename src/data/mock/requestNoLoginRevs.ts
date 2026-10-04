@@ -73,7 +73,7 @@ export async function submitOfs(key: LinkKey, v: PublicOfsInput): Promise<Submit
     {
       p_project_id: key.projectId, p_company: v.contact.company.trim(), p_request_date: v.date, p_kind: 'ofs', p_items: text,
       p_start_time: v.startTime, p_duration_kind: v.durationKind, p_duration_min: v.durationMin, p_special_kind_id: null,
-      p_attachment_ids: files.map((f) => f.id),
+      p_attachment_ids: files.map((f) => f.id), p_notice_ack: true, p_special_required: v.specialRequired,
     },
     { name: v.contact.name.trim(), phone: v.contact.phone.trim(), email: v.contact.email.trim() },
   );
@@ -116,7 +116,7 @@ function sheetsOf(mine: Cell[]): PublicMap['sheets'] {
 /** link_request_map_view in short form: null when the request has no map. */
 async function view(q: IrRequest): Promise<PublicMap | null> {
   if (!read().maps.some((m) => m.request_id === q.id)) return null;
-  const ctx = await mapContext(q.id);
+  const ctx = await mapContext(q.id, true);
   const mine = read().cells.filter((c) => c.request_id === q.id);
   return {
     number: ctx.number, ofs_number: ctx.ofs_number, phase: ctx.phase, request_date: ctx.request_date, what: ctx.what,
@@ -170,7 +170,7 @@ export async function sheetUrl(projectId: string, receipt: string): Promise<stri
 export async function renderMap(projectId: string, receipt: string): Promise<{ map: PublicMap | null }> {
   await delay();
   const q = await receiptRequest(projectId, receipt);
-  await renderOnServer(q.id);
+  await renderOnServer(q.id, true);
   return { map: await view(q) };
 }
 
@@ -178,7 +178,7 @@ export async function renderMap(projectId: string, receipt: string): Promise<{ m
 export async function downloadMap(projectId: string, receipt: string): Promise<{ url: string; filename: string }> {
   await delay();
   const q = await receiptRequest(projectId, receipt);
-  await renderOnServer(q.id);
+  await renderOnServer(q.id, true);
   const [y, mo, d] = q.request_date.split('-');
   return { url: sampleSheet(), filename: `IR ${String(q.number)} Map ${jobName(projectId)} ${mo ?? ''}-${d ?? ''}-${y ?? ''}.pdf` };
 }
