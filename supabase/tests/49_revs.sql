@@ -1,5 +1,5 @@
 begin;
-select plan(150);
+select plan(151);
 -- Revs (migration 0056): the matrix and the module as data, the setup RPCs (a list from pasted JSON, revs, items, walls,
 -- N/A marks, remove and restore), who reads what (RLS: revs.read, removed rows for revs.manage only; anon nothing), the
 -- status precedence (na > passed > requested > failed > open), the revs request (1 to 3 items, walls from one list,
@@ -40,7 +40,15 @@ returns public.inspection_requests language sql volatile as $$
   select public.ir_submit_ofs('c0000000-0000-0000-0000-000000000491', 'Sample Firestop Co',
     ((now() at time zone 'America/Los_Angeles')::date + 3), true,
     array(select pg_temp.rid(a) from unnest(p_areas) a), array(select pg_temp.rid(i) from unnest(p_items) i), p_sheet,
-    '08:00', 'timed', 60, p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}') $$;
+    '08:00', 'timed', 60, p_special_required => false) $$;
+-- The route to OFS (0061): the GC approves, the inspector sends it. Leaves the inspector logged in.
+create function pg_temp.to_ofs(p_k text) returns void language plpgsql as $$
+begin
+  perform pg_temp.login('a0000000-0000-0000-0000-000000000497');
+  perform public.ir_gc_decide(pg_temp.rid(p_k), pg_temp.ver('inspection_requests', p_k), true);
+  perform pg_temp.login('a0000000-0000-0000-0000-000000000492');
+  perform public.ir_send_ofs(pg_temp.rid(p_k), pg_temp.ver('inspection_requests', p_k));
+end $$;
 grant execute on all functions in schema pg_temp to public;
 
 select pg_temp.mk_user('a0000000-0000-0000-0000-000000000491', 'probe+rv-admin@example.test', 'Ada Admin');
@@ -154,7 +162,7 @@ select is_empty($$ select f from unnest(array[
     'public.rev_item_save(uuid, uuid, integer, text, text, integer)', 'public.rev_areas_add(uuid, text, text[], uuid)',
     'public.rev_area_save(uuid, integer, text, text, uuid, integer)', 'public.rev_remove(text, uuid, integer)',
     'public.rev_restore(text, uuid, integer)', 'public.rev_mark_na(uuid, uuid, boolean)',
-    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)',
+    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean, boolean)',
     'public.ir_map_context(uuid)', 'public.ir_map_save(uuid, integer, jsonb, uuid, integer)',
     'public.ir_rev_results(uuid, integer, jsonb)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or not has_function_privilege('authenticated', f, 'EXECUTE') $$,
@@ -362,8 +370,8 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000494');
 select lives_ok($$ insert into ids select 'A', (pg_temp.ofs(array['w_shaft', 'w_corr', 'w_elev'], array['i_spray', 'i_stuff'])).id $$,
   'the sub asks for two items on three walls');
 select is((select array[kind, number::text, ofs_number::text, status, items] from public.inspection_requests where id = pg_temp.rid('A')),
-  array['ofs', '1', '1', 'pending', 'Level 01, Level 02 · HOW Cavity Stuff & HOW Cavity Spray · Shaftwall at Stair 2 (C-D / 3-4), Corridor 110 north wall, Elevator 1 shaft (B / 2-3)'],
-  'an OFS request: numbered by the database (IR and OFS IR), what to inspect composed');
+  array['ofs', '1', '1', 'gc_review', 'Level 01, Level 02 · HOW Cavity Stuff & HOW Cavity Spray · Shaftwall at Stair 2 (C-D / 3-4), Corridor 110 north wall, Elevator 1 shaft (B / 2-3)'],
+  'an OFS request: numbered by the database (IR and OFS IR), what to inspect composed; it starts with the GC (0061)');
 select is((select array_agg(c.color || ' ' || i.name order by c.color, i.name) from (select distinct color, item_id from public.ir_rev_items
             where request_id = pg_temp.rid('A')) c join public.rev_items i on i.id = c.item_id),
   array['1 HOW Cavity Stuff', '2 HOW Cavity Spray'], 'one color per item, by item order (not the order picked)');
@@ -373,8 +381,8 @@ select is((select array[sheet_file_id::text, page::text, strokes::text, stale::t
 select is((pg_temp.ofs(array['w_shaft', 'w_corr', 'w_elev'], array['i_stuff', 'i_spray'])).id, pg_temp.rid('A'),
   'the same request again within 10 minutes is the first one');
 select pg_temp.login('a0000000-0000-0000-0000-000000000497');
-select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.requested'
-                   and summary like 'IR 1 (OFS 1) requested · Sample Firestop Co · %'), 'board: requested, with the OFS number');
+select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.gc_review'
+                   and summary like 'IR 1 (OFS 1) to review · Sample Firestop Co · %'), 'board: to the GC, with the OFS number');
 select ok(exists (select 1 from public.calendar_entries where source_type = 'inspection_request' and source_id = pg_temp.rid('A')
                    and kind = 'inspections'), 'calendar: on the inspection calendar like any request');
 select pg_temp.login('a0000000-0000-0000-0000-000000000494');
@@ -406,7 +414,7 @@ select is(array[pg_temp.st('w_shaft', 'i_stuff'), pg_temp.st('w_elev', 'i_tow')]
   'status: requested, with the IR and OFS IR numbers (the latest request)');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000491', 'Sample Co', ((now() at time zone 'America/Los_Angeles')::date + 4),
   'ofs', 'An OFS request from the usual form', true, p_duration_kind => 'all_day',
-  p_readiness => '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}')).ofs_number, 4,
+  p_special_required => false)).ofs_number, 4,
   'every OFS request gets the next OFS IR number');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000491', 'Sample Co', ((now() at time zone 'America/Los_Angeles')::date + 4),
   'ior', 'An IOR request', true, p_duration_kind => 'all_day')).ofs_number, null::int, 'other kinds get none');
@@ -504,7 +512,10 @@ set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000494');
 select throws_ok($$ select public.ir_rev_results(pg_temp.rid('A'), pg_temp.ver('inspection_requests', 'A'), pg_temp.j('resA')) $$,
   '42501', null, 'the sub can''t record results');
-select pg_temp.login('a0000000-0000-0000-0000-000000000492');
+select pg_temp.to_ofs('A');
+select throws_ok($$ select public.ir_rev_results(pg_temp.rid('A'), pg_temp.ver('inspection_requests', 'A'), pg_temp.j('resA')) $$,
+  '42501', null, 'nor the inspector: an OFS inspection is the deputy''s');
+select pg_temp.login('a0000000-0000-0000-0000-000000000493');
 select throws_ok($$ select public.ir_rev_results(pg_temp.rid('A'), pg_temp.ver('inspection_requests', 'A'), pg_temp.j('resA_nonote')) $$,
   '22023', 'Write why it failed.', 'a failed item says why');
 select throws_ok($$ select public.ir_rev_results(pg_temp.rid('A'), pg_temp.ver('inspection_requests', 'A'), pg_temp.j('resA_short')) $$,
@@ -516,7 +527,7 @@ select throws_ok($$ select public.ir_rev_results(pg_temp.rid('A'), 99, pg_temp.j
 select is((select array[(r).result, (r).result_note, (r).status, ((r).owner_id = auth.uid())::text]
              from (select public.ir_rev_results(pg_temp.rid('A'), pg_temp.ver('inspection_requests', 'A'), pg_temp.j('resA')) as r) x),
   array['not_approved', 'Corridor 110 north wall · HOW Cavity Spray: Gaps at the deflection track', 'confirmed', 'true'],
-  'one failed: not approved, its reason on the request; the inspector owns it');
+  'one failed: not approved, its reason on the request; the deputy owns it');
 select is((select array_agg(result order by result) from public.ir_rev_items where request_id = pg_temp.rid('A')),
   array['failed', 'passed', 'passed', 'passed', 'passed', 'passed'], 'each cell keeps its own result');
 select ok((select stale from public.ir_maps where request_id = pg_temp.rid('A')), 'a result marks the map PDF stale');
@@ -538,7 +549,8 @@ select is((select items from public.inspection_requests where id = pg_temp.rid('
 select is(pg_temp.st('w_corr', 'i_spray'), 'requested:6/5', 'status: requested again beats the earlier fail');
 select throws_ok($$ select pg_temp.ofs(array['w_shaft', 'w_elev'], array['i_stuff']) $$, '22023', 'Already passed.',
   'passed cells are never asked again');
-select pg_temp.login('a0000000-0000-0000-0000-000000000492');
+select pg_temp.to_ofs('D');
+select pg_temp.login('a0000000-0000-0000-0000-000000000493');
 insert into js select 'resD', jsonb_agg(jsonb_build_object('area_id', c.area_id, 'item_id', c.item_id, 'result', 'passed'))
   from public.ir_rev_items c where c.request_id = pg_temp.rid('D');
 select is((select array[(r).result, coalesce((r).result_note, '-')]
@@ -551,11 +563,11 @@ select is((select count(*)::int from public.ir_rev_items where request_id = pg_t
 select is((public.ir_rev_results(pg_temp.rid('D'), pg_temp.ver('inspection_requests', 'D'), pg_temp.j('resD'))).result, 'approved',
   'recorded again');
 select lives_ok($$ select public.ir_sign(pg_temp.rid('D'), pg_temp.ver('inspection_requests', 'D'), repeat('b', 64)) $$,
-  'the inspector signs the approved IR');
+  'the deputy signs the approved IR');
 select throws_ok($$ select public.ir_map_save(pg_temp.rid('D'), pg_temp.ver('ir_maps', 'D'), pg_temp.j('c1')) $$, '22023',
   'This IR is signed.', 'a signed IR''s map is final');
 select is((select (c ->> 'can_edit') || ' ' || (c ->> 'signer_name') from public.ir_map_context(pg_temp.rid('D')) c),
-  'false Ivy Inspector', 'the context says so, with the signer');
+  'false Dana Deputy', 'the context says so, with the signer');
 reset role;
 set local role service_role;
 select pg_temp.login_service();

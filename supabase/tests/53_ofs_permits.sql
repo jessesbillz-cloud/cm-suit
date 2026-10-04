@@ -1,9 +1,10 @@
 begin;
-select plan(79);
--- Migration 0061: the readiness checklist on every OFS request (member form, revs request, the link's two), an OFS
--- request from a Revs list carrying the list's permit, the map's facts (checklist, permit number), the stage Inspected
--- (IS) in place of "Inspections" and what holds it, the expiry by the last inspection, and reviews under one permit
--- (new kinds, review numbers and backchecks, several open at once, one open cycle per review).
+select plan(77);
+-- Migration 0061, the permit side: the one extra question on every OFS request (special inspection required?; member
+-- form, revs request, the link's two), an OFS request from a Revs list carrying the list's permit, the map's facts (the
+-- permit number), the stage Inspected (IS) in place of "Inspections" and what holds it, the expiry by the last
+-- inspection, and reviews under one permit (new kinds, review numbers and backchecks, several open at once, one open
+-- cycle per review). The route itself (sub -> GC -> inspector -> OFS) is 53_ofs_route.sql.
 \ir _helpers.psql
 
 create temp table ids (k text primary key, v uuid);
@@ -26,24 +27,26 @@ create function pg_temp.rev(p_id uuid) returns public.permit_reviews language sq
 create function pg_temp.linkreq(p_k text) returns uuid language sql stable security definer as $$
   select r.id from public.inspection_requests r
    where r.project_id = 'c0000000-0000-0000-0000-000000000531' and r.number = ((select j from res where k = p_k)->>'number')::int $$;
--- The checklist: all yes but special N/A, or with one answer changed / left out.
-create function pg_temp.ready(p_key text default null, p_value jsonb default null) returns jsonb language sql immutable as $$
-  select case when p_key is null then x
-              when p_value is null then x - p_key
-              else jsonb_set(x, array[p_key], p_value) end
-    from (select '{"previous":"yes","trade":"yes","gc":"yes","ior":"yes","special":"na"}'::jsonb as x) s $$;
 -- The member's revs request on the main job (wall and item keys), as the logged-in person.
-create function pg_temp.ofs(p_areas text[], p_items text[], p_ready jsonb) returns public.inspection_requests language sql volatile as $$
+create function pg_temp.ofs(p_areas text[], p_items text[], p_special boolean) returns public.inspection_requests language sql volatile as $$
   select public.ir_submit_ofs('c0000000-0000-0000-0000-000000000531', 'Sample Firestop Co', pg_temp.d(3), true,
     array(select pg_temp.rid(a) from unnest(p_areas) a), array(select pg_temp.rid(i) from unnest(p_items) i), null,
-    '08:00', 'timed', 60, p_readiness => p_ready) $$;
+    '08:00', 'timed', 60, p_special_required => p_special) $$;
 -- The link's revs request (service role).
-create function pg_temp.lofs(p_name text, p_areas text[], p_items text[], p_ready jsonb) returns jsonb language sql volatile as $$
+create function pg_temp.lofs(p_name text, p_areas text[], p_items text[], p_special boolean) returns jsonb language sql volatile as $$
   select public.link_request_submit_ofs(p_project_id => 'c0000000-0000-0000-0000-000000000531', p_token_hash => pg_temp.h('job-token'),
     p_hub_id => null, p_name => p_name, p_company => 'Sample Firestop Co', p_phone => '5550105300', p_email => null,
     p_request_date => pg_temp.d(3), p_notice_ack => true, p_area_ids => array(select pg_temp.rid(a) from unnest(p_areas) a),
     p_item_ids => array(select pg_temp.rid(i) from unnest(p_items) i), p_start_time => '09:00', p_duration_kind => 'timed',
-    p_duration_min => 60, p_readiness => p_ready) $$;
+    p_duration_min => 60, p_special_required => p_special) $$;
+-- The route to OFS: the GC (the PM) approves, the inspector sends it.
+create function pg_temp.to_ofs(p_request uuid) returns void language plpgsql as $$
+begin
+  perform pg_temp.login('a0000000-0000-0000-0000-000000000535');
+  perform public.ir_gc_decide(p_request, (pg_temp.req(p_request)).version, true);
+  perform pg_temp.login('a0000000-0000-0000-0000-000000000532');
+  perform public.ir_send_ofs(p_request, (pg_temp.req(p_request)).version);
+end $$;
 -- Every cell of a request passed (the inspector's results).
 create function pg_temp.pass_all(p_request uuid) returns jsonb language sql stable security definer as $$
   select jsonb_agg(jsonb_build_object('area_id', area_id, 'item_id', item_id, 'result', 'passed')) from public.ir_rev_items
@@ -102,77 +105,74 @@ insert into ids select k, i.id from (values ('tow', 'TOW - Speed Plugs'), ('stuf
   ('spray', 'HOW Cavity Spray'), ('other', 'Other Item')) v(k, n) join public.rev_items i on i.name = v.n;
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- 1. The readiness checklist
+-- 1. The one extra question on an OFS request; the request carries its list's permit
 -- ---------------------------------------------------------------------------------------------------------------------
-reset role;
-select is(array[public.ir_readiness_ok(pg_temp.ready()), public.ir_readiness_ok(pg_temp.ready('gc')),
-                public.ir_readiness_ok(pg_temp.ready('gc', '"no"')), public.ir_readiness_ok(pg_temp.ready('gc', 'true')),
-                public.ir_readiness_ok(pg_temp.ready() || '{"extra":"yes"}'), public.ir_readiness_ok('[]'),
-                public.ir_readiness_ok(null)],
-  array[true, false, false, false, false, false, false], 'checklist: exactly the five, each yes or N/A');
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000534');
-select throws_ok($$ select pg_temp.ofs(array['wA', 'wB'], array['tow'], null) $$, '22023', 'Answer the checklist.',
-  'revs request: refused without the checklist');
-select throws_ok($$ select pg_temp.ofs(array['wA', 'wB'], array['tow'], pg_temp.ready('special')) $$, '22023',
-  'Answer the checklist.', 'revs request: all five, none left out');
-select throws_ok($$ select pg_temp.ofs(array['wA', 'wB'], array['tow'], pg_temp.ready('ior', '"no"')) $$, '22023',
-  'Answer the checklist.', 'revs request: Yes or N/A only');
-select throws_ok($$ select pg_temp.ofs(array['wA'], array['tow', 'other'], pg_temp.ready()) $$, '22023',
+select throws_ok($$ select pg_temp.ofs(array['wA', 'wB'], array['tow'], null) $$, '22023', 'Answer the special inspection question.',
+  'revs request: refused without the special inspection answer');
+select throws_ok($$ select pg_temp.ofs(array['wA'], array['tow', 'other'], false) $$, '22023',
   'Pick the walls and items from one list.', 'the earlier refusals still read as they did');
-select lives_ok($$ insert into ids select 'M1', (pg_temp.ofs(array['wA', 'wB'], array['tow'], pg_temp.ready())).id $$,
-  'revs request: made with the checklist');
-select is((pg_temp.req(pg_temp.rid('M1'))).readiness, pg_temp.ready(), 'the checklist is stored with the request');
+select lives_ok($$ insert into ids select 'M1', (pg_temp.ofs(array['wA', 'wB'], array['tow'], false)).id $$,
+  'revs request: made with the answer');
+select is((pg_temp.req(pg_temp.rid('M1'))).special_required, false, 'the answer is stored with the request');
 select is((pg_temp.req(pg_temp.rid('M1'))).permit_id, pg_temp.rid('P'), 'the request carries its list''s permit');
-select lives_ok($$ insert into ids select 'M2', (pg_temp.ofs(array['wO'], array['other'], pg_temp.ready())).id $$,
+select lives_ok($$ insert into ids select 'M2', (pg_temp.ofs(array['wO'], array['other'], true)).id $$,
   'a request on a list with no permit');
-select is((pg_temp.req(pg_temp.rid('M2'))).permit_id, null::uuid, '... carries none');
+select is(array[(pg_temp.req(pg_temp.rid('M2'))).permit_id is null, (pg_temp.req(pg_temp.rid('M2'))).special_required],
+  array[true, true], '... carries none; special inspection required: yes');
 select throws_ok($$ select public.ir_submit('c0000000-0000-0000-0000-000000000531', 'Sample Co', pg_temp.d(4), 'ofs',
-  'An OFS request from the usual form', true, p_duration_kind => 'all_day') $$, '22023', 'Answer the checklist.',
-  'the usual form: an OFS request needs the checklist too');
+  'An OFS request from the usual form', true, p_duration_kind => 'all_day') $$, '22023', 'Answer the special inspection question.',
+  'the usual form: an OFS request needs the answer too');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000531', 'Sample Co', pg_temp.d(4), 'ofs', 'An OFS request',
-  true, p_duration_kind => 'all_day', p_readiness => pg_temp.ready('trade', '"na"'))).readiness, pg_temp.ready('trade', '"na"'),
-  '... and stores it');
+  true, p_duration_kind => 'all_day', p_special_required => true)).special_required, true, '... and stores it');
 select is((public.ir_submit('c0000000-0000-0000-0000-000000000531', 'Sample Co', pg_temp.d(4), 'ior', 'An IOR request',
-  true, p_duration_kind => 'all_day', p_readiness => pg_temp.ready())).readiness, null::jsonb,
-  'other kinds carry no checklist');
+  true, p_duration_kind => 'all_day', p_special_required => true)).special_required, null::boolean,
+  'other kinds carry no answer');
 reset role;
-select throws_ok($$ update public.inspection_requests set readiness = '{"previous":"maybe"}' where id = pg_temp.rid('M1') $$,
-  '23514', null, 'the database checks the checklist on the row');
+select throws_ok($$ update public.inspection_requests set special_required = true
+                     where project_id = 'c0000000-0000-0000-0000-000000000531' and kind = 'ior' $$,
+  '23514', null, 'the database keeps the answer to OFS requests');
+select is_empty($$ select 1 from information_schema.columns
+                    where table_schema = 'public' and table_name = 'inspection_requests' and column_name = 'readiness' $$,
+  'no per-item readiness checklist on a request (the route is the readiness check)');
 
 -- The link
 set local role service_role;
 select pg_temp.login_service();
 select throws_ok($$ select pg_temp.lofs('Sample Visitor', array['wA'], array['stuff', 'spray'], null) $$, '22023',
-  'Answer the checklist.', 'link revs request: refused without the checklist');
-insert into res values ('V1', pg_temp.lofs('Sample Visitor', array['wA'], array['stuff', 'spray'], pg_temp.ready()));
+  'Answer the special inspection question.', 'link revs request: refused without the answer');
+insert into res values ('V1', pg_temp.lofs('Sample Visitor', array['wA'], array['stuff', 'spray'], true));
 reset role;
 insert into ids values ('V1', pg_temp.linkreq('V1'));
-select is(array[(pg_temp.req(pg_temp.rid('V1'))).readiness, to_jsonb((pg_temp.req(pg_temp.rid('V1'))).permit_id)],
-  array[pg_temp.ready(), to_jsonb(pg_temp.rid('P'))], 'link revs request: the checklist and the list''s permit');
+select is(array[to_jsonb((pg_temp.req(pg_temp.rid('V1'))).special_required), to_jsonb((pg_temp.req(pg_temp.rid('V1'))).permit_id)],
+  array['true'::jsonb, to_jsonb(pg_temp.rid('P'))], 'link revs request: the answer and the list''s permit');
 set local role service_role;
 select pg_temp.login_service();
 select throws_ok($$ select public.link_request_submit('c0000000-0000-0000-0000-000000000531', pg_temp.h('job-token'), null,
   'Sample Typed', 'Sample Fire Co', '5550105301', null, pg_temp.d(3), 'ofs', 'Hydro test', true, '10:00', 'timed', 60) $$,
-  '22023', 'Answer the checklist.', 'link typed OFS request: refused without it');
+  '22023', 'Answer the special inspection question.', 'link typed OFS request: refused without it');
 select ok((public.link_request_submit('c0000000-0000-0000-0000-000000000531', pg_temp.h('job-token'), null,
   'Sample Typed', 'Sample Fire Co', '5550105301', null, pg_temp.d(3), 'ofs', 'Hydro test', true, '10:00', 'timed', 60,
-  p_readiness => pg_temp.ready())) ? 'receipt', '... and made with it');
+  p_special_required => false)) ? 'receipt', '... and made with it');
 select ok((public.link_request_submit('c0000000-0000-0000-0000-000000000531', pg_temp.h('job-token'), null,
   'Sample Typed', 'Sample Framing', '5550105301', null, pg_temp.d(3), 'ior', 'Hold downs', true, '10:00', 'timed', 60)) ? 'receipt',
-  'link IOR request: no checklist needed');
+  'link IOR request: no question');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- 2. The map's facts: the checklist and the permit number (never to the link visitor)
+-- 2. The map's facts: the permit number (never to the link visitor)
 -- ---------------------------------------------------------------------------------------------------------------------
 reset role;
-select is(array[public.ir_map_facts(pg_temp.rid('M1')) -> 'readiness', to_jsonb(public.ir_map_facts(pg_temp.rid('M1')) ->> 'permit_number')],
-  array[pg_temp.ready(), '"24-0001"'::jsonb], 'map facts: the checklist and the permit number');
+select is(array[public.ir_map_facts(pg_temp.rid('M1')) ->> 'permit_number', (public.ir_map_facts(pg_temp.rid('M1')) ? 'readiness')::text],
+  array['24-0001', 'false'], 'map facts: the permit number, no checklist');
 select is(public.ir_map_facts(pg_temp.rid('M2')) -> 'permit_number', 'null'::jsonb, 'map facts: no permit, no number');
 select ok(not (public.link_request_map_view(pg_temp.rid('V1')) ?| array['readiness', 'permit_number']),
-  'the link visitor''s map view leaves them out');
+  'the link visitor''s map view leaves it out');
 update public.ir_maps set stale = false where request_id = pg_temp.rid('M1');
 set local role authenticated;
+-- The deputy works on requests sent to OFS: the GC approves and the inspector sends M1 and the visitor's.
+select pg_temp.to_ofs(pg_temp.rid('M1'));
+select pg_temp.to_ofs(pg_temp.rid('V1'));
 select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select is((public.set_request_permit(pg_temp.rid('M1'), null, null)).permit_id, null::uuid, 'the deputy takes it off the permit');
 select ok((select stale from public.ir_maps where request_id = pg_temp.rid('M1')), '... and the map PDF is out of date');
@@ -210,9 +210,9 @@ select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select lives_ok($$ select public.permit_update(pg_temp.rid('P'), (pg_temp.pmt(pg_temp.rid('P'))).version, '24-0001',
   'Building - new construction', 'building', '{}', null, pg_temp.d(-300), (pg_temp.d(-300) + interval '12 months')::date, 0, '') $$,
   'the deputy types the real issue day, 300 days ago');
-select pg_temp.login('a0000000-0000-0000-0000-000000000532');
+select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select lives_ok($$ select public.ir_rev_results(pg_temp.rid('M1'), (pg_temp.req(pg_temp.rid('M1'))).version, pg_temp.pass_all(pg_temp.rid('M1'))) $$,
-  'the inspector passes the TOW walls');
+  'the deputy passes the TOW walls');
 select is((pg_temp.pmt(pg_temp.rid('P'))).expires_on, (pg_temp.d(0) + interval '12 months')::date,
   'expiry: 12 months from the last inspection, later than 12 months from issue');
 select ok(exists (select 1 from public.calendar_entries where source_type = 'permit' and source_id = pg_temp.rid('P')
@@ -222,7 +222,7 @@ select is(pg_temp.open(pg_temp.rid('P')), 2, 'two cells left (the visitor''s req
 select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select lives_ok($$ select public.permit_update(pg_temp.rid('P'), (pg_temp.pmt(pg_temp.rid('P'))).version, '24-0001',
   'Building - new construction', 'building', '{}', null, pg_temp.d(-300), '2030-06-01', 1, '') $$, 'an extension typed in');
-select pg_temp.login('a0000000-0000-0000-0000-000000000532');
+select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select lives_ok($$ select public.ir_rev_results(pg_temp.rid('V1'), (pg_temp.req(pg_temp.rid('V1'))).version, pg_temp.pass_all(pg_temp.rid('V1'))) $$,
   'the visitor''s walls pass');
 select is((pg_temp.pmt(pg_temp.rid('P'))).expires_on, '2030-06-01'::date, 'expiry never moves earlier than a typed date');
@@ -231,7 +231,8 @@ select is(pg_temp.open(pg_temp.rid('P')), 0, 'every cell of P''s list passed or 
 -- A typed request on the permit still waiting for its result holds Inspected too.
 select pg_temp.login('a0000000-0000-0000-0000-000000000534');
 insert into ids select 'T1', (public.ir_submit('c0000000-0000-0000-0000-000000000531', 'Sample Fire Co', pg_temp.d(5), 'ofs',
-  'Sprinkler hydro', true, p_duration_kind => 'all_day', p_readiness => pg_temp.ready())).id;
+  'Sprinkler hydro', true, p_duration_kind => 'all_day', p_special_required => false)).id;
+select pg_temp.to_ofs(pg_temp.rid('T1'));
 select pg_temp.login('a0000000-0000-0000-0000-000000000533');
 select public.set_request_permit(pg_temp.rid('T1'), null, pg_temp.rid('P'));
 select is(pg_temp.open(pg_temp.rid('P')), 1, 'a linked request with no result is open');
@@ -330,32 +331,32 @@ select throws_ok($$ insert into public.permit_reviews (permit_id, project_id, or
 -- Grants
 -- ---------------------------------------------------------------------------------------------------------------------
 select is_empty($$ select f from unnest(array[
-    'public.ir_submit(uuid, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], jsonb)',
-    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)',
+    'public.ir_submit(uuid, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], boolean, boolean)',
+    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean, boolean)',
     'public.permit_review_backcheck(uuid, date, uuid)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or not has_function_privilege('authenticated', f, 'EXECUTE') $$,
   'grants: the new member functions are for signed-in people, never anon');
 select is_empty($$ select f from unnest(array[
-    'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], jsonb)',
-    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)']) f
+    'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], boolean)',
+    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
       or not has_function_privilege('service_role', f, 'EXECUTE') $$,
   'grants: the link''s are the service role''s only');
 select is_empty($$ select f from unnest(array[
-    'public.ir_readiness_ok(jsonb)', 'public.ir_readiness_for(text, jsonb)', 'public.ir_ofs_permit(uuid)',
+    'public.ir_ofs_permit(uuid)',
     'public.permit_stage_ok(text)', 'public.permit_kind_ok(text)', 'public.permit_review_kind_ok(text)',
     'public.permit_review_label(integer, integer)', 'public.permit_open_inspections(uuid)', 'public.permit_expiry_touch(uuid)',
     'public.permit_review_next(public.permits, integer, date, uuid)', 'public.tg_ir_permit_expiry()',
-    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, jsonb)']) f
+    'public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, boolean)']) f
    where has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE') $$,
   'grants: the helpers are internal');
 select is_empty($$ select p.oid::regprocedure::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like '%\_retired\_0061'
      and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')
           or has_function_privilege('service_role', p.oid, 'EXECUTE')) $$,
-  'the retired submit functions are closed to everyone');
+  'the retired functions are closed to everyone');
 select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public' and p.proname like '%\_retired\_0061'), 5, 'and kept, not dropped');
+            where n.nspname = 'public' and p.proname like '%\_retired\_0061'), 10, 'and kept, not dropped');
 set local role anon;
 select throws_ok($$ select public.permit_review_backcheck('e0000000-0000-0000-0000-000000000531') $$, '42501', null,
   'anon: no backchecks');

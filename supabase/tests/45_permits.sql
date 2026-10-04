@@ -1,5 +1,5 @@
 begin;
-select plan(91);
+select plan(92);
 -- Permits (migration 0052): the 'ahj' role and the capability matrix as data, the module and the rail, new permits
 -- (the official only; numbers typed and unique per job; p_key repeats), stage moves in order (no skipping to complete,
 -- rejected only from submitted, the review loop, cancel from anywhere, issue dates, a repeat is a no-op, versions),
@@ -108,8 +108,8 @@ select is((select array_agg(role order by role) from public.role_permissions whe
   '{architect,inspector_admin,pe,pm,project_admin}'::text[],
   'matrix: permits.respond is the design team''s (and inspector_admin follows the project admin, 0044)');
 select is((select array_agg(capability order by capability) from public.role_permissions where role = 'ahj'),
-  '{calendar.read,comments.write,files.read_project,ir.decide,ir.view_all,members.view,permits.manage,permits.read,revs.manage,revs.read,safety.read,schedule.read}'::text[],
-  'matrix: the official''s whole list (revs from 0056, safety from 0060, schedule from 0062)');
+  '{calendar.read,comments.write,files.read_project,ir.ofs_decide,ir.ofs_view,members.view,permits.manage,permits.read,revs.manage,revs.read,safety.read,schedule.read}'::text[],
+  'matrix: the official''s whole list (revs from 0056, safety from 0060, schedule from 0062; OFS requests only, 0061)');
 select ok('permits' = any (public.job_rail_tools()), 'Permits is a job tool on the rail');
 select ok((select 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000451')
           and (select not 'permits' = any (modules) from public.projects where id = 'c0000000-0000-0000-0000-000000000454'),
@@ -376,6 +376,13 @@ select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-00
 select pg_temp.login('a0000000-0000-0000-0000-000000000454');
 select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('A')) $$, '42501', null,
   'nor can a PM who neither asked for it nor decides it');
+select pg_temp.login('a0000000-0000-0000-0000-000000000452');
+select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('A')) $$, 'P0002', null,
+  'the official does not see an OFS request that has not been sent to OFS');
+reset role;
+update public.inspection_requests set ofs_sent_at = now(), ofs_sent_by = 'a0000000-0000-0000-0000-000000000459'
+ where id = 'd0000000-0000-0000-0000-000000000451';
+set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000452');
 select throws_ok($$ select public.set_request_permit('d0000000-0000-0000-0000-000000000451', null, pg_temp.rid('P2')) $$, 'P0002', null,
   'a permit of another job is refused');

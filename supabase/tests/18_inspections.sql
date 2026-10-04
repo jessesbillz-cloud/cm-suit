@@ -64,8 +64,8 @@ select results_eq($$ select role from public.role_permissions where capability =
   $$ values ('inspector_admin'::text), ('pm'), ('project_admin'), ('superintendent') $$,
   'ir.gc_approve: project_admin, pm, superintendent (and the inspector who runs the job, 0044)');
 select results_eq($$ select role from public.role_permissions where capability = 'ir.view_all' order by 1 $$,
-  $$ values ('ahj'::text), ('inspector'), ('inspector_admin'), ('owner_rep'), ('pe'), ('pm'), ('project_admin'), ('superintendent') $$,
-  'ir.view_all: the GC team, inspectors, the owner rep (and the fire / building official, 0052)');
+  $$ values ('inspector'::text), ('inspector_admin'), ('owner_rep'), ('pe'), ('pm'), ('project_admin'), ('superintendent') $$,
+  'ir.view_all: the GC team, inspectors, the owner rep (never the fire / building official, 0061)');
 
 set local role authenticated;
 

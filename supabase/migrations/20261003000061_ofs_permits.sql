@@ -1,10 +1,12 @@
 -- 0061 OFS requests, Revs and Permits to OSFM's meaning, for Monday with Brock (CSU designated campus fire marshal, OFS):
 -- the cut-and-dried fixes of the Oct 3 permits check (scratch research permits-check §3.1).
---   1. Readiness checklist on every OFS request (this job's Procore "OSFM Inspection Request" opens with it): previous
---      required inspections complete, trade contractor inspection complete, GC inspection complete, IOR inspection
---      complete, special inspection complete; each Yes or N/A, all five required before an OFS request is made (member
---      form, the revs request, the request link and its revs request). Stored on the request (readiness, checked by
---      ir_readiness_ok); the map's facts carry it so the IR map prints it in the title box under the legend.
+--   1. The OFS route (SPEC §18.4 P1, Jesse, Oct 3): sub -> GC -> inspector -> OFS. The GC step is always on an OFS
+--      request; the inspector sends it to OFS (ir_send_ofs) or postpones it; from there it is the deputy's alone
+--      (ir.ofs_decide): confirm, results per wall, signature. The deputy reads and decides OFS requests sent to OFS and
+--      nothing else; the inspector never confirms, records or signs an OFS inspection. The inspector files requests
+--      too: his own OFS request goes straight to OFS on one acknowledgment. One extra question on an OFS request:
+--      special inspection required? No per-item readiness boxes: the route is the readiness check. OFS IRs and maps
+--      are stored in their own folder.
 --   2. An OFS request from a Revs list carries the list's permit (inspection_requests.permit_id); the existing ones are
 --      linked the same way. The permit's inspections show the OFS IR number; the map's facts carry the permit number.
 --   3. Stages: OSFM keeps a permit Issued (PI) through construction; Inspected (IS) means every required inspection passed.
@@ -21,53 +23,194 @@
 --      row is still one cycle. Several reviews may be open at once, one open cycle per review. Deferred reviews open
 --      once the permit is issued (G26 p. 7). Existing reviews are numbered from their history.
 -- Nothing is dropped but three CHECKs (stage and the two kinds: now function-based, so the next change is a function,
--- not a constraint swap) and the one-open-review-per-permit index (replaced by one open cycle per review). The submit
--- functions that take the checklist are new signatures; the old ones are retired (renamed, closed to everyone), as 0054
--- retired permit_record_stamped_set.
+-- not a constraint swap) and the one-open-review-per-permit index (replaced by one open cycle per review). Functions
+-- whose signature changes are new; the old ones are retired (renamed, closed to everyone), as 0054 retired
+-- permit_record_stamped_set.
 
 -- =====================================================================================================================
--- 1. The readiness checklist
+-- 1. The OFS route (SPEC §18.4 P1): sub -> GC -> inspector -> OFS. The route is the readiness check.
 -- =====================================================================================================================
--- The five answers: exactly these keys, each "yes" or "na".
-create or replace function public.ir_readiness_ok(p_readiness jsonb)
-returns boolean
-language plpgsql
-immutable
-set search_path = public, pg_temp
-as $$
-declare k text;
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The matrix (rows; provisional until Jesse confirms). The fire marshal held ir.decide and ir.view_all since 0052:
+-- every request of every kind. Those two rows become the OFS pair, so he has nothing to do with IOR and special
+-- requests (Jesse, Oct 3). Renamed, not removed. The inspector files requests too.
+--   ir.ofs_decide  the deputy's steps on an OFS request sent to OFS: confirm, postpone, results, sign, send.
+--   ir.ofs_view    reads an OFS request sent to OFS (ir.ofs_decide reads them too).
+-- ---------------------------------------------------------------------------------------------------------------------
+update public.role_permissions set capability = 'ir.ofs_decide' where role = 'ahj' and capability = 'ir.decide';
+update public.role_permissions set capability = 'ir.ofs_view' where role = 'ahj' and capability = 'ir.view_all';
+insert into public.role_permissions (role, capability, requires_aal2) values
+  ('ahj', 'ir.ofs_decide', false), ('ahj', 'ir.ofs_view', false), ('inspector', 'ir.request', false)
+on conflict do nothing;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The request: when the inspector sent it to OFS (and who), and the one extra question on an OFS request.
+-- An OFS request has no helper: helpers are inspectors, and a request with OFS is the deputy's alone.
+-- ---------------------------------------------------------------------------------------------------------------------
+alter table public.inspection_requests
+  add column ofs_sent_at timestamptz,
+  add column ofs_sent_by uuid references auth.users(id),
+  add column special_required boolean;
+
+-- The OFS requests made before today: one somebody already acted on is with OFS (sent by that person); helpers come off.
+do $$
 begin
-  if p_readiness is null or jsonb_typeof(p_readiness) <> 'object' then return false; end if;
-  if (select array_agg(x order by x) from jsonb_object_keys(p_readiness) x) is distinct from '{gc,ior,previous,special,trade}'::text[] then
-    return false;
-  end if;
-  for k in select jsonb_object_keys(p_readiness) loop
-    if (p_readiness -> k) not in ('"yes"'::jsonb, '"na"'::jsonb) then return false; end if;
-  end loop;
-  return true;
-end;
-$$;
+  perform set_config('app.ir_action', 'send_ofs', true);
+  update public.inspection_requests
+     set helper_id = null, helper_report = null, helper_note = null, helper_at = null
+   where kind = 'ofs' and helper_id is not null;
+  update public.inspection_requests
+     set ofs_sent_at = created_at, ofs_sent_by = coalesce(owner_id, result_by, signed_by)
+   where kind = 'ofs' and ofs_sent_at is null and coalesce(owner_id, result_by, signed_by) is not null
+     and (status in ('confirmed', 'postponed', 'complete') or result is not null);
+end $$;
 
 alter table public.inspection_requests
-  add column readiness jsonb constraint inspection_requests_readiness_check
-    check (readiness is null or public.ir_readiness_ok(readiness));
+  add constraint inspection_requests_ofs_sent_check
+    check ((ofs_sent_at is null) = (ofs_sent_by is null) and (ofs_sent_at is null or kind = 'ofs')),
+  add constraint inspection_requests_special_required_check check (special_required is null or kind = 'ofs'),
+  add constraint inspection_requests_ofs_no_helper_check check (kind <> 'ofs' or helper_id is null);
 
--- What a new request stores: the checklist on an OFS request (required, all five), nothing on the others.
-create or replace function public.ir_readiness_for(p_kind text, p_readiness jsonb)
-returns jsonb
-language plpgsql
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Who is on a request now. One rule, read by every step below: an OFS request sent to OFS is the deputy's
+-- (ir.ofs_decide); every other request, and an OFS one not sent yet, is the inspector's (ir.decide).
+-- ---------------------------------------------------------------------------------------------------------------------
+create function public.ir_decide_cap(p_kind text, p_ofs_sent_at timestamptz)
+returns text
+language sql
 immutable
 set search_path = public, pg_temp
 as $$
+  select case when p_kind = 'ofs' and p_ofs_sent_at is not null then 'ir.ofs_decide' else 'ir.decide' end;
+$$;
+
+-- Does this member hold the capability on the job right now? (ir_member_decides, for any capability.)
+create function public.ir_member_holds(p_project_id uuid, p_member uuid, p_cap text)
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.project_members pm
+    join public.role_permissions rp on rp.role = pm.role and rp.capability = p_cap
+    where pm.project_id = p_project_id and pm.user_id = p_member and pm.status = 'active'
+      and (pm.access_ends_at is null or pm.access_ends_at > now()));
+$$;
+
+-- Who reads a request in full: its requester, the GC team and the inspectors (as before), and the deputy once it is an
+-- OFS request sent to OFS. He never reads an IOR or special request, or an OFS one still on its way.
+create function public.ir_may_see(p_project_id uuid, p_requested_by uuid, p_kind text, p_ofs_sent_at timestamptz)
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select coalesce((p_requested_by = auth.uid() and public.is_member(p_project_id))
+      or public.has_capability(p_project_id, 'ir.view_all')
+      or public.has_capability(p_project_id, 'ir.decide')
+      or (p_kind = 'ofs' and p_ofs_sent_at is not null
+          and (public.has_capability(p_project_id, 'ir.ofs_view') or public.has_capability(p_project_id, 'ir.ofs_decide'))),
+    false);
+$$;
+
+alter policy "inspection_requests: requester or team reads" on public.inspection_requests
+  using (deleted_at is null and public.ir_may_see(project_id, requested_by, kind, ofs_sent_at));
+
+-- The caller may act as the one who decides this request now: holds its capability (ir_decide_cap), and the request
+-- has no owner, is theirs, or its owner no longer holds that capability on the job.
+create function public.ir_owner_ok(p_project_id uuid, p_owner uuid, p_kind text, p_ofs_sent_at timestamptz)
+returns boolean
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select public.has_capability(p_project_id, public.ir_decide_cap(p_kind, p_ofs_sent_at))
+     and (p_owner is null or p_owner = auth.uid()
+          or not public.ir_member_holds(p_project_id, p_owner, public.ir_decide_cap(p_kind, p_ofs_sent_at)));
+$$;
+
+-- A new request's place on the route, by who files it:
+--   an inspector or a GC approver: past the GC step (the inspector's own OFS request is sent to OFS at once, below);
+--   anyone else: the GC step when the job has it on, and always on an OFS request (while the job has a GC approver).
+create function public.ir_first_status(p_project_id uuid, p_kind text)
+returns text
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select case
+    when public.has_capability(p_project_id, 'ir.decide') or public.has_capability(p_project_id, 'ir.gc_approve') then 'pending'
+    when public.ir_setting(p_project_id, 'ir_gc_approval') then 'gc_review'
+    when p_kind = 'ofs' and exists (
+           select 1 from public.project_members pm
+           join public.role_permissions rp on rp.role = pm.role and rp.capability = 'ir.gc_approve'
+           where pm.project_id = p_project_id and pm.status = 'active' and pm.user_id is not null
+             and (pm.access_ends_at is null or pm.access_ends_at > now())) then 'gc_review'
+    else 'pending' end;
+$$;
+
+-- 0024: the request, locked, if the caller may see it in full (now the one rule above).
+create or replace function public.ir_for_update(p_request_id uuid, p_version integer)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
 begin
-  if p_kind is distinct from 'ofs' then return null; end if;
-  if p_readiness is null or not public.ir_readiness_ok(p_readiness) then
-    raise exception 'Answer the checklist.' using errcode = '22023';
+  select * into r from public.inspection_requests where id = p_request_id and deleted_at is null for update;
+  if r.id is null
+     or not public.ir_may_see(r.project_id, r.requested_by, r.kind, r.ofs_sent_at) then
+    raise exception 'not_found' using errcode = 'P0002';
   end if;
-  return p_readiness;
+  if p_version is not null and r.version <> p_version then
+    raise exception 'version_conflict: expected %, found %', p_version, r.version using errcode = '40001';
+  end if;
+  return r;
 end;
 $$;
 
+-- 0024: a board line to whoever decides the request now: its owner, or everyone holding its capability.
+create or replace function public.ir_tell_inspector(p_request public.inspection_requests, p_kind text, p_summary text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_cap text := public.ir_decide_cap(p_request.kind, p_request.ofs_sent_at);
+begin
+  if p_request.owner_id is not null and public.ir_member_holds(p_request.project_id, p_request.owner_id, v_cap) then
+    perform public.post_activity(p_request.project_id, p_kind, p_summary, 'inspection_request', p_request.id, null,
+                                 array[p_request.owner_id]);
+  else
+    perform public.post_activity(p_request.project_id, p_kind, p_summary, 'inspection_request', p_request.id, v_cap);
+  end if;
+end;
+$$;
+
+-- The deputy's board line when a request reaches OFS.
+create function public.ir_tell_ofs(p_request_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  select * into r from public.inspection_requests where id = p_request_id;
+  perform public.post_activity(r.project_id, 'ir.ofs',
+    left('IR ' || r.number || ' (OFS ' || r.ofs_number || ') for OFS · ' || r.company || ' · '
+         || public.ir_when_label(r.request_date, r.start_time), 500),
+    'inspection_request', r.id, 'ir.ofs_decide');
+end;
+$$;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The submit functions (new signatures; the old ones retired): the special-inspection question on an OFS request, the
+-- inspector's one acknowledgment when he files an OFS request himself, and the list's permit on a request with walls.
+-- No per-item readiness boxes: every step is on record because the route recorded it.
+-- ---------------------------------------------------------------------------------------------------------------------
 -- The permit an OFS request of these walls carries: their list's, while that permit is live.
 create or replace function public.ir_ofs_permit(p_list_id uuid)
 returns uuid
@@ -80,9 +223,6 @@ as $$
    where l.id = p_list_id;
 $$;
 
--- ---------------------------------------------------------------------------------------------------------------------
--- The submit functions with the checklist (new signatures; the old ones retired below)
--- ---------------------------------------------------------------------------------------------------------------------
 alter function public.ir_submit(uuid, text, date, text, text, boolean, time, text, integer, uuid, uuid[])
   rename to ir_submit_retired_0061;
 alter function public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time, text, integer, uuid[])
@@ -107,7 +247,7 @@ revoke execute on function
                                               time, text, integer, uuid[])
 from public, anon, authenticated, service_role;
 
--- 0024's member request, plus the checklist on an OFS one (the last check, so the earlier refusals read as they did).
+-- 0024's member request.
 create function public.ir_submit(
   p_project_id uuid,
   p_company text,
@@ -120,7 +260,8 @@ create function public.ir_submit(
   p_duration_min int default null,
   p_special_kind_id uuid default null,
   p_attachment_ids uuid[] default '{}',
-  p_readiness jsonb default null
+  p_special_required boolean default null,
+  p_inspector_ack boolean default false
 )
 returns public.inspection_requests
 language plpgsql
@@ -132,7 +273,7 @@ declare
   v_company text := btrim(coalesce(p_company, ''));
   v_items text := btrim(coalesce(p_items, ''));
   v_duration text := coalesce(p_duration_kind, 'timed');
-  v_ready jsonb;
+  v_sent boolean;
   p public.projects;
   r public.inspection_requests;
   fid uuid;
@@ -160,7 +301,14 @@ begin
       raise exception 'An attachment is missing. Add it again.' using errcode = '22023';
     end if;
   end loop;
-  v_ready := public.ir_readiness_for(p_kind, p_readiness);
+  if p_kind = 'ofs' and p_special_required is null then
+    raise exception 'Answer the special inspection question.' using errcode = '22023';
+  end if;
+  -- The inspector's own OFS request goes straight to OFS, on his one statement.
+  v_sent := p_kind = 'ofs' and public.has_capability(p_project_id, 'ir.decide');
+  if v_sent and p_inspector_ack is not true then
+    raise exception 'Check the inspector''s statement first.' using errcode = '22023';
+  end if;
 
   perform pg_advisory_xact_lock(hashtext('ir_submit:' || v_uid::text || ':' || p_project_id::text));
   select * into r from public.inspection_requests x
@@ -173,12 +321,13 @@ begin
   perform set_config('app.ir_action', 'submit', true);
   insert into public.inspection_requests (
     org_id, project_id, number, requested_by, created_by, company, request_date, start_time, duration_kind, duration_min,
-    kind, special_kind_id, items, attachment_ids, notice_ack_at, status, readiness)
+    kind, special_kind_id, items, attachment_ids, notice_ack_at, status, special_required, ofs_sent_at, ofs_sent_by)
   values (
     p.org_id, p_project_id, public.next_number(p_project_id, 'ir'), v_uid, v_uid, v_company, p_request_date, p_start_time,
     v_duration, case when v_duration = 'timed' then p_duration_min end, p_kind,
     case when p_kind = 'special' then p_special_kind_id end, v_items, coalesce(p_attachment_ids, '{}'::uuid[]), now(),
-    public.ir_first_status(p_project_id), v_ready)
+    public.ir_first_status(p_project_id, p_kind), case when p_kind = 'ofs' then p_special_required end,
+    case when v_sent then now() end, case when v_sent then v_uid end)
   returning * into r;
 
   if r.status = 'gc_review' then
@@ -190,11 +339,12 @@ begin
       'IR ' || r.number || ' requested · ' || r.company || ' · ' || public.ir_when_label(r.request_date, r.start_time),
       'inspection_request', r.id, 'ir.view_all');
   end if;
+  if v_sent then perform public.ir_tell_ofs(r.id); end if;
   return r;
 end;
 $$;
 
--- 0057's revs request, plus the checklist and the list's permit.
+-- 0057's revs request, plus the list's permit.
 create function public.ir_submit_ofs(
   p_project_id uuid,
   p_company text,
@@ -207,7 +357,8 @@ create function public.ir_submit_ofs(
   p_duration_kind text default 'timed',
   p_duration_min int default null,
   p_attachment_ids uuid[] default '{}',
-  p_readiness jsonb default null
+  p_special_required boolean default null,
+  p_inspector_ack boolean default false
 )
 returns public.inspection_requests
 language plpgsql
@@ -220,7 +371,7 @@ declare
   v_duration text := coalesce(p_duration_kind, 'timed');
   v_text text;
   v_list uuid;
-  v_ready jsonb;
+  v_sent boolean;
   p public.projects;
   r public.inspection_requests;
   fid uuid;
@@ -251,7 +402,14 @@ begin
   end loop;
   v_list := public.ir_ofs_list(p.id, p_area_ids, p_item_ids);
   perform public.rev_sheet_check(p.id, p_sheet_file_id);
-  v_ready := public.ir_readiness_for('ofs', p_readiness);
+  if p_special_required is null then
+    raise exception 'Answer the special inspection question.' using errcode = '22023';
+  end if;
+  -- The inspector's own OFS request goes straight to OFS, on his one statement.
+  v_sent := public.has_capability(p.id, 'ir.decide');
+  if v_sent and p_inspector_ack is not true then
+    raise exception 'Check the inspector''s statement first.' using errcode = '22023';
+  end if;
 
   perform pg_advisory_xact_lock(hashtext('ir_submit:' || v_uid::text || ':' || p.id::text));
   v_text := public.ir_ofs_open_text(p.id, p_area_ids, p_item_ids);
@@ -267,11 +425,12 @@ begin
   perform set_config('app.ir_action', 'submit', true);
   insert into public.inspection_requests (
     org_id, project_id, number, requested_by, created_by, company, request_date, start_time, duration_kind, duration_min,
-    kind, items, attachment_ids, notice_ack_at, status, readiness, permit_id)
+    kind, items, attachment_ids, notice_ack_at, status, special_required, ofs_sent_at, ofs_sent_by, permit_id)
   values (
     p.org_id, p.id, public.next_number(p.id, 'ir'), v_uid, v_uid, v_company, p_request_date, p_start_time, v_duration,
     case when v_duration = 'timed' then p_duration_min end, 'ofs', v_text, coalesce(p_attachment_ids, '{}'::uuid[]), now(),
-    public.ir_first_status(p.id), v_ready, public.ir_ofs_permit(v_list))
+    public.ir_first_status(p.id, 'ofs'), p_special_required, case when v_sent then now() end,
+    case when v_sent then v_uid end, public.ir_ofs_permit(v_list))
   returning * into r;
 
   perform public.ir_ofs_make(r, p_area_ids, p_item_ids, p_sheet_file_id);
@@ -287,16 +446,17 @@ begin
            || public.ir_when_label(r.request_date, r.start_time), 500),
       'inspection_request', r.id, 'ir.view_all');
   end if;
+  if v_sent then perform public.ir_tell_ofs(r.id); end if;
   return r;
 end;
 $$;
 
--- 0057's one body for the link's requests, plus the checklist on an OFS one and, with walls, the list's permit.
+-- 0057's one body for the link's requests. A visitor is nobody on the job: an OFS request takes the GC step.
 create function public.link_request_make(
   p_project_id uuid, p_token_hash text, p_hub_id uuid, p_name text, p_company text, p_phone text, p_email text,
   p_request_date date, p_kind text, p_items text, p_notice_ack boolean, p_start_time time, p_duration_kind text,
   p_duration_min int, p_special_kind_id uuid, p_attachment_ids uuid[], p_area_ids uuid[], p_item_ids uuid[],
-  p_sheet_file_id uuid, p_readiness jsonb
+  p_sheet_file_id uuid, p_special_required boolean
 )
 returns jsonb
 language plpgsql
@@ -314,7 +474,6 @@ declare
   v_duration text := coalesce(p_duration_kind, 'timed');
   v_files uuid[] := coalesce(p_attachment_ids, '{}'::uuid[]);
   v_permit uuid;
-  v_ready jsonb;
   v_today date;
   v_token text;
   v_who text;
@@ -366,7 +525,9 @@ begin
       raise exception 'Pick a sheet of these walls.' using errcode = '22023';
     end if;
   end if;
-  v_ready := public.ir_readiness_for(p_kind, p_readiness);
+  if p_kind = 'ofs' and p_special_required is null then
+    raise exception 'Answer the special inspection question.' using errcode = '22023';
+  end if;
 
   -- One visitor at a time per name and job, so the repeat check and the insert agree.
   perform pg_advisory_xact_lock(hashtext('link_request_submit:' || pr.id::text || ':' || lower(v_name)));
@@ -394,12 +555,12 @@ begin
     insert into public.inspection_requests (
       org_id, project_id, number, requested_by, created_by, company, requester_name, requester_phone, requester_email,
       request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, notice_ack_at, status,
-      readiness, permit_id)
+      special_required, permit_id)
     values (
       pr.org_id, pr.id, public.next_number(pr.id, 'ir'), null, null, v_company, v_name, v_phone, v_email,
       p_request_date, p_start_time, v_duration, case when v_duration = 'timed' then p_duration_min end, p_kind,
-      case when p_kind = 'special' then p_special_kind_id end, v_items, v_files, now(), public.ir_first_status(pr.id),
-      v_ready, v_permit)
+      case when p_kind = 'special' then p_special_kind_id end, v_items, v_files, now(), public.ir_first_status(pr.id, p_kind),
+      case when p_kind = 'ofs' then p_special_required end, v_permit)
     returning * into r;
     if v_walls then perform public.ir_ofs_make(r, p_area_ids, p_item_ids, p_sheet_file_id); end if;
 
@@ -440,7 +601,7 @@ begin
 end;
 $$;
 
--- 0055's request from the link (the shared body without walls), plus the checklist on an OFS one.
+-- 0055's request from the link (the shared body without walls).
 create function public.link_request_submit(
   p_project_id uuid,
   p_token_hash text,
@@ -458,7 +619,7 @@ create function public.link_request_submit(
   p_duration_min int default null,
   p_special_kind_id uuid default null,
   p_attachment_ids uuid[] default '{}',
-  p_readiness jsonb default null
+  p_special_required boolean default null
 )
 returns jsonb
 language plpgsql
@@ -469,11 +630,11 @@ begin
   if not public.is_service_role() then raise exception 'forbidden' using errcode = '42501'; end if;
   return public.link_request_make(p_project_id, p_token_hash, p_hub_id, p_name, p_company, p_phone, p_email, p_request_date,
     p_kind, p_items, p_notice_ack, p_start_time, p_duration_kind, p_duration_min, p_special_kind_id, p_attachment_ids,
-    null, null, null, p_readiness);
+    null, null, null, p_special_required);
 end;
 $$;
 
--- 0057's revs request from the link, plus the checklist.
+-- 0057's revs request from the link.
 create function public.link_request_submit_ofs(
   p_project_id uuid,
   p_token_hash text,
@@ -491,7 +652,7 @@ create function public.link_request_submit_ofs(
   p_duration_kind text default 'timed',
   p_duration_min int default null,
   p_attachment_ids uuid[] default '{}',
-  p_readiness jsonb default null
+  p_special_required boolean default null
 )
 returns jsonb
 language plpgsql
@@ -502,14 +663,747 @@ begin
   if not public.is_service_role() then raise exception 'forbidden' using errcode = '42501'; end if;
   return public.link_request_make(p_project_id, p_token_hash, p_hub_id, p_name, p_company, p_phone, p_email, p_request_date,
     'ofs', null, p_notice_ack, p_start_time, p_duration_kind, p_duration_min, null, p_attachment_ids,
-    coalesce(p_area_ids, '{}'::uuid[]), coalesce(p_item_ids, '{}'::uuid[]), p_sheet_file_id, p_readiness);
+    coalesce(p_area_ids, '{}'::uuid[]), coalesce(p_item_ids, '{}'::uuid[]), p_sheet_file_id, p_special_required);
 end;
 $$;
 
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The steps
+-- ---------------------------------------------------------------------------------------------------------------------
+
+-- 0024: the GC step. Once the inspector has sent it to OFS, the GC no longer takes it back.
+create or replace function public.ir_gc_decide(p_request_id uuid, p_version integer, p_approve boolean, p_note text default null::text)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests; v_note text := nullif(btrim(coalesce(p_note, '')), '');
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if not public.has_capability(r.project_id, 'ir.gc_approve') then raise exception 'forbidden' using errcode = '42501'; end if;
+  if not (r.status in ('gc_review', 'returned') or (r.status = 'pending' and r.gc_at is not null and r.ofs_sent_at is null)) then
+    raise exception 'The inspector has this one now.' using errcode = '22023';
+  end if;
+  if p_approve is not true and v_note is null then raise exception 'Add a reason.' using errcode = '22023'; end if;
+  perform set_config('app.ir_action', case when p_approve then 'gc_approve' else 'gc_return' end, true);
+  update public.inspection_requests
+     set status = case when p_approve then 'pending' else 'returned' end, gc_by = auth.uid(), gc_at = now(), gc_note = v_note
+   where id = r.id
+   returning * into r;
+  if p_approve then
+    perform public.ir_tell_inspector(r, 'ir.requested',
+      'IR ' || r.number || ' requested · ' || r.company || ' · ' || public.ir_when_label(r.request_date, r.start_time));
+  else
+    perform public.ir_tell_requester(r, 'ir.returned', 'IR ' || r.number || ' returned: ' || v_note);
+  end if;
+  return r;
+end;
+$$;
+
+-- 0024: the one who decides the request now (the caller) after this step. An OFS request not sent yet takes only the
+-- inspector's routing steps (postpone; send is ir_send_ofs): he never confirms, records or signs an OFS inspection.
+alter function public.ir_decider(uuid, integer) rename to ir_decider_retired_0061;
+create function public.ir_decider(p_request_id uuid, p_version int, p_routing boolean default false)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if not public.ir_owner_ok(r.project_id, r.owner_id, r.kind, r.ofs_sent_at) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if r.status in ('withdrawn', 'gc_review', 'returned') then
+    raise exception 'This request is not with the inspector.' using errcode = '22023';
+  end if;
+  if r.kind = 'ofs' and r.ofs_sent_at is null and p_routing is not true then
+    raise exception 'Send it to OFS first.' using errcode = '22023';
+  end if;
+  return r;
+end;
+$$;
+
+-- The inspector sends an OFS request to OFS (from pending, or from his own postponement). It is the deputy's from here.
+create function public.ir_send_ofs(p_request_id uuid, p_version int)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if not public.has_capability(r.project_id, 'ir.decide') then raise exception 'forbidden' using errcode = '42501'; end if;
+  if r.kind <> 'ofs' then raise exception 'Only an OFS request goes to OFS.' using errcode = '22023'; end if;
+  if r.ofs_sent_at is not null then return r; end if;
+  if not public.ir_owner_ok(r.project_id, r.owner_id, r.kind, r.ofs_sent_at) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if r.status not in ('pending', 'postponed') then
+    raise exception 'This request is not with the inspector.' using errcode = '22023';
+  end if;
+  perform set_config('app.ir_action', 'send_ofs', true);
+  update public.inspection_requests
+     set ofs_sent_at = now(), ofs_sent_by = auth.uid(), status = 'pending', owner_id = null,
+         postpone_reason = null, postpone_note = null, postpone_until = null, postponed_at = null
+   where id = r.id
+   returning * into r;
+  perform public.ir_tell_ofs(r.id);
+  perform public.ir_tell_requester(r, 'ir.ofs', 'IR ' || r.number || ' sent to OFS');
+  return r;
+end;
+$$;
+
+-- Undo of the send: the inspector who sent it, until the deputy has acted on it.
+create function public.ir_unsend_ofs(p_request_id uuid, p_version int)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if not public.has_capability(r.project_id, 'ir.decide') or r.ofs_sent_by is distinct from auth.uid() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if r.status <> 'pending' or r.owner_id is not null or r.result is not null
+     or exists (select 1 from public.ir_rev_items c where c.request_id = r.id and c.result is not null) then
+    raise exception 'OFS has this one now.' using errcode = '22023';
+  end if;
+  perform set_config('app.ir_action', 'unsend_ofs', true);
+  update public.inspection_requests set ofs_sent_at = null, ofs_sent_by = null where id = r.id returning * into r;
+  return r;
+end;
+$$;
+
+-- 0024: postpone. The inspector may postpone an OFS request before he sends it; after, only the deputy.
+create or replace function public.ir_postpone(p_request_id uuid, p_version integer, p_reason text, p_note text default null::text, p_until date default null::date)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests; v_note text := nullif(btrim(coalesce(p_note, '')), ''); v_new boolean;
+begin
+  r := public.ir_decider(p_request_id, p_version, true);
+  if p_reason is null or p_reason not in ('not_ready', 'weather', 'gc_requested', 'other') then
+    raise exception 'Pick a reason.' using errcode = '22023';
+  end if;
+  if p_reason = 'other' and v_note is null then raise exception 'Add a note.' using errcode = '22023'; end if;
+  if p_until is not null and p_until < r.request_date then
+    raise exception 'The expected date is before the inspection.' using errcode = '22023';
+  end if;
+  v_new := r.status <> 'postponed';
+  perform set_config('app.ir_action', 'postpone', true);
+  update public.inspection_requests
+     set status = 'postponed', postpone_reason = p_reason, postpone_note = v_note, postpone_until = p_until,
+         postponed_at = case when v_new then now() else postponed_at end,
+         postpone_count = postpone_count + case when v_new then 1 else 0 end,
+         owner_id = auth.uid()
+   where id = r.id
+   returning * into r;
+  if v_new then
+    perform public.ir_tell_requester(r, 'ir.postponed', 'IR ' || r.number || ' postponed: '
+      || case p_reason when 'not_ready' then 'Not ready' when 'weather' then 'Weather' when 'gc_requested' then 'GC requested'
+                       else v_note end
+      || coalesce(' · expected ' || to_char(p_until, 'Mon FMDD'), ''));
+  end if;
+  return r;
+end;
+$$;
+
+-- 0024: move. "The inspector" is whoever decides the request now.
+create or replace function public.ir_move(p_request_id uuid, p_version integer, p_request_date date, p_start_time time without time zone default null::time without time zone, p_duration_kind text default 'timed'::text, p_duration_min integer default null::integer)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests; v_inspector boolean; v_status text; v_was text; v_tz text;
+        v_duration text := coalesce(p_duration_kind, 'timed');
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  v_inspector := public.ir_owner_ok(r.project_id, r.owner_id, r.kind, r.ofs_sent_at);
+  if not v_inspector and r.requested_by is distinct from auth.uid() then raise exception 'forbidden' using errcode = '42501'; end if;
+  if r.status in ('withdrawn', 'complete') or r.result is not null then
+    raise exception 'This inspection can''t be moved.' using errcode = '22023';
+  end if;
+  select timezone into v_tz from public.projects where id = r.project_id;
+  if p_request_date is null or p_request_date < (now() at time zone v_tz)::date then
+    raise exception 'Pick today or a later day.' using errcode = '22023';
+  end if;
+  v_was := r.status;
+  if v_inspector then
+    v_status := case when r.status = 'postponed' then 'confirmed' else r.status end;
+  elsif r.status in ('gc_review', 'returned') then
+    v_status := public.ir_first_status(r.project_id, r.kind);
+  else
+    v_status := 'pending';
+  end if;
+  perform set_config('app.ir_action', 'move', true);
+  update public.inspection_requests
+     set request_date = p_request_date, start_time = p_start_time, duration_kind = v_duration,
+         duration_min = case when v_duration = 'timed' then p_duration_min end, status = v_status,
+         postpone_reason = case when v_status = 'postponed' then postpone_reason end,
+         postpone_note = case when v_status = 'postponed' then postpone_note end,
+         postpone_until = case when v_status = 'postponed' then postpone_until end,
+         postponed_at = case when v_status = 'postponed' then postponed_at end
+   where id = r.id
+   returning * into r;
+  if v_inspector then
+    perform public.ir_tell_requester(r, 'ir.moved', 'IR ' || r.number || ' moved to ' || public.ir_when_label(r.request_date, r.start_time));
+  elsif v_status = 'gc_review' then
+    perform public.post_activity(r.project_id, 'ir.gc_review',
+      'IR ' || r.number || ' to review · ' || r.company || ' · ' || public.ir_when_label(r.request_date, r.start_time),
+      'inspection_request', r.id, 'ir.gc_approve');
+  else
+    perform public.ir_tell_inspector(r, 'ir.moved', 'IR ' || r.number || ' moved to ' || public.ir_when_label(r.request_date, r.start_time));
+  end if;
+  return r;
+end;
+$$;
+
+-- 0024: a withdrawn request comes back at the start of its route. One that starts at the GC again is no longer with OFS.
+create or replace function public.ir_restore(p_request_id uuid, p_version int)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests; v_status text; v_restart boolean;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if r.requested_by is distinct from auth.uid() or not public.has_capability(r.project_id, 'ir.request') then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if r.status <> 'withdrawn' then raise exception 'This inspection is not withdrawn.' using errcode = '22023'; end if;
+  v_status := public.ir_first_status(r.project_id, r.kind);
+  v_restart := r.kind = 'ofs' and v_status = 'gc_review';
+  perform set_config('app.ir_action', 'restore', true);
+  update public.inspection_requests
+     set status = v_status,
+         ofs_sent_at = case when v_restart then null else ofs_sent_at end,
+         ofs_sent_by = case when v_restart then null else ofs_sent_by end,
+         owner_id = case when v_restart then null else owner_id end
+   where id = r.id
+   returning * into r;
+  if r.status = 'pending' then
+    perform public.ir_tell_inspector(r, 'ir.requested', 'IR ' || r.number || ' requested again');
+  end if;
+  return r;
+end;
+$$;
+
+-- 0024: claim and helpers are the inspectors' own; an OFS request has none.
+create or replace function public.ir_claim(p_request_id uuid, p_version integer)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if not public.has_capability(r.project_id, 'ir.decide') then raise exception 'forbidden' using errcode = '42501'; end if;
+  if r.kind = 'ofs' then raise exception 'An OFS request has no helper.' using errcode = '22023'; end if;
+  if r.status in ('withdrawn', 'gc_review', 'returned') then
+    raise exception 'This request is not with the inspector.' using errcode = '22023';
+  end if;
+  if public.ir_owner_ok(r.project_id, r.owner_id, r.kind, r.ofs_sent_at) then
+    if r.owner_id = auth.uid() then return r; end if;
+    perform set_config('app.ir_action', 'claim', true);
+    update public.inspection_requests set owner_id = auth.uid(),
+           helper_id = case when helper_id = auth.uid() then null else helper_id end
+     where id = r.id returning * into r;
+    return r;
+  end if;
+  if r.helper_id = auth.uid() then return r; end if;
+  if r.helper_id is not null then raise exception 'This one already has a helper.' using errcode = '22023'; end if;
+  perform set_config('app.ir_action', 'helper_claim', true);
+  update public.inspection_requests set helper_id = auth.uid() where id = r.id returning * into r;
+  perform public.ir_tell_inspector(r, 'ir.helper', 'IR ' || r.number || ' has a helper');
+  return r;
+end;
+$$;
+
+create or replace function public.ir_assign_helper(p_request_id uuid, p_version integer, p_helper_id uuid default null::uuid)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.inspection_requests;
+begin
+  r := public.ir_for_update(p_request_id, p_version);
+  if r.kind = 'ofs' then raise exception 'An OFS request has no helper.' using errcode = '22023'; end if;
+  if p_helper_id is null and r.helper_id = auth.uid() then
+    null; -- the helper steps off
+  else
+    r := public.ir_decider(p_request_id, p_version);
+    if p_helper_id is not null and (p_helper_id = auth.uid() or not public.ir_member_decides(r.project_id, p_helper_id)) then
+      raise exception 'Pick another inspector on this job.' using errcode = '22023';
+    end if;
+  end if;
+  perform set_config('app.ir_action', 'helper', true);
+  update public.inspection_requests
+     set helper_id = p_helper_id,
+         owner_id = case when p_helper_id is null and r.helper_id = auth.uid() then owner_id else auth.uid() end,
+         helper_report = null, helper_note = null, helper_at = null
+   where id = r.id
+   returning * into r;
+  if p_helper_id is not null then
+    perform public.post_activity(r.project_id, 'ir.helper', 'IR ' || r.number || ' assigned to you', 'inspection_request', r.id,
+                                 null, array[p_helper_id]);
+  end if;
+  return r;
+end;
+$$;
+
+-- 0024: who the results can go to (the one who decides the request sends them).
+create or replace function public.ir_recipients(p_request_id uuid)
+returns table(member_id uuid, user_id uuid, full_name text, company text, role text, preselect boolean)
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+#variable_conflict use_column
+declare r public.inspection_requests;
+begin
+  select * into r from public.inspection_requests x where x.id = p_request_id and x.deleted_at is null;
+  if r.id is null or not public.ir_owner_ok(r.project_id, r.owner_id, r.kind, r.ofs_sent_at) then raise exception 'forbidden' using errcode = '42501'; end if;
+  return query
+    select pm.id, pm.user_id, coalesce(nullif(pr.full_name, ''), split_part(pm.invite_email, '@', 1)),
+           coalesce(o.name, nullif(pr.company, ''), ''), pm.role,
+           pm.user_id is distinct from auth.uid()
+             and (coalesce(pm.user_id = r.requested_by, false)
+                  or exists (select 1 from public.role_permissions rp where rp.role = pm.role and rp.capability = 'ir.view_all'))
+      from public.project_members pm
+      left join public.profiles pr on pr.user_id = pm.user_id
+      left join public.orgs o on o.id = pm.member_org_id
+     where pm.project_id = r.project_id and pm.status = 'active' and pm.user_id is not null
+       and (pm.access_ends_at is null or pm.access_ends_at > now()) and not public.role_is_walled(pm.role)
+     order by 6 desc, 3;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- What each side reads
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 0055: the inspection calendar. The deputy's is the OFS requests sent to OFS, in full: nothing of any other kind, and
+-- no inspector's blocked time.
+create or replace function public.ir_calendar(p_project_id uuid, p_from date, p_to date)
+returns table (
+  id uuid, number int, version int, full_detail boolean, mine boolean, is_block boolean, request_date date, start_time time,
+  duration_kind text, duration_min int, kind text, special_kind text, status text, status_key text, result text,
+  attendance text, company text, items text, owner_id uuid, helper_id uuid, postpone_reason text, postpone_until date
+)
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+#variable_conflict use_column
+declare v_request boolean; v_team boolean; v_decide boolean; v_ofs boolean;
+begin
+  v_request := public.has_capability(p_project_id, 'ir.request');
+  v_decide := public.has_capability(p_project_id, 'ir.decide');
+  v_team := v_decide or public.has_capability(p_project_id, 'ir.view_all');
+  v_ofs := public.has_capability(p_project_id, 'ir.ofs_view') or public.has_capability(p_project_id, 'ir.ofs_decide');
+  if not (v_request or v_team or v_ofs) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if p_from is null or p_to is null or p_to < p_from or p_to - p_from > 62 then
+    raise exception 'Pick a shorter range.' using errcode = '22023';
+  end if;
+  if not (v_request or v_team) then
+    return query
+      select r.id, r.number, r.version, true, coalesce(r.requested_by = auth.uid(), false), false,
+             r.request_date, r.start_time, r.duration_kind, r.duration_min, r.kind, null::text, r.status,
+             public.ir_status_key(r.status, r.result, r.helper_id), r.result, r.attendance, r.company, r.items,
+             r.owner_id, r.helper_id, r.postpone_reason, r.postpone_until
+        from public.inspection_requests r
+       where r.project_id = p_project_id and r.deleted_at is null and r.status <> 'withdrawn'
+         and r.kind = 'ofs' and r.ofs_sent_at is not null and r.request_date between p_from and p_to
+       order by r.request_date, r.start_time nulls first;
+    return;
+  end if;
+  return query
+    select c.* from public.ir_calendar_rows(p_project_id, p_from, p_to, auth.uid(), v_team, v_decide) c
+     order by c.request_date, c.start_time nulls first;
+end;
+$$;
+
+-- 0042: the calendar's rows with what the day list shows, plus whether an OFS request is with OFS (a new column, so the
+-- old function is retired).
+alter function public.calendar_inspections(uuid, date, date) rename to calendar_inspections_retired_0061;
+create function public.calendar_inspections(p_project_id uuid, p_from date, p_to date)
+returns table (
+  id uuid, number int, version int, full_detail boolean, mine boolean, is_block boolean, request_date date, start_time time,
+  duration_kind text, duration_min int, kind text, special_kind text, status text, status_key text, result text,
+  attendance text, company text, items text, owner_id uuid, helper_id uuid, postpone_reason text, postpone_until date,
+  attachment_ids uuid[], postpone_count int, ofs_sent boolean
+)
+language plpgsql
+stable
+set search_path = public, pg_temp
+as $$
+#variable_conflict use_column
+begin
+  -- The same test ir_calendar() makes, answered with no rows instead of an error.
+  if not (public.has_capability(p_project_id, 'ir.request') or public.has_capability(p_project_id, 'ir.view_all')
+          or public.has_capability(p_project_id, 'ir.decide') or public.has_capability(p_project_id, 'ir.ofs_view')
+          or public.has_capability(p_project_id, 'ir.ofs_decide')) then
+    return;
+  end if;
+  return query
+    select c.id, c.number, c.version, c.full_detail, c.mine, c.is_block, c.request_date, c.start_time, c.duration_kind,
+           c.duration_min, c.kind, c.special_kind, c.status, c.status_key, c.result, c.attendance, c.company, c.items,
+           c.owner_id, c.helper_id, c.postpone_reason, c.postpone_until,
+           coalesce(r.attachment_ids, '{}'::uuid[]), coalesce(r.postpone_count, 0), coalesce(r.ofs_sent_at is not null, false)
+      from public.ir_calendar(p_project_id, p_from, p_to) c
+      -- RLS on inspection_requests: the rows the caller reads in full (ir_calendar's full rows).
+      left join public.inspection_requests r on r.id = c.id and not c.is_block
+     order by c.request_date, c.start_time nulls first, c.number nulls last;
+end;
+$$;
+
+-- 0056: who draws on a request's map: whoever decides it now, or its requester until there is a result.
+create or replace function public.ir_map_editor(p_request_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select coalesce((select public.has_capability(q.project_id, public.ir_decide_cap(q.kind, q.ofs_sent_at))
+                          or (q.requested_by = auth.uid() and public.is_member(q.project_id) and q.result is null
+                              and not exists (select 1 from public.ir_rev_items c
+                                               where c.request_id = q.id and c.result is not null))
+                     from public.inspection_requests q where q.id = p_request_id and q.deleted_at is null), false);
+$$;
+
+create or replace function public.ir_map_context(p_request_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare q public.inspection_requests; v jsonb;
+begin
+  select * into q from public.inspection_requests where id = p_request_id and deleted_at is null;
+  if q.id is null or not public.ir_may_see(q.project_id, q.requested_by, q.kind, q.ofs_sent_at) then raise exception 'not_found' using errcode = 'P0002'; end if;
+  v := public.ir_map_facts(q.id);
+  if v is null then raise exception 'not_found' using errcode = 'P0002'; end if;
+  return v || jsonb_build_object('can_edit', q.signed_at is null and q.status <> 'withdrawn' and public.ir_map_editor(q.id));
+end;
+$$;
+
+create or replace function public.ir_map_save(p_request_id uuid, p_version integer, p_strokes jsonb, p_sheet_file_id uuid default null::uuid, p_page integer default null::integer)
+returns public.ir_maps
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare q public.inspection_requests; m public.ir_maps;
+begin
+  select * into q from public.inspection_requests where id = p_request_id and deleted_at is null for update;
+  if q.id is null or not public.ir_may_see(q.project_id, q.requested_by, q.kind, q.ofs_sent_at) then raise exception 'not_found' using errcode = 'P0002'; end if;
+  select * into m from public.ir_maps where request_id = q.id for update;
+  if m.request_id is null then raise exception 'not_found' using errcode = 'P0002'; end if;
+  if not public.ir_map_editor(q.id) then raise exception 'forbidden' using errcode = '42501'; end if;
+  return public.ir_map_write(q, m, p_version, p_strokes, p_sheet_file_id, p_page, false);
+end;
+$$;
+
+-- 0056: a request's files, for who may see the request.
+create or replace function public.authorize_ir_file(p_request_id uuid, p_file_id uuid)
+returns table(storage_path text, original_name text, mime text)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+#variable_conflict use_column
+declare r public.inspection_requests; m public.ir_maps; f public.files; hdrs jsonb; v_server boolean; v_listed boolean;
+begin
+  select * into r from public.inspection_requests where id = p_request_id and deleted_at is null;
+  if r.id is null or not public.ir_may_see(r.project_id, r.requested_by, r.kind, r.ofs_sent_at) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  select * into m from public.ir_maps where request_id = r.id;
+  select * into f from public.files where id = p_file_id and project_id = r.project_id and deleted_at is null;
+  -- The IR PDF and the map are server-made; the sheet was checked when it was picked.
+  v_server := coalesce(p_file_id = r.ir_file_id, false) or coalesce(p_file_id = m.map_file_id, false)
+              or coalesce(p_file_id = m.sheet_file_id, false);
+  v_listed := coalesce(p_file_id = any (r.attachment_ids), false) or coalesce(p_file_id = any (r.result_photo_ids), false)
+              or coalesce(f.created_by = auth.uid(), false);
+  if not (v_server or v_listed) then raise exception 'forbidden' using errcode = '42501'; end if;
+  if f.id is null then raise exception 'not_found' using errcode = 'P0002'; end if;
+  -- Anything else must be a request file in the attachments folder.
+  if not v_server and f.folder_id is distinct from public.ir_attach_folder_id(r.project_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if f.scan_status = 'infected' then raise exception 'infected' using errcode = '42501'; end if;
+  if f.scan_status = 'pending' and f.created_by is distinct from auth.uid() then
+    raise exception 'scan_pending' using errcode = '42501';
+  end if;
+  hdrs := nullif(current_setting('request.headers', true), '')::jsonb;
+  insert into public.downloads (file_id, project_id, user_id, ip, variant)
+  values (f.id, f.project_id, auth.uid(), nullif(split_part(coalesce(hdrs->>'x-forwarded-for', ''), ',', 1), '')::inet, 'original');
+  perform public.audit('download', 'file', f.id, f.project_id, f.org_id,
+                       jsonb_build_object('variant', 'original', 'name', f.original_name, 'request_id', r.id), f.sha256);
+  return query select f.storage_path, f.original_name, f.mime;
+end;
+$$;
+
+-- 0050: comments on a request, for who may see it; the line goes to whoever decides it now.
+create or replace function public.comment_target_readable(p_project_id uuid, p_entity_type text, p_entity_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if p_project_id is null or p_entity_id is null or auth.uid() is null or not public.is_member(p_project_id) then
+    return false;
+  end if;
+  return coalesce(case p_entity_type
+    when 'rfi' then exists (
+      select 1 from public.rfis r where r.id = p_entity_id and r.project_id = p_project_id and r.deleted_at is null
+         and public.rfi_may_see(r.id, r.project_id, r.created_by, r.status, r.step))
+    when 'inspection_request' then exists (
+      select 1 from public.inspection_requests i where i.id = p_entity_id and i.project_id = p_project_id
+         and i.deleted_at is null and public.ir_may_see(i.project_id, i.requested_by, i.kind, i.ofs_sent_at))
+    when 'file' then exists (
+      select 1 from public.files f where f.id = p_entity_id and f.project_id = p_project_id and f.deleted_at is null
+         and public.file_may_see(f.project_id, f.created_by, f.folder_id))
+    when 'daily_report' then exists (
+      select 1 from public.daily_reports d where d.id = p_entity_id and d.project_id = p_project_id
+         and d.deleted_at is null and public.daily_may_see(d.project_id, d.author_id, d.status))
+    when 'correction' then exists (
+      select 1 from public.corrections c where c.id = p_entity_id and c.project_id = p_project_id
+         and c.deleted_at is null and public.correction_may_see(c.project_id))
+    when 'delivery' then exists (
+      select 1 from public.deliveries d where d.id = p_entity_id and d.project_id = p_project_id
+         and public.delivery_may_see(d.project_id))
+    else false
+  end, false);
+end;
+$$;
+
+create or replace function public.comment_tell(p_project_id uuid, p_entity_type text, p_entity_id uuid, p_kind text, p_what text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_label text; v_cap text; v_people uuid[] := '{}'::uuid[]; v_writers uuid[];
+begin
+  case p_entity_type
+    when 'rfi' then
+      select public.rfi_label(r.number) || ': ' || r.title, 'rfi.sign_issue', array[r.created_by] || public.rfi_holder_ids(r.id)
+        into v_label, v_cap, v_people from public.rfis r where r.id = p_entity_id;
+    when 'inspection_request' then
+      select 'IR ' || i.number, public.ir_decide_cap(i.kind, i.ofs_sent_at), array[i.requested_by]
+        into v_label, v_cap, v_people from public.inspection_requests i where i.id = p_entity_id;
+    when 'file' then
+      select f.original_name, null, array[f.created_by]
+        into v_label, v_cap, v_people from public.files f where f.id = p_entity_id;
+    when 'daily_report' then
+      select 'Daily report' || coalesce(' #' || d.number, ''),
+             case when d.status = 'submitted' then 'dailies.read_all' end, array[d.author_id]
+        into v_label, v_cap, v_people from public.daily_reports d where d.id = p_entity_id;
+    when 'correction' then
+      select public.correction_label(c.number) || ': ' || c.title, 'corrections.mark_ready', array[c.created_by]
+        into v_label, v_cap, v_people from public.corrections c where c.id = p_entity_id;
+    when 'delivery' then
+      select 'Delivery #' || d.number, 'deliveries.manage', array[d.created_by]
+        into v_label, v_cap, v_people from public.deliveries d where d.id = p_entity_id;
+    else
+      raise exception 'not_found' using errcode = 'P0002';
+  end case;
+  v_writers := public.rfi_users_with_cap(p_project_id, 'comments.write');
+  v_people := array(
+    select distinct x from unnest(coalesce(v_people, '{}'::uuid[])
+                                  || array(select c.author_id from public.comments c
+                                            where c.project_id = p_project_id and c.entity_type = p_entity_type
+                                              and c.entity_id = p_entity_id)) as t (x)
+     where x is not null and x is distinct from auth.uid() and x = any (v_writers));
+  if v_cap is null and cardinality(v_people) = 0 then return; end if;
+  perform public.post_activity(p_project_id, p_kind, left(p_what || ' on ' || coalesce(v_label, 'an item'), 500),
+    p_entity_type, p_entity_id, v_cap, case when cardinality(v_people) > 0 then v_people end);
+end;
+$$;
+
+-- 0052: the permit on a request: the official, whoever decides the request now, or its requester.
+create or replace function public.set_request_permit(p_request_id uuid, p_version integer, p_permit_id uuid)
+returns public.inspection_requests
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare q public.inspection_requests; r public.permits;
+begin
+  q := public.ir_for_update(p_request_id, null);
+  if not (public.has_capability(q.project_id, 'permits.manage') or public.has_capability(q.project_id, public.ir_decide_cap(q.kind, q.ofs_sent_at))
+          or q.requested_by = auth.uid())
+     or not public.has_capability(q.project_id, 'permits.read') then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if q.permit_id is not distinct from p_permit_id then return q; end if;
+  if p_version is not null and q.version <> p_version then
+    raise exception 'version_conflict: expected %, found %', p_version, q.version using errcode = '40001';
+  end if;
+  if p_permit_id is not null then
+    select * into r from public.permits where id = p_permit_id and deleted_at is null;
+    if r.id is null or r.project_id <> q.project_id then raise exception 'not_found' using errcode = 'P0002'; end if;
+  end if;
+  perform set_config('app.ir_action', 'permit', true);
+  update public.inspection_requests set permit_id = p_permit_id where id = q.id returning * into q;
+  return q;
+end;
+$$;
+
+-- 0055: the visitor's receipt, plus whether the request is with OFS (the tracker's OFS step).
+create or replace function public.link_request_answer(p_request_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select jsonb_build_object(
+    'project_name', p.name,
+    'number', r.number,
+    'request_date', r.request_date,
+    'start_time', r.start_time,
+    'duration_kind', r.duration_kind,
+    'duration_min', r.duration_min,
+    'kind', r.kind,
+    'special_kind', k.name,
+    'status', r.status,
+    'result', r.result,
+    'result_note', r.result_note,
+    'gc_step', public.ir_setting(p.id, 'ir_gc_approval') or r.gc_at is not null,
+    'ofs_sent', r.ofs_sent_at is not null)
+    from public.inspection_requests r
+    join public.projects p on p.id = r.project_id
+    left join public.ir_special_kinds k on k.id = r.special_kind_id
+   where r.id = p_request_id;
+$$;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Folders. OFS IRs and their maps get their own folder ("OFS inspection reports"), apart from the inspector's IRs. The
+-- deputy adds result photos to the request folder (write only, as requesters do) and reads a request's files only
+-- through the request (authorize_ir_file): he browses neither folder of the inspector's.
+-- ---------------------------------------------------------------------------------------------------------------------
+create or replace function public.ir_folder(p_project_id uuid, p_which text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if p_which = 'attachments' then
+    if not (public.has_capability(p_project_id, 'ir.request') or public.has_capability(p_project_id, 'ir.decide')
+            or public.has_capability(p_project_id, 'ir.ofs_decide')) then
+      raise exception 'forbidden' using errcode = '42501';
+    end if;
+  elsif p_which = 'reports' then
+    if not public.has_capability(p_project_id, 'ir.decide') then raise exception 'forbidden' using errcode = '42501'; end if;
+  elsif p_which = 'ofs_reports' then
+    if not public.has_capability(p_project_id, 'ir.ofs_decide') then raise exception 'forbidden' using errcode = '42501'; end if;
+  else
+    raise exception 'unknown folder %', p_which using errcode = '22023';
+  end if;
+  return public.ir_folder_make(p_project_id, p_which);
+end;
+$$;
+
+create or replace function public.ir_folder_make(p_project_id uuid, p_which text)
+returns uuid
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare v_org uuid; v_parent uuid; v_name text; v_kind text; f public.folders;
+begin
+  if p_which = 'attachments' then
+    v_name := 'Inspection requests'; v_kind := 'general';
+  elsif p_which = 'reports' then
+    v_name := 'Inspection reports'; v_kind := 'reports';
+  elsif p_which = 'ofs_reports' then
+    v_name := 'OFS inspection reports'; v_kind := 'reports';
+  else
+    raise exception 'unknown folder %', p_which using errcode = '22023';
+  end if;
+  select org_id into v_org from public.projects where id = p_project_id;
+  perform pg_advisory_xact_lock(hashtext('ir_folder:' || p_project_id::text || ':' || p_which));
+  if p_which in ('reports', 'ofs_reports') then
+    select id into v_parent from public.folders
+     where project_id = p_project_id and parent_id is null and kind = 'reports' and deleted_at is null
+     order by created_at limit 1;
+    if v_parent is null then
+      insert into public.folders (org_id, project_id, name, kind, created_by)
+      values (v_org, p_project_id, 'Reports', 'reports', auth.uid())
+      on conflict (project_id, parent_id, name) do update set deleted_at = null
+      returning id into v_parent;
+    end if;
+  end if;
+  select * into f from public.folders where project_id = p_project_id and parent_id is not distinct from v_parent and name = v_name;
+  if f.id is not null then
+    if f.deleted_at is not null then update public.folders set deleted_at = null where id = f.id; end if;
+    return f.id;
+  end if;
+  insert into public.folders (org_id, project_id, parent_id, name, kind, created_by)
+  values (v_org, p_project_id, v_parent, v_name, v_kind, auth.uid()) returning * into f;
+  if p_which = 'ofs_reports' then
+    insert into public.folder_access (folder_id, capability, can_read, can_write, created_by) values
+      (f.id, 'ir.view_all', true, false, auth.uid()),
+      (f.id, 'ir.decide', true, false, auth.uid());
+    return f.id;
+  end if;
+  insert into public.folder_access (folder_id, capability, can_read, can_write, created_by) values
+    (f.id, 'ir.view_all', true, false, auth.uid()),
+    (f.id, 'ir.decide', true, true, auth.uid());
+  if p_which = 'attachments' then
+    insert into public.folder_access (folder_id, capability, can_read, can_write, created_by) values
+      (f.id, 'ir.request', false, true, auth.uid()),
+      (f.id, 'ir.ofs_decide', false, true, auth.uid());
+  end if;
+  return f.id;
+end;
+$$;
+
+-- The request folders made before today take the deputy's result photos too.
+insert into public.folder_access (folder_id, capability, can_read, can_write)
+select f.id, 'ir.ofs_decide', false, true
+  from public.folders f
+ where f.parent_id is null and f.name = 'Inspection requests'
+   and exists (select 1 from public.folder_access a where a.folder_id = f.id and a.capability = 'ir.request')
+   and not exists (select 1 from public.folder_access a where a.folder_id = f.id and a.capability = 'ir.ofs_decide');
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The old forms of the rules above are retired, so nothing can decide by them again.
+-- ---------------------------------------------------------------------------------------------------------------------
+alter function public.ir_may_see(uuid, uuid) rename to ir_may_see_retired_0061;
+alter function public.ir_owner_ok(uuid, uuid) rename to ir_owner_ok_retired_0061;
+alter function public.ir_first_status(uuid) rename to ir_first_status_retired_0061;
+revoke execute on function
+  public.ir_may_see_retired_0061(uuid, uuid), public.ir_owner_ok_retired_0061(uuid, uuid),
+  public.ir_first_status_retired_0061(uuid), public.ir_decider_retired_0061(uuid, integer),
+  public.calendar_inspections_retired_0061(uuid, date, date)
+from public, anon, authenticated, service_role;
+
 -- =====================================================================================================================
--- 2. The map's facts carry the checklist and the permit number; the map is out of date when they change
+-- 2. The map's facts carry the permit number; the map is out of date when the permit changes
 -- =====================================================================================================================
--- 0057's facts, plus readiness and the permit's number (a live permit on the request).
+-- 0057's facts, plus the permit's number (a live permit on the request).
+
 create or replace function public.ir_map_facts(p_request_id uuid)
 returns jsonb
 language sql
@@ -539,14 +1433,13 @@ as $$
     'version', m.version,
     'map_file_id', m.map_file_id,
     'stale', m.stale,
-    'readiness', q.readiness,
     'permit_number', (select p.primary_number from public.permits p where p.id = q.permit_id and p.deleted_at is null))
     from public.inspection_requests q
     join public.ir_maps m on m.request_id = q.id
    where q.id = p_request_id;
 $$;
 
--- 0057's visitor map: the new facts stay with the PDF (the function's projection drops them too).
+-- 0057's visitor map: the permit number stays with the PDF (the function's projection drops it too).
 create or replace function public.link_request_map_view(p_request_id uuid)
 returns jsonb
 language sql
@@ -554,7 +1447,7 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select (x.f - '{request_id,project_id,signed_at,signer_name,map_file_id,readiness,permit_number}'::text[])
+  select (x.f - '{request_id,project_id,signed_at,signer_name,map_file_id,permit_number}'::text[])
          || jsonb_build_object(
               'signed', (x.f ->> 'signed_at') is not null,
               'has_map', (x.f ->> 'map_file_id') is not null,
@@ -566,9 +1459,9 @@ as $$
    where x.f is not null;
 $$;
 
-create trigger ir_map_stale_permit after update of permit_id, readiness on public.inspection_requests
+create trigger ir_map_stale_permit after update of permit_id on public.inspection_requests
   for each row
-  when ((old.permit_id, old.readiness) is distinct from (new.permit_id, new.readiness))
+  when (old.permit_id is distinct from new.permit_id)
   execute function public.tg_ir_map_stale();
 
 -- The OFS requests made from a list with a permit before today carry it too.
@@ -1142,7 +2035,7 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-declare r public.permits; j public.projects; v_manage boolean; v_respond boolean; v_link boolean; v_full boolean;
+declare r public.permits; j public.projects; v_manage boolean; v_respond boolean; v_link boolean;
 begin
   select * into r from public.permits where id = p_permit_id and deleted_at is null;
   if r.id is null or not public.has_capability(r.project_id, 'permits.read') then
@@ -1151,7 +2044,6 @@ begin
   select * into j from public.projects where id = r.project_id;
   v_manage := public.has_capability(r.project_id, 'permits.manage');
   v_respond := public.has_capability(r.project_id, 'permits.respond');
-  v_full := public.has_capability(r.project_id, 'ir.view_all') or public.has_capability(r.project_id, 'ir.decide');
   v_link := v_manage or public.has_capability(r.project_id, 'ir.decide');
   return jsonb_build_object(
     'permit', to_jsonb(r),
@@ -1185,7 +2077,8 @@ begin
                        order by q.request_date desc, q.number desc)
         from public.inspection_requests q
         left join public.ir_special_kinds k on k.id = q.special_kind_id
-       where q.permit_id = r.id and q.deleted_at is null and (v_full or q.requested_by = auth.uid())), '[]'::jsonb),
+       where q.permit_id = r.id and q.deleted_at is null
+         and public.ir_may_see(q.project_id, q.requested_by, q.kind, q.ofs_sent_at)), '[]'::jsonb),
     'linkable', case when v_link then coalesce((
       select jsonb_agg(jsonb_build_object('id', q.id, 'number', q.number, 'ofs_number', q.ofs_number, 'kind', q.kind,
                                           'special_kind', k.name, 'request_date', q.request_date, 'items', q.items,
@@ -1193,7 +2086,7 @@ begin
                        order by q.request_date desc, q.number desc)
         from (select * from public.inspection_requests x
                where x.project_id = r.project_id and x.permit_id is null and x.deleted_at is null
-                 and x.status <> 'withdrawn' and (v_full or x.requested_by = auth.uid())
+                 and x.status <> 'withdrawn' and public.ir_may_see(x.project_id, x.requested_by, x.kind, x.ofs_sent_at)
                order by x.request_date desc, x.number desc limit 50) q
         left join public.ir_special_kinds k on k.id = q.special_kind_id), '[]'::jsonb) else '[]'::jsonb end);
 end;
@@ -1206,23 +2099,28 @@ do $$
 declare f text;
 begin
   foreach f in array array[
-    'public.ir_submit(uuid, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], jsonb)',
-    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)',
+    'public.ir_submit(uuid, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], boolean, boolean)',
+    'public.ir_submit_ofs(uuid, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean, boolean)',
+    'public.ir_send_ofs(uuid, integer)', 'public.ir_unsend_ofs(uuid, integer)',
+    'public.calendar_inspections(uuid, date, date)',
+    'public.ir_may_see(uuid, uuid, text, timestamp with time zone)',
     'public.permit_review_backcheck(uuid, date, uuid)']
   loop
     execute format('revoke execute on function %s from public, anon', f);
     execute format('grant execute on function %s to authenticated, service_role', f);
   end loop;
   foreach f in array array[
-    'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], jsonb)',
-    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], jsonb)']
+    'public.link_request_submit(uuid, text, uuid, text, text, text, text, date, text, text, boolean, time without time zone, text, integer, uuid, uuid[], boolean)',
+    'public.link_request_submit_ofs(uuid, text, uuid, text, text, text, text, date, boolean, uuid[], uuid[], uuid, time without time zone, text, integer, uuid[], boolean)']
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f);
     execute format('grant execute on function %s to service_role', f);
   end loop;
   -- Internal, but the CHECKs call some of them on writes the service role may make.
   foreach f in array array[
-    'public.ir_readiness_ok(jsonb)', 'public.ir_readiness_for(text, jsonb)', 'public.ir_ofs_permit(uuid)',
+    'public.ir_decide_cap(text, timestamp with time zone)', 'public.ir_member_holds(uuid, uuid, text)',
+    'public.ir_owner_ok(uuid, uuid, text, timestamp with time zone)', 'public.ir_first_status(uuid, text)',
+    'public.ir_tell_ofs(uuid)', 'public.ir_decider(uuid, integer, boolean)', 'public.ir_ofs_permit(uuid)',
     'public.permit_stage_ok(text)', 'public.permit_kind_ok(text)', 'public.permit_review_kind_ok(text)',
     'public.permit_review_label(integer, integer)', 'public.permit_open_inspections(uuid)', 'public.permit_expiry_touch(uuid)',
     'public.permit_review_next(public.permits, integer, date, uuid)']
@@ -1231,6 +2129,6 @@ begin
     execute format('grant execute on function %s to service_role', f);
   end loop;
   execute 'revoke execute on function public.link_request_make(uuid, text, uuid, text, text, text, text, date, text, text, boolean, '
-          || 'time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, jsonb) from public, anon, authenticated';
+          || 'time without time zone, text, integer, uuid, uuid[], uuid[], uuid[], uuid, boolean) from public, anon, authenticated';
   execute 'revoke execute on function public.tg_ir_permit_expiry() from public, anon, authenticated';
 end $$;
