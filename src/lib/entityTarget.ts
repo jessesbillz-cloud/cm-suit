@@ -44,6 +44,8 @@ const HOMES: Record<string, Home> = {
   schedule_activity: { tool: 'schedule' },
   schedule_version: { tool: 'schedule', view: 'updates', toolOnly: true },
   schedule_due: { tool: 'schedule', view: 'updates', toolOnly: true },
+  // Requirements (0069): a line of the register (the reminder's board line and task open it).
+  requirement: { tool: 'requirements' },
 };
 
 /** Where a record opens, or null when nothing owns that type (or the id is missing). */

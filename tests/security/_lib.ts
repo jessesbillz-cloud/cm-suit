@@ -147,6 +147,8 @@ export const PUBLIC_TABLES = [
   'safety_topics', 'safety_meetings', 'safety_signins',
   // Schedule (0062)
   'schedule_versions', 'schedule_activities',
+  // Requirements (0069)
+  'requirements', 'requirement_reminders',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -159,6 +161,8 @@ export { probeMeetingSignin, SAFETY_RPCS } from './_safety';
 export { OFS_PERMITS_RPCS } from './_ofsPermits';
 // Schedule (0062): its RPC list, for the anon probe.
 export { SCHEDULE_RPCS } from './_schedule';
+// Requirements (0069): its RPC list, for the anon probe.
+export { REQUIREMENTS_RPCS } from './_requirements';
 
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [

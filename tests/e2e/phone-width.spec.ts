@@ -27,6 +27,12 @@ const PAGES = [
   '/p/job-a/schedule?view=updates',
   '/p/job-a/schedule/mock-sched-a3-a12',
   '/p/job-a/schedule/v-mock-sched-a3',
+  '/p/job-a/requirements',
+  '/p/job-a/requirements?view=all&by=section',
+  '/p/job-a/requirements?view=drafts',
+  '/p/job-a/requirements/mock-req-ofci',
+  '/p/job-a/requirements/new',
+  '/p/job-a/requirements/read',
 ];
 
 test.describe('phone width', () => {

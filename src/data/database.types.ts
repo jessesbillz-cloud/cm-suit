@@ -4404,6 +4404,174 @@ export type Database = {
           },
         ]
       }
+      requirement_reminders: {
+        Row: {
+          due_on: string
+          reminded_at: string
+          requirement_id: string
+        }
+        Insert: {
+          due_on: string
+          reminded_at?: string
+          requirement_id: string
+        }
+        Update: {
+          due_on?: string
+          reminded_at?: string
+          requirement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_reminders_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requirements: {
+        Row: {
+          activity_code: string
+          activity_name: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
+          details: string
+          draft: boolean
+          due_on: string | null
+          evidence_file_id: string | null
+          evidence_note: string
+          id: string
+          kind: string
+          lead_days: number | null
+          model: string | null
+          notice_days: number | null
+          org_id: string
+          origin: string
+          project_id: string
+          request_key: string | null
+          required: string
+          responsible: string
+          source_file_id: string | null
+          source_page: number | null
+          source_quote: string
+          spec_ref: string
+          spec_section: string
+          spec_title: string
+          status: string
+          status_at: string | null
+          status_by: string | null
+          title: string
+          trigger_date: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          activity_code?: string
+          activity_name?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          details?: string
+          draft?: boolean
+          due_on?: string | null
+          evidence_file_id?: string | null
+          evidence_note?: string
+          id?: string
+          kind: string
+          lead_days?: number | null
+          model?: string | null
+          notice_days?: number | null
+          org_id: string
+          origin?: string
+          project_id: string
+          request_key?: string | null
+          required?: string
+          responsible?: string
+          source_file_id?: string | null
+          source_page?: number | null
+          source_quote?: string
+          spec_ref?: string
+          spec_section?: string
+          spec_title?: string
+          status?: string
+          status_at?: string | null
+          status_by?: string | null
+          title: string
+          trigger_date?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          activity_code?: string
+          activity_name?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          details?: string
+          draft?: boolean
+          due_on?: string | null
+          evidence_file_id?: string | null
+          evidence_note?: string
+          id?: string
+          kind?: string
+          lead_days?: number | null
+          model?: string | null
+          notice_days?: number | null
+          org_id?: string
+          origin?: string
+          project_id?: string
+          request_key?: string | null
+          required?: string
+          responsible?: string
+          source_file_id?: string | null
+          source_page?: number | null
+          source_quote?: string
+          spec_ref?: string
+          spec_section?: string
+          spec_title?: string
+          status?: string
+          status_at?: string | null
+          status_by?: string | null
+          title?: string
+          trigger_date?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirements_evidence_file_id_fkey"
+            columns: ["evidence_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirements_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "requirements_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rev_areas: {
         Row: {
           created_at: string
@@ -10641,6 +10809,199 @@ export type Database = {
       }
       request_link_token: { Args: never; Returns: string }
       requester_backfill: { Args: never; Returns: number }
+      requirement_evidence: {
+        Args: {
+          p_file_id: string
+          p_id: string
+          p_note: string
+          p_version: number
+        }
+        Returns: {
+          id: string
+          version: number
+        }[]
+      }
+      requirement_file_ok: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: boolean
+      }
+      requirement_keep: {
+        Args: { p_id: string; p_keep: boolean; p_version: number }
+        Returns: {
+          id: string
+          version: number
+        }[]
+      }
+      requirement_kind_ok: { Args: { p_kind: string }; Returns: boolean }
+      requirement_lock: {
+        Args: { p_id: string }
+        Returns: {
+          activity_code: string
+          activity_name: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
+          details: string
+          draft: boolean
+          due_on: string | null
+          evidence_file_id: string | null
+          evidence_note: string
+          id: string
+          kind: string
+          lead_days: number | null
+          model: string | null
+          notice_days: number | null
+          org_id: string
+          origin: string
+          project_id: string
+          request_key: string | null
+          required: string
+          responsible: string
+          source_file_id: string | null
+          source_page: number | null
+          source_quote: string
+          spec_ref: string
+          spec_section: string
+          spec_title: string
+          status: string
+          status_at: string | null
+          status_by: string | null
+          title: string
+          trigger_date: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "requirements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      requirement_rearm: { Args: { p_id: string }; Returns: undefined }
+      requirement_reminder_line: {
+        Args: {
+          p_due: string
+          p_kind: string
+          p_title: string
+          p_today: string
+        }
+        Returns: string
+      }
+      requirement_remove: {
+        Args: { p_id: string; p_removed: boolean }
+        Returns: number
+      }
+      requirement_save: {
+        Args: {
+          p_activity_code: string
+          p_activity_name: string
+          p_details: string
+          p_id: string
+          p_key: string
+          p_kind: string
+          p_lead_days: number
+          p_notice_days: number
+          p_project_id: string
+          p_required: string
+          p_responsible: string
+          p_spec_ref: string
+          p_spec_section: string
+          p_spec_title: string
+          p_title: string
+          p_trigger_date: string
+          p_version: number
+        }
+        Returns: {
+          id: string
+          version: number
+        }[]
+      }
+      requirement_section: { Args: { p_text: string }; Returns: string }
+      requirement_set_status: {
+        Args: { p_id: string; p_status: string; p_version: number }
+        Returns: {
+          id: string
+          status: string
+          version: number
+        }[]
+      }
+      requirement_tasks_done: { Args: { p_id: string }; Returns: undefined }
+      requirement_version: {
+        Args: {
+          p_version: number
+          r: Database["public"]["Tables"]["requirements"]["Row"]
+        }
+        Returns: undefined
+      }
+      requirements_add_drafts: {
+        Args: {
+          p_drafts: Json
+          p_model: string
+          p_project_id: string
+          p_source_file_id: string
+        }
+        Returns: {
+          added: number
+          skipped: number
+        }[]
+      }
+      requirements_check: { Args: { p_at?: string }; Returns: number }
+      requirements_folder: { Args: { p_project_id: string }; Returns: string }
+      requirements_folder_make: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
+      requirements_list: {
+        Args: { p_project_id: string }
+        Returns: {
+          activity_code: string
+          activity_name: string
+          created_at: string
+          days_left: number
+          details: string
+          draft: boolean
+          due_on: string
+          evidence_file_id: string
+          evidence_file_name: string
+          evidence_note: string
+          id: string
+          kind: string
+          lead_days: number
+          notice_days: number
+          origin: string
+          required: string
+          responsible: string
+          source_file_id: string
+          source_file_name: string
+          source_page: number
+          source_quote: string
+          spec_ref: string
+          spec_section: string
+          spec_title: string
+          status: string
+          status_at: string
+          title: string
+          trigger_date: string
+          version: number
+        }[]
+      }
+      requirements_spec_sections: {
+        Args: { p_project_id: string }
+        Returns: {
+          file_id: string
+          file_name: string
+          first_page: number
+          last_page: number
+          page_count: number
+          section: string
+          text_ready: boolean
+          title: string
+        }[]
+      }
       resolve_access_link: {
         Args: { p_link_id: string; p_token_hash: string }
         Returns: {

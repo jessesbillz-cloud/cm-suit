@@ -182,3 +182,7 @@ verify_jwt = true
 # --- Schedule: read an uploaded schedule (XER, Project XML, CSV, PDF or photo) into a draft version (0062) ---
 [functions.schedule-import]
 verify_jwt = true
+
+# --- Requirements: read one spec section with AI into drafts (0069; rate-limited; refuses without the AI key) ---
+[functions.requirements-extract]
+verify_jwt = true

@@ -23,6 +23,8 @@ export const TOPIC_ITEM_PREFIX = 'topic-';
 /** Schedule: a draft's review opens as `draft-<id>` (a page of its own), a published version as `v-<id>` (an activity by its own id). */
 export const DRAFT_ITEM_PREFIX = 'draft-';
 export const VERSION_ITEM_PREFIX = 'v-';
+/** Requirements: read a spec section with AI. */
+export const READ_ITEM = 'read';
 
 /**
  * Items that are pages of their own: on a desktop they fill the main area instead of the right column (the right column

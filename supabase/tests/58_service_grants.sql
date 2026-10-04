@@ -11,7 +11,7 @@ select plan(27);
 create temp table want (t text primary key, p text not null);
 insert into want values
   ('audit_events', ''), ('comments', ''), ('comment_edits', ''), ('ir_link_receipts', ''), ('safety_meetings', ''),
-  ('signin_keys', ''),
+  ('signin_keys', ''), ('requirements', ''),
   ('csi_divisions', 'SELECT'), ('csi_sections', 'SELECT'), ('ir_maps', 'SELECT'), ('ir_rev_items', 'SELECT'),
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
   ('safety_signins', 'SELECT'), ('safety_topics', 'SELECT'), ('schedule_activities', 'SELECT'),
@@ -19,7 +19,7 @@ insert into want values
   ('folder_templates', 'SELECT'), ('owner_lookup', 'SELECT'), ('security_switches', 'SELECT'),
   ('signin_allowlist', 'SELECT'), ('testing_superusers', 'SELECT'), ('testing_role_home', 'SELECT'),
   ('permit_stamped_copies', 'INSERT,SELECT'), ('permit_approved_sets', 'INSERT,SELECT'),
-  ('permit_stage_events', 'INSERT,SELECT'),
+  ('permit_stage_events', 'INSERT,SELECT'), ('requirement_reminders', 'INSERT,SELECT'),
   ('calendar_feed_tokens', 'DELETE,INSERT,SELECT,UPDATE'), ('corrections', 'DELETE,INSERT,SELECT,UPDATE'),
   ('correction_history', 'DELETE,INSERT,SELECT,UPDATE'), ('email_events', 'DELETE,INSERT,SELECT,UPDATE');
 

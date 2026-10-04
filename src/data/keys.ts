@@ -123,4 +123,7 @@ export const qk = {
   /** Every schedule query of a job (0062: where it stands, the versions, the current activities, a draft) sits under this prefix. */
   schedule: (projectId: string) => ['schedule', projectId] as const,
   schedulePart: (projectId: string, part: string, id = '') => ['schedule', projectId, part, id] as const,
+  /** Every requirements query of a job (0069: the register, the spec book's sections, the folder) sits under this prefix. */
+  requirements: (projectId: string) => ['requirements', projectId] as const,
+  requirementsPart: (projectId: string, part: string) => ['requirements', projectId, part] as const,
 };

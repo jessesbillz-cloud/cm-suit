@@ -23,6 +23,7 @@ import {
   PeopleTool,
   PermitsTool,
   RevsTool,
+  RequirementsTool,
   RfisTool,
   SafetyTool,
   ScheduleTool,
@@ -130,6 +131,9 @@ function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'schedule':
       if (projectId === null) return <NeedsJob what="the schedule" />;
       return <ScheduleTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'requirements':
+      if (projectId === null) return <NeedsJob what="requirements" />;
+      return <RequirementsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
     case 'hours':
       if (projectId === null) return <NeedsJob what="hours" />;
       return <HoursTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;

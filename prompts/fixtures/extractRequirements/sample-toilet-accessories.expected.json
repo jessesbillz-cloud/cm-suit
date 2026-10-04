@@ -1,0 +1,73 @@
+{
+  "_context": { "source": "pasted text (synthetic)", "section": "10 28 00 Toilet Accessories" },
+  "requirements": [
+    {
+      "kind": "ofci",
+      "title": "Toilet accessories (owner furnished)",
+      "details": "Paper towel, toilet tissue and soap dispensers; the Owner delivers them.",
+      "spec_section": "10 28 00",
+      "spec_title": "Toilet Accessories",
+      "spec_ref": "1.3.A",
+      "responsible": "Contractor",
+      "required": "yes",
+      "notice_days": 60,
+      "lead_days": null,
+      "trigger": "Restroom finishes start",
+      "evidence": {
+        "quote": "Notify the Owner in writing 60 days before restroom finishes start so the Owner can deliver owner-furnished dispensers.",
+        "page": 1
+      }
+    },
+    {
+      "kind": "attic_stock",
+      "title": "Spare accessory lock keys",
+      "details": "Two spare keys for each type of accessory lock.",
+      "spec_section": "10 28 00",
+      "spec_title": "Toilet Accessories",
+      "spec_ref": "1.4.A",
+      "responsible": "",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "",
+      "evidence": {
+        "quote": "Furnish extra materials: two (2) spare keys for each type of accessory lock, delivered to the Owner.",
+        "page": 2
+      }
+    },
+    {
+      "kind": "warranty",
+      "title": "Mirror special warranty (10 years)",
+      "details": "Silver spoilage, from Substantial Completion.",
+      "spec_section": "10 28 00",
+      "spec_title": "Toilet Accessories",
+      "spec_ref": "1.5.A",
+      "responsible": "Manufacturer",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "Substantial Completion",
+      "evidence": {
+        "quote": "Special Warranty: Manufacturer agrees to repair or replace mirrors that develop silver spoilage within 10 years from date of Substantial Completion.",
+        "page": 2
+      }
+    },
+    {
+      "kind": "mockup",
+      "title": "Accessible stall mockup",
+      "details": "One complete stall, approved by the Architect before the rest.",
+      "spec_section": "10 28 00",
+      "spec_title": "Toilet Accessories",
+      "spec_ref": "3.1.B",
+      "responsible": "",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "Installation",
+      "evidence": {
+        "quote": "Mock-up: Install one complete accessible stall for the Architect's approval before installing the rest.",
+        "page": 2
+      }
+    }
+  ]
+}

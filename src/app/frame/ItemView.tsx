@@ -9,6 +9,7 @@ import {
   DRAFT_ITEM_PREFIX,
   NEW_ITEM,
   NEW_TOPIC_ITEM,
+  READ_ITEM,
   SHARE_ITEM,
   TOPIC_ITEM_PREFIX,
   VERSION_ITEM_PREFIX,
@@ -28,6 +29,7 @@ import {
   HoursItem,
   InspectionsItem,
   PermitItem,
+  RequirementsItem,
   RevsItem,
   RfiItem,
   SafetyItem,
@@ -94,6 +96,7 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   }
   if (tool === 'safety' && model.loc.projectId !== null) return <SafetyItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
   if (tool === 'schedule' && model.loc.projectId !== null) return <ScheduleItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'requirements' && model.loc.projectId !== null) return <RequirementsItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
@@ -135,6 +138,7 @@ export function itemTitle(tool: Tool, itemId: string): string {
   if (tool === 'permits') return 'Permit';
   if (tool === 'safety') return itemId === NEW_TOPIC_ITEM || itemId.startsWith(TOPIC_ITEM_PREFIX) ? 'Topic' : 'Meeting';
   if (tool === 'schedule') return itemId.startsWith(DRAFT_ITEM_PREFIX) ? 'Draft' : itemId.startsWith(VERSION_ITEM_PREFIX) ? 'Update' : 'Activity';
+  if (tool === 'requirements') return itemId === READ_ITEM ? 'Read spec' : itemId === NEW_ITEM ? 'New requirement' : 'Requirement';
   if (tool === 'hours') return itemId === CONTRACT_ITEM ? 'Contract hours' : 'Hours';
   if (tool === 'timesheets') return itemId === BILLING_ITEM ? 'Billing' : 'Invoice';
   return 'Item';

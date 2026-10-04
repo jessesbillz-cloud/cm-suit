@@ -29,6 +29,7 @@ import * as mockRevs from './revs';
 import * as mockRfis from './rfis';
 import * as mockSafety from './safety';
 import * as mockSchedule from './schedule';
+import * as mockRequirements from './requirements';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
 
@@ -48,6 +49,7 @@ export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('revs.')) return mockRevs.capability(cap);
   if (cap.startsWith('safety.')) return mockSafety.capability(cap);
   if (cap.startsWith('schedule.')) return mockSchedule.capability(cap);
+  if (cap.startsWith('requirements.')) return mockRequirements.capability(cap);
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
 }
