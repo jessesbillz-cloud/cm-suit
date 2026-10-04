@@ -1,8 +1,8 @@
 // The official stamps the plans and the permit is issued (migration 0053) against the e2e mock. The mock follows the
-// database's rules: 'ahj' (the official) stamps a permit in review (issue) or issued (revision), one PDF at a time,
-// then records the set; 'pm' reads the set and downloads it, and never stamps. Sample Science Building (job-s) has
-// plan PDFs in Plans; 24-0003 is in review with no set; 24-0001 is building with two sets (the first superseded)
-// (src/data/mock/permitStamp.ts, permitJobs.ts). Test ids: permit-approved, permit-stamp, stamp-flow, stamp-source,
+// database's rules: 'ahj' (the official) stamps a permit in review (issue) or issued, inspected or approved (revision,
+// 0061), one PDF at a time, then records the set; 'pm' reads the set and downloads it, and never stamps. Sample Science
+// Building (job-s) has plan PDFs in Plans; 24-0003 is in review with no set; 24-0001 is issued with two sets (the first
+// superseded); on Sample Library Annex (job-t) 25-0102 is issued with one (src/data/mock/permitStamp.ts, permitJobs.ts). Test ids: permit-approved, permit-stamp, stamp-flow, stamp-source,
 // stamp-search, stamp-sign, stamp-state (data-state), stamp-result, stamp-done, permit-approved-current,
 // permit-approved-old, permit-approved-file, permit-approved-download, permit-stage.
 import process from 'node:process';
@@ -51,6 +51,15 @@ test.describe('permit stamp', () => {
     await expect(current).toContainText('Sample FP-1 Fire Sprinkler Plan - Approved 24-0003.pdf');
     await expect(page.getByTestId('permit-expires')).toBeVisible();
     // Once issued, stamping again is a revision.
+    await expect(page.getByTestId('permit-stamp')).toHaveText('Stamp revision');
+  });
+
+  test('once the permit is Inspected, stamping is still a revision', async ({ page }) => {
+    await page.goto('/');
+    await openAs(page, 'ahj', '/p/job-t/permits/mock-permit-t1');
+    await expect(page.getByTestId('permit-stamp')).toHaveText('Stamp revision');
+    await page.getByTestId('permit-move').click();
+    await expect(page.getByTestId('permit-stage')).toHaveText('Inspected');
     await expect(page.getByTestId('permit-stamp')).toHaveText('Stamp revision');
   });
 

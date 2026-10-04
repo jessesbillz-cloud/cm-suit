@@ -1,8 +1,11 @@
 // Synthetic permits for the e2e mock and the preview (CLAUDE.md rule 8: obviously fake numbers, titles and comments),
-// placed relative to now so the tracker's days look real: on Sample Science Building one permit in inspections (two
-// review cycles, two inspections linked), the fire sprinkler permit back out with comments after its second cycle
-// (some answered), the fire alarm in its first review, the radio coverage just submitted, an old one complete and an
-// addendum still a draft; on Sample Library Annex (the official's other job) one just issued and one accepted.
+// placed relative to now so the tracker's days look real. Deferred items, addenda and change orders are reviews under
+// a permit (0061), never permits. On Sample Science Building: the building permit, issued (two inspections linked, one
+// still waiting), with four reviews: the initial one and its backcheck, the deferred fire sprinklers back for a second
+// backcheck (comments, some answered), the deferred fire alarm and an addendum both open; a parking structure back out
+// with comments after its backcheck; a second building in its first review; a site / utility permit just submitted and
+// an old one complete; a draft of another kind. On Sample Library Annex (the official's other job): the building permit
+// just issued and a structure accepted.
 import { addMonths, format, parseISO } from 'date-fns';
 import { todayInZone } from '../../lib/dates';
 import type { EarlierAnswer } from '../permits.types';
@@ -50,7 +53,11 @@ export interface StoredEvent {
 export interface StoredReview {
   id: string;
   permit_id: string;
+  /** 1, 2, ... across the permit. */
   cycle: number;
+  /** The review's number on its permit, and its backcheck (0 = the submittal). */
+  review_no: number;
+  backcheck: number;
   kind: string;
   received_on: string;
   returned_on: string | null;
@@ -87,7 +94,10 @@ export interface PermitMockState {
   events: StoredEvent[];
   reviews: StoredReview[];
   comments: StoredComment[];
-  /** next_number's counters: 'permit_review:<id>' and 'permit_comment:<id>'. */
+  /**
+   * next_number's counters: 'permit_review:<id>' (cycles), 'permit_review_no:<id>' (reviews),
+   * 'permit_bc:<id>:<review>' (a review's backchecks) and 'permit_comment:<id>'.
+   */
   counters: Record<string, number>;
 }
 
@@ -111,32 +121,39 @@ type PermitSeed = [id: string, job: string, number: string, title: string, kind:
 const PERMITS: PermitSeed[] = [
   ['mock-permit-s1', 'job-s', '24-0001', 'Building - new construction', 'building',
     [['draft', 230], ['submitted', 225], ['accepted', 221], ['in_review', 214], ['comments_out', 186], ['backcheck', 172],
-      ['in_review', 170], ['issued', 150], ['inspections', 149]], OFFICIAL],
-  ['mock-permit-s2', 'job-s', '24-0002', 'Fire sprinkler (deferred)', 'deferred_sprinkler',
+      ['in_review', 170], ['issued', 150]], OFFICIAL],
+  ['mock-permit-s2', 'job-s', '24-0002', 'Parking structure', 'structure',
     [['draft', 60], ['submitted', 55], ['accepted', 50], ['in_review', 40], ['comments_out', 25], ['backcheck', 15],
       ['in_review', 14], ['comments_out', 6]], OFFICIAL],
-  ['mock-permit-s3', 'job-s', '24-0003', 'Fire alarm and voice evacuation (deferred)', 'deferred_fire_alarm',
+  ['mock-permit-s3', 'job-s', '24-0003', 'Building - greenhouse and headhouse', 'building',
     [['draft', 12], ['submitted', 10], ['accepted', 7], ['in_review', 4]], OFFICIAL],
-  ['mock-permit-s4', 'job-s', '25-0014', 'Emergency responder radio coverage (deferred)', 'deferred_errcs',
+  ['mock-permit-s4', 'job-s', '25-0014', 'Fire water loop extension', 'site_utility',
     [['draft', 5], ['submitted', 2]], OFFICIAL],
-  ['mock-permit-s5', 'job-s', '23-0410', 'Site utilities and underground fire service', 'building',
-    [['issued', 400], ['inspections', 399], ['approved', 330], ['complete', 320]], OFFICIAL],
-  ['mock-permit-s6', 'job-s', '25-0021', 'Addendum 1 - lab casework and fume hoods', 'addendum', [['draft', 1]], OFFICIAL],
+  ['mock-permit-s5', 'job-s', '23-0410', 'Site utilities and underground fire service', 'site_utility',
+    [['issued', 400], ['inspected', 335], ['approved', 330], ['complete', 320]], OFFICIAL],
+  ['mock-permit-s6', 'job-s', '25-0021', 'Temporary tent - commencement', 'other', [['draft', 1]], OFFICIAL],
   ['mock-permit-t1', 'job-t', '25-0102', 'Building - library annex addition', 'building',
     [['draft', 90], ['submitted', 85], ['accepted', 80], ['in_review', 70], ['issued', 10]], OFFICIAL],
-  ['mock-permit-t2', 'job-t', '25-0103', 'Fire sprinkler (deferred)', 'deferred_sprinkler',
+  ['mock-permit-t2', 'job-t', '25-0103', 'Covered walkway and book drop', 'structure',
     [['draft', 8], ['submitted', 6], ['accepted', 3]], OFFICIAL_2],
 ];
 
-type ReviewSeed = [permit: string, cycle: number, kind: string, received: number, returned: number | null, outcome: string | null];
+type ReviewSeed = [
+  permit: string, cycle: number, reviewNo: number, backcheck: number, kind: string, received: number, returned: number | null,
+  outcome: string | null,
+];
 
 const REVIEWS: ReviewSeed[] = [
-  ['mock-permit-s1', 1, 'initial', 214, 186, 'revise_resubmit'],
-  ['mock-permit-s1', 2, 'backcheck', 172, 150, 'approved'],
-  ['mock-permit-s2', 1, 'initial', 40, 25, 'revise_resubmit'],
-  ['mock-permit-s2', 2, 'backcheck', 15, 6, 'revise_resubmit'],
-  ['mock-permit-s3', 1, 'initial', 4, null, null],
-  ['mock-permit-t1', 1, 'initial', 70, 10, 'approved_as_noted'],
+  ['mock-permit-s1', 1, 1, 0, 'initial', 214, 186, 'revise_resubmit'],
+  ['mock-permit-s1', 2, 1, 1, 'initial', 172, 150, 'approved'],
+  ['mock-permit-s1', 3, 2, 0, 'deferred_sprinkler', 40, 25, 'revise_resubmit'],
+  ['mock-permit-s1', 4, 2, 1, 'deferred_sprinkler', 15, 6, 'revise_resubmit'],
+  ['mock-permit-s1', 5, 3, 0, 'deferred_fire_alarm', 4, null, null],
+  ['mock-permit-s1', 6, 4, 0, 'addendum', 1, null, null],
+  ['mock-permit-s2', 1, 1, 0, 'initial', 40, 25, 'revise_resubmit'],
+  ['mock-permit-s2', 2, 1, 1, 'initial', 15, 6, 'revise_resubmit'],
+  ['mock-permit-s3', 1, 1, 0, 'initial', 4, null, null],
+  ['mock-permit-t1', 1, 1, 0, 'initial', 70, 10, 'approved_as_noted'],
 ];
 
 type CommentSeed = [permit: string, cycle: number, sheet: string, detail: string, code: string, body: string, response: string | null, closedIn: number | null];
@@ -144,11 +161,14 @@ type CommentSeed = [permit: string, cycle: number, sheet: string, detail: string
 const COMMENTS: CommentSeed[] = [
   ['mock-permit-s1', 1, 'A0.10', '', 'CBC 1004.5', 'Show the occupant load for the level 2 teaching labs.', 'Occupant loads added to A0.10.', 2],
   ['mock-permit-s1', 1, 'A2.01', '4', 'CBC 716.2.2', 'Rate the stair doors to match the shaft walls.', 'Door schedule revised, A8.10.', 2],
-  ['mock-permit-s2', 1, 'FP-1', '', 'NFPA 13 8.15', 'Show the sprinkler riser room and its 1-hour rating.', 'Riser room added on FP-1 with the rated walls clouded.', 2],
-  ['mock-permit-s2', 1, 'FP-2', '3', 'CFC 903.3.1.1', 'Provide sprinklers under the exterior canopy wider than 4 ft.', 'Dry pendents added under the canopy, FP-2 detail 3.', 2],
-  ['mock-permit-s2', 1, 'FP-3', '', 'NFPA 13 17.4', 'Hanger spacing at the lab mains exceeds the table.', 'Spacing revised on FP-3, cloud 2.', null],
-  ['mock-permit-s2', 2, 'FP-3', '5', 'NFPA 13 18.5', 'Seismic bracing at the main risers is not shown.', null, null],
-  ['mock-permit-s2', 2, 'FP-4', '', 'CFC 912.2', 'Locate the fire department connection within 100 ft of a hydrant.', null, null],
+  ['mock-permit-s1', 3, 'FP-1', '', 'NFPA 13 8.15', 'Show the sprinkler riser room and its 1-hour rating.', 'Riser room added on FP-1 with the rated walls clouded.', 4],
+  ['mock-permit-s1', 3, 'FP-2', '3', 'CFC 903.3.1.1', 'Provide sprinklers under the exterior canopy wider than 4 ft.', 'Dry pendents added under the canopy, FP-2 detail 3.', 4],
+  ['mock-permit-s1', 3, 'FP-3', '', 'NFPA 13 17.4', 'Hanger spacing at the lab mains exceeds the table.', 'Spacing revised on FP-3, cloud 2.', null],
+  ['mock-permit-s1', 4, 'FP-3', '5', 'NFPA 13 18.5', 'Seismic bracing at the main risers is not shown.', null, null],
+  ['mock-permit-s1', 4, 'FP-4', '', 'CFC 912.2', 'Locate the fire department connection within 100 ft of a hydrant.', null, null],
+  ['mock-permit-s2', 1, 'A1.01', '', 'CBC 406.4.2', 'Show the vehicle barriers at the open edges of level 2.', 'Barriers added on A1.01, detailed on A5.02.', 2],
+  ['mock-permit-s2', 1, 'A2.01', '2', 'CBC 1006.3', 'Show the second exit stair from the upper deck.', 'Stair 2 added at grid F, A2.01.', null],
+  ['mock-permit-s2', 2, 'FP-1', '', 'NFPA 14 7.3', 'Show a standpipe hose connection at each stair landing.', null, null],
 ];
 
 export function seedState(now: number): PermitMockState {
@@ -166,13 +186,16 @@ export function seedState(now: number): PermitMockState {
       s.events.push({ id: s.events.length + 1, permit_id: id, stage, at: at(now, ago), actor: OFFICIAL, note: null, prior: null, undone: false });
     }
   }
-  for (const [permit, cycle, kind, received, returned, outcome] of REVIEWS) {
+  for (const [permit, cycle, reviewNo, backcheck, kind, received, returned, outcome] of REVIEWS) {
     s.reviews.push({
-      id: `${permit}-r${String(cycle)}`, permit_id: permit, cycle, kind, received_on: day(now, received),
-      returned_on: returned === null ? null : day(now, returned), outcome, version: outcome === null ? 1 : 2, created_by: OFFICIAL,
-      request_key: null,
+      id: `${permit}-r${String(cycle)}`, permit_id: permit, cycle, review_no: reviewNo, backcheck, kind,
+      received_on: day(now, received), returned_on: returned === null ? null : day(now, returned), outcome,
+      version: outcome === null ? 1 : 2, created_by: OFFICIAL, request_key: null,
     });
+    // In cycle order, so the last of each is the highest.
     s.counters[`permit_review:${permit}`] = cycle + 1;
+    s.counters[`permit_review_no:${permit}`] = reviewNo + 1;
+    s.counters[`permit_bc:${permit}:${String(reviewNo)}`] = backcheck + 1;
   }
   COMMENTS.forEach(([permit, cycle, sheet, detail, code, body, response, closedIn]) => {
     const n = s.counters[`permit_comment:${permit}`] ?? 1;
