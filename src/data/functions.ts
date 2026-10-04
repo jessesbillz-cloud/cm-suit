@@ -29,7 +29,8 @@ type FunctionName =
   | 'meeting-signin'
   | 'safety-meeting'
   | 'schedule-import'
-  | 'requirements-extract';
+  | 'requirements-extract'
+  | 'job-weather';
 
 export class FunctionError extends Error {
   override readonly name = 'FunctionError';

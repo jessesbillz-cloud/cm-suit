@@ -4109,6 +4109,100 @@ export type Database = {
           },
         ]
       }
+      project_places: {
+        Row: {
+          created_at: string
+          lat: number | null
+          lon: number | null
+          looked_up: string
+          matched_address: string
+          org_id: string
+          project_id: string
+          source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          lat?: number | null
+          lon?: number | null
+          looked_up?: string
+          matched_address?: string
+          org_id: string
+          project_id: string
+          source: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          lat?: number | null
+          lon?: number | null
+          looked_up?: string
+          matched_address?: string
+          org_id?: string
+          project_id?: string
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_places_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      project_weather: {
+        Row: {
+          conditions: string
+          day: string
+          fetched_at: string
+          high_f: number | null
+          lat: number
+          lon: number
+          low_f: number | null
+          org_id: string
+          project_id: string
+          source: string
+        }
+        Insert: {
+          conditions?: string
+          day: string
+          fetched_at?: string
+          high_f?: number | null
+          lat: number
+          lon: number
+          low_f?: number | null
+          org_id: string
+          project_id: string
+          source: string
+        }
+        Update: {
+          conditions?: string
+          day?: string
+          fetched_at?: string
+          high_f?: number | null
+          lat?: number
+          lon?: number
+          low_f?: number | null
+          org_id?: string
+          project_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_weather_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
@@ -10595,6 +10689,34 @@ export type Database = {
           p_time?: string
         }
         Returns: string
+      }
+      project_place_set: {
+        Args: { p_lat?: number; p_lon?: number; p_project_id: string }
+        Returns: undefined
+      }
+      project_place_store: {
+        Args: {
+          p_address: string
+          p_lat: number
+          p_lon: number
+          p_matched: string
+          p_project_id: string
+          p_replace_typed: boolean
+        }
+        Returns: boolean
+      }
+      project_weather_store: {
+        Args: {
+          p_conditions: string
+          p_day: string
+          p_high_f: number
+          p_lat: number
+          p_lon: number
+          p_low_f: number
+          p_project_id: string
+          p_source: string
+        }
+        Returns: boolean
       }
       queue_health: {
         Args: never

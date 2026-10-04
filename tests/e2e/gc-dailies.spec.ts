@@ -4,6 +4,9 @@
 // foreman's daily), anyone else its PM (no role form: the work log). This morning's tailgate there ("Heat illness") is
 // closed with six signed in: one Sample Builders laborer, three Sample Framing Co framers, two Sample Electric
 // electricians. Two deliveries are posted for today (6:30 AM Sample Concrete Co, 10:00 AM Sample Steel Co).
+// Weather (0071; data/mock/weather): job-g has an address, which the pretend geocoder matches (any address without
+// "nowhere" in it), and the pretend weather service answers a high of 78, a low of 61 and "Mostly Sunny" (the form's
+// Clear button) for every located job.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -18,7 +21,7 @@ async function as(page: Page, who: string): Promise<void> {
 test.describe('dailies for supers and foremen (0070)', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test("the super's daily: the role's form, filled from today's sign-ins, deliveries and tailgate, then submitted", async ({ page }, testInfo) => {
+  test("the super's daily: the role's form, filled from today's weather, sign-ins, deliveries and tailgate, then submitted", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
     await as(page, 'super');
     await page.goto('/p/job-g/dailies');
@@ -40,9 +43,11 @@ test.describe('dailies for supers and foremen (0070)', () => {
     await expect(deliveries.getByTestId('form-cell-deliveries-company').first()).toHaveValue('Sample Concrete Co');
     await expect(editor.getByTestId('form-field-safety')).toHaveValue('Tailgate held: Heat illness (6 signed in)');
 
-    await editor.getByTestId('form-field-conditions-Clear').click();
-    await editor.getByTestId('form-field-high').fill('78');
-    await editor.getByTestId('form-field-low').fill('61');
+    // The day's weather at the job is on the report already; nobody typed it.
+    await expect(editor.getByTestId('form-field-high')).toHaveValue('78');
+    await expect(editor.getByTestId('form-field-low')).toHaveValue('61');
+    await expect(editor.getByTestId('form-field-conditions-Clear')).toHaveAttribute('aria-pressed', 'true');
+    await expect(editor.getByTestId('form-field-conditions-Rain')).toHaveAttribute('aria-pressed', 'false');
     await manpower.getByTestId('form-cell-manpower-hours').nth(2).fill('24');
     await expect(manpower.getByTestId('form-table-manpower-total')).toHaveText('Count 6 · Hours 24');
     await editor.getByTestId('form-add-visitors').click();
@@ -53,6 +58,65 @@ test.describe('dailies for supers and foremen (0070)', () => {
     const done = page.getByTestId('daily-submitted');
     await expect(done).toContainText(/Daily Report 1 Sample Medical Office \d{2}-\d{2}-\d{4}\.pdf/);
     await expect(page.getByTestId('daily-today')).toHaveText('Edit submitted');
+  });
+
+  test('weather: filled on a new report; a value typed over it is kept after reopening', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
+    await as(page, 'super');
+    await page.goto('/p/job-g/dailies');
+    await page.getByTestId('daily-today').click();
+    const editor = page.getByTestId('daily-editor');
+    await expect(editor.getByTestId('form-field-high')).toHaveValue('78');
+    await expect(editor.getByTestId('form-field-low')).toHaveValue('61');
+    await expect(editor.getByTestId('form-field-conditions-Clear')).toHaveAttribute('aria-pressed', 'true');
+
+    // Typing over a value is the correction.
+    await editor.getByTestId('form-field-high').fill('84');
+    await editor.getByTestId('form-field-conditions-Wind').click();
+    await expect(editor.getByText('Saved', { exact: true })).toBeVisible();
+
+    await page.reload();
+    const again = page.getByTestId('daily-editor');
+    await expect(again.getByTestId('form-field-low')).toHaveValue('61');
+    await expect(again.getByTestId('form-field-high')).toHaveValue('84');
+    await expect(again.getByTestId('form-field-conditions-Clear')).toHaveAttribute('aria-pressed', 'true');
+    await expect(again.getByTestId('form-field-conditions-Wind')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('weather: a job whose address has no match leaves the boxes empty; a typed location fills them', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
+    await as(page, 'super');
+    await page.goto('/p/job-g/settings');
+    const location = page.getByTestId('job-location');
+    await expect(location.getByTestId('job-location-match')).toHaveText('100 SAMPLE STREET, SAMPLETOWN, CA 90000');
+    await expect(location.getByTestId('job-lat')).toHaveCount(0);
+
+    // A changed address is looked up again; this one has no match, so the location can be typed.
+    await page.getByLabel('Address', { exact: true }).fill('1 Nowhere Road');
+    await page.getByLabel('Address', { exact: true }).blur();
+    await expect(location.getByTestId('job-location-none')).toHaveText('No match');
+    await expect(location.getByTestId('job-location-match')).toHaveCount(0);
+
+    await page.goto('/p/job-g/dailies');
+    await page.getByTestId('daily-today').click();
+    const editor = page.getByTestId('daily-editor');
+    await expect(editor.getByTestId('form-field-safety')).toHaveValue('Tailgate held: Heat illness (6 signed in)');
+    await expect(editor.getByTestId('form-field-high')).toHaveValue('');
+    await expect(editor.getByTestId('form-field-conditions-Clear')).toHaveAttribute('aria-pressed', 'false');
+
+    await page.goto('/p/job-g/settings');
+    await location.getByTestId('job-lat').fill('33.1');
+    await location.getByTestId('job-lon').fill('-117.1');
+    await location.getByTestId('job-lon').blur();
+    await expect(location.getByTestId('job-location-none')).toHaveCount(0);
+    await page.reload();
+    await expect(location.getByTestId('job-lat')).toHaveValue('33.1');
+    await expect(location.getByTestId('job-lon')).toHaveValue('-117.1');
+
+    await page.goto('/p/job-g/dailies');
+    await page.getByTestId('daily-today').click();
+    await expect(page.getByTestId('daily-editor').getByTestId('form-field-high')).toHaveValue('78');
+    await expect(page.getByTestId('daily-editor').getByTestId('form-field-low')).toHaveValue('61');
   });
 
   test('a filled-in row taken off stays off (Undo brings it back)', async ({ page }, testInfo) => {

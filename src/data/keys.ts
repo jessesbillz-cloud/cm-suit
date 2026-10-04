@@ -73,6 +73,11 @@ export const qk = {
   /** Every hours query (my hours, contract hours, billing, invoices; 0043) sits under this prefix: one refresh after any write. */
   hours: ['hours'] as const,
   hoursPart: (part: string, id = '') => ['hours', part, id] as const,
+  /** A day's weather at the job (0071), per set of condition buttons asked for. Its own prefix: a daily's saves never ask again. */
+  dayWeather: (projectId: string, day: string, options: string) => ['day_weather', projectId, day, options] as const,
+  dayWeatherAll: (projectId: string) => ['day_weather', projectId] as const,
+  /** Where the job is (0071): the looked-up or typed location, in Settings > Job. */
+  jobPlace: (projectId: string) => ['job_place', projectId] as const,
   /** Today's report on each of my jobs (0045): the top of All my jobs. */
   dailyToday: ['daily_today'] as const,
   /** The job's inspection request link (members.manage) and my hub link (0046): on or off and since when, never a token. */

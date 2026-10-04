@@ -102,3 +102,8 @@ schedule-import
 # requireCapability('requirements.manage') runs as the user first, the spec file and its pages are read as the user,
 # and the drafts are written by requirements_add_drafts as the user.
 requirements-extract
+# Weather on dailies (0071): stores the job's looked-up location and a day's weather (project_place_store,
+# project_weather_store: service-only, nobody writes those tables by hand) and counts its outside calls (the rate limit
+# buckets, not granted to users); requireCapability('dailies.write') runs as the user first ('project.manage' for
+# "Look up again"), and the job, its place and the stored weather are read as the user.
+job-weather

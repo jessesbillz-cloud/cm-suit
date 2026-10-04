@@ -17,7 +17,8 @@ export function gcJobRows(): ProjectRow[] {
       org_id: 'org-sample',
       name: 'Sample Medical Office',
       number: 'S-500',
-      address: null,
+      // An address, so its dailies get the day's weather (mock/weather: the pretend geocoder matches it).
+      address: '100 Sample Street, Sampletown, CA 90000',
       timezone: 'America/Los_Angeles',
       stage: 'construction',
       modules: ['files', 'calendar', 'dailies', 'inspections', 'deliveries', 'corrections', 'safety'],
