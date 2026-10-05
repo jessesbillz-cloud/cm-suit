@@ -1,10 +1,11 @@
 // One received bid: receipt, the file (one click), Read -> findings to confirm, and money for pricing roles.
 // The AI only drafts; a person confirms (CLAUDE.md rule 12). Reading an office-recorded bid also links its sub.
 import type { ReactNode } from 'react';
-import { Check, ScanText } from 'lucide-react';
-import { useConfirmExtraction, useExtractBid } from '../../data/bids.mutations';
+import { ScanText } from 'lucide-react';
+import { useExtractBid } from '../../data/bids.mutations';
 import {
   useBidExtraction,
+  useBidPricing,
   useBidExtractions,
   useBidPackages,
   useBidSubmissions,
@@ -21,10 +22,10 @@ import { Button } from '../../ui/Button';
 import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
-import { useToast } from '../../ui/Toast';
 import { StepUp } from '../auth/StepUp';
 import { FileLine } from './FileLine';
 import { Findings } from './Findings';
+import { FindingsEdit } from './FindingsEdit';
 import { bidderName } from './model';
 import { PricingLines } from './PricingLines';
 
@@ -46,8 +47,7 @@ function Extraction({ projectId, orgId, submission }: ExtractionProps) {
   const access = usePricingAccess(projectId);
   const extract = useExtractBid();
   const ai = useOrgSettings(orgId);
-  const confirm = useConfirmExtraction();
-  const toast = useToast();
+  const pricing = useBidPricing(projectId, extraction.data?.id ?? null, access.data === 'yes');
 
   if (extraction.isPending || access.isPending) return <LoadingState label="Loading findings" />;
   if (extraction.isError) return <ErrorState error={extraction.error} onRetry={() => void extraction.refetch()} />;
@@ -73,31 +73,23 @@ function Extraction({ projectId, orgId, submission }: ExtractionProps) {
       </div>
     );
   }
+  if (x.status === 'confirmed') {
+    return (
+      <div className="flex flex-col gap-3">
+        <StatusChip status="confirmed" />
+        <Findings x={x} />
+        <PricingLines projectId={projectId} extractionId={x.id} />
+      </div>
+    );
+  }
+  // A pricing role edits the base amount too, once its pricing row is in (none: money stays out of the form).
+  if (access.data === 'yes' && pricing.isPending) return <LoadingState label="Loading pricing" />;
+  const base = access.data === 'yes' && pricing.data ? pricing.data.base_amount : undefined;
   return (
     <div className="flex flex-col gap-3">
-      <Findings x={x} />
+      <FindingsEdit key={`${x.id}-${String(x.version)}`} projectId={projectId} x={x} base={base} />
+      <Findings x={x} editing />
       <PricingLines projectId={projectId} extractionId={x.id} />
-      {x.status === 'confirmed' ? (
-        <StatusChip status="confirmed" />
-      ) : (
-        <Button
-          variant="primary"
-          icon={Check}
-          loading={confirm.isPending}
-          onClick={() => {
-            confirm.mutate(
-              { projectId, id: x.id, version: x.version },
-              {
-                onError: (e) => {
-                  toast.show({ tone: 'error', message: `Not confirmed: ${messageOf(e)}` });
-                },
-              },
-            );
-          }}
-        >
-          Confirm
-        </Button>
-      )}
     </div>
   );
 }

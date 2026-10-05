@@ -14,6 +14,7 @@ import {
   useSubNames,
 } from '../../data/bids.queries';
 import type { SubmissionRow } from '../../data/bids.types';
+import { useLevelingBoard } from '../../data/leveling.queries';
 import { messageOf } from '../../data/errors';
 import { useFolders, useOrgSettings, usePeopleDisplay } from '../../data/queries';
 import { formatInZone } from '../../lib/dates';
@@ -53,6 +54,7 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
   const folderId = folders.data?.find((f) => f.kind === 'bids_received')?.id ?? null;
   const files = useReceivedFiles(projectId, folderId);
   const extractions = useBidExtractions(projectId, true);
+  const board = useLevelingBoard(projectId, true);
   const subNames = useSubNames(orgId);
   const pricing = usePricingAccess(projectId);
   const findings = useFindingsAccess(projectId);
@@ -69,6 +71,8 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
   const twoFactor = pricing.data === 'two_factor' || findings.data === 'two_factor';
 
   const code = (id: string) => packages.data?.find((p) => p.id === id)?.code ?? '';
+  // The package the bid is under now: leveling may have moved it from the one it was filed under.
+  const packageOf = (s: SubmissionRow) => board.data?.find((r) => r.submission_id === s.id)?.package_id ?? s.package_id;
   const extractionOf = (s: SubmissionRow) => extractions.data?.find((x) => x.submission_id === s.id);
   const fileOf = (s: SubmissionRow) => files.data?.find((f) => f.id === s.file_id);
   const who = (s: SubmissionRow): string => {
@@ -175,7 +179,7 @@ export function ReceivedView({ projectId, orgId, tz, selectedId, onOpen }: Recei
               const chip = readChip(extractionOf(s), fileOf(s)?.text_status);
               return {
                 id: s.id,
-                lead: code(s.package_id),
+                lead: code(packageOf(s)),
                 title: `${who(s)} · #${String(s.receipt_number)}`,
                 chips: (
                   <>

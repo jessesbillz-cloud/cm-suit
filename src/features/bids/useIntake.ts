@@ -39,9 +39,13 @@ export function useIntake(a: IntakeArgs) {
   const record = useCallback(
     async (fileId: string, packageId: string): Promise<string> => {
       const r = await recordReceivedBid(fileId, packageId);
-      await Promise.all(
-        ['submissions', 'received_files', 'coverage'].map((part) => qc.invalidateQueries({ queryKey: qk.bidsPartAll(projectId, part) })),
-      );
+      // The lists this bid shows in: Received, Coverage, the leveling board and its flags (Leveling, Summary), the pipeline.
+      await Promise.all([
+        ...['submissions', 'received_files', 'coverage', 'leveling_board', 'flags'].map((part) =>
+          qc.invalidateQueries({ queryKey: qk.bidsPartAll(projectId, part) }),
+        ),
+        qc.invalidateQueries({ queryKey: qk.bidPipeline }),
+      ]);
       return `Received #${String(r.receipt)}`;
     },
     [qc, projectId],

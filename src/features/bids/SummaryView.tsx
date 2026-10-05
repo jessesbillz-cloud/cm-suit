@@ -87,7 +87,12 @@ function SummaryTable({ summaries, access, onOpenPackage }: TableProps) {
               }}
             >
               <td className="py-3 pl-4 pr-2 font-medium tabular-nums text-ink-2">{s.code}</td>
-              <td className="whitespace-normal break-words px-2 py-3 font-medium text-ink">{s.name}</td>
+              <td className="whitespace-normal break-words px-2 py-3 font-medium text-ink">
+                {/* The row opens on click; this button lets the keyboard open it too. */}
+                <button type="button" className="text-left font-medium">
+                  {s.name}
+                </button>
+              </td>
               <td data-testid={`summary-bids-${s.code}`} className={`whitespace-nowrap px-2 py-3 text-right tabular-nums ${s.bids === 0 ? 'font-semibold text-danger' : ''}`}>
                 {s.bids === 0 ? 'No bids' : s.bids}
               </td>
