@@ -1,18 +1,21 @@
 // A submitted report, up to date (MDR's success screen, at the top of the report instead of a tall pinned footer):
-// Submitted and the filename, Download and Email to project team (the person presses it; nothing goes on its own) with
-// Copy recipients, who it goes to (or a link to Setup), the sent lines, and the hours chips under it on jobs that keep
-// hours.
-import { Copy, Download, Mail } from 'lucide-react';
+// Submitted and the filename, Download, View (the PDF full screen) and Email to project team (the person presses it;
+// nothing goes on its own) with Copy recipients, who it goes to (or a link to Setup), the sent lines, and the hours
+// chips under it on jobs that keep hours.
+import { Copy, Download, Eye, Mail } from 'lucide-react';
 import { useEmailDaily } from '../../data/dailies.mutations';
 import type { DailyReportRow, EmailResult } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
+import { usePreviewFetch } from '../../data/preview';
 import { useMyProjects } from '../../data/queries';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { useDownload } from '../files/useDownload';
 import { HoursPrompt } from '../hours/HoursPrompt';
 import { SETUP_ITEM } from './model';
+import { dailyPdfItem } from './pdfItem';
 import { useDailiesNav } from './useDailiesNav';
 
 function SentLines({ result }: { result: EmailResult }) {
@@ -58,6 +61,8 @@ export function SubmittedPanel({ projectId, report, recipients }: SubmittedPanel
   const toast = useToast();
   const download = useDownload();
   const nav = useDailiesNav(projectId);
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const fileId = report.pdf_file_id;
 
   return (
@@ -79,6 +84,17 @@ export function SubmittedPanel({ projectId, report, recipients }: SubmittedPanel
           }}
         >
           Download
+        </Button>
+        <Button
+          icon={Eye}
+          className="h-10"
+          disabled={fileId === null}
+          data-testid="daily-view"
+          onClick={() => {
+            if (fileId !== null) viewer.open([dailyPdfItem(report, fileId, preview)]);
+          }}
+        >
+          View
         </Button>
         <Button
           icon={Mail}

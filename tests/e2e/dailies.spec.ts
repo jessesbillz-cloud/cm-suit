@@ -129,6 +129,40 @@ test.describe('dailies (SPEC §13.1)', () => {
     await expect(page.getByTestId('daily-photo')).toHaveCount(0);
   });
 
+  test("a photo tile opens the viewer over the report's photos: arrows, Delete with the same Undo, none once signed", async ({ page }) => {
+    const editor = await startWithNote(page);
+    await editor.getByTestId('daily-camera-camera-input').setInputFiles([photo(1), photo(2)]);
+    await expect(editor.getByTestId('daily-photo')).toHaveCount(2);
+
+    await editor.getByTestId('daily-photo-view').first().click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('1 of 2');
+    await expect(viewer.getByRole('img', { name: 'Photo 1' })).toBeVisible();
+    await viewer.getByTestId('viewer-next').click();
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('2 of 2');
+    await expect(viewer.getByRole('img', { name: 'Photo 2' })).toBeVisible();
+    await page.keyboard.press('ArrowLeft');
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('1 of 2');
+
+    // Delete in the viewer is the tile's Remove: gone at once, Undo brings it back.
+    await viewer.getByTestId('viewer-delete').click();
+    await expect(viewer.getByTestId('viewer-count')).toHaveCount(0);
+    await expect(editor.getByTestId('daily-photo')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(editor.getByTestId('daily-photo')).toHaveCount(2);
+
+    // Signed: the photos still open, with no Delete.
+    await editor.getByTestId('daily-submit').click();
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+    await editor.getByTestId('daily-photo-view').last().click();
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('2 of 2');
+    await expect(viewer.getByTestId('viewer-delete')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+  });
+
   test('the 40-photo limit is checked before anything uploads', async ({ page }) => {
     const editor = await startWithNote(page);
     await editor.getByTestId('daily-camera-camera-input').setInputFiles(Array.from({ length: 41 }, (_, i) => photo(i + 1)));
@@ -152,6 +186,14 @@ test.describe('dailies (SPEC §13.1)', () => {
     const download = page.waitForEvent('download');
     await done.getByTestId('daily-download').click();
     expect((await download).suggestedFilename()).toMatch(/^Daily Report 1 Sample Job A/);
+
+    // View: the signed PDF full screen, page by page; Escape closes it.
+    await done.getByTestId('daily-view').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText(/^Daily Report 1 Sample Job A/);
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
 
     await done.getByTestId('daily-recipients-setup').click();
     await expect(page.getByTestId('daily-setup')).toBeVisible();
@@ -178,6 +220,29 @@ test.describe('dailies (SPEC §13.1)', () => {
     // The team's list never offers the old PDF as current: it is the signed copy, and says so.
     await page.getByTestId('dailies-view-team').click();
     await expect(page.getByTestId('daily-team-download').first()).toHaveAttribute('aria-label', /^Download signed copy/);
+  });
+
+  // Contract with the mock: job-b has daily report #7 by someone else, submitted, its PDF "Sample Daily Report 7.pdf".
+  test("someone else's report: View shows the signed PDF from the team list and from the report; Download stays", async ({ page }) => {
+    await page.goto('/p/job-b/dailies?view=team');
+    const row = page.getByTestId('daily-team-row').filter({ hasText: '#7' });
+    await expect(row).toBeVisible();
+    await page.getByTestId('daily-team-view').first().click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample Daily Report 7.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+
+    await row.click();
+    await page.getByTestId('daily-signed-view').click();
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await expect(viewer.getByTestId('viewer-delete')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+    const download = page.waitForEvent('download');
+    await page.getByTestId('daily-signed-download').click();
+    expect((await download).suggestedFilename()).toBe('Sample Daily Report 7.pdf');
   });
 
   test("a new setup's recipients start with the job's team, still editable; an empty list offers the team", async ({ page }) => {

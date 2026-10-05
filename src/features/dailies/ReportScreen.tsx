@@ -3,10 +3,11 @@
 // company uses it (lib/dailies reportForm: a draft follows the company's form, a submitted report keeps the form it
 // was signed on).
 import { useState } from 'react';
-import { Download, FileText } from 'lucide-react';
+import { Download, Eye, FileText } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useCompanyForms, useDailyPhotos, useDailyReport, useDailySetups, useNextDailyNumber } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
+import { usePreviewFetch } from '../../data/preview';
 import { useProject } from '../../data/queries';
 import {
   DAILY_REPORT_TYPE,
@@ -19,12 +20,14 @@ import {
 } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
 import { useDownload } from '../files/useDownload';
 import { pdfOffer, reportChip } from './model';
+import { dailyPdfItem } from './pdfItem';
 import { ReportEditor } from './ReportEditor';
 
 interface SignedCopyProps {
@@ -32,9 +35,12 @@ interface SignedCopyProps {
   header: DailyHeader;
 }
 
-/** Someone else's submitted report: who, when, and the signed PDF in one click (labelled when changed since signing). */
+/** Someone else's submitted report: who, when, and the signed PDF: View (full screen) and Download in one click (labelled
+ *  when changed since signing). */
 function SignedCopy({ report, header }: SignedCopyProps) {
   const download = useDownload();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const fileId = report.pdf_file_id;
   const chip = reportChip(report);
   const offer = pdfOffer(report, false);
@@ -65,6 +71,15 @@ function SignedCopy({ report, header }: SignedCopyProps) {
               </p>
             ) : null}
           </div>
+          <Button
+            icon={Eye}
+            data-testid="daily-signed-view"
+            onClick={() => {
+              viewer.open([dailyPdfItem(report, fileId, preview)]);
+            }}
+          >
+            View
+          </Button>
           <Button
             variant="primary"
             icon={Download}
