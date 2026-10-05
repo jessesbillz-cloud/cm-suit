@@ -25,7 +25,7 @@ export function StepUp({ onDone }: { onDone?: (() => void) | undefined }) {
           icon={Settings}
           onClick={() => {
             if (projectId) void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: 'settings' } });
-            else void navigate({ to: '/' });
+            else void navigate({ to: '/all/settings' });
           }}
         >
           Settings

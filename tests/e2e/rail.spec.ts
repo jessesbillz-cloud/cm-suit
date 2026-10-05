@@ -204,6 +204,10 @@ test.describe('each job\'s tools, chosen per job (Jesse, Oct 1); on a job, only 
     await expect(page.getByTestId('rail-rfis')).toHaveAttribute('title', 'RFIs');
     await expect(page.getByTestId('rail-rfis')).toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId('job-rail-label')).toHaveAttribute('title', 'Sample Job A');
+    // Edit stays on the collapsed rail (the pencil alone).
+    await page.getByTestId('job-rail-edit').click();
+    await expect(page.getByTestId('job-rail-editor')).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.getByTestId('rail-calendar').click();
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'calendar');
     await page.getByRole('button', { name: 'Show the tool names' }).click();
