@@ -71,15 +71,42 @@ export async function reviewBackcheck(reviewId: string, key: string): Promise<Pe
   if (!r) throw fail('That item no longer exists.', 'P0002');
   const p = stored(s, r.permit_id);
   mustHave('permits.manage');
-  const again = s.reviews.find((x) => x.request_key === key && x.created_by === mockUser().id);
+  const again = s.reviews.find((x) => x.request_key === key && x.created_by === mockUser().id && !x.withdrawn_at);
   if (again) return reviewOf(again);
   if (CLOSED.includes(p.stage)) throw fail('This permit is closed.');
-  if (s.reviews.some((x) => x.permit_id === p.id && x.review_no === r.review_no && x.outcome === null)) {
+  if (s.reviews.some((x) => x.permit_id === p.id && x.review_no === r.review_no && x.outcome === null && !x.withdrawn_at)) {
     throw fail('Close the open review first.');
+  }
+  // A cycle taken back is this one again (0080: numbers never skip).
+  const back = s.reviews.find((x) => x.permit_id === p.id && x.review_no === r.review_no && x.withdrawn_at);
+  if (back) {
+    const again: StoredReview = {
+      ...back, withdrawn_at: null, request_key: key, created_by: mockUser().id,
+      received_on: todayInZone(permitJobZone(p.project_id)), version: back.version + 1,
+    };
+    write((x) => ({ ...x, reviews: x.reviews.map((y) => (y.id === back.id ? again : y)) }));
+    return reviewOf(again);
   }
   const counter = `permit_bc:${p.id}:${String(r.review_no)}`;
   const backcheck = next(s, counter);
   return addCycle(p, { review_no: r.review_no, backcheck, kind: r.kind }, key, counter, backcheck);
+}
+
+/** permit_review_withdraw (0080): the Undo of a Backcheck, while it is open and has no comments. */
+export async function reviewWithdraw(reviewId: string, version: number): Promise<PermitReview> {
+  await delay();
+  const s = read();
+  const r = s.reviews.find((x) => x.id === reviewId);
+  if (!r) throw fail('That item no longer exists.', 'P0002');
+  stored(s, r.permit_id);
+  mustHave('permits.manage');
+  if (r.withdrawn_at) return reviewOf(r);
+  if (r.version !== version) throw conflictError();
+  if (r.backcheck === 0 || r.outcome !== null) throw fail('Only an open backcheck can be taken back.');
+  if (s.comments.some((c) => c.review_id === r.id)) throw fail('This backcheck has comments.');
+  const gone: StoredReview = { ...r, withdrawn_at: new Date().toISOString(), version: r.version + 1 };
+  write((x) => ({ ...x, reviews: x.reviews.map((y) => (y.id === r.id ? gone : y)) }));
+  return reviewOf(gone);
 }
 
 export async function reviewClose(reviewId: string, version: number, outcome: string | null): Promise<PermitReview> {
@@ -120,6 +147,7 @@ export async function commentAdd(v: NewComment): Promise<PermitComment> {
   mustHave('permits.manage');
   const again = s.comments.find((c) => c.request_key === v.key && c.created_by === mockUser().id);
   if (again) return commentOf(again);
+  if (r.withdrawn_at) throw fail('This backcheck was taken back.');
   if (r.outcome !== null) throw fail('This review is closed.');
   if (v.body.trim() === '') throw fail('Add the comment.');
   const counter = `permit_comment:${p.id}`;

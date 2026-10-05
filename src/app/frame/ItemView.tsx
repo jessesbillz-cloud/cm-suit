@@ -97,7 +97,15 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
     return <RfiItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
   }
   if (tool === 'permits') {
-    return <PermitItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
+    return (
+      <PermitItem
+        projectId={model.loc.projectId}
+        itemId={itemId}
+        isPhone={isPhone}
+        wide={model.rightFull}
+        onOpenWindow={isPhone ? undefined : openWindow}
+      />
+    );
   }
   if (tool === 'safety' && model.loc.projectId !== null) return <SafetyItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
   if (tool === 'schedule' && model.loc.projectId !== null) return <ScheduleItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;

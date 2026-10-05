@@ -1,7 +1,8 @@
 // Setup's moves, each a version-checked save (CLAUDE.md rule 7) with Undo in the toast instead of "are you sure?"
-// (rule 16): rename a list, rev, item or wall (Undo puts the old values back, a wall's line on the plan too: another
-// sheet takes it off the plan, 0059), remove one (Undo restores it), and move an item or a wall up or down (it swaps
-// places with its neighbor). Undo uses mutateAsync, which settles even if the screen has moved on.
+// (rule 16): add a rev (Undo removes it), rename a list, rev, item or wall (Undo puts the old values back, a wall's
+// line on the plan too: another sheet takes it off the plan, 0059), remove one (Undo restores it), and move an item or
+// a wall up or down (one save, rev_move 0080: it swaps places with its neighbor; Undo moves it back). Undo uses
+// mutateAsync, which settles even if the screen has moved on.
 import { messageOf } from '../../data/errors';
 import {
   useRemoveRev,
@@ -11,10 +12,9 @@ import {
   useSaveRevItem,
   useSaveRevList,
 } from '../../data/revs.mutations';
-import { usePlaceRevArea } from '../../data/revs.plan';
+import { useMoveRev, usePlaceRevArea } from '../../data/revs.plan';
 import type { Rev, RevArea, RevItem, RevKind, RevList } from '../../data/revs.types';
 import { useToast } from '../../ui/Toast';
-import { neighbor } from './model';
 
 export interface ListValues {
   name: string;
@@ -37,6 +37,7 @@ export function useSetupActions(projectId: string) {
   const remove = useRemoveRev();
   const restore = useRestoreRev();
   const place = usePlaceRevArea();
+  const move = useMoveRev();
 
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
@@ -46,7 +47,7 @@ export function useSetupActions(projectId: string) {
   };
 
   return {
-    busy: [saveList, saveRev, saveItem, saveArea, remove, restore, place].some((m) => m.isPending),
+    busy: [saveList, saveRev, saveItem, saveArea, remove, restore, place, move].some((m) => m.isPending),
 
     /** Saves; true when saved (the form closes). */
     list: async (list: RevList, v: ListValues): Promise<boolean> => {
@@ -64,6 +65,18 @@ export function useSetupActions(projectId: string) {
       try {
         const row = await saveRev.mutateAsync({ projectId, listId: rev.list_id, rev, number, name });
         saved('Rev saved.', () => saveRev.mutateAsync({ projectId, listId: rev.list_id, rev: row, number: rev.number, name: rev.name }));
+        return true;
+      } catch (e) {
+        failed(e);
+        return false;
+      }
+    },
+
+    /** A new rev on a list (one OSFM added later). */
+    addRev: async (listId: string, number: number, name: string): Promise<boolean> => {
+      try {
+        const row = await saveRev.mutateAsync({ projectId, listId, rev: null, number, name });
+        saved(`Rev ${String(row.number)} added.`, () => remove.mutateAsync({ projectId, kind: 'rev', id: row.id, version: row.version }));
         return true;
       } catch (e) {
         failed(e);
@@ -112,38 +125,31 @@ export function useSetupActions(projectId: string) {
       }
     },
 
-    remove: (kind: RevKind, row: { id: string; version: number }, name: string) => {
-      remove.mutate(
-        { projectId, kind, id: row.id, version: row.version },
+    /** Removes; true when removed. Settles even if the screen moved on (a wall's own page closes). */
+    remove: async (kind: RevKind, row: { id: string; version: number }, name: string): Promise<boolean> => {
+      try {
+        const gone = await remove.mutateAsync({ projectId, kind, id: row.id, version: row.version });
+        saved(`${name} removed.`, () => restore.mutateAsync({ projectId, kind, id: gone.id, version: gone.version }));
+        return true;
+      } catch (e) {
+        failed(e);
+        return false;
+      }
+    },
+
+    /** Up / Down: an item in its rev, a wall on its level; one save, Undo moves it back. */
+    move: (kind: 'item' | 'area', row: { id: string; version: number }, name: string, dir: -1 | 1) => {
+      move.mutate(
+        { projectId, kind, id: row.id, version: row.version, dir },
         {
-          onSuccess: (gone) => {
-            saved(`${name} removed.`, () => restore.mutateAsync({ projectId, kind, id: gone.id, version: gone.version }));
+          onSuccess: (moved) => {
+            saved(`${name} moved ${dir < 0 ? 'up' : 'down'}.`, () =>
+              move.mutateAsync({ projectId, kind, id: moved.id, version: moved.version, dir: dir < 0 ? 1 : -1 }),
+            );
           },
           onError: failed,
         },
       );
-    },
-
-    /** Swaps an item with the one above or below it in its rev. */
-    moveItem: (rows: readonly RevItem[], item: RevItem, dir: -1 | 1) => {
-      const other = neighbor(rows, item.id, dir);
-      if (!other) return;
-      const there = other.position === item.position ? other.position + dir : other.position;
-      void (async () => {
-        await saveItem.mutateAsync({ projectId, revId: item.rev_id, item, name: item.name, company: item.company ?? '', position: there });
-        await saveItem.mutateAsync({ projectId, revId: other.rev_id, item: other, name: other.name, company: other.company ?? '', position: item.position });
-      })().catch(failed);
-    },
-
-    /** Swaps a wall with the one above or below it on its level. */
-    moveWall: (rows: readonly RevArea[], area: RevArea, dir: -1 | 1) => {
-      const other = neighbor(rows, area.id, dir);
-      if (!other) return;
-      const there = other.position === area.position ? other.position + dir : other.position;
-      void (async () => {
-        await saveArea.mutateAsync({ area, level: area.level, name: area.name, sheetFileId: area.sheet_file_id, position: there });
-        await saveArea.mutateAsync({ area: other, level: other.level, name: other.name, sheetFileId: other.sheet_file_id, position: area.position });
-      })().catch(failed);
     },
   };
 }

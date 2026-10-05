@@ -90,6 +90,23 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     expect(name, 'download keeps the original filename, not a storage id').not.toMatch(/^[0-9a-f-]{36}$/i);
   });
 
+  // SPEC §7.9 "Download any file you can see: 1": a plan sheet in Revs, through the gate that shows it.
+  test('download the plan sheet on screen = 1 click', async ({ page }) => {
+    await page.goto('/p/job-s/revs?view=plan'); // setup: the plan itself
+    const download = page.getByTestId('plan-sheet').getByTestId('plan-download');
+    await expect(download).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    const saved = page.waitForEvent('download', { timeout: 10_000 });
+    await tap(download, counter);
+    const file = await saved;
+
+    expect(counter.n).toBe(1);
+    expect(await taps(page)).toBe(1);
+    expect(file.suggestedFilename()).toBe('Sample A-101 Floor Plan.pdf');
+  });
+
   // The job's Board and Dailies sit under More for the PM: switching jobs keeps them all the same.
   for (const tool of ['files', 'board', 'dailies'] as const) {
     test(`switch job, same tool = 2 clicks (${tool})`, async ({ page }) => {

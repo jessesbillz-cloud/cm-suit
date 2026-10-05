@@ -1,13 +1,16 @@
 // The sheet in its frame: pdf.js underneath, the marks on top, both moved by one pan/zoom transform. Starts with the
-// whole page in view (or zoomed in on `focus`); "Fit" comes back to it. The Revs plan (0059) adds an overlay that keeps
-// its size on screen (the walls' lines and callouts, drawn where each page point is now) and taps.
+// whole page in view (or zoomed in on `focus`); "Fit" comes back to it. Pinch, wheel or drag; on a desktop + / - and
+// Fit are always there (a mouse or a trackpad without pinch; + and - keys too). The Revs plan (0059) adds an overlay
+// that keeps its size on screen (the walls' lines and callouts, drawn where each page point is now) and taps.
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Maximize, Minus, Plus } from 'lucide-react';
 import { HIGHLIGHT_WIDTH, type MarkupColor, type Stroke } from '../../../lib/markup';
 import type { PDFPageProxy } from '../../../lib/pdf/pdfjs';
+import { Button } from '../../../ui/Button';
 import { SheetCanvas } from './SheetCanvas';
 import { LiveStroke, StrokeLayer } from './StrokeLayer';
 import { useSheetGestures } from './useSheetGestures';
-import { clampView, fitSize, fitView, toPage, viewOn, type Pt, type Size, type View } from './viewport';
+import { clampView, fitSize, fitView, MAX_ZOOM, toPage, viewOn, zoomAt, type Pt, type Size, type View } from './viewport';
 
 /** Where a page point (fractions) is on screen now, and how many screen pixels one page width is. */
 export interface PagePlace {
@@ -33,6 +36,28 @@ interface SheetStageProps {
   focus?: { x: number; y: number; w: number; h: number; fill?: number | undefined } | null | undefined;
   /** Taps place points: a crosshair though the pen is off. */
   aiming?: boolean | undefined;
+}
+
+/** One + or - step. */
+const STEP = 1.5;
+
+interface ZoomBarProps {
+  zoom: number;
+  onZoom: (factor: number) => void;
+  onFit: () => void;
+}
+
+/** + / - / Fit at the corner of the sheet, for a mouse (a pinch does the same on a phone or a trackpad). */
+function ZoomBar({ zoom, onZoom, onFit }: ZoomBarProps) {
+  return (
+    <div className="absolute bottom-3 right-3 hidden items-center gap-0.5 rounded-full bg-card p-1 shadow-pop sm:flex" data-testid="sheet-zoom">
+      <Button size="sm" variant="quiet" icon={Minus} aria-label="Zoom out" title="Zoom out" className="!rounded-full" disabled={zoom <= 1.01} onClick={() => { onZoom(1 / STEP); }} />
+      <Button size="sm" variant="quiet" icon={Plus} aria-label="Zoom in" title="Zoom in" className="!rounded-full" disabled={zoom >= MAX_ZOOM - 0.01} onClick={() => { onZoom(STEP); }} />
+      <Button size="sm" variant="quiet" icon={Maximize} className="!rounded-full" data-testid="sheet-fit" onClick={onFit}>
+        Fit
+      </Button>
+    </div>
+  );
 }
 
 function useElementSize(ref: RefObject<HTMLElement | null>): Size {
@@ -88,14 +113,31 @@ export function SheetStage({ page, aspect, strokes, pen, onStroke, onError, over
     : undefined;
   const { live, handlers } = useSheetGestures({ frameRef, fit, frame, view, setView, drawing: pen !== null, onStroke, onTap: tap });
   const zoomed = view.z > 1.01;
+  const zoomBy = (factor: number) => {
+    setView((v) => zoomAt(v, frame.w / 2, frame.h / 2, factor, fit, frame));
+  };
+  const toFit = () => {
+    setView(() => fitView(fit, frame));
+  };
 
   return (
     <div className="relative min-h-0 flex-1">
       <div
         ref={frameRef}
         {...handlers}
+        tabIndex={0}
+        aria-label="Sheet"
         data-testid="sheet-frame"
-        className={`absolute inset-0 touch-none select-none overflow-hidden bg-page ${pen || aiming ? 'cursor-crosshair' : 'cursor-grab'}`}
+        data-zoom={view.z.toFixed(2)}
+        className={`absolute inset-0 touch-none select-none overflow-hidden bg-page outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${pen || aiming ? 'cursor-crosshair' : 'cursor-grab'}`}
+        onKeyDown={(e) => {
+          if (e.metaKey || e.ctrlKey || e.altKey) return;
+          if (e.key === '+' || e.key === '=') zoomBy(STEP);
+          else if (e.key === '-' || e.key === '_') zoomBy(1 / STEP);
+          else if (e.key === '0') toFit();
+          else return;
+          e.preventDefault();
+        }}
       >
         <div
           className="absolute left-0 top-0 origin-top-left bg-white shadow-card will-change-transform"
@@ -107,13 +149,12 @@ export function SheetStage({ page, aspect, strokes, pen, onStroke, onError, over
         </div>
         {overlay && fit.w > 0 ? <div className="pointer-events-none absolute inset-0">{overlay(place)}</div> : null}
       </div>
+      <ZoomBar zoom={view.z} onZoom={zoomBy} onFit={toFit} />
       {zoomed ? (
         <button
           type="button"
-          onClick={() => {
-            setView(() => fitView(fit, frame));
-          }}
-          className="absolute bottom-3 right-3 h-11 rounded-full bg-card px-5 text-sm font-medium text-ink shadow-pop hover:bg-card-head focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          onClick={toFit}
+          className="absolute bottom-3 right-3 h-11 rounded-full bg-card px-5 text-sm font-medium text-ink shadow-pop hover:bg-card-head focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:hidden"
         >
           Fit
         </button>

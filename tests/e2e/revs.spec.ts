@@ -13,6 +13,9 @@
 // drawn wall a [data-wall] (its second line in its color), plan-wall-<area> (its callout; data-focus), plan-add-wall,
 // plan-draw-bar (data-points), plan-prompt, plan-done, plan-wall-name, plan-wall-save, rev-wall-thumb, rev-wall-place.
 // The synthetic plan set (mock/sheet) has every wall but Level 02's electrical wall drawn on it, Level 02 on page 2.
+// Oct 4 audit: sheet-full / sheet-exit (data-full on the frame), sheet-zoom (+ / - / sheet-fit; sheet-frame data-zoom),
+// plan-download, rev-wall-sheet (opens the plan) and rev-wall-sheet-download, rev-wall-edit / rev-wall-remove,
+// rev-add-rev, plan-open-setup, sheet-clear, rev-sheet-more, rev-sheet-superseded, rev-wall-back.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -284,6 +287,123 @@ test.describe('revs', () => {
     await expect(page.getByTestId('plan-wall-mock-rev-area-6')).toHaveAttribute('data-focus', 'true');
   });
 
+  test('the plan goes full screen with its walls, zoom and Download; Exit or Escape comes back', async ({ page }, testInfo) => {
+    const desktop = testInfo.project.name === 'desktop';
+    await openAs(page, 'ahj', '/p/job-s/revs?view=plan');
+    const sheet = page.getByTestId('plan-sheet');
+    await expect(page.getByTestId('rev-plan').locator('[data-wall]')).toHaveCount(3);
+    await sheet.getByTestId('sheet-full').click();
+    await expect(sheet).toHaveAttribute('data-full', 'true');
+    await expect(sheet).toContainText('Sample A-101 Floor Plan');
+    await expect(sheet.locator('[data-wall]')).toHaveCount(3);
+    if (desktop) {
+      // + / - and Fit, always there on a desktop.
+      const frame = sheet.getByTestId('sheet-frame');
+      await expect(frame).toHaveAttribute('data-zoom', '1.00');
+      await sheet.getByRole('button', { name: 'Zoom in' }).click();
+      await expect(frame).toHaveAttribute('data-zoom', '1.50');
+      await sheet.getByTestId('sheet-fit').click();
+      await expect(frame).toHaveAttribute('data-zoom', '1.00');
+      const download = page.waitForEvent('download');
+      await sheet.getByTestId('plan-download').click();
+      expect((await download).suggestedFilename()).toBe('Sample A-101 Floor Plan.pdf');
+      await page.keyboard.press('Escape');
+    } else {
+      await expect(sheet.getByTestId('sheet-zoom')).toBeHidden();
+      await sheet.getByTestId('sheet-exit').click();
+    }
+    await expect(sheet).not.toHaveAttribute('data-full', 'true');
+    await expect(page.getByTestId('sheet-exit')).toHaveCount(0);
+  });
+
+  test("the wall's sheet name opens the plan at the wall, with Download beside it", async ({ page }, testInfo) => {
+    await openAs(page, 'ahj', '/p/job-s/revs/mock-rev-area-5');
+    const wall = page.getByTestId('rev-wall-page');
+    await expect(wall.getByTestId('rev-wall-sheet')).toHaveText('Sample A-102 Level 02 Floor Plan.pdf');
+    if (testInfo.project.name === 'desktop') {
+      const download = page.waitForEvent('download');
+      await wall.getByTestId('rev-wall-sheet-download').click();
+      expect((await download).suggestedFilename()).toBe('Sample A-102 Level 02 Floor Plan.pdf');
+    }
+    await wall.getByTestId('rev-wall-sheet').click();
+    await expect(page).toHaveURL(/view=plan.*wall=mock-rev-area-5/);
+    await expect(page.getByTestId('plan-wall-mock-rev-area-5')).toHaveAttribute('data-focus', 'true');
+  });
+
+  test('a manager renames and removes a wall from its own page, with Undo', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-5');
+    const wall = page.getByTestId('rev-wall-page');
+    await expect(page.getByTestId('rev-wall-back')).toBeVisible();
+    await wall.getByTestId('rev-wall-edit').click();
+    await wall.getByTestId('rev-wall-name-input').fill('Corridor 210 south wall (B / 2–5)');
+    await wall.getByTestId('rev-form-save').click();
+    await expect(wall.getByTestId('rev-wall-name')).toHaveText('Corridor 210 south wall B / 2–5');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(wall.getByTestId('rev-wall-name')).toHaveText('Corridor 210 north wall B / 2–5');
+
+    await wall.getByTestId('rev-wall-remove').click();
+    await expect(page).toHaveURL(/\/p\/job-s\/revs$/);
+    await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toBeVisible();
+  });
+
+  test("a wall in its own window has no way back to a list it isn't in", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'A phone has no windows.');
+    await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-1?window=1');
+    await expect(page.getByTestId('rev-wall-page')).toBeVisible();
+    await expect(page.getByTestId('rev-wall-back')).toHaveCount(0);
+  });
+
+  test('Setup: Add rev on a list, and Up / Down as one save, each with Undo', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs?view=setup');
+    const setup = page.getByTestId('rev-setup');
+    await setup.getByTestId('rev-add-rev').click();
+    await expect(setup.getByTestId('rev-rev-number')).toHaveValue('8');
+    await setup.getByTestId('rev-rev-name').fill('Sample Penetrations');
+    await setup.getByTestId('rev-form-save').click();
+    await expect(setup.getByTestId('rev-setup-rev-8')).toContainText('Rev 8 · Sample Penetrations');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(setup.getByTestId('rev-setup-rev-8')).toHaveCount(0);
+
+    const how = setup.getByTestId('rev-setup-rev-1');
+    const names = how.locator('[data-testid^="rev-setup-item-"]');
+    await expect(names).toHaveText([/^HOW Cavity Stuff/, /^HOW Cavity Spray/, /^HOW Beam Pockets/]);
+    await how.getByRole('button', { name: 'Move HOW Beam Pockets up' }).click();
+    await expect(names).toHaveText([/^HOW Cavity Stuff/, /^HOW Beam Pockets/, /^HOW Cavity Spray/]);
+    await expect(page.getByText('HOW Beam Pockets moved up.')).toBeVisible();
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(names).toHaveText([/^HOW Cavity Stuff/, /^HOW Cavity Spray/, /^HOW Beam Pockets/]);
+  });
+
+  test("the sheet picker: No sheet, N more, and a superseded stamped sheet says so", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs?view=setup');
+    await page.getByTestId('rev-setup-wall-mock-rev-area-1').getByTestId('rev-setup-edit').click();
+    const form = page.getByTestId('rev-wall-form');
+    await expect(form.getByTestId('sheet-name')).toHaveText('Sample A-101 Floor Plan.pdf');
+    await form.getByTestId('sheet-clear').click();
+    await expect(form.getByTestId('sheet-name')).toHaveCount(0);
+    await expect(form.getByTestId('rev-sheet')).toHaveCount(8);
+    await form.getByTestId('rev-sheet-more').click();
+    await expect(form.getByTestId('rev-sheet').filter({ has: page.getByTestId('rev-sheet-superseded') })).toHaveCount(1);
+    await form.getByTestId('rev-sheet').filter({ hasText: 'Sample A-102 Level 02 Floor Plan.pdf' }).click();
+    await expect(form.getByTestId('sheet-name')).toHaveText('Sample A-102 Level 02 Floor Plan.pdf');
+  });
+
+  test('Plan with no lists offers Open Setup to a manager', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs?view=setup');
+    await page.getByRole('button', { name: 'Remove Sample Rated Walls' }).click();
+    await expect(page.getByText('No lists yet.')).toBeVisible();
+    await page.getByTestId('rev-view-walls').click();
+    await page.getByTestId('rev-walls-as-plan').click();
+    await page.getByTestId('plan-open-setup').click();
+    await expect(page).toHaveURL(/view=setup/);
+  });
+
   test("a request's map draws its walls from the plan, one mark per wall and item", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The map opens in the right column.');
     await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-4,mock-rev-area-5&items=mock-rev-item-3-1,mock-rev-item-3-2');
@@ -295,5 +415,11 @@ test.describe('revs', () => {
     await expect(page.getByTestId('sheet-frame').locator('svg path')).toHaveCount(4);
     await expect(page.getByTestId('map-page')).toHaveValue('2');
     await expect(page.getByTestId('ir-map-save')).toContainText('Saved');
+    // The map goes full screen with its colors, and comes back with Escape.
+    await page.getByTestId('ir-map').getByTestId('sheet-full').click();
+    await expect(page.getByTestId('sheet-exit')).toBeVisible();
+    await expect(page.getByTestId('sheet-frame').locator('svg path')).toHaveCount(4);
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('sheet-exit')).toHaveCount(0);
   });
 });

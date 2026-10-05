@@ -1,11 +1,9 @@
 // Permit stamp writes (migration 0053, edge function permit-stamp). The server stamps one PDF per call ('stamp'), then
 // records the set once ('record': the permit is issued, or the set revised); both need a fresh sign-in (SignButton
 // handles 403 reauth_required). Opening a stamped sheet asks the same function for a viewer URL. The official's own
-// PDFs upload into the job's "To stamp" folder through data/upload.
-import { useCallback } from 'react';
+// PDFs upload into the job's "To stamp" folder through the shared upload queue (progress, Stop, Remove).
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { useUser } from './auth';
 import { supabase } from './client';
 import { throwIfError } from './errors';
 import { callFunction } from './functions';
@@ -14,7 +12,7 @@ import { isMock } from './mock';
 import * as mockStamp from './mock/permitStamp';
 import type { PermitRef } from './permits.types';
 import { recordResultSchema, stampedFileSchema, viewResultSchema, type RecordResult, type StampedFile } from './permitStamp.types';
-import { uploadFile } from './upload';
+import { useUploadQueue } from './UploadQueue';
 
 /** Stamps one PDF (permits.manage, a fresh sign-in): the copy waits in "Stamping" until the set is recorded. */
 export function useStampFile() {
@@ -82,22 +80,26 @@ async function uploadsFolder(permitId: string): Promise<string> {
   return res.uploads;
 }
 
-/** Uploads one of the official's own PDFs into the job's "To stamp" folder; resolves to its file id. */
-export function useStampUpload() {
-  const user = useUser();
+/**
+ * The official's own PDFs into the job's "To stamp" folder, through the shared queue (progress, Stop, Remove). Each
+ * one, once stored, refreshes the sources and is handed to `onStored` (picked at once). `items` are this permit's
+ * upload lines; `folderId` is known after the first upload.
+ */
+export function useStampUploads(permit: PermitRef, onStored: (fileId: string) => void) {
   const qc = useQueryClient();
-  const userId = user.id;
-  return useCallback(
-    async (permit: PermitRef, file: File, signal: AbortSignal): Promise<string> => {
-      const folderId = await qc.query({
-        queryKey: qk.permitsPart('stamp-folder', permit.id),
-        queryFn: () => uploadsFolder(permit.id),
-        staleTime: Infinity,
+  const queue = useUploadQueue();
+  const folderKey = qk.permitsPart('stamp-folder', permit.id);
+  const folderId = qc.getQueryData<string>(folderKey);
+  const add = useMutation({
+    mutationFn: async (files: File[]): Promise<void> => {
+      const folder = await qc.query({ queryKey: folderKey, queryFn: () => uploadsFolder(permit.id), staleTime: Infinity });
+      queue.enqueue(files, permit.project_id, folder, async (fileId) => {
+        await qc.invalidateQueries({ queryKey: qk.permitsPart('stamp-sources', permit.id) });
+        onStored(fileId);
+        return null;
       });
-      const { fileId } = await uploadFile({ file, projectId: permit.project_id, folderId, userId, signal, onProgress: () => undefined });
-      await qc.invalidateQueries({ queryKey: qk.permitsPart('stamp-sources', permit.id) });
-      return fileId;
     },
-    [qc, userId],
-  );
+  });
+  const items = folderId === undefined ? [] : queue.items.filter((i) => i.folderId === folderId);
+  return { add, items, busy: items.some((i) => i.status === 'queued' || i.status === 'uploading') };
 }

@@ -123,7 +123,7 @@ export function WallThumb({ projectId, area, canManage, isPhone, onShow, onPlace
           {url.isError ? (
             <span className="absolute inset-0 flex items-center justify-center text-[13px] text-ink-2">Plan didn't open.</span>
           ) : url.data ? (
-            <ThumbBody url={url.data} area={area} w={Math.round(width)} h={height(isPhone)} />
+            <ThumbBody url={url.data.url} area={area} w={Math.round(width)} h={height(isPhone)} />
           ) : (
             <span className="absolute inset-0 animate-pulse bg-page" />
           )}

@@ -4,14 +4,15 @@
 // on a wall opens its page. Pinch or wheel to zoom, drag to pan, as on a map. Managers add walls on the plan (tap the
 // start, the end, corners, Done, name it), one after another around the building, and place a wall from its page
 // (?place=). A level with no sheet yet: a manager picks one (a plan set's page too). The level, the wall to center on
-// and the wall being placed live in the URL (useRevsNav), so a wall opened from here comes back here.
+// and the wall being placed live in the URL (useRevsNav), so a wall opened from here comes back here. Full screen puts
+// the sheet over the window (drawing too: the bar goes with it); Escape or Exit comes back.
 import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { useRevSheets } from '../../../data/revSheets.queries';
 import type { RevSetup } from '../../../data/revs.types';
 import { Button } from '../../../ui/Button';
 import { Card } from '../../../ui/Card';
-import { EmptyState } from '../../../ui/States';
+import { EmptyState, ErrorState } from '../../../ui/States';
 import { TOOL_META } from '../../../ui/tools';
 import { wallRevs, type StatusIndex } from '../model';
 import { useRevsNav } from '../useRevsNav';
@@ -52,6 +53,7 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
   const [chosen, setChosen] = useState<{ level: string; t: PlanTarget } | null>(null);
   const [listPick, setListPick] = useState<string | null>(null);
   const [pages, setPages] = useState<{ fileId: string; n: number } | null>(null);
+  const [full, setFull] = useState(false);
   const own = (a: typeof placing) => (a?.sheet_file_id ? { fileId: a.sheet_file_id, page: a.sheet_page } : null);
   const target: PlanTarget | null =
     (chosen && level !== null && sameLevel(chosen.level, level) ? chosen.t : null) ?? own(placing) ??
@@ -116,12 +118,43 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
   if (setup.lists.length === 0 || (levels.length === 0 && !canManage)) {
     return (
       <Card>
-        <EmptyState icon={TOOL_META.revs.icon} title="No walls yet." />
+        <EmptyState
+          icon={TOOL_META.revs.icon}
+          title="No walls yet."
+          action={
+            canManage ? (
+              <Button variant="primary" icon={Settings2} data-testid="plan-open-setup" onClick={() => { nav.setView('setup'); }}>
+                Open Setup
+              </Button>
+            ) : undefined
+          }
+        />
       </Card>
     );
   }
   const names = new Map((sheets.data ?? []).map((s) => [s.id, s.name]));
   const drawing = draw.step !== 'look';
+  const drawBar =
+    draw.step !== 'look' ? (
+      <DrawBar
+        step={draw.step}
+        points={draw.points.length}
+        ready={isLine(draw.points)}
+        placing={placing ? calloutOf(placing.name).title : null}
+        name={draw.name}
+        onName={draw.setName}
+        lists={setup.lists}
+        listId={listId}
+        onList={setListPick}
+        busy={draw.busy}
+        isPhone={isPhone}
+        onUndo={draw.undoPoint}
+        onDone={draw.done}
+        onClose={placing ? () => { nav.open(placing.id); } : draw.close}
+        onBack={draw.back}
+        onSave={draw.save}
+      />
+    ) : null;
   return (
     <Card padded={false}>
       <div className="flex flex-col gap-3 p-3 sm:p-4" data-testid="rev-plan" data-level={level ?? undefined}>
@@ -148,30 +181,15 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
             </Button>
           ) : null}
         </div>
-        {draw.step !== 'look' ? (
-          <DrawBar
-            step={draw.step}
-            points={draw.points.length}
-            ready={isLine(draw.points)}
-            placing={placing ? calloutOf(placing.name).title : null}
-            name={draw.name}
-            onName={draw.setName}
-            lists={setup.lists}
-            listId={listId}
-            onList={setListPick}
-            busy={draw.busy}
-            isPhone={isPhone}
-            onUndo={draw.undoPoint}
-            onDone={draw.done}
-            onClose={placing ? () => { nav.open(placing.id); } : draw.close}
-            onBack={draw.back}
-            onSave={draw.save}
-          />
-        ) : null}
+        {sheets.isError ? <ErrorState className="m-0" error={sheets.error} title="The sheet names did not load." onRetry={() => void sheets.refetch()} /> : null}
+        {full ? null : drawBar}
         {target && level ? (
           <PlanSheet
             projectId={projectId}
             drawing={drawing}
+            full={full}
+            onFull={setFull}
+            bar={drawBar}
             target={target}
             focus={focus}
             aiming={draw.step === 'draw'}
@@ -183,7 +201,7 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
                 aspect={aspect}
                 focusId={shown?.id ?? null}
                 draft={drawing ? draw.points : null}
-                onOpen={drawing ? null : nav.open}
+                onOpen={drawing ? null : (id) => { setFull(false); nav.open(id); }}
               />
             )}
             onTap={(p, frameAt, place, aspect) => {
@@ -193,7 +211,9 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
               }
               if (draw.step !== 'look') return;
               const hit = wallAt(frameAt, walls.map((w) => ({ id: w.id, line: w.line.map((q) => place.toFrame(q)) })), REACH_PX);
-              if (hit) nav.open(hit.id);
+              if (!hit) return;
+              setFull(false);
+              nav.open(hit.id);
             }}
           />
         ) : canManage ? null : (

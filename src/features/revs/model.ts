@@ -175,12 +175,6 @@ export function wallsByList(setup: RevSetup): ListGroup[] {
   return setup.lists.map((list) => ({ list, levels: levelsOf(setup, list.id) })).filter((g) => g.levels.length > 0);
 }
 
-/** The row before or after this one in a list (up / down), or null at the end. */
-export function neighbor<T extends { id: string }>(rows: readonly T[], id: string, dir: -1 | 1): T | null {
-  const i = rows.findIndex((r) => r.id === id);
-  return i < 0 ? null : (rows[i + dir] ?? null);
-}
-
 /** The new request's prefill (Inspections > new): this wall and its next items, as the route's comma lists. */
 export function requestSearch(areaIds: readonly string[], items: readonly RevItem[]): { areas: string; items: string } {
   return { areas: areaIds.join(','), items: items.map((i) => i.id).join(',') };

@@ -115,6 +115,18 @@ function LeftoverLine({ file }: { file: FileRow }) {
   );
 }
 
+/** Queue lines alone (Stop, Retry, Remove), for an upload made outside Files (the permit stamp flow). */
+export function UploadLines({ items }: { items: readonly UploadItem[] }) {
+  const queue = useUploadQueue();
+  return (
+    <ul className="divide-y divide-line">
+      {items.map((i) => (
+        <UploadLine key={i.key} item={i} onStop={queue.cancel} onRetry={queue.retry} onRemove={queue.remove} />
+      ))}
+    </ul>
+  );
+}
+
 interface UploadListProps {
   folderId: string;
   /** My unfinished uploads in this folder that the queue is not working on (features/files/leftovers). */

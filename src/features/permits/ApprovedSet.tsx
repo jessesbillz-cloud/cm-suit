@@ -1,8 +1,8 @@
 // The permit's approved set, for everyone who reads permits (migration 0053): the current stamped sheets, each one
-// click to open in the browser's own viewer and one to download (lib/saveFile, the original filename), and the
-// superseded sets under them, greyed. For the official, "Stamp and issue" (or, once issued, the quieter "Stamp
+// click to open in a new tab (the browser's own viewer, until the shared in-app viewer takes it) and one to download
+// (lib/saveFile, the original filename), and the superseded sets under them, greyed. For the official, "Stamp and issue" (or, once issued, the quieter "Stamp
 // revision") opens the stamp flow; the database says which (permit_approved.stamp).
-import { Download, FileText, LoaderCircle, Maximize2, Stamp } from 'lucide-react';
+import { Download, ExternalLink, FileText, Stamp } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useApprovedView } from '../../data/permitStamp.mutations';
 import { usePermitApproved } from '../../data/permitStamp.queries';
@@ -12,6 +12,7 @@ import { formatInZone } from '../../lib/dates';
 import { blankTab } from '../../lib/openTab';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
+import { LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { useDownload } from '../files/useDownload';
 import { stampLabel } from './stamp';
@@ -50,9 +51,9 @@ function SetCard({ permitId, set, timeZone, isPhone }: SetCardProps) {
             <Button
               size={size}
               variant="quiet"
-              icon={Maximize2}
-              aria-label={`Open ${f.name}`}
-              title="Open"
+              icon={ExternalLink}
+              aria-label={`Open ${f.name} in a new tab`}
+              title="Open in new tab"
               data-testid="permit-approved-open"
               loading={view.isPending && view.variables.fileId === f.file_id}
               onClick={() => {
@@ -96,10 +97,7 @@ export function ApprovedSet({ permitId, timeZone, isPhone, onStamp }: ApprovedSe
     return (
       <section className="flex flex-col gap-1.5" data-testid="permit-approved" aria-busy>
         <h2 className={HEADING}>Approved set</h2>
-        <p role="status" className="flex items-center gap-2 text-[13px] text-ink-3">
-          <Icon icon={LoaderCircle} size={14} className="animate-spin" />
-          Loading...
-        </p>
+        <LoadingState label="Loading the approved set" />
       </section>
     );
   }

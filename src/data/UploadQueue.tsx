@@ -125,10 +125,12 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
           patch(item.key, { status: 'done', loaded: item.size, note });
           files.current.delete(item.key);
           afterUploads.current.delete(item.key);
-          // The folder's list, and the tree's counts (an "Emailed in" shows once it holds a file).
+          // The folder's list, the tree's counts (an "Emailed in" shows once it holds a file), and the job's plan sheets in
+          // Revs (a PDF picked there right after it is uploaded).
           await Promise.all([
             qc.invalidateQueries({ queryKey: qk.files(item.folderId) }),
             qc.invalidateQueries({ queryKey: qk.folders(item.projectId) }),
+            qc.invalidateQueries({ queryKey: qk.revsPart(item.projectId, 'sheets') }),
           ]);
         })
         .catch((e: unknown) => {
