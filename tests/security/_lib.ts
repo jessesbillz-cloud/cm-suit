@@ -143,6 +143,8 @@ export const PUBLIC_TABLES = [
   'ir_link_receipts',
   // Revs (0056)
   'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
+  // Signed off before the app (0082)
+  'rev_signoffs',
   // Safety (0060)
   'safety_topics', 'safety_meetings', 'safety_signins',
   // Schedule (0062)
@@ -297,6 +299,15 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_geom_ok', { p_geom: [[0, 0], [1, 1]] }],
   ['rev_geom_check', { p_project_id: ZERO_UUID, p_sheet_file_id: ZERO_UUID, p_page: 1, p_geom: [[0, 0], [1, 1]], p_was: null }],
   ['rev_wall_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  // A wall's details and the walls signed off before the app (0082), and their internal helpers.
+  ['rev_area_details_save', {
+    p_id: ZERO_UUID, p_version: 1, p_wall_tag: null, p_rating: null, p_ul_design: null, p_fire_area: null, p_sheet_ref: null, p_check_note: null,
+  }],
+  ['rev_signoff_set', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID], p_ofs_number: null, p_signed_on: null, p_note: null }],
+  ['rev_signoff_clear', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID] }],
+  ['rev_text_or_null', { p_text: 'probe', p_max: 1, p_what: 'probe' }],
+  ['rev_signoff_live', { p_area_id: ZERO_UUID, p_item_id: ZERO_UUID }],
+  ['rev_signoff_wall', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID] }],
 ];
 
 /** A valid setup of a daily form (0072), for the probes. */
