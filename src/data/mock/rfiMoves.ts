@@ -192,7 +192,6 @@ export async function saveSettings(projectId: string, version: number, answerDay
   return settingsOut(next);
 }
 
-/** The PDF of the current state (DRAFT before issue), named like the edge function names it. */
 /** The RFI PDF for the viewer: the synthetic plan set (mock/sheet), so there are real pages to draw. */
 export async function pdfView(id: string): Promise<string> {
   await delay(200);
@@ -200,16 +199,11 @@ export async function pdfView(id: string): Promise<string> {
   return sheetUrl();
 }
 
+/** The PDF of the current state (DRAFT before issue), named like the edge function names it. */
 export async function pdf(id: string): Promise<{ blob: Blob; filename: string }> {
   await delay(200);
   const r = find(read(), id);
   const safe = r.title.replace(/[^A-Za-z0-9 ._-]+/g, '').trim();
   const filename = r.number === null ? `RFI Draft ${safe}.pdf` : `RFI ${String(r.number).padStart(3, '0')} ${safe}.pdf`;
   return { blob: new Blob([`Synthetic e2e RFI PDF: ${r.title}\n`], { type: 'application/pdf' }), filename };
-}
-
-/** The RFI's PDF to look at: the synthetic plan set stands in for it (real pages for the viewer to draw). */
-export async function viewUrl(id: string): Promise<string> {
-  await pdf(id);
-  return sheetUrl();
 }

@@ -44,7 +44,7 @@ export function RfiEntity({ frame, id }: KindProps) {
             id: `rfi-pdf:${r.id}`,
             name: `${rfiLabel(r.number)}.pdf`,
             kind: 'pdf',
-            url: () => rfiPdfViewUrl(r),
+            url: () => rfiPdfViewUrl(r.id),
             download: () => pdf.mutateAsync(r),
           },
         ]);

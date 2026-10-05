@@ -253,15 +253,6 @@ export async function rfiPdfViewUrl(rfiId: string): Promise<string> {
   return (await callFunction('rfis', { action: 'view', rfi_id: rfiId }, viewResultSchema)).url;
 }
 
-/**
- * The RFI's PDF for the file viewer (ui/FileViewer): made the same way as "PDF", through the rfis function's own gate
- * (rfi_authorize_file), answered as a fresh signed URL that pdf.js reads once.
- */
-export async function rfiPdfViewUrl(ref: RfiRef): Promise<string> {
-  if (isMock()) return mockMoves.viewUrl(ref.id);
-  return (await callFunction('rfis', { action: 'view', rfi_id: ref.id }, viewResultSchema)).url;
-}
-
 /** A photo, an answer file or the PDF of an RFI: one click, the original filename, a fresh signed URL. */
 export async function saveRfiFile(rfiId: string, fileId: string): Promise<void> {
   if (isMock()) {
