@@ -4,7 +4,8 @@
 // Building (job-s) has plan PDFs in Plans; 24-0003 is in review with no set; 24-0001 is issued with two sets (the first
 // superseded); on Sample Library Annex (job-t) 25-0102 is issued with one (src/data/mock/permitStamp.ts, permitJobs.ts). Test ids: permit-approved, permit-stamp, stamp-flow, stamp-source,
 // stamp-search, stamp-sign, stamp-state (data-state), stamp-result, stamp-done, permit-approved-current,
-// permit-approved-old, permit-approved-file, permit-approved-download, permit-stage.
+// permit-approved-old, permit-approved-file, permit-approved-download, permit-approved-open, permit-stage,
+// stamp-upload-input, stamp-uploads (the shared upload lines: upload-line, upload-line-status).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -61,6 +62,39 @@ test.describe('permit stamp', () => {
     await expect(page.getByTestId('permit-stamp')).toHaveText('Stamp revision');
   });
 
+  test("the official's own PDFs upload with progress; Sign waits for them; a wrong one is stopped and removed", async ({ page }) => {
+    await page.goto('/');
+    await openAs(page, 'ahj', '/p/job-s/permits/mock-permit-s3');
+    await page.getByTestId('permit-stamp').click();
+    const flow = page.getByTestId('stamp-flow');
+    await flow.getByTestId('stamp-source').filter({ hasText: 'Sample A-101 Floor Plan.pdf' }).click();
+    await expect(flow.getByTestId('stamp-sign')).toBeEnabled();
+
+    // A big one takes a while: its line shows how far, and Sign waits.
+    await flow.getByTestId('stamp-upload-input').setInputFiles({
+      name: 'Sample wrong set.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(8 * 1024 * 1024),
+    });
+    const line = flow.getByTestId('stamp-uploads').getByTestId('upload-line');
+    await expect(line).toContainText('Sample wrong set.pdf');
+    await expect(flow.getByTestId('stamp-sign')).toBeDisabled();
+    // The wrong file: Stop, then Remove; nothing is left and Sign is back.
+    await line.getByRole('button', { name: 'Stop Sample wrong set.pdf' }).click();
+    await expect(line.getByTestId('upload-line-status')).toHaveText('Stopped');
+    await line.getByRole('button', { name: 'Remove Sample wrong set.pdf' }).click();
+    await expect(flow.getByTestId('stamp-uploads')).toHaveCount(0);
+    await expect(flow.getByTestId('stamp-sign')).toBeEnabled();
+    await expect(flow.getByTestId('stamp-source').filter({ hasText: 'Sample wrong set.pdf' })).toHaveCount(0);
+
+    // A good one finishes, is listed and picked at once.
+    await flow.getByTestId('stamp-upload-input').setInputFiles({
+      name: 'Sample S-201 Framing.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(2048),
+    });
+    const added = flow.getByTestId('stamp-source').filter({ hasText: 'Sample S-201 Framing.pdf' });
+    await expect(added).toHaveAttribute('data-picked', 'true');
+    await expect(flow.getByTestId('stamp-sign')).toHaveText('Stamp and issue (2)');
+    await expect(flow.getByTestId('stamp-sign')).toBeEnabled();
+  });
+
   test('once the permit is Inspected, stamping is still a revision', async ({ page }) => {
     await page.goto('/');
     await openAs(page, 'ahj', '/p/job-t/permits/mock-permit-t1');
@@ -77,6 +111,8 @@ test.describe('permit stamp', () => {
     await expect(approved.getByTestId('permit-approved-current').getByTestId('permit-approved-file')).toHaveCount(2);
     await expect(approved.getByTestId('permit-approved-old')).toContainText('Superseded');
     await expect(page.getByTestId('permit-stamp')).toHaveCount(0);
+    // Open says where it opens.
+    await expect(approved.getByTestId('permit-approved-open').first()).toHaveAttribute('title', 'Open in new tab');
     test.skip(testInfo.project.name !== 'desktop', 'A phone saves through the share sheet, not a download.');
     const download = page.waitForEvent('download');
     await approved.getByTestId('permit-approved-current').getByTestId('permit-approved-download').first().click();

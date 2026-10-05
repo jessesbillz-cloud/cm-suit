@@ -13,7 +13,8 @@
 // permit-review-kind-<kind>, permit-review-<cycle> (data-open), permit-review-backcheck, permit-comment-sheet,
 // permit-comment-body, permit-comment-add, permit-comment-<no>, permit-comment-answer, permit-comment-response,
 // permit-comment-send, permit-comment-response-text, permit-comment-earlier, permit-filter-<f>, permit-inspection,
-// permit-history.
+// permit-history, menu-backdrop, permit-revs, permit-rev-list, permit-rev-tally. The revs mock puts its one list on
+// 24-0001 (src/data/mock/revSeeds.ts).
 import process from 'node:process';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
@@ -130,6 +131,60 @@ test.describe('permits', () => {
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(right.getByTestId('permit-stage')).toHaveText('Submitted');
     await expect(row).toHaveAttribute('data-stage', 'submitted');
+  });
+
+  test('the menus close on a tap outside and on Escape', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The right column is the desktop frame.');
+    await page.goto('/');
+    await openAs(page, 'ahj', '/p/job-s/permits/mock-permit-s4');
+    const right = page.getByTestId('right-column');
+    await right.getByTestId('permit-move-menu').click();
+    await expect(right.getByRole('menu')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(right.getByRole('menu')).toHaveCount(0);
+    await right.getByTestId('permit-move-menu').click();
+    await expect(right.getByRole('menu')).toBeVisible();
+    // A tap on the log beside the column closes it (the backdrop takes the tap).
+    await page.getByTestId('menu-backdrop').click({ position: { x: 300, y: 300 } });
+    await expect(right.getByRole('menu')).toHaveCount(0);
+    await expect(right.getByTestId('permit-stage')).toHaveText('Submitted');
+  });
+
+  test('a backcheck comes with Undo; Backcheck again opens the same one', async ({ page }) => {
+    await page.goto('/');
+    await openAs(page, 'ahj', '/p/job-s/permits/mock-permit-s1');
+    const reviews = page.getByTestId('permit-reviews');
+    await reviews.getByTestId('permit-review-4').getByTestId('permit-review-backcheck').click();
+    await expect(reviews.getByTestId('permit-review-7')).toContainText('Review 2 BC 2');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(reviews.getByTestId('permit-review-7')).toHaveCount(0);
+    await expect(reviews.getByTestId('permit-review-backcheck')).toHaveCount(1);
+    await reviews.getByTestId('permit-review-4').getByTestId('permit-review-backcheck').click();
+    await expect(reviews.getByTestId('permit-review-7')).toContainText('Review 2 BC 2');
+  });
+
+  test("a permit shows its rev lists with the walls done; a tap opens Revs", async ({ page }) => {
+    await page.goto('/');
+    await openAs(page, 'ahj', '/p/job-s/permits/mock-permit-s1');
+    const revs = page.getByTestId('permit-revs');
+    await expect(revs.getByTestId('permit-rev-list')).toContainText('Sample Rated Walls · PH III');
+    await expect(revs.getByTestId('permit-rev-tally')).toHaveText('0 of 6 walls done');
+    await revs.getByTestId('permit-rev-list').click();
+    await expect(page).toHaveURL(/\/p\/job-s\/revs$/);
+    // Another permit has no list: no section.
+    await openAs(page, 'ahj', '/p/job-s/permits/mock-permit-s3');
+    await expect(page.getByTestId('permit-pane')).toBeVisible();
+    await expect(page.getByTestId('permit-revs')).toHaveCount(0);
+  });
+
+  test('History shows once the right column is at full width', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The right column is the desktop frame.');
+    await page.goto('/');
+    await openAs(page, 'pm', '/p/job-s/permits/mock-permit-s1');
+    await expect(page.getByTestId('permit-pane')).toBeVisible();
+    await expect(page.getByTestId('permit-history')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Full width' }).click();
+    await expect(page.getByTestId('permit-history')).toBeVisible();
   });
 
   test("the official's caseload: every permit across their jobs, by number, each naming its job", async ({ page }) => {
