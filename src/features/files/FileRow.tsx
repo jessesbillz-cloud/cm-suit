@@ -1,7 +1,8 @@
-// One file on one tight row: a tap anywhere on it opens the file; the download icon (data-testid="file-row-download")
-// downloads it in one click. The name is never cut off: it wraps, even a long name with no spaces. Desktop: size and
+// One file on one tight row: a tap on its name opens the file's pane; a tap on its icon (a photo or a PDF) opens it full
+// screen; the download icon (data-testid="file-row-download") downloads it in one click. The name is never cut off: it wraps, even a long name with no spaces. Desktop: size and
 // date sit on the name's line, right-aligned in columns. Phone: scan state, size and date make one short line under it.
 import { Download } from 'lucide-react';
+import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
@@ -10,7 +11,7 @@ import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import { TH } from '../../ui/Table';
-import { scanChip } from './scanStatus';
+import { canOpenNow, scanChip } from './scanStatus';
 
 interface FileRowProps {
   file: File;
@@ -19,6 +20,8 @@ interface FileRowProps {
   selected: boolean;
   downloading: boolean;
   onOpen: (fileId: string) => void;
+  /** Full screen (photos and PDFs that may be opened now); left out, the icon opens the pane like the name. */
+  onView?: (() => void) | undefined;
   onDownload: (file: File) => void;
 }
 
@@ -39,9 +42,12 @@ export function FileRowsHead() {
   );
 }
 
-export function FileRow({ file, timeZone, selected, downloading, onOpen, onDownload }: FileRowProps) {
+export function FileRow({ file, timeZone, selected, downloading, onOpen, onView, onDownload }: FileRowProps) {
+  const user = useUser();
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
-  const blocked = file.scan_status === 'infected' || !file.upload_complete;
+  // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
+  const blocked = !canOpenNow(file, user.id);
+  const iconBox = `flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${selected ? 'bg-card text-accent' : 'bg-page text-ink-2'}`;
   const added = timeZone === null ? '' : formatInZone(file.created_at, timeZone, 'MMM d, yyyy');
   const size = formatBytes(file.size);
   return (
@@ -52,6 +58,18 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onDownl
         selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
       }`}
     >
+      {onView ? (
+        <button
+          type="button"
+          data-testid="file-row-view"
+          aria-label={`Full screen ${file.original_name}`}
+          title="Full screen"
+          className={`${iconBox} hover:bg-accent-soft hover:text-accent`}
+          onClick={onView}
+        >
+          <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
+        </button>
+      ) : null}
       <button
         type="button"
         data-testid="file-row-open"
@@ -60,9 +78,11 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onDownl
           onOpen(file.id);
         }}
       >
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${selected ? 'bg-card text-accent' : 'bg-page text-ink-2'}`}>
-          <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
-        </span>
+        {onView ? null : (
+          <span className={iconBox}>
+            <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
+          </span>
+        )}
         <span className="min-w-0 flex-1 text-sm leading-5">
           <span data-testid="file-row-name" className="wrap-anywhere font-medium text-ink group-hover:text-accent">
             {file.original_name}

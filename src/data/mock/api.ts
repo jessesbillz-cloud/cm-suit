@@ -119,19 +119,31 @@ export async function createFolder(projectId: string, parentId: string | null, n
   return row;
 }
 
-export async function setFolderAiReads(folderId: string, aiReads: boolean, version: number): Promise<number> {
+async function changeFolder(folderId: string, version: number, patch: Partial<FolderRow>): Promise<FolderRow> {
   await delay();
   const current = allFolders().find((f) => f.id === folderId);
   if (!current || current.version !== version) throw conflictError();
-  const next: FolderRow = { ...current, ai_reads: aiReads, version: version + 1 };
+  const next: FolderRow = { ...current, ...patch, version: version + 1 };
   writeMock((m) => ({ ...m, folders: [...m.folders.filter((f) => f.id !== folderId), next] }));
-  return next.version;
+  return next;
 }
 
-/** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test, less the removed uploads. */
+export async function setFolderAiReads(folderId: string, aiReads: boolean, version: number): Promise<number> {
+  return (await changeFolder(folderId, version, { ai_reads: aiReads })).version;
+}
+
+/** A folder renamed in Files (the database also refuses the system's reserved names; the mock takes any). */
+export function renameFolder(folderId: string, version: number, name: string): Promise<FolderRow> {
+  return changeFolder(folderId, version, { name });
+}
+
+/** Fixture files (a saved copy of one wins: moved or renamed by a mock write) plus the ones added in this test, less the
+ *  removed uploads and the deleted files. */
 function allFiles(): FileRow[] {
-  const { files: saved, removedUploads } = readMock();
-  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter((f) => !removedUploads.includes(f.id));
+  const { files: saved, removedUploads, removedFiles } = readMock();
+  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter(
+    (f) => !removedUploads.includes(f.id) && !removedFiles.includes(f.id),
+  );
 }
 
 export async function files(folderId: string): Promise<FileRow[]> {

@@ -12,6 +12,8 @@ export const qk = {
   folders: (projectId: string) => ['folders', projectId] as const,
   files: (folderId: string) => ['files', folderId] as const,
   file: (fileId: string) => ['file', fileId] as const,
+  /** A file's version, whether I may delete or rename it, and its earlier versions (under qk.file: one refresh). */
+  fileFacts: (fileId: string) => ['file', fileId, 'facts'] as const,
   people: (projectId: string) => ['people', projectId] as const,
   roles: ['roles'] as const,
   profile: ['profile'] as const,

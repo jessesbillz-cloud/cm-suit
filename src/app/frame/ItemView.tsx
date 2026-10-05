@@ -74,7 +74,12 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
       />
     );
   }
-  if (tool === 'files') return <FileItem key={itemId} fileId={itemId} onOpenWindow={openWindow} />;
+  if (tool === 'files') {
+    // A phone has no windows. After a Delete the pane closes (in its own window there is nothing to go back to).
+    return (
+      <FileItem key={itemId} fileId={itemId} onOpenWindow={isPhone ? undefined : openWindow} onClose={standalone ? undefined : model.closeItem} />
+    );
+  }
   if (tool === 'bids' && model.loc.projectId !== null) return <BidsItem projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'calendar') return <CalendarItem key={itemId} projectId={model.loc.projectId} itemId={itemId} />;
   if (tool === 'dailies' && model.loc.projectId !== null) return <DailiesItem projectId={model.loc.projectId} itemId={itemId} />;
