@@ -52,7 +52,7 @@ function Month({ jobs, orgId, month, itemId, isPhone, below, onOpen }: MonthProp
   const viewer = useFileViewer();
   const empty = hours.data !== undefined && hours.data.grid.length === 0 && hours.data.budgets.length === 0;
   // The copy signed a moment ago, for this month and company only.
-  const signed = pdf.data !== undefined && pdf.variables?.month === month && pdf.variables.orgId === orgId ? pdf.data : null;
+  const signed = pdf.data !== undefined && pdf.variables.month === month && pdf.variables.orgId === orgId ? pdf.data : null;
   const actions = (
     <>
       {signed ? (
