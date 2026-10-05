@@ -174,7 +174,7 @@ test.describe('message board (SPEC §7.3)', () => {
     // The pane shows the record just opened (not the one before it) before View is pressed.
     async function viewPdf(kind: string, name: string) {
       await expect(right.getByTestId('item-kind')).toHaveText(kind);
-      await right.getByTestId('item-view').click();
+      await right.getByTestId('board-item-view').click();
       await expect(viewer.getByTestId('viewer-name')).toHaveText(name);
       await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
       await page.keyboard.press('Escape');
@@ -195,7 +195,7 @@ test.describe('message board (SPEC §7.3)', () => {
     await viewPdf('Daily report #7', 'Sample Daily Report 7.pdf');
     await openLine(page, 'CN-004 opened');
     await expect(right.getByTestId('item-kind')).toHaveText('CN-004');
-    await right.getByTestId('item-view').click();
+    await right.getByTestId('board-item-view').click();
     await expect(viewer.getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(viewer).toHaveCount(0);

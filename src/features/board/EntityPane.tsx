@@ -92,7 +92,7 @@ export function EntityPane({ frame, label, title, download, view, openExtra, chi
     view !== undefined || open !== null ? (
       <>
         {view ? (
-          <Button icon={Eye} data-testid="item-view" onClick={view}>
+          <Button icon={Eye} data-testid="board-item-view" onClick={view}>
             View
           </Button>
         ) : null}
