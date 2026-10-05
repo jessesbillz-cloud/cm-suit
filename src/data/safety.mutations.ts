@@ -159,14 +159,21 @@ export async function downloadSheet(fileId: string): Promise<void> {
 
 const topicFileSchema = z.object({ url: z.string().url(), filename: z.string().min(1) });
 
-/** Opens a library topic's PDF through its own gate (logged as a download). */
+/** A library topic's PDF through its own gate (safety_topic_file, logged as a download): a fresh signed URL and its name.
+ *  The file viewer shows the URL. */
+export async function topicFileUrl(projectId: string, topicId: string): Promise<{ url: string; filename: string }> {
+  if (isMock()) return mock.topicFile(topicId);
+  return callFunction('safety-meeting', { action: 'topic_file', project_id: projectId, topic_id: topicId }, topicFileSchema);
+}
+
+/** Saves a library topic's PDF (one click, its original filename). */
 export async function downloadTopicFile(projectId: string, topicId: string): Promise<void> {
   if (isMock()) {
     const { blob, filename } = await mock.fileBlob(topicId);
     await saveFile(blob, filename);
     return;
   }
-  const res = await callFunction('safety-meeting', { action: 'topic_file', project_id: projectId, topic_id: topicId }, topicFileSchema);
+  const res = await topicFileUrl(projectId, topicId);
   await saveFile(res.url, res.filename);
 }
 

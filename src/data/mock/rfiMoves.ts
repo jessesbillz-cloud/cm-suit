@@ -193,6 +193,13 @@ export async function saveSettings(projectId: string, version: number, answerDay
 }
 
 /** The PDF of the current state (DRAFT before issue), named like the edge function names it. */
+/** The RFI PDF for the viewer: the synthetic plan set (mock/sheet), so there are real pages to draw. */
+export async function pdfView(id: string): Promise<string> {
+  await delay(200);
+  find(read(), id);
+  return sheetUrl();
+}
+
 export async function pdf(id: string): Promise<{ blob: Blob; filename: string }> {
   await delay(200);
   const r = find(read(), id);

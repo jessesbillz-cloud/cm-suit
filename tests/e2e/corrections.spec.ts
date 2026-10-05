@@ -105,7 +105,7 @@ test.describe('corrections log (SPEC §13.4)', () => {
     // Edit: the item's photo shows with its X; take it off (Undo puts it back), add another, save.
     await page.getByTestId('cn-edit').click();
     await expect(page.getByTestId('cn-kept-photo')).toHaveCount(1);
-    await page.getByTestId('cn-kept-photo').getByRole('button').click();
+    await page.getByTestId('cn-kept-photo').getByRole('button', { name: /^Remove / }).click();
     await expect(page.getByTestId('cn-kept-photo')).toHaveCount(0);
     await page.getByRole('status').filter({ hasText: 'Photo removed' }).getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByTestId('cn-kept-photo')).toHaveCount(1);

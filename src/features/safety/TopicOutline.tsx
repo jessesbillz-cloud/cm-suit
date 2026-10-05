@@ -1,14 +1,18 @@
 // What the leader reads out: the talk's points in large type, the questions to discuss, the notes of an own topic, the
-// regulation it rests on with its official page, and the talk's PDF (one click, through its gate).
+// regulation it rests on with its official page, and the talk's PDF through its gate: View (its pages, full screen) and
+// Download (one click).
 import { useState } from 'react';
-import { ExternalLink, FileText } from 'lucide-react';
+import { Download, ExternalLink, Eye } from 'lucide-react';
 import { downloadErrorMessage, downloadFile } from '../../data/download';
-import { downloadTopicFile } from '../../data/safety.mutations';
+import { usePreviewFetch } from '../../data/preview';
+import { downloadTopicFile, topicFileUrl } from '../../data/safety.mutations';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
 
 interface Outline {
+  title: string;
   points: readonly string[];
   questions: readonly string[];
   notes?: string | undefined;
@@ -23,31 +27,50 @@ interface TopicOutlineProps {
   pdf: { fileId: string } | { topicId: string } | null;
 }
 
-function PdfButton({ projectId, pdf }: { projectId: string; pdf: NonNullable<TopicOutlineProps['pdf']> }) {
+function PdfButtons({ projectId, title, pdf }: { projectId: string; title: string; pdf: NonNullable<TopicOutlineProps['pdf']> }) {
   const toast = useToast();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const [busy, setBusy] = useState(false);
+  const save = () => ('fileId' in pdf ? downloadFile(pdf.fileId) : downloadTopicFile(projectId, pdf.topicId));
+  const item: ViewerItem = {
+    id: 'fileId' in pdf ? pdf.fileId : `topic-${pdf.topicId}`,
+    name: `${title}.pdf`,
+    kind: 'pdf',
+    url: async () => ('fileId' in pdf ? preview(pdf.fileId) : (await topicFileUrl(projectId, pdf.topicId)).url),
+    download: save,
+  };
   return (
-    <Button
-      icon={FileText}
-      loading={busy}
-      className="self-start"
-      data-testid="safety-outline-pdf"
-      onClick={() => {
-        setBusy(true);
-        const go = 'fileId' in pdf ? downloadFile(pdf.fileId) : downloadTopicFile(projectId, pdf.topicId);
-        go.then(
-          () => {
-            setBusy(false);
-          },
-          (e: unknown) => {
-            setBusy(false);
-            toast.show({ tone: 'error', message: downloadErrorMessage(e) });
-          },
-        );
-      }}
-    >
-      Download PDF
-    </Button>
+    <div className="flex flex-wrap gap-2">
+      <Button
+        icon={Eye}
+        data-testid="safety-outline-view"
+        onClick={() => {
+          viewer.open([item]);
+        }}
+      >
+        View PDF
+      </Button>
+      <Button
+        icon={Download}
+        loading={busy}
+        data-testid="safety-outline-pdf"
+        onClick={() => {
+          setBusy(true);
+          save().then(
+            () => {
+              setBusy(false);
+            },
+            (e: unknown) => {
+              setBusy(false);
+              toast.show({ tone: 'error', message: downloadErrorMessage(e) });
+            },
+          );
+        }}
+      >
+        Download PDF
+      </Button>
+    </div>
   );
 }
 
@@ -96,7 +119,7 @@ export function TopicOutline({ projectId, outline, pdf }: TopicOutlineProps) {
           <p className="text-[13px] text-ink-2">{outline.source}</p>
         )
       ) : null}
-      {pdf ? <PdfButton projectId={projectId} pdf={pdf} /> : null}
+      {pdf ? <PdfButtons projectId={projectId} title={outline.title} pdf={pdf} /> : null}
     </section>
   );
 }

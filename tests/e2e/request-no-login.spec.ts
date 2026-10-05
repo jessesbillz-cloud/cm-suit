@@ -79,7 +79,7 @@ test.describe('requests with no login (SPEC §6.4 #4)', () => {
     await expect(page.getByTestId('ir-pane')).toContainText('Sample north wall framing');
   });
 
-  test('the status link shows a postponement and, once the IR is made, View IR (0075)', async ({ page }) => {
+  test('the status link shows a postponement and, once the IR is made, View IR full screen (0075)', async ({ page }) => {
     await open(page, `/r/job-a?t=${TOKEN}`);
     await page.getByTestId('public-time').selectOption('10:00');
     await page.getByTestId('public-items').fill('Sample shear wall nailing, line 3');
@@ -124,8 +124,12 @@ test.describe('requests with no login (SPEC §6.4 #4)', () => {
     await expect(pane.getByTestId('ir-view-ir')).toBeVisible();
     await open(page, statusUrl);
     await expect(page.getByTestId('public-ir-result')).toContainText('Approved');
-    await expect(page.getByTestId('public-view-ir')).toBeVisible();
     await expect(page.getByTestId('public-ir-postponed')).toHaveCount(0);
+    // View IR opens its pages full screen (the mock's synthetic set); Escape closes it.
+    await page.getByTestId('public-view-ir').click();
+    await expect(page.getByTestId('file-viewer').getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('file-viewer')).toHaveCount(0);
   });
 
   test('a wrong status link says so', async ({ page }) => {

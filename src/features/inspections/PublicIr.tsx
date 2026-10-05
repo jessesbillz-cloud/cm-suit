@@ -1,41 +1,61 @@
-// "View IR" on the status link (0075): the request's IR PDF by the same receipt, once made. One click saves it with its
-// own filename (lib/saveFile); the server signs a fresh URL and logs the download each time.
-import { FileText } from 'lucide-react';
-import { messageOf } from '../../data/errors';
-import { usePublicIr } from '../../data/requestNoLogin';
+// "View IR" on the status link (0075): the request's IR PDF by the same receipt, once made, full screen in the file
+// viewer (its pages; Download inside), and Download beside it (one click, its own filename: lib/saveFile). The server
+// signs a fresh URL and logs it as a download each time.
+import { useState } from 'react';
+import { Download, FileText } from 'lucide-react';
+import { downloadErrorMessage } from '../../data/download';
+import { publicIrFile } from '../../data/requestNoLogin';
 import { saveFile } from '../../lib/saveFile';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { useToast } from '../../ui/Toast';
 
-export function PublicIr({ projectId, receipt }: { projectId: string; receipt: string }) {
-  const ir = usePublicIr(projectId, receipt);
+export function PublicIr({ projectId, receipt, number }: { projectId: string; receipt: string; number: number }) {
+  const viewer = useFileViewer();
   const toast = useToast();
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    const f = await publicIrFile(projectId, receipt);
+    await saveFile(f.url, f.filename);
+  };
+  const item: ViewerItem = {
+    id: `public-ir-${receipt}`,
+    name: `IR ${String(number)}`,
+    kind: 'pdf',
+    url: async () => (await publicIrFile(projectId, receipt)).url,
+    download: save,
+  };
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex gap-2">
       <Button
         size="lg"
         variant="primary"
         icon={FileText}
-        className="w-full"
-        loading={ir.isPending}
+        className="flex-1"
         data-testid="public-view-ir"
         onClick={() => {
-          ir.mutate(undefined, {
-            onSuccess: (file) => {
-              saveFile(file.url, file.filename).catch((e: unknown) => {
-                toast.show({ tone: 'error', message: `Not saved: ${messageOf(e)}` });
-              });
-            },
-          });
+          viewer.open([item]);
         }}
       >
         View IR
       </Button>
-      {ir.isError ? (
-        <p role="alert" className="text-sm text-danger">
-          {messageOf(ir.error)}
-        </p>
-      ) : null}
+      <Button
+        size="lg"
+        icon={Download}
+        loading={saving}
+        aria-label="Download IR"
+        data-testid="public-download-ir"
+        onClick={() => {
+          setSaving(true);
+          save()
+            .catch((e: unknown) => {
+              toast.show({ tone: 'error', message: downloadErrorMessage(e) });
+            })
+            .finally(() => {
+              setSaving(false);
+            });
+        }}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { throwIfError } from './errors';
 import { callFunction } from './functions';
 import { qk } from './keys';
 import * as mock from './mock/inspections';
+import * as mockIrFiles from './mock/irFiles';
 import { isMock } from './mock';
 import { isAbortError, removeOwnUpload, removeUnfinishedUpload, uploadFile } from './upload';
 import { irDownloadSchema, type IrRequest, type IrRowRaw, type IrWhen, type NewBlock, type NewIrRequest } from './inspections.types';
@@ -204,15 +205,25 @@ export function useRemoveIrUpload() {
   return useMutation({ mutationFn: (fileId: string) => removeOwnUpload(fileId, user.id) });
 }
 
-/** "View IR" and a request's own files: a fresh signed URL per click, the original filename (lib/saveFile). */
+/**
+ * A request's IR PDF (no `fileId`) or one of its own files, through the request's gate (authorize_ir_file: who may see
+ * the request, the scan rules, a download line): a fresh signed URL and the original filename. The file viewer shows
+ * that URL; Download saves it.
+ */
+export async function irFileUrl(requestId: string, fileId?: string): Promise<{ url: string; filename: string }> {
+  if (isMock()) return mockIrFiles.irFile(requestId, fileId);
+  return callFunction('ir-pdf', { action: 'download', request_id: requestId, ...(fileId ? { file_id: fileId } : {}) }, irDownloadSchema);
+}
+
+/** One click: the IR PDF or a request's file, saved with its original filename (lib/saveFile). */
+export async function saveIrFile(requestId: string, fileId?: string): Promise<void> {
+  const f = await irFileUrl(requestId, fileId);
+  await saveFile(f.url, f.filename);
+}
+
+/** Download IR and a request's own files, with a spinner per file. */
 export function useDownloadIrFile() {
-  return useMutation({
-    mutationFn: async (v: { requestId: string; fileId?: string | undefined }) => {
-      if (isMock()) throw new Error('Downloads are not available in the e2e mock.');
-      const res = await callFunction('ir-pdf', { action: 'download', request_id: v.requestId, ...(v.fileId ? { file_id: v.fileId } : {}) }, irDownloadSchema);
-      await saveFile(res.url, res.filename);
-    },
-  });
+  return useMutation({ mutationFn: (v: { requestId: string; fileId?: string | undefined }) => saveIrFile(v.requestId, v.fileId) });
 }
 
 export function useAddBlock() {

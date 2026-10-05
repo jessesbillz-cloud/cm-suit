@@ -3,16 +3,20 @@
 // opens its form (a note and photos for the inspector); the inspector's Corrected / Sign off / Reopen take one tap, with
 // Undo and "Add note" on the item afterwards (AfterStep), never an "are you sure?" step.
 import { useState } from 'react';
-import { Download, Pencil } from 'lucide-react';
+import { Download, Eye, Pencil } from 'lucide-react';
 import { useCorrectionStep } from '../../data/corrections.mutations';
+import { usePhotoFiles } from '../../data/corrections.queries';
 import type { CorrectionHistoryRow, CorrectionRow, CorrectionStep } from '../../data/corrections.types';
 import { messageOf } from '../../data/errors';
+import { usePreviewFetch } from '../../data/preview';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { PaneSection } from '../../ui/ReadingPane';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { useDownload } from '../files/useDownload';
+import { fileViewerItem } from '../files/viewerItems';
 import { AfterStep } from './AfterStep';
 import { EditCorrection } from './EditCorrection';
 import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone, stepsFor, type Caps } from './model';
@@ -32,24 +36,43 @@ interface CorrectionBodyProps {
   isPhone: boolean;
 }
 
+/** The notice: its number, and its file (View full screen, Download in one click). */
 function Notice({ row }: { row: CorrectionRow }) {
   const download = useDownload();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const file = usePhotoFiles(row.project_id, row.notice_file_id === null ? [] : [row.notice_file_id]);
   if (row.notice_ref === '' && row.notice_file_id === null) return null;
   const fileId = row.notice_file_id;
+  const f = file.data?.[0];
+  const item = f ? fileViewerItem(f, preview) : null;
   return (
-    <p className="flex flex-wrap items-center gap-2 text-sm">
+    <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="cn-notice">
       <span className="text-ink-2">Notice</span>
       {row.notice_ref !== '' ? <span className="break-words text-ink">{row.notice_ref}</span> : null}
+      {fileId !== null && item !== null && item.kind !== 'other' ? (
+        <Button
+          size="sm"
+          icon={Eye}
+          data-testid="cn-notice-view"
+          onClick={() => {
+            viewer.open([item]);
+          }}
+        >
+          View
+        </Button>
+      ) : null}
       {fileId !== null ? (
         <Button
           size="sm"
           icon={Download}
           loading={download.pendingId === fileId}
+          data-testid="cn-notice-download"
           onClick={() => {
-            download.start(fileId);
+            download.start(fileId, f?.size);
           }}
         >
-          Notice file
+          {f ? 'Download' : 'Notice file'}
         </Button>
       ) : null}
     </p>

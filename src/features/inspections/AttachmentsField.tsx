@@ -1,15 +1,20 @@
 // Photos or PDFs on a request (or result photos): one button, uploaded right away through the one uploader (photos
 // compressed first), with a progress bar and Stop while they go up. A new request's file taken off before sending
 // leaves the job's request folder too (my own upload, soft-deleted). A request's result photos show as pictures
-// (ui/Thumb, opened through the request); a new request's files as a list of names.
-import { useRef } from 'react';
+// (opened through the request); a new request's files as a list of names. A tap on either opens the file viewer over
+// the list (Download and Remove inside); a result photo taken off comes back with Undo.
+import { useEffect, useRef, useState } from 'react';
 import { Paperclip, X } from 'lucide-react';
+import { downloadErrorMessage, downloadFile } from '../../data/download';
 import { isAbortError } from '../../data/upload';
 import { messageOf } from '../../data/errors';
-import { useIrUpload, useRemoveIrUpload, type IrUpload } from '../../data/inspections.mutations';
+import { saveIrFile, useIrUpload, useRemoveIrUpload, type IrUpload } from '../../data/inspections.mutations';
+import { usePreviewFetch } from '../../data/preview';
+import { fileKind } from '../../lib/fileKind';
 import { Button } from '../../ui/Button';
-import { Icon } from '../../ui/Icon';
-import { PHOTO_BOX, PHOTO_GRID, PHOTO_REMOVE, Thumb } from '../../ui/Thumb';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
+import { PhotoTile } from '../../ui/PhotoTile';
+import { PHOTO_GRID } from '../../ui/Thumb';
 import { useToast } from '../../ui/Toast';
 
 interface AttachmentsFieldProps {
@@ -44,6 +49,14 @@ export function AttachmentsField({ projectId, label, files, onChange, photosOnly
   const { upload, progress, stop } = useIrUpload(projectId);
   const removeUpload = useRemoveIrUpload();
   const toast = useToast();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const [saving, setSaving] = useState<string | null>(null);
+  // Undo runs after later saves: it goes through the newest onChange (a saved request's carries the newest version).
+  const latest = useRef(onChange);
+  useEffect(() => {
+    latest.current = onChange;
+  });
 
   function picked(list: FileList | null) {
     const chosen = list ? Array.from(list) : [];
@@ -70,6 +83,37 @@ export function AttachmentsField({ projectId, label, files, onChange, photosOnly
         toast.show({ tone: 'error', message: `Not removed: ${messageOf(e)}` });
       },
     });
+  }
+
+  /** A result photo: off the request (the file stays in the folder), with Undo. */
+  function unlink(f: IrUpload) {
+    onChange(files.filter((x) => x.id !== f.id));
+    toast.show({ message: 'Photo removed', action: { label: 'Undo', onClick: () => { latest.current([...files]); } } });
+  }
+
+  // A saved request's files open through the request's gate; a new request's are my own uploads, in their folder.
+  const items: ViewerItem[] = files.map((f) => ({
+    id: f.id,
+    name: f.name,
+    kind: photosOnly ? 'image' : fileKind(f.name),
+    url: () => preview(f.id, requestId === undefined ? undefined : { requestId }),
+    download: () => (requestId === undefined ? downloadFile(f.id) : saveIrFile(requestId, f.id)),
+    remove: () => {
+      if (requestId === undefined) takeOff(f);
+      else unlink(f);
+    },
+  }));
+
+  function save(item: ViewerItem) {
+    setSaving(item.id);
+    item
+      .download()
+      .catch((e: unknown) => {
+        toast.show({ tone: 'error', message: downloadErrorMessage(e) });
+      })
+      .finally(() => {
+        setSaving(null);
+      });
   }
 
   return (
@@ -101,28 +145,42 @@ export function AttachmentsField({ projectId, label, files, onChange, photosOnly
       {upload.isError && !isAbortError(upload.error) ? <p className="text-sm text-danger">{messageOf(upload.error)}</p> : null}
       {files.length > 0 && requestId !== undefined ? (
         <ul className={PHOTO_GRID} aria-label={label}>
-          {files.map((f) => (
-            <li key={f.id} className={PHOTO_BOX} data-testid="ir-photo">
-              <Thumb fileId={f.id} via={{ requestId }} alt={f.name} fill />
-              <button
-                type="button"
-                aria-label={`Remove ${f.name}`}
-                className={PHOTO_REMOVE}
-                onClick={() => {
-                  onChange(files.filter((x) => x.id !== f.id));
-                }}
-              >
-                <Icon icon={X} size={14} />
-              </button>
-            </li>
+          {files.map((f, i) => (
+            <PhotoTile
+              key={f.id}
+              fileId={f.id}
+              via={{ requestId }}
+              name={f.name}
+              testId="ir-photo"
+              onOpen={() => {
+                viewer.open(items, i);
+              }}
+              downloading={saving === f.id}
+              onDownload={() => {
+                const item = items[i];
+                if (item) save(item);
+              }}
+              onRemove={() => {
+                unlink(f);
+              }}
+            />
           ))}
         </ul>
       ) : null}
       {files.length > 0 && requestId === undefined ? (
         <ul className="flex flex-col gap-1" data-testid="ir-attach-list">
-          {files.map((f) => (
+          {files.map((f, i) => (
             <li key={f.id} className="flex items-center gap-2 rounded-md border border-line px-2 py-1 text-sm">
-              <span className="min-w-0 flex-1 break-words">{f.name}</span>
+              <button
+                type="button"
+                className="min-h-8 min-w-0 flex-1 break-words text-left hover:text-accent"
+                data-testid="ir-attach-open"
+                onClick={() => {
+                  viewer.open(items, i);
+                }}
+              >
+                {f.name}
+              </button>
               <Button
                 size="sm"
                 variant="quiet"

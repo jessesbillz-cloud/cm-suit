@@ -1,14 +1,17 @@
 // Edit an item's typed fields, its own photos (take one off, with Undo; add more with Camera / Upload) and the notice
 // (the creator or an inspector; 0026 allows each). Saves carry the version it was read at.
 import { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useCorrectionFileUpload, useSaveCorrection } from '../../data/corrections.mutations';
 import { usePhotoFiles } from '../../data/corrections.queries';
 import { ITEM_PHOTO_LIMIT, type CorrectionRow } from '../../data/corrections.types';
+import { downloadFile } from '../../data/download';
 import { messageOf } from '../../data/errors';
+import { usePreviewFetch } from '../../data/preview';
 import { Button } from '../../ui/Button';
-import { Icon } from '../../ui/Icon';
-import { PHOTO_BOX, PHOTO_GRID, PHOTO_REMOVE, Thumb } from '../../ui/Thumb';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
+import { PhotoTile } from '../../ui/PhotoTile';
+import { PHOTO_GRID } from '../../ui/Thumb';
 import { useToast } from '../../ui/Toast';
 import { CorrectionFields, draftOf, fieldsOf, type FieldsDraft } from './CorrectionFields';
 import { cnLabel } from './model';
@@ -22,27 +25,39 @@ interface KeptProps {
   onRemove: (id: string) => void;
 }
 
-/** The photos already on the item, each with its X. */
+/** The photos already on the item, each with its X; a tap opens them full screen (Remove inside too). */
 function KeptPhotos({ projectId, ids, onRemove }: KeptProps) {
   const files = usePhotoFiles(projectId, ids);
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   if (ids.length === 0) return null;
-  const nameOf = (id: string) => files.data?.find((f) => f.id === id)?.original_name ?? 'Photo';
+  const rowOf = (id: string) => files.data?.find((f) => f.id === id);
+  const nameOf = (id: string) => rowOf(id)?.original_name ?? 'Photo';
+  const items: ViewerItem[] = ids.map((id) => ({
+    id,
+    name: nameOf(id),
+    kind: 'image',
+    url: () => preview(id),
+    download: () => downloadFile(id, rowOf(id)?.size),
+    remove: () => {
+      onRemove(id);
+    },
+  }));
   return (
     <ul className={PHOTO_GRID} aria-label="Photos on this item" data-testid="cn-edit-photos">
-      {ids.map((id) => (
-        <li key={id} className={PHOTO_BOX} data-testid="cn-kept-photo">
-          <Thumb fileId={id} alt={nameOf(id)} fill />
-          <button
-            type="button"
-            aria-label={`Remove ${nameOf(id)}`}
-            className={PHOTO_REMOVE}
-            onClick={() => {
-              onRemove(id);
-            }}
-          >
-            <Icon icon={X} size={14} />
-          </button>
-        </li>
+      {ids.map((id, i) => (
+        <PhotoTile
+          key={id}
+          fileId={id}
+          name={nameOf(id)}
+          testId="cn-kept-photo"
+          onOpen={() => {
+            viewer.open(items, i);
+          }}
+          onRemove={() => {
+            onRemove(id);
+          }}
+        />
       ))}
     </ul>
   );

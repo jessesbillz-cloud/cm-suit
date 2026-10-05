@@ -8,6 +8,7 @@ import type { LinkToken, Meeting, MeetingKey, MeetingRow, PublicMeeting, Reopene
 import { MOCK_PEOPLE } from './fixtures';
 import { mockUser } from './index';
 import { DAY, HOUR, seedMeetings, STARTER_TOPICS, TZ, type StoredMeeting, type StoredSignin } from './safetySeeds';
+import { sheetUrl } from './sheet';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-safety';
@@ -266,6 +267,19 @@ export async function fileBlob(fileId: string): Promise<{ blob: Blob; filename: 
   const m = read().meetings.find((x) => x.pdf_file_id === fileId);
   const name = m ? `${m.kind === 'tailgate' ? 'Tailgate' : 'Meeting'} ${String(m.number).padStart(3, '0')} Sample Job A.pdf` : 'Sample talk.pdf';
   return { blob: new Blob([`Synthetic e2e sign-in sheet ${fileId}\n`], { type: 'application/pdf' }), filename: name };
+}
+
+/** A meeting's sign-in sheet (closed, its PDF made). */
+export function isSheet(fileId: string): boolean {
+  return read().meetings.some((m) => m.pdf_file_id === fileId);
+}
+
+/** safety_topic_file: a topic with a PDF opens it (the synthetic plan set, so the viewer has pages to draw). */
+export async function topicFile(topicId: string): Promise<{ url: string; filename: string }> {
+  await delay();
+  const t = [...STARTER_TOPICS, ...read().topics].find((x) => x.id === topicId);
+  if (!t?.file_id) throw new DataError('That item no longer exists.', 'P0002', 'not_found');
+  return { url: sheetUrl(), filename: `${t.title}.pdf` };
 }
 
 /** The public page (no session): the meeting by its token, while it takes signatures. */

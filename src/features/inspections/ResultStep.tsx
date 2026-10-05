@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { messageOf } from '../../data/errors';
 import { useSetResult, type ResultInput } from '../../data/inspections.decide';
 import type { IrUpload } from '../../data/inspections.mutations';
+import { useIrFileNames } from '../../data/inspections.queries';
 import type { IrRequest } from '../../data/inspections.types';
 import type { IrRevItem } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
@@ -37,7 +38,8 @@ export function ResultStep({ row, revs }: ResultStepProps) {
   const toast = useToast();
   const [note, setNote] = useState(row.result_note ?? '');
   const result = resultOf(row.result);
-  const photos: IrUpload[] = row.result_photo_ids.map((id, i) => ({ id, name: `Photo ${String(i + 1)}` }));
+  const names = useIrFileNames(row.project_id, row.result_photo_ids);
+  const photos: IrUpload[] = row.result_photo_ids.map((id, i) => ({ id, name: names.data?.[id] ?? `Photo ${String(i + 1)}` }));
 
   function save(patch: Partial<Omit<ResultInput, 'row'>>) {
     // Walls decide an OFS request's result and its note: photos keep them as the database has them.

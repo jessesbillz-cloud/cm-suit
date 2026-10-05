@@ -152,11 +152,8 @@ export function useRequestStatus(projectId: string, receipt: string) {
 
 /**
  * The request's IR PDF by its receipt (0075): a fresh short-lived URL and the filename, per call (the server logs each
- * as a download). Download saves it with lib/saveFile; the full-screen viewer opens the same URL.
+ * as a download). The file viewer shows the URL; Download saves it with lib/saveFile.
  */
-export function usePublicIr(projectId: string, receipt: string) {
-  return useMutation({
-    mutationFn: (): Promise<PublicIr> =>
-      isMock() ? mock.ir(projectId, receipt) : callFunction('request-link', { action: 'ir', project_id: projectId, receipt }, publicIrSchema),
-  });
+export function publicIrFile(projectId: string, receipt: string): Promise<PublicIr> {
+  return isMock() ? mock.ir(projectId, receipt) : callFunction('request-link', { action: 'ir', project_id: projectId, receipt }, publicIrSchema);
 }
