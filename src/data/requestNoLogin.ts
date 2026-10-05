@@ -1,7 +1,8 @@
 // Inspection requests from the request link with no login (SPEC §6.4 #4, migrations 0055 and 0057). No session:
 // everything goes through the public request-link function, which answers the outsider's day (time, length, type,
 // color), takes the request (or the revs request, naming its walls and items) with its photos / PDFs as one multipart
-// form, and answers a request's status by its private receipt. The walls and a request's map: requestNoLoginRevs.ts.
+// form, and answers a request's status by its private receipt (live: every 30 s, like MDR's contractor view) and its
+// IR PDF once made (0075). The walls and a request's map: requestNoLoginRevs.ts.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { callFunction } from './functions';
 import type { CalendarRow } from './inspections.types';
@@ -13,9 +14,11 @@ import * as mockRevs from './mock/requestNoLoginRevs';
 import type { LinkKey } from './requestLink.types';
 import {
   publicDaySchema,
+  publicIrSchema,
   requestFactsSchema,
   submittedSchema,
   type PublicDay,
+  type PublicIr,
   type PublicOfsInput,
   type PublicRequestInput,
   type RequestFacts,
@@ -129,6 +132,10 @@ export function useSubmitPublicOfs(key: LinkKey) {
   });
 }
 
+/** A request's status refreshes this often while on screen (MDR's contractor view); a hidden tab pauses it (TanStack
+ *  Query's default: no refetch in the background). */
+const STATUS_LIVE_MS = 30_000;
+
 /** A request sent through the link, by its private receipt (the status link). A wrong one rejects with 404. */
 export function useRequestStatus(projectId: string, receipt: string) {
   return useQuery({
@@ -138,5 +145,18 @@ export function useRequestStatus(projectId: string, receipt: string) {
         ? mock.status(projectId, receipt)
         : callFunction('request-link', { action: 'status', project_id: projectId, receipt }, requestFactsSchema),
     retry: false,
+    refetchInterval: STATUS_LIVE_MS,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * The request's IR PDF by its receipt (0075): a fresh short-lived URL and the filename, per call (the server logs each
+ * as a download). Download saves it with lib/saveFile; the full-screen viewer opens the same URL.
+ */
+export function usePublicIr(projectId: string, receipt: string) {
+  return useMutation({
+    mutationFn: (): Promise<PublicIr> =>
+      isMock() ? mock.ir(projectId, receipt) : callFunction('request-link', { action: 'ir', project_id: projectId, receipt }, publicIrSchema),
   });
 }

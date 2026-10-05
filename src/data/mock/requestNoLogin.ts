@@ -8,13 +8,14 @@ import { parseProjectSettings } from '../../lib/settings';
 import { FunctionError } from '../functions';
 import type { IrRequest, IrRowRaw } from '../inspections.types';
 import type { LinkKey } from '../requestLink.types';
-import type { PublicDayAnswer, PublicRequestInput, RequestFacts, Submitted } from '../requestNoLogin.types';
+import type { PublicDayAnswer, PublicIr, PublicRequestInput, RequestFacts, Submitted } from '../requestNoLogin.types';
 import { addUploadedFile } from './api';
 import { MOCK_PROJECTS } from './fixtures';
 import { permitJobName } from './permitJobs';
 import { addLinkRequest, folder, formContext, serverDay, serverRequest } from './inspections';
 import { projectSettings } from './jobs';
 import { jobFor } from './requestLink';
+import { sheetUrl } from './sheet';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-request-receipts';
@@ -62,6 +63,12 @@ function facts(projectId: string, r: IrRowRaw | IrRequest, special: string | nul
     // link_request_answer: the job has the GC step on or this request went through it; whether it is with OFS.
     gc_step: parseProjectSettings(projectSettings(projectId)).ir_gc_approval || r.gc_at !== null,
     ofs_sent: r.ofs_sent_at !== null,
+    // 0075: the postponement while postponed, the attendance call, whether the IR is made.
+    postpone_reason: r.status === 'postponed' ? r.postpone_reason : null,
+    postpone_note: r.status === 'postponed' ? r.postpone_note : null,
+    postpone_until: r.status === 'postponed' ? r.postpone_until : null,
+    attendance: r.attendance,
+    has_ir: r.ir_file_id !== null,
   };
 }
 
@@ -106,4 +113,13 @@ export async function status(projectId: string, receipt: string): Promise<Reques
   await delay();
   const row = await receiptRequest(projectId, receipt);
   return facts(projectId, row, row.ir_special_kinds?.name ?? null);
+}
+
+/** link_request_ir_file by the receipt: the IR once made (a synthetic PDF), else the database's refusal. */
+export async function ir(projectId: string, receipt: string): Promise<PublicIr> {
+  await delay();
+  const row = await receiptRequest(projectId, receipt);
+  if (row.ir_file_id === null) throw refuse(400, 'There is no IR yet.');
+  const [y, mo, d] = row.request_date.split('-');
+  return { url: sheetUrl(), filename: `IR ${String(row.number)} ${jobName(projectId)} ${mo ?? ''}-${d ?? ''}-${y ?? ''}.pdf` };
 }

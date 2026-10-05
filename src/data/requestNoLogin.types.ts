@@ -51,8 +51,20 @@ export const requestFactsSchema = z.object({
   gc_step: z.boolean(),
   /** An OFS request the inspector has sent to OFS (0061): the tracker's OFS step. */
   ofs_sent: z.boolean(),
+  /** 0075: while postponed, why, the inspector's note to the requester and the expected day; null otherwise. */
+  postpone_reason: z.string().nullable(),
+  postpone_note: z.string().nullable(),
+  postpone_until: z.string().nullable(),
+  /** The inspector's attendance call (be_present / alone), or null. */
+  attendance: z.string().nullable(),
+  /** The IR PDF is made: View IR through the receipt. */
+  has_ir: z.boolean(),
 });
 export type RequestFacts = z.infer<typeof requestFactsSchema>;
+
+/** The request's IR PDF by its receipt (0075): a short-lived URL (downloads with this filename). */
+export const publicIrSchema = z.object({ url: z.string().url(), filename: z.string().min(1) });
+export type PublicIr = z.infer<typeof publicIrSchema>;
 
 /** ...plus, once, the private token of its status link. */
 export const submittedSchema = requestFactsSchema.extend({ receipt: z.string().regex(/^[A-Za-z0-9_-]{43}$/) });

@@ -37,6 +37,18 @@ export function useUndoRequestLink(projectId: string) {
   });
 }
 
+/** Puts my previous hub link back (15 minutes, 0075). */
+export function useUndoRequestHub() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      if (isMock()) return mock.undoRotateHub();
+      throwIfErrorMaybe(await supabase.rpc('undo_request_hub_rotation'));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: qk.requestHub }),
+  });
+}
+
 export function useRotateRequestHub() {
   const qc = useQueryClient();
   return useMutation({
