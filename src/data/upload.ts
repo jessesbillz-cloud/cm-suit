@@ -36,11 +36,6 @@ const registeredSchema = z.object({
 });
 type Registered = z.infer<typeof registeredSchema>;
 
-type LooseRpc = (
-  fn: string,
-  args: Record<string, unknown>,
-) => PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>;
-
 /** My own unfinished row for the same file in the same folder: reusing it is what lets a re-picked file resume. */
 async function findUnfinished(a: UploadArgs): Promise<Registered | null> {
   return throwIfErrorMaybe(
@@ -61,10 +56,8 @@ async function findUnfinished(a: UploadArgs): Promise<Registered | null> {
 async function registerFile(a: UploadArgs): Promise<Registered> {
   const existing = await findUnfinished(a);
   if (existing) return existing;
-  // TODO(lead): register_file(p_folder_id uuid, p_original_name text, p_mime text, p_size bigint) returns public.files
-  // is requested in the Phase 0 report. Until it is in the migrations (and so in database.types.ts), call it loosely.
-  const rpc = supabase.rpc.bind(supabase) as unknown as LooseRpc;
-  const res = await rpc('register_file', {
+  // register_file is in the migrations and the generated types: called typed (the loose cast no longer type-checks).
+  const res = await supabase.rpc('register_file', {
     p_folder_id: a.folderId,
     p_original_name: a.file.name,
     p_mime: a.file.type || 'application/octet-stream',
