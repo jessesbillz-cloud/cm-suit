@@ -1,8 +1,10 @@
-// e2e mock of photo previews: like the server, a picture only for a photo file (anything else is refused), here a
-// synthetic job-site scene drawn as an SVG data URL, varied by the file id so tiles differ. Nothing is stored.
+// e2e mock of previews: like the server, a photo or a PDF only (anything else is refused). A photo is a synthetic
+// job-site scene drawn as an SVG data URL, varied by the file id so tiles differ; a PDF is the synthetic plan set
+// (mock/sheet), so the viewer has real pages to draw. Nothing is stored.
 import { isPhotoFile } from '../../lib/photos';
 import { DataError } from '../errors';
 import * as api from './api';
+import { sheetUrl } from './sheet';
 
 function seedOf(id: string): number {
   let n = 7;
@@ -37,9 +39,14 @@ function sitePhoto(seed: number): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
+function isPdf(name: string, mime: string): boolean {
+  return mime.toLowerCase() === 'application/pdf' && /\.pdf$/i.test(name);
+}
+
 export async function previewUrl(fileId: string): Promise<string> {
   const f = await api.file(fileId);
   if (!f) throw new DataError('That file no longer exists.', 'P0002', null);
-  if (!isPhotoFile(f.original_name, f.mime)) throw new DataError('not_image', '42501', null);
-  return sitePhoto(seedOf(fileId));
+  if (isPhotoFile(f.original_name, f.mime)) return sitePhoto(seedOf(fileId));
+  if (isPdf(f.original_name, f.mime)) return sheetUrl();
+  throw new DataError('not_image', '42501', null);
 }

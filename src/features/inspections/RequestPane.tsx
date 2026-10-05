@@ -102,6 +102,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
       onDownloadAttachment={(id) => {
         view(id);
       }}
+      attachmentVia={{ requestId: row.id }}
       downloadingId={download.isPending ? download.variables.fileId : null}
       onHistory={() => {
         setHistory(!history);

@@ -6,7 +6,7 @@ import { MapPin } from 'lucide-react';
 import type { RevArea, WallLine } from '../../../data/revs.types';
 import { usePlanSheetUrl } from '../../../data/sheetUrl';
 import { Button } from '../../../ui/Button';
-import { renderRegion, type PDFPageProxy } from '../map/pdfjs';
+import { renderRegion, type PDFPageProxy } from '../../../lib/pdf/pdfjs';
 import { useSheetPage } from '../map/useSheetPage';
 import { cappedDensity } from '../map/viewport';
 import { useWidth } from '../wall3d/useWidth';

@@ -1,7 +1,9 @@
 // Files: a job opens with the folders its company kind uses most, in that order (migration 0027), an empty
 // "Emailed in" stays out of the tree, and a new folder asks one question. Uploads: files dropped on the list go up,
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
-// be removed (migration 0065). Runs only against the e2e mock data layer.
+// be removed (migration 0065). The file viewer (migration 0074): a PDF's pages and a photo in the file's pane, Full
+// screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
+// mock data layer.
 import process from 'node:process';
 import { expect, test, type JSHandle, type Page } from '@playwright/test';
 
@@ -186,5 +188,89 @@ test.describe('files: uploads', () => {
     await page.reload();
     await expect(page.getByTestId('file-row').first()).toBeVisible();
     await expect(page.getByTestId('upload-leftover')).toHaveCount(0);
+  });
+});
+
+test.describe('files: the viewer, Delete and Rename', () => {
+  test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
+
+  test("a PDF opens in its pane, page by page, and Full screen shows it over everything; Escape closes it", async ({ page }) => {
+    await openPlans(page);
+    await fileNamed(page, 'Sample Plan Set A.pdf').click();
+    const preview = page.getByTestId('file-preview');
+    await expect(preview.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await expect(preview.getByTestId('viewer-pdf-page')).toHaveCount(3);
+
+    await preview.getByTestId('file-preview-full').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample Plan Set A.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await viewer.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(viewer.getByTestId('viewer-zoom')).toContainText('125%');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+  });
+
+  test("a row's icon opens the folder's PDFs full screen; the arrows and the keys walk them", async ({ page }) => {
+    await openPlans(page);
+    await page.getByTestId('file-row-view').first().click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('1 of 3');
+    await expect(viewer.getByTestId('viewer-prev')).toBeDisabled();
+    await viewer.getByTestId('viewer-next').click();
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('2 of 3');
+    await page.keyboard.press('ArrowRight');
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('3 of 3');
+    await expect(viewer.getByTestId('viewer-next')).toBeDisabled();
+    await page.keyboard.press('ArrowLeft');
+    await expect(viewer.getByTestId('viewer-count')).toHaveText('2 of 3');
+    await viewer.getByTestId('viewer-close').click();
+    await expect(viewer).toHaveCount(0);
+  });
+
+  test('a photo shows whole in its pane and full screen, and a tap zooms it', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files?folder=job-b-photos');
+    await fileNamed(page, 'Sample corridor photo.jpg').click();
+    await expect(page.getByTestId('file-preview').getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
+    await page.getByTestId('file-preview-full').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
+    await viewer.getByTestId('viewer-image').click();
+    await expect(viewer.getByTestId('viewer-zoom')).toContainText('250%');
+    await viewer.getByRole('button', { name: 'Fit' }).click();
+    await expect(viewer.getByTestId('viewer-zoom')).toContainText('100%');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+  });
+
+  test('Delete takes the file away at once, and Undo brings it back', async ({ page }) => {
+    await openPlans(page);
+    await fileNamed(page, 'Sample Plan Set A.pdf').click();
+    await page.getByTestId('file-delete').click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(0);
+    await expect(page.getByTestId('file-preview')).toHaveCount(0);
+    const toast = page.getByRole('status').filter({ hasText: 'Sample Plan Set A.pdf deleted.' });
+    await toast.getByRole('button', { name: 'Undo' }).click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(1);
+  });
+
+  test('Rename saves the new name in the pane and the list', async ({ page }) => {
+    await openPlans(page);
+    await fileNamed(page, 'Sample Plan Set A.pdf').click();
+    await page.getByTestId('file-rename').click();
+    await page.getByTestId('file-rename-name').fill('Sample Plan Set A rev 2.pdf');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Sample Plan Set A rev 2.pdf' })).toBeVisible();
+    await expect(fileNamed(page, 'Sample Plan Set A rev 2.pdf')).toHaveCount(1);
+  });
+
+  test('a signed daily report PDF shows, but offers no Delete or Rename', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files?folder=job-b-reports');
+    await fileNamed(page, 'Sample Daily Report 7.pdf').click();
+    await expect(page.getByTestId('file-preview').getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeEnabled();
+    await expect(page.getByTestId('file-delete')).toHaveCount(0);
+    await expect(page.getByTestId('file-rename')).toHaveCount(0);
   });
 });

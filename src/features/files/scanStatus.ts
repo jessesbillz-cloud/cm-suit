@@ -21,3 +21,21 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'ima
 export function opensBeforeScan(mime: string, name: string): boolean {
   return PHOTO_TYPES.includes(mime.toLowerCase()) && /\.(jpe?g|png|webp|heic|heif)$/i.test(name);
 }
+
+interface Openable {
+  mime: string;
+  original_name: string;
+  scan_status: string;
+  upload_complete: boolean;
+  created_by: string | null;
+}
+
+/**
+ * May this person download or view the file right now? The same rule as authorize_download: never an unfinished or
+ * infected file; while the scan runs, only its uploader, or anyone for a photo.
+ */
+export function canOpenNow(f: Openable, userId: string): boolean {
+  if (!f.upload_complete || f.scan_status === 'infected') return false;
+  if (f.scan_status !== 'pending') return true;
+  return f.created_by === userId || opensBeforeScan(f.mime, f.original_name);
+}

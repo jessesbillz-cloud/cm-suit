@@ -19,7 +19,8 @@ export const SEED_DAILY_ID = 'mock-daily-job-b-7';
 export const SEED_RFI_ID = 'mock-rfi-job-a-2';
 
 const PHOTO_ID = 'job-b-photo-1';
-const DAILY_PDF_ID = 'job-b-daily-7';
+/** The submitted daily's PDF: a signed record (mock/files keeps it). */
+export const SEED_DAILY_PDF_ID = 'job-b-daily-7';
 
 function file(id: string, folder: string, name: string, mime: string, size: number, at: string): FileRow {
   return {
@@ -38,7 +39,7 @@ function file(id: string, folder: string, name: string, mime: string, size: numb
 
 export const SEED_FILES: FileRow[] = [
   file(PHOTO_ID, 'photos', 'Sample corridor photo.jpg', 'image/jpeg', 812_400, '2026-09-25T17:20:00Z'),
-  file(DAILY_PDF_ID, 'reports', 'Sample Daily Report 7.pdf', 'application/pdf', 96_512, '2026-09-25T23:30:00Z'),
+  file(SEED_DAILY_PDF_ID, 'reports', 'Sample Daily Report 7.pdf', 'application/pdf', 96_512, '2026-09-25T23:30:00Z'),
 ];
 
 /** IR 12: a special concrete inspection, approved; the next request on the job is 13. */
@@ -102,7 +103,7 @@ export const SEED_DAILY: DailyReportRow = {
   signed_version: 3,
   hours: null,
   submitted_at: '2026-09-25T23:30:00Z',
-  pdf_file_id: DAILY_PDF_ID,
+  pdf_file_id: SEED_DAILY_PDF_ID,
   filename: 'Sample Daily Report 7.pdf',
   form: null,
 };

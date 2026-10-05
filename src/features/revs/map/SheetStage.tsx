@@ -3,7 +3,7 @@
 // its size on screen (the walls' lines and callouts, drawn where each page point is now) and taps.
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { HIGHLIGHT_WIDTH, type MarkupColor, type Stroke } from '../../../lib/markup';
-import type { PDFPageProxy } from './pdfjs';
+import type { PDFPageProxy } from '../../../lib/pdf/pdfjs';
 import { SheetCanvas } from './SheetCanvas';
 import { LiveStroke, StrokeLayer } from './StrokeLayer';
 import { useSheetGestures } from './useSheetGestures';

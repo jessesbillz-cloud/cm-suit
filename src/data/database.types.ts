@@ -7424,6 +7424,9 @@ export type Database = {
         }
         Returns: string
       }
+      file_can_change: { Args: { p_file_id: string }; Returns: boolean }
+      file_change_check: { Args: { p_file_id: string }; Returns: undefined }
+      file_kept: { Args: { p_file_id: string }; Returns: boolean }
       file_may_see: {
         Args: {
           p_created_by: string
@@ -7432,6 +7435,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      file_remove: {
+        Args: { p_file_id: string; p_version: number }
+        Returns: undefined
+      }
+      file_rename: {
+        Args: { p_file_id: string; p_name: string; p_version: number }
+        Returns: number
+      }
+      file_restore: { Args: { p_file_id: string }; Returns: undefined }
       file_storage_path: {
         Args: {
           p_file_id: string
