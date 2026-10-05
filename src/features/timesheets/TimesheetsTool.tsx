@@ -55,7 +55,7 @@ function Month({ jobs, orgId, month, itemId, isPhone, below, onOpen }: MonthProp
       disabled={hours.data === undefined || empty}
       sign={() => pdf.mutateAsync({ month, orgId })}
       onSigned={() => {
-        toast.show({ message: `${monthLabel(month)} timesheet saved.` });
+        toast.show({ message: `${monthLabel(month)} timesheet downloaded.` });
       }}
     />
   );

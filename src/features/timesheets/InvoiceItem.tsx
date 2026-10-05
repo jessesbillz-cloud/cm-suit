@@ -1,8 +1,9 @@
 // One invoice (right column; full screen on the phone): its lines as saved (job, hours, rate, amount), the total, the
-// PDF in one click, Draft / Sent / Paid set by hand, and Update to price a draft again from today's hours.
-import { Download, RefreshCw } from 'lucide-react';
+// PDF in one click, Draft / Sent / Paid set by hand, Update to price a draft again from today's hours, and Delete for a
+// draft (with Undo; the number is kept for it).
+import { Download, RefreshCw, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useInvoicePdf, useRefreshInvoice, useSetInvoiceStatus } from '../../data/hours.mutations';
+import { useDeleteInvoice, useInvoicePdf, useRefreshInvoice, useRestoreInvoice, useSetInvoiceStatus } from '../../data/hours.mutations';
 import { useInvoices } from '../../data/hours.queries';
 import type { InvoiceRow } from '../../data/hours.types';
 import { formatDay } from '../../lib/dates';
@@ -16,6 +17,7 @@ import { HEAD_ROW, TABLE, TD, TD_NUM, TH } from '../../ui/Table';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
 import { INVOICE_STATUSES, invoiceChip, invoiceTitle } from './model';
+import { useTimesheetsNav } from './useTimesheetsNav';
 
 function Lines({ inv }: { inv: InvoiceRow }) {
   return (
@@ -54,6 +56,9 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
   const pdf = useInvoicePdf();
   const refresh = useRefreshInvoice();
   const status = useSetInvoiceStatus();
+  const remove = useDeleteInvoice();
+  const restore = useRestoreInvoice();
+  const nav = useTimesheetsNav();
   const toast = useToast();
   const chip = invoiceChip(inv.status);
   const fail = (e: unknown) => {
@@ -81,7 +86,7 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
             pdf.mutate(inv.id, { onError: fail });
           }}
         >
-          PDF
+          Download
         </Button>
         {inv.status === 'draft' ? (
           <Button
@@ -101,6 +106,37 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
             }}
           >
             Update
+          </Button>
+        ) : null}
+        {inv.status === 'draft' ? (
+          <Button
+            variant="danger"
+            icon={Trash2}
+            loading={remove.isPending}
+            data-testid="invoice-delete"
+            onClick={() => {
+              remove.mutate(
+                { id: inv.id, version: inv.version },
+                {
+                  onSuccess: () => {
+                    nav.close();
+                    toast.show({
+                      message: `${invoiceTitle(inv)} deleted.`,
+                      action: {
+                        label: 'Undo',
+                        // This pane is gone by then: the promise reports a failure.
+                        onClick: () => {
+                          restore.mutateAsync(inv.id).catch(fail);
+                        },
+                      },
+                    });
+                  },
+                  onError: fail,
+                },
+              );
+            }}
+          >
+            Delete
           </Button>
         ) : null}
       </div>

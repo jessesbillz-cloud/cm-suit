@@ -12,6 +12,9 @@ export const SETUP_ITEM = 'setup';
 export const PROGRESS_ITEM = 'progress';
 /** Hours: the contract hours form. */
 export const CONTRACT_ITEM = 'contract';
+/** Hours: a week (`week-<its Monday>`) or a month (`month-<yyyy-MM>`) opens as the list of its days. */
+export const HOURS_WEEK_PREFIX = 'week-';
+export const HOURS_MONTH_PREFIX = 'month-';
 /** Timesheets: the billing form. */
 export const BILLING_ITEM = 'billing';
 /** Revs: adding walls to a list. */
