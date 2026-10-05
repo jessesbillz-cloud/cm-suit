@@ -1,6 +1,6 @@
 // Schedule (migration 0062) against the e2e mock: the superintendent uploads a CSV look-ahead on a job with no
 // schedule, the draft opens for review (the data date prefilled with the upload day, a row without dates: Publish
-// waits; the source file one click away in Files), fixes the row, adds one the reader missed, publishes (Undo puts it
+// waits; the source file named with its Download), fixes the row, adds one the reader missed, publishes (Undo puts it
 // back to a draft), and the look-ahead shows the activities. A reader sees the look-ahead, the 2-month
 // window and an activity, and has no Upload. State lives in the tab's sessionStorage.
 import process from 'node:process';
@@ -49,7 +49,8 @@ test.describe('schedule', () => {
     await expect(page.getByTestId('schedule-publish')).toBeDisabled();
     await expect(page.getByTestId('schedule-data-date')).toHaveValue(jobDay(0));
     await expect(page.getByTestId('schedule-blocker')).toHaveText('1 activity needs a start date.');
-    await expect(page.getByTestId('schedule-source-open')).toHaveText('Sample look-ahead.csv');
+    await expect(page.getByTestId('schedule-source-name')).toHaveText('Sample look-ahead.csv');
+    await expect(page.getByTestId('schedule-source-download')).toBeVisible();
 
     // Fix the undated row in place: the "Need dates" button shows only it.
     await page.getByTestId('schedule-draft-filter-dates').click();
@@ -84,6 +85,48 @@ test.describe('schedule', () => {
 
     await page.getByTestId('schedule-view-updates').click();
     await expect(page.getByTestId('schedule-version-1')).toContainText('Current');
+  });
+
+  test('a PDF look-ahead shows beside its rows; the published update views it full screen', async ({ page, isMobile }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'super');
+    });
+    await page.goto('/p/job-b/schedule');
+    await page.getByTestId('schedule-upload-input').first().setInputFiles({
+      name: 'Sample printed look-ahead.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic look-ahead'),
+    });
+    await expect(page).toHaveURL(/\/p\/job-b\/schedule\/draft-/);
+    await expect(page.getByTestId('schedule-source-name')).toHaveText('Sample printed look-ahead.pdf');
+    const viewer = page.getByTestId('file-viewer');
+    if (isMobile) {
+      // A phone has no room beside the rows: View opens it full screen.
+      await page.getByTestId('schedule-source-view').click();
+    } else {
+      // Beside the rows, page by page; Full screen from there.
+      const beside = page.getByTestId('schedule-draft').getByTestId('file-preview');
+      await expect(beside.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+      await beside.getByTestId('file-preview-full').click();
+    }
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample printed look-ahead.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+
+    // The undated row gets a start, then Publish; the update keeps the original with View and Download.
+    await page.getByTestId('schedule-draft-filter-dates').click();
+    await page.getByTestId('schedule-draft-row-3').click();
+    await page.getByTestId('schedule-edit-start').fill(jobDay(9));
+    await page.getByTestId('schedule-edit-save').click();
+    await page.getByTestId('schedule-publish').click();
+    await expect(page.getByTestId('schedule-status')).toContainText('Update 1');
+    await page.goto('/p/job-b/schedule?view=updates');
+    await page.getByTestId('schedule-version-1').click();
+    await expect(page.getByTestId('schedule-version-file')).toHaveText('Sample printed look-ahead.pdf');
+    await expect(page.getByTestId('schedule-version-download')).toBeVisible();
+    await page.getByTestId('schedule-version-view').click();
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
   });
 
   test('a reader: the look-ahead, two months out, an activity; no Upload', async ({ page }) => {
