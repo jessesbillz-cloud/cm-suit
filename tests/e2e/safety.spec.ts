@@ -1,7 +1,10 @@
 // Safety (migration 0060) against the e2e mock: the PM starts a tailgate from the library, the crew signs from the QR's
 // page with no login (the mock user 'anon': no session), the leader sees the line, ticks in a member and closes, and the
-// sign-in sheet downloads in one click. The library opens a talk with its regulation's page. State lives in the tab's
-// sessionStorage, so the visitor and the leader share one page.
+// sign-in sheet downloads in one click. The library opens a talk with its regulation's page. Also: closing refreshes
+// the rail badge at once, Undo stays on the closed meeting, a new meeting starts where the last one was, tick-in shows
+// the builders (capability data), taking off a ticked-in line that was signed says the signature goes, and an edited
+// topic shows its PDF's real name. State lives in the tab's sessionStorage, so the visitor and the leader share one
+// page.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -89,6 +92,80 @@ test.describe('safety meetings', () => {
     await expect(page.getByTestId('signin-ended')).toBeVisible();
   });
 
+  test('close refreshes the badge at once, Undo stays on the meeting, the next one starts where the last was', async ({ page, isMobile }) => {
+    /** The PM's Safety sits under More: its badge counts the open meeting I lead. */
+    const more = async () => {
+      const b = page.getByTestId('tool-badge-more');
+      return (await b.count()) === 0 ? 0 : Number(await b.first().getAttribute('data-count'));
+    };
+    await page.goto('/p/job-a/safety');
+    await page.getByTestId('safety-new').click();
+    // The job's last meeting was in the trailer: the new one starts there.
+    await expect(page.getByTestId('safety-location')).toHaveValue('Trailer');
+    await page.getByTestId('safety-kind-tailgate').click();
+    await page.getByTestId('safety-topic-category-health').click();
+    await page.getByTestId('safety-topic-heat-illness').click();
+    await page.getByTestId('safety-location').fill('South gate');
+    await page.getByTestId('safety-start').click();
+    await expect(page.getByTestId('safety-meeting-label')).toHaveText(/Tailgate \d+/);
+    // The open meeting I lead counts on the rail; closing it takes the count off without a reload. (The phone shows
+    // the meeting full screen, without its tab bar.)
+    const open = isMobile ? 0 : await expect.poll(more).toBeGreaterThan(0).then(more);
+    await page.getByTestId('safety-close').click();
+    await expect(page.getByTestId('safety-meeting')).toHaveAttribute('data-status', 'closed');
+    if (!isMobile) await expect.poll(more, { timeout: 5000 }).toBe(open - 1);
+
+    // Once the toast is gone, Undo is still on the meeting, and it opens it again.
+    await page.getByRole('status').filter({ hasText: 'closed.' }).getByRole('button', { name: 'Dismiss' }).click();
+    await page.getByTestId('safety-undo-close').click();
+    await expect(page.getByTestId('safety-meeting')).toHaveAttribute('data-status', 'open');
+    await expect(page.getByTestId('safety-undo-close')).toHaveCount(0);
+
+    // The next meeting starts at the place just used.
+    await page.goto('/p/job-a/safety');
+    await page.getByTestId('safety-new').click();
+    await expect(page.getByTestId('safety-location')).toHaveValue('South gate');
+  });
+
+  test('tick-in shows the builders; taking off a signed line says the signature goes', async ({ page }) => {
+    await page.goto('/p/job-a/safety');
+    await page.getByTestId('safety-new').click();
+    await page.getByTestId('safety-kind-tailgate').click();
+    await page.getByTestId('safety-topic-category-health').click();
+    await page.getByTestId('safety-topic-heat-illness').click();
+    await page.getByTestId('safety-start').click();
+    const link = ((await page.getByTestId('safety-link').textContent()) ?? '').trim();
+    const meetingPath = `/p/job-a/safety/${link.split('/m/')[1]?.split('?')[0] ?? ''}`;
+
+    // A tailgate: the sub and the PM (they build or run the work) are there; the architect and the inspector are not.
+    await expect(page.getByTestId('safety-tick-mock-user-sub')).toBeVisible();
+    await expect(page.getByTestId('safety-tick-mock-user-pm')).toBeVisible();
+    await expect(page.getByTestId('safety-tick-mock-someone')).toHaveCount(0);
+    await expect(page.getByTestId('safety-tick-mock-user-inspector')).toHaveCount(0);
+
+    // Tick in the sub, who then also signs from the QR: the line is theirs and signed.
+    await page.getByTestId('safety-tick-mock-user-sub').click();
+    await expect(page.getByTestId('safety-line')).toHaveCount(1);
+    await page.evaluate(() => {
+      window.localStorage.setItem('e2e-mock-user', 'anon');
+    });
+    await page.goto(new URL(link).pathname + new URL(link).search);
+    await sign(page, 'Sample Sub');
+    await expect(page.getByTestId('signin-done')).toBeVisible();
+    await page.evaluate(() => {
+      window.localStorage.setItem('e2e-mock-user', 'pm');
+    });
+    await page.goto(meetingPath);
+    await expect(page.getByTestId('safety-line')).toHaveCount(1);
+
+    // Un-ticking that chip takes the signature off too, and the toast says so; Undo puts it back.
+    await page.getByTestId('safety-tick-mock-user-sub').click();
+    const toast = page.getByRole('status').filter({ hasText: 'Signature removed' });
+    await expect(toast).toContainText('Sample Sub taken off.');
+    await toast.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('safety-line')).toHaveCount(1);
+  });
+
   test('the library: a starter talk with its regulation; only a safety manager adds topics', async ({ page }) => {
     await page.goto('/p/job-a/safety?view=library');
     await expect(page.getByTestId('safety-new-topic')).toHaveCount(0);
@@ -110,5 +187,16 @@ test.describe('safety meetings', () => {
     await expect(page.getByTestId('safety-topic')).toContainText('Sample crane signals');
     await expect(page.getByTestId('safety-topic')).toContainText('Ours');
     await expect(page.getByTestId('safety-topic-edit')).toBeVisible();
+
+    // A topic with a PDF: Edit shows the PDF's real filename; the talk's button says what it does.
+    await page.getByTestId('safety-topic-edit').click();
+    await page.getByTestId('safety-topic-pdf-input').setInputFiles({
+      name: 'Sample crane signals.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% sample\n%%EOF\n'),
+    });
+    await expect(page.getByTestId('safety-topic-pdf-name')).toContainText('Sample crane signals.pdf');
+    await page.getByTestId('safety-topic-save').click();
+    await expect(page.getByTestId('safety-outline-pdf')).toHaveText('Download PDF');
+    await page.getByTestId('safety-topic-edit').click();
+    await expect(page.getByTestId('safety-topic-pdf-name')).toContainText('Sample crane signals.pdf');
   });
 });

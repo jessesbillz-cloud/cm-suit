@@ -28,8 +28,8 @@ interface Chip {
 
 const CHIPS: Record<CorrectionStatus, Chip> = {
   open: { status: 'pending', label: 'Open' },
-  ready: { status: 'assigned', label: 'Ready' },
-  corrected: { status: 'approved', label: 'Corrected' },
+  ready: { status: 'ready', label: 'Ready' },
+  corrected: { status: 'corrected', label: 'Corrected' },
   signed_off: { status: 'confirmed', label: 'Signed off' },
   reopened: { status: 'not_approved', label: 'Reopened' },
 };
@@ -38,7 +38,7 @@ export function statusChip(status: CorrectionStatus): Chip {
   return CHIPS[status];
 }
 
-/** Button and confirm labels for each step. */
+/** The button for each step. */
 export const STEP_LABELS: Record<CorrectionStep, string> = {
   ready: 'Mark ready',
   corrected: 'Corrected',
@@ -190,6 +190,19 @@ export function latestStep(history: readonly CorrectionHistoryRow[]): Correction
   return [...history]
     .sort((a, b) => b.seq - a.seq)
     .find((h) => !undone.has(h.id) && h.action !== 'created' && h.action !== 'edited' && h.action !== 'undone');
+}
+
+/** How long a person may undo their own latest step (undo_correction, 0026). */
+export const UNDO_MS = 15 * 60_000;
+
+/**
+ * The step I may still undo, as undo_correction decides: the item's very last history line is mine, a create or a
+ * status step (not an edit or an undo), and less than 15 minutes old. Null otherwise.
+ */
+export function undoableStep(history: readonly CorrectionHistoryRow[], userId: string, now: number): CorrectionHistoryRow | null {
+  const last = [...history].sort((a, b) => b.seq - a.seq)[0];
+  if (!last || last.actor_user_id !== userId || last.action === 'edited' || last.action === 'undone') return null;
+  return now - Date.parse(last.created_at) < UNDO_MS ? last : null;
 }
 
 const OPEN_STATUSES: readonly CorrectionStatus[] = ['open', 'ready', 'reopened'];

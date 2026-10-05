@@ -1,7 +1,8 @@
 // Safety writes (migration 0060). Every write is its own RPC run as me (start, a new QR, tick in, remove a line, Undo a
 // close, the library), version-checked where it takes one; Close and the sheet go through the safety-meeting function
 // (the PDF is made on the server from the saved sheet). A start, a new QR and a reopen hand out the sign-in token once;
-// the screen keeps it on this device (lib/requestLink). Every write refreshes the job's safety queries.
+// the screen keeps it on this device (lib/requestLink). Every write refreshes the job's safety queries, the board, the
+// tasks (Needs you and the rail badges) and the calendar.
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -39,9 +40,17 @@ function first<T>(rows: T[]): T {
   return row;
 }
 
+/** A safety write can close tasks, post a board line and move a calendar line (0060): refresh all of them with the job's safety. */
 function useRefresh(projectId: string) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: qk.safety(projectId) });
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: qk.safety(projectId) }),
+      qc.invalidateQueries({ queryKey: qk.board(projectId) }),
+      qc.invalidateQueries({ queryKey: qk.board(null) }),
+      qc.invalidateQueries({ queryKey: qk.tasksAll }),
+      qc.invalidateQueries({ queryKey: qk.calendar }),
+    ]);
 }
 
 /** Start a meeting (safety.run): the next number, me leading, the sign-in token once. */

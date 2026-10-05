@@ -137,7 +137,7 @@ function replaceRow(s: State, row: StoredRow): State {
   return { ...s, rows: s.rows.map((r) => (r.id === row.id ? row : r)) };
 }
 
-export async function save(row: CorrectionRow, patch: CorrectionFields): Promise<CorrectionRow> {
+export async function save(row: CorrectionRow, patch: CorrectionFields & { notice_file_id: string | null; photo_ids: string[] }): Promise<CorrectionRow> {
   await delay();
   const was = current(row.id, row.version);
   if (!((was.created_by === mockUser().id && holds('corrections.create')) || holds('corrections.close'))) throw conflictError();
@@ -173,10 +173,32 @@ export async function undo(row: CorrectionRow): Promise<UndoResult> {
   return { row: strip(next), removed: next.deleted };
 }
 
+/** correction_step_note: my own latest status step, still undoable, with no note yet. */
+export async function stepNote(correctionId: string, note: string): Promise<CorrectionHistoryRow> {
+  await delay();
+  const text = note.trim();
+  if (text === '') throw new DataError('Add a note.', '22023', null);
+  const s = read();
+  const last = s.history.filter((h) => h.correction_id === correctionId).sort((a, b) => b.seq - a.seq)[0];
+  const steps: readonly string[] = ['ready', 'corrected', 'signed_off', 'reopened'];
+  if (!last || last.actor_user_id !== mockUser().id || !steps.includes(last.action) || last.note !== '' || Date.parse(last.created_at) < Date.now() - 15 * 60_000) {
+    throw new DataError('Too late to add a note.', '22023', null);
+  }
+  const next = { ...last, note: text };
+  write((st) => ({ ...st, history: st.history.map((h) => (h.id === last.id ? next : h)) }));
+  return next;
+}
+
 export async function photoFolder(projectId: string): Promise<string> {
   await delay();
   if (!holds('corrections.create') && !holds('corrections.mark_ready') && !holds('corrections.close')) throw forbidden();
   return `${projectId}-corrections`;
+}
+
+export async function noticeFolder(projectId: string): Promise<string> {
+  await delay();
+  if (!holds('corrections.create') && !holds('corrections.close')) throw forbidden();
+  return `${projectId}-corrections-notices`;
 }
 
 export async function photoFiles(ids: readonly string[]): Promise<PhotoFile[]> {

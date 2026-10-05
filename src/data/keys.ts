@@ -52,6 +52,8 @@ export const qk = {
   inspectionsPartAll: (projectId: string, part: string) => ['inspections', projectId, part] as const,
   /** The roles holding ir.decide (who can be a co-inspector), read from the capability matrix. */
   decideRoles: ['role_permissions', 'ir.decide'] as const,
+  /** The roles that build the work (corrections.mark_ready): a tailgate's tick-in shows them (Safety). */
+  builderRoles: ['role_permissions', 'corrections.mark_ready'] as const,
   /** Every deliveries query of a job sits under this prefix: one invalidation after any delivery write. */
   deliveries: (projectId: string) => ['deliveries', projectId] as const,
   deliveriesPart: (projectId: string, part: string, id = '') => ['deliveries', projectId, part, id] as const,

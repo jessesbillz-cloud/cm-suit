@@ -19,6 +19,10 @@ export const STATUS = {
   step_done: { label: 'Done', fg: '#166534', bg: '#DCFCE7', dot: '#16A34A', solid: '#16A34A', onSolid: '#FFFFFF' },
   step_current: { label: 'Has it', fg: '#854D0E', bg: '#FFFFFF', dot: '#EAB308', solid: '#EAB308', onSolid: '#422006' },
   step_ahead: { label: 'Ahead', fg: '#6B7280', bg: '#FFFFFF', dot: '#CDD2DA', solid: '#E5E7EB', onSolid: '#374151' },
+  // A correction: marked ready, waiting on the inspector to look again (violet: not a co-inspector's blue); and Corrected
+  // (teal), told apart from the final Signed off (confirmed green).
+  ready: { label: 'Ready', fg: '#5B21B6', bg: '#EDE9FE', dot: '#8B5CF6', solid: '#7C3AED', onSolid: '#FFFFFF' },
+  corrected: { label: 'Corrected', fg: '#115E59', bg: '#CCFBF1', dot: '#14B8A6', solid: '#0D9488', onSolid: '#FFFFFF' },
   // Past its due date: red text (never amber, which means "impact claimed").
   late: { label: 'Late', fg: '#DC2626', bg: '#FEE2E2', dot: '#EF4444', solid: '#DC2626', onSolid: '#FFFFFF' },
 } as const;

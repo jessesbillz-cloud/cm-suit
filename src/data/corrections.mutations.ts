@@ -1,6 +1,6 @@
 // Corrections log writes (SPEC §13.4). Create goes through create_correction (the database numbers it and a repeat
-// returns the same item); steps through set_correction_status; undo through undo_correction; edits carry a version
-// check. Every write refreshes the job's corrections queries, and the board and "Needs you" (lines and tasks).
+// returns the same item); steps through set_correction_status; a note on my own one-tap step through
+// correction_step_note (0078); undo through undo_correction; edits carry a version check. Every write refreshes the job's corrections queries, and the board and "Needs you" (lines and tasks).
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -13,8 +13,10 @@ import { isMock } from './mock';
 import { uploadFile } from './upload';
 import {
   CORRECTION_COLS,
+  correctionHistorySchema,
   correctionSchema,
   type CorrectionFields,
+  type CorrectionHistoryRow,
   type CorrectionRow,
   type NewCorrectionInput,
   type StepInput,
@@ -27,6 +29,7 @@ function useRefresh() {
     Promise.all([
       qc.invalidateQueries({ queryKey: qk.corrections(projectId) }),
       qc.invalidateQueries({ queryKey: qk.board(projectId) }),
+      qc.invalidateQueries({ queryKey: qk.board(null) }),
       qc.invalidateQueries({ queryKey: qk.tasksAll }),
     ]);
 }
@@ -72,12 +75,15 @@ export function useCreateCorrection() {
   });
 }
 
-/** Edits the typed fields (creator or inspector; RLS decides). Zero rows back = someone changed it first. */
+/** What Edit saves: the typed fields, the notice file and the item's own photos (0026 grants all of them). */
+type CorrectionPatch = CorrectionFields & { notice_file_id: string | null; photo_ids: string[] };
+
+/** Edits the typed fields, the notice and the photos (creator or inspector; RLS decides). Zero rows back = someone changed it first. */
 export function useSaveCorrection() {
   const refresh = useRefresh();
   const put = usePutInList();
   return useMutation({
-    mutationFn: async (v: { row: CorrectionRow; patch: CorrectionFields & { notice_file_id: string | null } }): Promise<CorrectionRow> => {
+    mutationFn: async (v: { row: CorrectionRow; patch: CorrectionPatch }): Promise<CorrectionRow> => {
       if (isMock()) return mockCn.save(v.row, v.patch);
       const rows: unknown = throwIfError(
         await supabase.from('corrections').update(v.patch).eq('id', v.row.id).eq('version', v.row.version).select(CORRECTION_COLS),
@@ -117,6 +123,19 @@ export function useCorrectionStep() {
 const undoneSchema = correctionSchema.extend({ deleted_at: z.string().nullable() });
 
 /** Undoes my own latest step (or the create: then the item is removed). */
+/** A note on my own latest one-tap step, while it can still be undone (correction_step_note, 0078). */
+export function useCorrectionStepNote() {
+  const refresh = useRefresh();
+  return useMutation({
+    mutationFn: async (v: { row: CorrectionRow; note: string }): Promise<CorrectionHistoryRow> => {
+      if (isMock()) return mockCn.stepNote(v.row.id, v.note);
+      const data: unknown = throwIfError(await supabase.rpc('correction_step_note', { p_id: v.row.id, p_note: v.note }));
+      return correctionHistorySchema.parse(Array.isArray(data) ? data[0] : data);
+    },
+    onSettled: (_r, _e, v) => refresh(v.row.project_id),
+  });
+}
+
 export function useUndoCorrection() {
   const refresh = useRefresh();
   const qc = useQueryClient();
@@ -141,24 +160,40 @@ async function photoFolder(projectId: string): Promise<string> {
   return z.string().parse(throwIfError(await supabase.rpc('correction_photo_folder', { p_project_id: projectId })));
 }
 
-/**
- * Uploads one file (a compressed photo, or the notice) into the job's Photos/Corrections folder and resolves to its
- * file id. A plain callback, not a mutation, so several photos upload side by side.
- */
-export function useCorrectionFileUpload() {
+async function noticeFolder(projectId: string): Promise<string> {
+  if (isMock()) return mockCn.noticeFolder(projectId);
+  return z.string().parse(throwIfError(await supabase.rpc('correction_notice_folder', { p_project_id: projectId })));
+}
+
+type Which = 'photo_folder' | 'notice_folder';
+
+function useUploadInto(which: Which) {
   const user = useUser();
   const qc = useQueryClient();
   const userId = user.id;
   return useCallback(
     async (projectId: string, file: File, signal: AbortSignal): Promise<string> => {
       const folderId = await qc.query({
-        queryKey: qk.correctionsPart(projectId, 'photo_folder'),
-        queryFn: () => photoFolder(projectId),
+        queryKey: qk.correctionsPart(projectId, which),
+        queryFn: () => (which === 'photo_folder' ? photoFolder(projectId) : noticeFolder(projectId)),
         staleTime: Infinity,
       });
       const { fileId } = await uploadFile({ file, projectId, folderId, userId, signal, onProgress: () => undefined });
       return fileId;
     },
-    [qc, userId],
+    [qc, userId, which],
   );
+}
+
+/**
+ * Uploads one compressed photo into the job's Photos/Corrections folder and resolves to its file id. A plain callback,
+ * not a mutation, so several photos upload side by side.
+ */
+export function useCorrectionFileUpload() {
+  return useUploadInto('photo_folder');
+}
+
+/** Uploads the formal notice (usually a PDF) into the job's Reports/Corrections folder (0078), never among the photos. */
+export function useCorrectionNoticeUpload() {
+  return useUploadInto('notice_folder');
 }

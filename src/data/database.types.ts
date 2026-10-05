@@ -6999,6 +6999,10 @@ export type Database = {
       }
       correction_label: { Args: { p_number: number }; Returns: string }
       correction_may_see: { Args: { p_project_id: string }; Returns: boolean }
+      correction_notice_folder: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
       correction_photo_folder: {
         Args: { p_project_id: string }
         Returns: string
@@ -7006,6 +7010,31 @@ export type Database = {
       correction_reinspect_tasks_for: {
         Args: { p_correction_id: string }
         Returns: undefined
+      }
+      correction_step_note: {
+        Args: { p_id: string; p_note: string }
+        Returns: {
+          action: string
+          actor_user_id: string | null
+          correction_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string
+          org_id: string
+          photo_ids: string[]
+          prev_closed_at: string | null
+          project_id: string
+          seq: number
+          to_status: string | null
+          undoes: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "correction_history"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_addendum: {
         Args: {

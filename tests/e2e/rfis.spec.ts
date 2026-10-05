@@ -132,11 +132,15 @@ test.describe('RFIs', () => {
     await expect(right.getByTestId('rfi-claim')).toHaveCount(0);
     await expect(row).toHaveAttribute('data-impact', 'true');
 
-    // History lives in the full view: the RFI alone in its own window, not the right column.
+    // History: behind one link at every width, in the right column and in its own window alike.
     await expect(right.getByTestId('rfi-history')).toHaveCount(0);
+    await right.getByTestId('rfi-history-link').click();
+    await expect(right.getByTestId('rfi-history')).toContainText('Impact claimed');
     const alone = new URL(page.url());
     alone.searchParams.set('window', '1');
     await page.goto(alone.toString());
+    await expect(page.getByTestId('rfi-history')).toHaveCount(0);
+    await page.getByTestId('rfi-history-link').click();
     const history = page.getByTestId('rfi-history');
     for (const step of ['Signed & sent', 'Sent on', 'Signed & issued', 'Answered', 'Impact claimed']) await expect(history).toContainText(step);
   });
@@ -164,12 +168,65 @@ test.describe('RFIs', () => {
     // RFI 002 is answered: one tap, and the question and the architect's answer are both there.
     await page.getByTestId('rfi-row-002').click();
     await expect(page.getByTestId('rfi-question-text')).toContainText('Which governs?');
+    await expect(page.getByTestId('rfi-extras')).toContainText('Needed by');
     await expect(page.getByTestId('rfi-answer')).toContainText('anchors at 16 in. on center');
     if (testInfo.project.name === 'desktop') {
       // The log stays put beside it, and the pane's header has exactly its three actions.
       await expect(page.getByTestId('rfi-row-004')).toBeVisible();
       await expect(page.getByTestId('right-column').getByTestId('rfi-head-actions').getByRole('button')).toHaveCount(3);
     }
+
+    // "Needed by" only on an RFI whose impact is claimed: 004 has a date but no claim (002, claimed, shows it above).
+    await page.goto('/p/job-a/rfis/mock-rfi-job-a-4');
+    await expect(page.getByTestId('rfi-question-text')).toContainText('hardware set 12');
+    await expect(page.getByTestId('rfi-question-text')).not.toContainText('Needed by');
+  });
+
+  test('the architect answers with a photo and a PDF through the shared picker (thumbnails, retry, Camera on the phone)', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await openAs(page, 'architect', '/p/job-a/rfis');
+    await page.getByTestId('rfi-row-004').click();
+    await page.getByTestId('rfi-answer-open').click();
+    const form = page.getByTestId('rfi-answer-form');
+    await expect(form.getByRole('button', { name: 'Camera' })).toHaveCount(testInfo.project.name === 'phone' ? 1 : 0);
+    await form.getByTestId('rfi-answer-files').setInputFiles([
+      PHOTO,
+      { name: 'sample-markup.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% sample\n%%EOF\n') },
+    ]);
+    await expect(form.getByTestId('cn-picked-photo')).toHaveCount(2);
+    await expect(form.getByTestId('cn-picked-photo').locator('img')).toHaveCount(1);
+    await expect(form).toContainText('sample-markup.pdf');
+    await page.getByTestId('rfi-answer-text').fill('Sample answer: use set 14; see the marked-up sheet.');
+    await page.getByTestId('rfi-answer-send').click();
+    await expect(page.getByTestId('rfi-answer')).toContainText('use set 14');
+    await expect(page.getByTestId('rfi-answer').getByRole('button', { name: /Download sample-markup\.pdf/ })).toBeVisible();
+  });
+
+  test('settings save only when a value changed', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Settings are the same on the phone.');
+    await page.goto('/');
+    await openAs(page, 'pm', '/p/job-a/settings');
+    const days = page.getByTestId('rfi-answer-days');
+    await expect(days).toHaveValue('7');
+    /** The job's settings version in the mock (each save adds one). */
+    const version = () =>
+      page.evaluate(() => {
+        const s = JSON.parse(window.sessionStorage.getItem('e2e-mock-rfis') ?? '{}') as { settings?: Record<string, { version: number }> };
+        return s.settings?.['job-a']?.version ?? 0;
+      });
+    await days.fill('9');
+    await days.blur();
+    await expect.poll(version).toBeGreaterThan(1);
+    const saved = await version();
+    // In and out of both boxes with nothing changed: no further save.
+    for (let i = 0; i < 3; i++) {
+      await days.focus();
+      await days.blur();
+      await page.getByTestId('rfi-impact-days').focus();
+      await page.getByTestId('rfi-impact-days').blur();
+    }
+    await page.waitForTimeout(500);
+    expect(await version()).toBe(saved);
   });
 
   test('late and not-opened RFIs sit at the top of Needs you and open where they live', async ({ page }) => {

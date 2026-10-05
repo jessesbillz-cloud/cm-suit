@@ -1,17 +1,24 @@
 // The reading pane's one flat view: status, trade and location, photos, description, spec tags, the notice, the
-// latest step (what the inspector reads before deciding), and the actions this person's capabilities allow.
+// latest step (what the inspector reads before deciding), and the actions this person's capabilities allow. Mark ready
+// opens its form (a note and photos for the inspector); the inspector's Corrected / Sign off / Reopen take one tap, with
+// Undo and "Add note" on the item afterwards (AfterStep), never an "are you sure?" step.
 import { useState } from 'react';
 import { Download, Pencil } from 'lucide-react';
+import { useCorrectionStep } from '../../data/corrections.mutations';
 import type { CorrectionHistoryRow, CorrectionRow, CorrectionStep } from '../../data/corrections.types';
+import { messageOf } from '../../data/errors';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { PaneSection } from '../../ui/ReadingPane';
 import { StatusChip } from '../../ui/StatusChip';
+import { useToast } from '../../ui/Toast';
 import { useDownload } from '../files/useDownload';
+import { AfterStep } from './AfterStep';
 import { EditCorrection } from './EditCorrection';
-import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepsFor, type Caps } from './model';
+import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone, stepsFor, type Caps } from './model';
 import { PhotoStrip } from './PhotoStrip';
 import { StepForm } from './StepForm';
+import { useUndoOffer } from './useUndoOffer';
 
 type Mode = { kind: 'read' } | { kind: 'edit' } | { kind: 'step'; step: CorrectionStep };
 
@@ -94,8 +101,16 @@ function Details({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
   );
 }
 
+/** The newest history line: a new step gives the note form a fresh start. */
+function latestKey(history: readonly CorrectionHistoryRow[]): string {
+  return history.reduce<CorrectionHistoryRow | null>((a, h) => (a === null || h.seq > a.seq ? h : a), null)?.id ?? 'none';
+}
+
 export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, isPhone }: CorrectionBodyProps) {
   const [mode, setMode] = useState<Mode>({ kind: 'read' });
+  const move = useCorrectionStep();
+  const offerUndo = useUndoOffer(row.project_id, row.id);
+  const toast = useToast();
   const chip = statusChip(row.status);
   const latest = latestStep(history);
   const steps = stepsFor(row.status, caps);
@@ -103,6 +118,24 @@ export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, i
   const where = [row.trade, row.location].filter((v) => v !== '').join(' · ');
   const read = () => {
     setMode({ kind: 'read' });
+  };
+  /** Mark ready opens its form; the inspector's decisions go at once. */
+  const take = (step: CorrectionStep) => {
+    if (step === 'ready') {
+      setMode({ kind: 'step', step });
+      return;
+    }
+    move.mutate(
+      { row, status: step, note: '', photoIds: [] },
+      {
+        onSuccess: (saved) => {
+          offerUndo(saved, stepDone(step, saved.number));
+        },
+        onError: (e) => {
+          toast.show({ tone: 'error', message: messageOf(e) });
+        },
+      },
+    );
   };
 
   return (
@@ -114,11 +147,13 @@ export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, i
         {where !== '' ? <span className="text-sm text-ink-2">{where}</span> : null}
       </div>
 
-      {mode.kind === 'edit' ? <EditCorrection row={row} onDone={read} /> : <Details row={row} timeZone={timeZone} />}
+      {mode.kind === 'edit' ? <EditCorrection row={row} isPhone={isPhone} onDone={read} /> : <Details row={row} timeZone={timeZone} />}
 
       {latest ? <Latest projectId={row.project_id} step={latest} nameOf={nameOf} timeZone={timeZone} /> : null}
 
       {mode.kind === 'step' ? <StepForm row={row} step={mode.step} isPhone={isPhone} onDone={read} /> : null}
+
+      {mode.kind === 'read' ? <AfterStep key={latestKey(history)} row={row} history={history} userId={userId} /> : null}
 
       {mode.kind === 'read' && (steps.length > 0 || editable) ? (
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
@@ -127,8 +162,10 @@ export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, i
               key={s}
               variant={s === 'ready' || s === 'signed_off' ? 'primary' : 'secondary'}
               data-testid={`cn-step-${s}`}
+              loading={move.isPending && move.variables.status === s}
+              disabled={move.isPending}
               onClick={() => {
-                setMode({ kind: 'step', step: s });
+                take(s);
               }}
             >
               {STEP_LABELS[s]}

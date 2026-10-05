@@ -63,6 +63,8 @@ function RfiSettingsForm({ initial, people, save, onProblem: setProblem }: FormP
   const [impact, setImpact] = useState(String(initial.impact_days));
   const [steps, setSteps] = useState<Step[]>(initial.route.map(({ role, user_id, label }) => ({ role, user_id, label })));
   const version = useRef(initial.version);
+  // The days as last saved (or loaded): leaving a box saves only when its value differs from these.
+  const savedDays = useRef({ answer: initial.answer_days, impact: initial.impact_days });
   const chain = useRef<Promise<void>>(Promise.resolve());
 
   function commit(next: { answer: string; impact: string; steps: Step[] }) {
@@ -74,12 +76,16 @@ function RfiSettingsForm({ initial, people, save, onProblem: setProblem }: FormP
     }
     setProblem(null);
     const route = next.steps.map(choiceOf);
+    // Counted as saved from now, so a second blur while this save runs doesn't send it again; a failure puts it back.
+    const before = savedDays.current;
+    savedDays.current = { answer: answerDays, impact: impactDays };
     chain.current = chain.current.then(async () => {
       try {
         const saved = await save.mutateAsync({ version: version.current, answerDays, impactDays, route });
         version.current = saved.version;
         setSteps(saved.route.map(({ role, user_id, label }) => ({ role, user_id, label })));
       } catch (e) {
+        savedDays.current = before;
         setProblem(messageOf(e));
       }
     });
@@ -91,7 +97,7 @@ function RfiSettingsForm({ initial, people, save, onProblem: setProblem }: FormP
   }
 
   const blurDays = () => {
-    if (answer !== String(initial.answer_days) || impact !== String(initial.impact_days) || version.current !== initial.version) {
+    if (parseDays(answer) !== savedDays.current.answer || parseDays(impact) !== savedDays.current.impact) {
       commit({ answer, impact, steps });
     }
   };
