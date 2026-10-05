@@ -319,3 +319,12 @@ export const WEATHER_RPCS: [string, Record<string, unknown>][] = [
     p_project_id: ZERO_UUID, p_day: '2026-01-05', p_high_f: 70, p_low_f: 60, p_conditions: 'probe', p_source: 'nws_observed', p_lat: 1, p_lon: 1,
   }],
 ];
+
+/** Files' Delete, Undo and Rename and the viewer's keep rule (0074). */
+export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
+  ['file_remove', { p_file_id: ZERO_UUID, p_version: 1 }],
+  ['file_restore', { p_file_id: ZERO_UUID }],
+  ['file_rename', { p_file_id: ZERO_UUID, p_version: 1, p_name: 'probe.pdf' }],
+  ['file_can_change', { p_file_id: ZERO_UUID }],
+  ['file_kept', { p_file_id: ZERO_UUID }],
+];

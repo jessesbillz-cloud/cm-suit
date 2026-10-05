@@ -2,7 +2,7 @@ begin;
 select plan(32);
 -- Photo previews (migration 0047): authorize_preview answers exactly what the download gate of the same file answers
 -- (folder access, view-only, infected, the pending-scan rule; RFI privacy through the RFI; a request's own files through
--- the request), then refuses anything that is not an image, and never writes a download line or download audit event
+-- the request), then refuses anything that is not an image or (0074) a PDF, and never writes a download line or download audit event
 -- (0054 adds a 'file.preview' audit line: 47_security_fixes.sql).
 \ir _helpers.psql
 
@@ -98,8 +98,8 @@ select results_eq($$ select original_name from public.authorize_download('e00000
 select is(pg_temp.logged('e0000000-0000-0000-0000-000000000471'), 2, 'and a download is still logged (line + audit event)');
 select results_eq($$ select original_name from public.authorize_preview('e0000000-0000-0000-0000-000000000472') $$,
   $$ values ('wet.jpg'::text) $$, 'viewer: a photo still waiting for the scan shows (0027, like its download)');
-select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000473') $$, '42501', 'not_image',
-  'viewer: a PDF is never previewed');
+select results_eq($$ select original_name from public.authorize_preview('e0000000-0000-0000-0000-000000000473') $$,
+  $$ values ('plan.pdf'::text) $$, 'viewer: a PDF is previewed too (0074: the file viewer)');
 select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000474') $$, '42501', 'not_image',
   'viewer: an image name on a PDF is not an image');
 select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000479') $$, '42501', 'not_image',
@@ -116,8 +116,8 @@ select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0
     'e0000000-0000-0000-0000-000000000471', 'e0000000-0000-0000-0000-000000000471') $$, '22023', null,
   'an RFI or a request, not both');
 select pg_temp.login('a0000000-0000-0000-0000-000000000472');
-select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000476') $$, '42501', 'not_image',
-  'super: their own unscanned PDF passes the gate but is not an image');
+select results_eq($$ select original_name from public.authorize_preview('e0000000-0000-0000-0000-000000000476') $$,
+  $$ values ('draft.pdf'::text) $$, 'super: their own unscanned PDF passes the gate, like its download');
 select pg_temp.login('a0000000-0000-0000-0000-000000000479', 'aal2');
 select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000478') $$, '42501', 'forbidden',
   'pm (no pricing): a photo in Bids received is not previewed');
@@ -136,8 +136,8 @@ insert into ids select 'A', (public.rfi_create('c0000000-0000-0000-0000-00000000
   array[pg_temp.rid('P1'), pg_temp.rid('D1')])).id;
 select results_eq($$ select original_name from public.authorize_preview(pg_temp.rid('P1'), pg_temp.rid('A')) $$,
   $$ values ('slab.jpg'::text) $$, 'RFI: the originator previews its photo');
-select throws_ok($$ select * from public.authorize_preview(pg_temp.rid('D1'), pg_temp.rid('A')) $$, '42501', 'not_image',
-  'RFI: a PDF on it is not previewed');
+select results_eq($$ select original_name from public.authorize_preview(pg_temp.rid('D1'), pg_temp.rid('A')) $$,
+  $$ values ('sketch.pdf'::text) $$, 'RFI: a PDF on it is previewed through the RFI (0074)');
 select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000471', pg_temp.rid('A')) $$,
   '42501', 'forbidden', 'RFI: a photo that is not on the RFI cannot ride through it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000477');
@@ -170,8 +170,8 @@ insert into ids select 'IR', (public.ir_submit(p_project_id => 'c0000000-0000-00
   p_attachment_ids => array['e0000000-0000-0000-0000-000000000481'::uuid, 'e0000000-0000-0000-0000-000000000482'])).id;
 select results_eq($$ select original_name from public.authorize_preview('e0000000-0000-0000-0000-000000000481', null,
     pg_temp.rid('IR')) $$, $$ values ('rebar.jpg'::text) $$, 'request: the requester previews their photo');
-select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000482', null, pg_temp.rid('IR')) $$,
-  '42501', 'not_image', 'request: a PDF on it is not previewed');
+select results_eq($$ select original_name from public.authorize_preview('e0000000-0000-0000-0000-000000000482', null,
+    pg_temp.rid('IR')) $$, $$ values ('notes.pdf'::text) $$, 'request: a PDF on it is previewed through the request (0074)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000478');
 select throws_ok($$ select * from public.authorize_preview('e0000000-0000-0000-0000-000000000481', null, pg_temp.rid('IR')) $$,
   '42501', 'scan_pending', 'request: the inspector waits for the scan, exactly like the download');
