@@ -7,6 +7,7 @@ import { SessionProvider } from '../data/SessionProvider';
 import { UploadQueueProvider } from '../data/UploadQueue';
 import { FUTURE_NAME } from '../lib/brand';
 import { statusCssVariables } from '../lib/status';
+import { FileViewerProvider } from '../ui/FileViewer';
 import { ToastProvider } from '../ui/Toast';
 import { ErrorBoundary } from './ErrorBoundary';
 import { router } from './router';
@@ -68,11 +69,13 @@ createRoot(rootEl).render(
     <ErrorBoundary onError={reportRenderError}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <SessionProvider>
-            <UploadQueueProvider>
-              <RouterProvider router={router} />
-            </UploadQueueProvider>
-          </SessionProvider>
+          <FileViewerProvider>
+            <SessionProvider>
+              <UploadQueueProvider>
+                <RouterProvider router={router} />
+              </UploadQueueProvider>
+            </SessionProvider>
+          </FileViewerProvider>
         </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>

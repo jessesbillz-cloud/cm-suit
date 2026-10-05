@@ -3,7 +3,7 @@
 // comes from data/preview (a short-lived signed URL, only for an image the person may see).
 import { useState } from 'react';
 import { ImageIcon } from 'lucide-react';
-import { useImageUrl, type PreviewVia } from '../data/preview';
+import { usePreviewUrl, type PreviewVia } from '../data/preview';
 import { Icon } from './Icon';
 
 /** A grid of square photo tiles: three across, four from sm up. */
@@ -33,7 +33,7 @@ interface ThumbProps {
 }
 
 export function Thumb({ fileId, via, alt, fill = false, className = '', iconSize = 22 }: ThumbProps) {
-  const preview = useImageUrl(fileId, via);
+  const preview = usePreviewUrl(fileId, via);
   // Per URL, so a fresh URL starts over: loaded shows the picture, failed shows the icon.
   const [loaded, setLoaded] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
