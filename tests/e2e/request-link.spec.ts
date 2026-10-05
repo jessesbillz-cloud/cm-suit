@@ -49,6 +49,38 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await expect(page).toHaveURL(/\/p\/job-a\/inspections\/new/);
   });
 
+  test('joining makes the requests sent earlier from that address the joiner\'s (0075)', async ({ page }) => {
+    // Signed out, the visitor asks with the address they will sign in with (the mock 'visitor' is visitor@example.test).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'anon');
+    });
+    await page.goto(`/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('public-time').selectOption('14:00');
+    await page.getByTestId('public-items').fill('Sample header nailing, east wall');
+    await page.getByTestId('public-name').fill('Sample Foreman');
+    await page.getByTestId('public-company').fill('Sample Framing Co');
+    await page.getByTestId('public-email').fill('visitor@example.test');
+    await page.getByTestId('public-ack').check();
+    await page.getByTestId('public-submit').click();
+    await expect(page.getByTestId('public-ir-number')).toHaveText(/^IR \d+$/);
+    const n = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
+
+    // Signed in, they join from the link: the request is theirs now (read in full, theirs to move or withdraw).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'visitor');
+    });
+    await page.goto(`/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('request-signin').click();
+    await page.getByLabel('Your name').fill('Sample Foreman');
+    await page.getByLabel('Company').fill('Sample Framing Co');
+    await page.getByTestId('request-join-go').click();
+    await expect(page).toHaveURL(/\/p\/job-a\/inspections\/new/);
+    await page.goto(`/p/job-a/inspections/mock-ir-${n}`);
+    const pane = page.getByTestId('ir-pane');
+    await expect(pane).toContainText('Sample header nailing, east wall');
+    await expect(pane.getByRole('button', { name: 'Withdraw' })).toBeVisible();
+  });
+
   test('a dead link says so', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'visitor');

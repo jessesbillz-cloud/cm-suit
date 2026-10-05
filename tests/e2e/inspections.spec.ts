@@ -69,4 +69,46 @@ test.describe('inspections (SPEC §13.2)', () => {
     await expect(row).toContainText('Approved');
     await expect(pane.getByTestId('ir-generate')).toBeVisible();
   });
+
+  test('attendance in MDR\'s words; Send results offers the link requester and a typed address (0075)', async ({ page }) => {
+    // A visitor asks through the link with an email (a later init script wins over the pm one).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'anon');
+    });
+    await page.goto('/r/job-a?t=sample-request-token-sample-request-token-1');
+    await page.getByTestId('public-time').selectOption('11:00');
+    await page.getByTestId('public-items').fill('Sample hold-downs at grid 2');
+    await page.getByTestId('public-name').fill('Sample Foreman');
+    await page.getByTestId('public-company').fill('Sample Framing Co');
+    await page.getByTestId('public-email').fill('foreman@example.test');
+    await page.getByTestId('public-ack').check();
+    await page.getByTestId('public-submit').click();
+    await expect(page.getByTestId('public-ir-number')).toHaveText(/^IR \d+$/);
+    const n = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'pm');
+    });
+    await page.goto(`/p/job-a/inspections/mock-ir-${n}`);
+    const pane = page.getByTestId('ir-pane');
+    await pane.getByTestId('ir-confirm').click();
+    await expect(pane.getByTestId('ir-attendance-be_present')).toHaveText('Be present with the IOR');
+    await expect(pane.getByTestId('ir-attendance-alone')).toHaveText("I've got this alone");
+    await pane.getByTestId('ir-attendance-be_present').click();
+    await expect(pane.getByTestId('ir-attendance-be_present')).toHaveAttribute('aria-checked', 'true');
+    await pane.getByTestId('ir-result-approved').click();
+    await pane.getByTestId('ir-generate').click();
+
+    // Send results: the link requester is there and checked; a typed address joins the list checked. Nothing is sent.
+    await pane.getByTestId('ir-send-open').click();
+    const picker = pane.getByTestId('ir-send-picker');
+    await expect(picker).toContainText('Sample Foreman · foreman@example.test');
+    await expect(picker.getByTestId('ir-send-requester')).toBeChecked();
+    await expect(pane.getByTestId('ir-send-add')).toBeDisabled();
+    await picker.getByTestId('ir-send-email').fill('Owner.Rep@Example.test');
+    await picker.getByTestId('ir-send-add').click();
+    await expect(picker.getByTestId('ir-send-typed')).toBeChecked();
+    await expect(picker).toContainText('owner.rep@example.test');
+    await expect(picker.getByTestId('ir-send-go')).toBeEnabled();
+  });
 });

@@ -22,6 +22,7 @@ export function History({ projectId, requestId, tz, visitor = null }: HistoryPro
     <section className="rounded-lg border border-line px-3 py-2.5" aria-label="History" data-testid="ir-history">
       {events.isPending ? <LoadingState label="Loading history" /> : null}
       {events.isError ? <ErrorState error={events.error} onRetry={() => void events.refetch()} /> : null}
+      {people.isError ? <ErrorState title="Names did not load." error={people.error} onRetry={() => void people.refetch()} className="m-0" /> : null}
       {events.data?.length === 0 ? <p className="text-sm text-ink-2">No changes yet.</p> : null}
       {events.data && events.data.length > 0 ? (
         <ul className="flex flex-col divide-y divide-line text-sm">

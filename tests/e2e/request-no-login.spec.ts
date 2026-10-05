@@ -68,6 +68,53 @@ test.describe('requests with no login (SPEC §6.4 #4)', () => {
     await expect(page.getByTestId('ir-pane')).toContainText('Sample north wall framing');
   });
 
+  test('the status link shows a postponement and, once the IR is made, View IR (0075)', async ({ page }) => {
+    await page.goto(`/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('public-time').selectOption('10:00');
+    await page.getByTestId('public-items').fill('Sample shear wall nailing, line 3');
+    await page.getByTestId('public-name').fill('Sample Foreman');
+    await page.getByTestId('public-company').fill('Sample Framing Co');
+    await page.getByTestId('public-phone').fill('555 010 2030');
+    await page.getByTestId('public-ack').check();
+    await page.getByTestId('public-submit').click();
+    await expect(page.getByTestId('public-ir-number')).toHaveText(/^IR \d+$/);
+    const number = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
+    await page.getByTestId('public-status-open').click();
+    await expect(page).toHaveURL(/\/r\/job-a\/s\/[A-Za-z0-9_-]{43}$/);
+    const statusUrl = page.url();
+    await expect(page.getByTestId('public-view-ir')).toHaveCount(0);
+
+    // The inspector postpones it for the weather, with a note for the requester.
+    await page.evaluate(() => {
+      window.localStorage.setItem('e2e-mock-user', 'pm');
+    });
+    await page.goto(`/p/job-a/inspections/mock-ir-${number}`);
+    const pane = page.getByTestId('ir-pane');
+    await pane.getByTestId('ir-postpone-open').click();
+    await pane.getByTestId('ir-postpone-reason-weather').click();
+    await pane.getByTestId('ir-postpone').getByLabel('Note').fill('Rain all day');
+    await pane.getByTestId('ir-postpone').getByRole('button', { name: 'Postpone' }).click();
+    await expect(pane.getByTestId('ir-postponed')).toContainText('Weather');
+
+    // The visitor's status link says why, with the note; never the inspector.
+    await page.goto(statusUrl);
+    const postponed = page.getByTestId('public-ir-postponed');
+    await expect(postponed).toContainText('Weather');
+    await expect(postponed).toContainText('Rain all day');
+
+    // Confirmed again, approved, the IR made: View IR on the status link.
+    await page.goto(`/p/job-a/inspections/mock-ir-${number}`);
+    await pane.getByTestId('ir-confirm').click();
+    await pane.getByTestId('ir-result-approved').click();
+    await expect(pane.getByTestId('ir-outcome')).toContainText('Approved');
+    await pane.getByTestId('ir-generate').click();
+    await expect(pane.getByTestId('ir-view-ir')).toBeVisible();
+    await page.goto(statusUrl);
+    await expect(page.getByTestId('public-ir-result')).toContainText('Approved');
+    await expect(page.getByTestId('public-view-ir')).toBeVisible();
+    await expect(page.getByTestId('public-ir-postponed')).toHaveCount(0);
+  });
+
   test('a wrong status link says so', async ({ page }) => {
     await page.goto(`/r/job-a/s/${'A'.repeat(43)}`);
     await expect(page.getByRole('heading', { name: 'Not available' })).toBeVisible();

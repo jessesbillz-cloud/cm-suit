@@ -1,8 +1,9 @@
 // One request in the day under the calendar (MDR's request card): a rail in its status color, the job (on "All my
 // jobs") or the type as the title, the type and company, the IR number and its state, a time · length chip, the items,
-// and its files (one click each downloads). The whole card opens the request in the right column, where the
-// inspector's steps are (inspections' RequestPane). Someone else's request shows only its time, type and color.
-import { Pause, Paperclip } from 'lucide-react';
+// its files (one click each downloads) and, once the IR is made, View IR (MDR's "View Completed IR"; one click). The
+// whole card opens the request in the right column, where the inspector's steps are (inspections' RequestPane).
+// Someone else's request shows only its time, type and color.
+import { FileText, Pause, Paperclip } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
 import { useIrFileNames } from '../../data/inspections.queries';
@@ -56,6 +57,35 @@ function Files({ entry }: { entry: IrEntry }) {
           <span className="min-w-0 wrap-anywhere">{names.data?.[id] ?? `File ${String(i + 1)}`}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+/** The IR once made (a complete request has its IR on file; Delete PDF takes it back to confirmed). */
+function ViewIr({ requestId }: { requestId: string }) {
+  const download = useDownloadIrFile();
+  const toast = useToast();
+  return (
+    <div className="relative z-10 px-3.5 pt-2.5">
+      <button
+        type="button"
+        disabled={download.isPending}
+        data-testid="cal-view-ir"
+        className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-line bg-card px-2.5 py-1 text-[13px] font-medium text-accent hover:border-line-strong hover:bg-page/60 disabled:opacity-60"
+        onClick={() => {
+          download.mutate(
+            { requestId },
+            {
+              onError: (e) => {
+                toast.show({ tone: 'error', message: messageOf(e) });
+              },
+            },
+          );
+        }}
+      >
+        <Icon icon={FileText} size={14} className="shrink-0" />
+        View IR
+      </button>
     </div>
   );
 }
@@ -124,6 +154,7 @@ export function RequestCard({ entry, showJob, selected, done, onOpen }: RequestC
       <Chips entry={entry} />
       {row.items ? <p className="whitespace-pre-wrap break-words px-3.5 pt-2.5 text-sm leading-5 text-ink">{row.items}</p> : null}
       {row.attachment_ids.length > 0 ? <Files entry={entry} /> : null}
+      {opens && row.id !== null && row.status === 'complete' ? <ViewIr requestId={row.id} /> : null}
     </article>
   );
 }

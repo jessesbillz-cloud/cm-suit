@@ -1,5 +1,5 @@
-// The requester's own request: Move or Withdraw (Undo in the toast, no "are you sure?"). Once the inspector has a
-// result or the IR is made, it stays as it is.
+// The requester's own request: Move or Withdraw (Undo in the toast, no "are you sure?"). A request the GC returned goes
+// back to the GC when moved, and says so. Once the inspector has a result or the IR is made, it stays as it is.
 import { useState } from 'react';
 import { CalendarClock, Undo2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -89,6 +89,7 @@ export function RequesterActions({ row, canMove }: RequesterActionsProps) {
       {moving && canMove ? (
         <MoveForm
           row={row}
+          toGc={row.status === 'returned'}
           onDone={() => {
             setMoving(false);
           }}
