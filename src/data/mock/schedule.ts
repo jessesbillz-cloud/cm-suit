@@ -29,7 +29,7 @@ function read(): ScheduleMock {
   return { ...seedSchedules(today(), Date.now()), seq: 100 };
 }
 
-function write(update: (s: ScheduleMock) => ScheduleMock): ScheduleMock {
+export function write(update: (s: ScheduleMock) => ScheduleMock): ScheduleMock {
   const next = update(read());
   window.sessionStorage.setItem(KEY, JSON.stringify(next));
   return next;
@@ -65,7 +65,7 @@ function versionOf(s: ScheduleMock, id: string): StoredVersion {
   return v;
 }
 
-function draftOf(s: ScheduleMock, id: string): StoredVersion {
+export function draftOf(s: ScheduleMock, id: string): StoredVersion {
   need('schedule.manage');
   const v = versionOf(s, id);
   if (v.status !== 'draft') throw new DataError('This schedule is published.', '22023', null);
@@ -73,7 +73,7 @@ function draftOf(s: ScheduleMock, id: string): StoredVersion {
   return v;
 }
 
-function live(s: ScheduleMock, versionId: string): StoredActivity[] {
+export function live(s: ScheduleMock, versionId: string): StoredActivity[] {
   return s.activities.filter((a) => a.version_id === versionId && !a.deleted);
 }
 
@@ -217,7 +217,8 @@ export async function importFile(projectId: string, file: File): Promise<Importe
     if (rows.length === 0) throw new DataError('No activities in this file.', '22023', 'empty');
     made = {
       id, project_id: projectId, number: null, status: 'draft', source_kind: kind, title: kind === 'xer' ? 'Sample Master Schedule' : null,
-      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : null, file_id: `${id}-file`, file_name: file.name,
+      // The file's own data date (an XER, an XML); else the upload day, which the person corrects (schedule-import).
+      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : t, file_id: `${id}-file`, file_name: file.name,
       created_at: new Date().toISOString(), created_by_name: 'Sol Sample', published_at: null, published_by_name: null, activities: rows.length,
       version: 1, model: kind === 'pdf' || kind === 'photo' ? 'sample-model' : null, warnings: kind === 'photo' ? ['Sample: one row\'s dates were read off its bar.'] : [],
       deleted: false, created_by: mockUser().id, published_by: null, supersedes_id: null,

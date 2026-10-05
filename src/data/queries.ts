@@ -243,7 +243,8 @@ export function usePeopleDisplay(projectId: string | null) {
 export function useRoles() {
   return useQuery({
     queryKey: qk.roles,
-    queryFn: async () => (isMock() ? mock.roles() : throwIfError(await supabase.from('roles').select('name, description').order('name'))),
+    queryFn: async () =>
+      isMock() ? mock.roles() : throwIfError(await supabase.from('roles').select('name, description, invitable').order('description')),
     staleTime: Infinity,
   });
 }

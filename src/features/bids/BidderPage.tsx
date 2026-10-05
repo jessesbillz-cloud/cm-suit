@@ -82,7 +82,7 @@ export function BidderPage({ projectId }: { projectId: string }) {
 
   if (page.isPending || page.isError) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} />
         <Card padded={false}>
           {page.isError ? <ErrorState error={page.error} onRetry={() => void page.refetch()} /> : <LoadingState label="Loading your bid page" />}
@@ -93,7 +93,7 @@ export function BidderPage({ projectId }: { projectId: string }) {
 
   const p = page.data;
   return (
-    <div className="mx-auto max-w-2xl" data-testid="bidder-page">
+    <div data-testid="bidder-page">
       <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} meta={metaLine(p)} />
       <div className="flex flex-col gap-4">
         <ProjectCard project={p.project} gc={gc} packages={p.packages.length} />

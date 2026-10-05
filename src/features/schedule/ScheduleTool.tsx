@@ -31,7 +31,7 @@ interface ScheduleToolProps {
 
 function Shell({ meta, actions, below, children }: { meta?: ReactNode; actions?: ReactNode; below?: ReactNode; children: ReactNode }) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col" data-testid="schedule">
+    <div className="flex flex-col" data-testid="schedule">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>

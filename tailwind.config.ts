@@ -29,7 +29,13 @@ export default {
       },
       borderRadius: { card: '10px' },
       fontFamily: { sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'] },
-      width: { rail: '96px', 'rail-open': '208px', right: '420px' },
+      // The right column grows on wide screens: 420px, 560px from `wide`.
+      width: { rail: '96px', 'rail-open': '208px', right: '420px', 'right-wide': '560px' },
+      // `tool`: the one width every tool screen is capped at (app/frame/Frame), so the left edge never jumps between
+      // tools. `frame`: the main area (a tool plus its padding) and the widest right column together; past it the pair
+      // centers on the page. `reading`: an opened item at full width, or alone in its own window.
+      maxWidth: { tool: '72rem', frame: '109rem', reading: '56rem' },
+      screens: { wide: '1600px' },
     },
   },
   plugins: [],

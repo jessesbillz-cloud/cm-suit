@@ -165,11 +165,17 @@ async function updateProfile(userId: string, patch: ProfilePatch, version: numbe
   return row;
 }
 
+/** Saves as I go (Settings > Profile): one at a time, each with the version the last save left in the cache. */
 export function useSaveProfile() {
   const qc = useQueryClient();
   const user = useUser();
   return useMutation({
-    mutationFn: (v: { patch: ProfilePatch; version: number }) => updateProfile(user.id, v.patch, v.version),
+    scope: { id: 'profile' },
+    mutationFn: async (patch: ProfilePatch) => {
+      const current = qc.getQueryData<ProfileRow>(qk.profile);
+      if (!current) throw new Error('Your profile has not loaded yet.');
+      return updateProfile(user.id, patch, current.version);
+    },
     onSuccess: (row) => {
       qc.setQueryData(qk.profile, row);
     },

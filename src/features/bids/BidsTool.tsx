@@ -24,7 +24,7 @@ export function BidsTool({ projectId, itemId }: BidsToolProps) {
     if (manage.data) return <ManagerBids projectId={projectId} itemId={itemId} />;
   }
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} />
       <Card padded={false}>
         {pending ? <LoadingState label="Loading bids" /> : null}

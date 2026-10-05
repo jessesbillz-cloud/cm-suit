@@ -6,7 +6,7 @@ import { Copy, Mail, UserPlus, X } from 'lucide-react';
 import { useInviteMember } from '../../data/mutations';
 import { useRoles } from '../../data/queries';
 import { messageOf } from '../../data/errors';
-import type { InviteResult } from '../../data/types';
+import type { InviteResult, RoleRow } from '../../data/types';
 import { endOfDayInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
@@ -19,6 +19,12 @@ const inviteSchema = z.object({
   role: z.string().min(1, 'Pick a role.'),
   accessEnds: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date or leave it empty.'),
 });
+
+/** A role in words: its description ("Fire / building official"), else its name made readable. */
+export function roleLabel(name: string, roles: readonly RoleRow[] | undefined): string {
+  const description = roles?.find((r) => r.name === name)?.description ?? '';
+  return description !== '' ? description : humanize(name);
+}
 
 interface InviteFormProps {
   projectId: string;
@@ -145,11 +151,14 @@ export function InviteForm({ projectId, projectName, timeZone, onClose }: Invite
             }}
           >
             <option value="">Pick a role</option>
-            {(roles.data ?? []).map((r) => (
-              <option key={r.name} value={r.name}>
-                {humanize(r.name)}
-              </option>
-            ))}
+            {/* Bidders and requesters join by their own links (roles.invitable), never from here. */}
+            {(roles.data ?? [])
+              .filter((r) => r.invitable)
+              .map((r) => (
+                <option key={r.name} value={r.name}>
+                  {roleLabel(r.name, roles.data)}
+                </option>
+              ))}
           </select>
         </label>
         <label className={FIELD_LABEL}>

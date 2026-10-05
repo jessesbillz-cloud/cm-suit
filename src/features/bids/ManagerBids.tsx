@@ -55,7 +55,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
 
   if (project.isPending || project.isError) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div>
         <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} />
         <Card padded={false}>
           {project.isError ? <ErrorState error={project.error} onRetry={() => void project.refetch()} /> : <LoadingState label="Loading bids" />}
@@ -75,7 +75,7 @@ export function ManagerBids({ projectId, itemId }: ManagerBidsProps) {
   const common = { projectId, selectedId: itemId, onOpen };
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col">
+    <div className="flex flex-col">
       <PageHeader
         title={TOOL_META.bids.label}
         icon={TOOL_META.bids.icon}

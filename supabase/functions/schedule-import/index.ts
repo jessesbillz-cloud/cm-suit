@@ -94,6 +94,10 @@ Deno.serve(handle(async (req) => {
   const detected = detectKind(file.original_name, file.mime, bytes.subarray(0, 4096));
   if ('refuse' in detected) return refuse(req, 400, detected.refuse, detected.message);
 
+  const project = must(
+    await client.from('projects').select('id, name, timezone').eq('id', body.project_id).single(),
+    'project lookup',
+  ) as { id: string; name: string; timezone: string };
   let parsed: ParsedSchedule;
   let model: string | null = null;
   if (detected.kind === 'xer' || detected.kind === 'msp_xml' || detected.kind === 'csv') {
@@ -111,10 +115,6 @@ Deno.serve(handle(async (req) => {
     if (pdf && ((await pdfPages(bytes)) ?? 0) > MAX_PDF_PAGES) {
       return refuse(req, 400, 'too_long', `Over ${String(MAX_PDF_PAGES)} pages: upload the XER, or the look-ahead pages only.`);
     }
-    const project = must(
-      await client.from('projects').select('id, name, timezone').eq('id', body.project_id).single(),
-      'project lookup',
-    ) as { id: string; name: string; timezone: string };
     const read = await runTask(readScheduleTask, {
       fileId: file.id, mediaType: detected.mediaType, base64: bytesToBase64(bytes), project, today: todayIn(project.timezone),
     }, { service, projectId: project.id, userId: user.id });
@@ -127,8 +127,11 @@ Deno.serve(handle(async (req) => {
 
   const { rows, warnings } = finishRows(parsed.rows, parsed.warnings);
   if (rows.length === 0) return refuse(req, 400, 'empty', parsed.warnings[0] ?? 'No activities found in this file.');
+  // A super's photo, a PDF or a sheet seldom says its data date: the upload day (the job's day) stands in, and the
+  // person corrects it in the review. A scheduler's XER or XML always carries its own.
+  const dataDate = parsed.dataDate ?? (detected.kind === 'xer' || detected.kind === 'msp_xml' ? null : todayIn(project.timezone));
   const versionId = await rpc<string>(client, 'schedule_import_draft', {
-    ...args, p_source_kind: detected.kind, p_title: parsed.title, p_data_date: parsed.dataDate,
+    ...args, p_source_kind: detected.kind, p_title: parsed.title, p_data_date: dataDate,
     p_content_hash: await sha256HexBytes(bytes), p_model: model, p_warnings: warnings, p_rows: rows,
   });
   return ok(req, { version_id: versionId, source_kind: detected.kind, rows: rows.length, warnings });

@@ -1,5 +1,6 @@
 // Settings: the job (for people who run it), its RFIs (for those who issue them), my company (if I run it), my profile,
-// my layout, calendar subscriptions, notifications, two-step login, and signing out.
+// my layout, calendar subscriptions, two-step login, and signing out. "Notify me about" is hidden until push ships
+// (SPEC §8.6; nothing reads user_layout.notification_kinds yet, so its boxes changed nothing).
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,6 @@ import { CalendarSubscriptions } from './CalendarSubscriptions';
 import { CompanySettings } from './CompanySettings';
 import { JobSettings } from './JobSettings';
 import { LayoutForm } from './LayoutForm';
-import { NotifyTree } from './NotifyTree';
 import { ProfileForm } from './ProfileForm';
 import { TwoStepCard } from './TwoStepCard';
 import { inAppPath } from '../../lib/basePath';
@@ -63,7 +63,7 @@ export function SettingsTool({ projectId }: { projectId: string | null }) {
   // The job whose settings lead the page; on "All my jobs", only mine.
   const job = projects.data?.find((p) => p.project_id === projectId);
   return (
-    <div data-testid="settings" className="mx-auto max-w-4xl pb-6">
+    <div data-testid="settings" className="pb-6">
       <PageHeader title={TOOL_META.settings.label} icon={TOOL_META.settings.icon} meta={job?.name} />
       <div className="flex flex-col gap-4">
         {projectId ? <JobSettings projectId={projectId} /> : null}
@@ -72,7 +72,6 @@ export function SettingsTool({ projectId }: { projectId: string | null }) {
         <ProfileForm />
         <LayoutForm projectId={projectId} />
         <CalendarSubscriptions />
-        <NotifyTree />
         <TwoStepCard />
         <DeviceCard />
       </div>

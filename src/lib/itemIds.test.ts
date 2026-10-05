@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_ITEM, DRAFT_ITEM_PREFIX, itemKindTitle, NEW_ITEM, opensInMain, SUBSCRIBE_ITEM, VERSION_ITEM_PREFIX, WALLS_ITEM } from './itemIds';
+import {
+  BLOCK_ITEM, boardLineItem, boardLineOf, DRAFT_ITEM_PREFIX, itemKindTitle, NEW_ITEM, opensInMain, SUBSCRIBE_ITEM, VERSION_ITEM_PREFIX, WALLS_ITEM,
+} from './itemIds';
 
 describe('opensInMain', () => {
   it('a Revs wall is a page of its own; its setup forms and every other item open in the right column', () => {
@@ -28,5 +30,15 @@ describe('itemKindTitle', () => {
     expect(itemKindTitle('deliveries', NEW_ITEM)).toBe('Post delivery');
     expect(itemKindTitle('deliveries', 'd-1')).toBe('Delivery');
     expect(itemKindTitle('files', 'f-1')).toBeNull();
+  });
+});
+
+describe('a board line opened beside another tool', () => {
+  it('is that tool\'s item and comes back as the line; a record\'s own id is never one', () => {
+    expect(boardLineOf(boardLineItem('line-1'))).toBe('line-1');
+    expect(boardLineOf('line-1')).toBeNull();
+    expect(boardLineOf('3f1c2a9e-0000-4000-8000-000000000001')).toBeNull();
+    expect(boardLineOf(null)).toBeNull();
+    expect(opensInMain('revs', boardLineItem('a1'))).toBe(false);
   });
 });

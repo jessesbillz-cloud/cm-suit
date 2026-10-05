@@ -52,7 +52,7 @@ export function HoursTool({ projectId, itemId, isPhone }: HoursToolProps) {
 
   if (days.isError || budget.isError || project.isError) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         {header()}
         <ErrorState
           error={days.error ?? budget.error ?? project.error}
@@ -67,7 +67,7 @@ export function HoursTool({ projectId, itemId, isPhone }: HoursToolProps) {
   }
   if (days.isPending || budget.isPending || project.isPending) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         {header()}
         <Card>
           <LoadingState label="Loading hours" />
@@ -79,7 +79,7 @@ export function HoursTool({ projectId, itemId, isPhone }: HoursToolProps) {
   const row = jobBudget(budget.data, days.data);
   const thisMonth = todayInZone(project.data.timezone).slice(0, 7);
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4" data-testid="hours-tool">
+    <div className="flex flex-col gap-4" data-testid="hours-tool">
       {header(hoursMeta(days.data, thisMonth, row))}
       <BudgetCard budget={row} onEdit={openContract} />
       <Card padded={false} className="overflow-hidden">

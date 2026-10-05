@@ -5,11 +5,16 @@ import { Suspense } from 'react';
 import type { Tool } from '../../lib/layout';
 import {
   BILLING_ITEM,
+  boardLineOf,
   CONTRACT_ITEM,
   DRAFT_ITEM_PREFIX,
+  INVITE_ITEM,
+  itemKindTitle,
   NEW_ITEM,
   NEW_TOPIC_ITEM,
+  PROGRESS_ITEM,
   READ_ITEM,
+  SETUP_ITEM,
   SHARE_ITEM,
   TOPIC_ITEM_PREFIX,
   VERSION_ITEM_PREFIX,
@@ -51,66 +56,70 @@ interface ToolItemProps extends ItemViewProps {
   isPhone: boolean;
 }
 
-function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
-  const openWindow = standalone
-    ? undefined
-    : () => {
-        window.open(model.itemWindowHref(tool, itemId), '_blank', 'noopener');
-      };
+/**
+ * Panes that draw their own "Open in new window" (in their footer or head). Every other item gets it in the right
+ * column's header (SPEC §7.2: every item has it); never on a phone, which has no windows.
+ */
+const OWN_WINDOW_BUTTON: readonly Tool[] = ['board', 'files', 'inspections', 'corrections', 'rfis', 'permits'];
 
-  if (tool === 'board') {
+/** The tool's item opens with its own "Open in new window" button, or the frame draws one. */
+export function itemHasOwnWindowButton(tool: Tool, itemId: string): boolean {
+  return boardLineOf(itemId) !== null || OWN_WINDOW_BUTTON.includes(tool);
+}
+
+function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
+  // A phone has no windows, and an item alone in its window has nowhere further to go.
+  const openWindow =
+    standalone || isPhone
+      ? undefined
+      : () => {
+          window.open(model.itemWindowHref(tool, itemId), '_blank', 'noopener');
+        };
+
+  // A board line, opened from the board or from the board docked beside this tool.
+  const line = boardLineOf(itemId) ?? (tool === 'board' ? itemId : null);
+  if (line !== null) {
     return (
       <BoardItem
-        key={itemId}
-        activityId={itemId}
+        key={line}
+        activityId={line}
         boardProjectId={model.loc.projectId}
         onNavigate={(id) => {
-          model.openItem('board', id);
+          if (tool === 'board') model.openItem('board', id);
+          else model.openBoardLine(id);
         }}
-        // A phone has no windows; the footer keeps its room for Open and Download.
-        onOpenWindow={isPhone ? undefined : openWindow}
+        onOpenWindow={openWindow}
         // Beside the board (desktop, normal width) its "Needs you" already has these tasks: never twice on one screen.
-        showTasks={standalone || isPhone || model.rightFull}
+        showTasks={standalone || isPhone || model.rightFull || tool !== 'board'}
       />
     );
   }
+  const { projectId } = model.loc;
   if (tool === 'files') {
-    // A phone has no windows. After a Delete the pane closes (in its own window there is nothing to go back to).
-    return (
-      <FileItem key={itemId} fileId={itemId} onOpenWindow={isPhone ? undefined : openWindow} onClose={standalone ? undefined : model.closeItem} />
-    );
+    // After a Delete the pane closes (in its own window there is nothing to go back to).
+    return <FileItem key={itemId} fileId={itemId} onOpenWindow={openWindow} onClose={standalone ? undefined : model.closeItem} />;
   }
-  if (tool === 'bids' && model.loc.projectId !== null) return <BidsItem projectId={model.loc.projectId} itemId={itemId} />;
-  if (tool === 'calendar') return <CalendarItem key={itemId} projectId={model.loc.projectId} itemId={itemId} />;
-  if (tool === 'dailies' && model.loc.projectId !== null) return <DailiesItem projectId={model.loc.projectId} itemId={itemId} />;
-  if (tool === 'inspections' && model.loc.projectId !== null) {
-    return <InspectionsItem projectId={model.loc.projectId} itemId={itemId} onOpenWindow={openWindow} />;
+  if (tool === 'bids' && projectId !== null) return <BidsItem projectId={projectId} itemId={itemId} />;
+  if (tool === 'calendar') return <CalendarItem key={itemId} projectId={projectId} itemId={itemId} />;
+  if (tool === 'dailies' && projectId !== null) return <DailiesItem projectId={projectId} itemId={itemId} />;
+  if (tool === 'inspections' && projectId !== null) {
+    return <InspectionsItem projectId={projectId} itemId={itemId} onOpenWindow={openWindow} />;
   }
-  if (tool === 'revs' && model.loc.projectId !== null) return <RevsItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
-  if (tool === 'deliveries' && model.loc.projectId !== null) return <DeliveryItem projectId={model.loc.projectId} itemId={itemId} />;
-  if (tool === 'corrections' && model.loc.projectId !== null) {
-    return (
-      <CorrectionItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} standalone={standalone} onOpenWindow={openWindow} />
-    );
+  if (tool === 'revs' && projectId !== null) return <RevsItem projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'deliveries' && projectId !== null) return <DeliveryItem projectId={projectId} itemId={itemId} />;
+  if (tool === 'corrections' && projectId !== null) {
+    return <CorrectionItem projectId={projectId} itemId={itemId} isPhone={isPhone} standalone={standalone} onOpenWindow={openWindow} />;
   }
-  if (tool === 'rfis' && model.loc.projectId !== null) {
-    return <RfiItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={isPhone ? undefined : openWindow} />;
+  if (tool === 'rfis' && projectId !== null) {
+    return <RfiItem projectId={projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={openWindow} />;
   }
   if (tool === 'permits') {
-    return (
-      <PermitItem
-        projectId={model.loc.projectId}
-        itemId={itemId}
-        isPhone={isPhone}
-        wide={model.rightFull}
-        onOpenWindow={isPhone ? undefined : openWindow}
-      />
-    );
+    return <PermitItem projectId={projectId} itemId={itemId} isPhone={isPhone} wide={model.rightFull} onOpenWindow={openWindow} />;
   }
-  if (tool === 'safety' && model.loc.projectId !== null) return <SafetyItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
-  if (tool === 'schedule' && model.loc.projectId !== null) return <ScheduleItem projectId={model.loc.projectId} itemId={itemId} isPhone={isPhone} />;
-  if (tool === 'requirements' && model.loc.projectId !== null) return <RequirementsItem projectId={model.loc.projectId} itemId={itemId} />;
-  if (tool === 'hours' && model.loc.projectId !== null) return <HoursItem projectId={model.loc.projectId} itemId={itemId} />;
+  if (tool === 'safety' && projectId !== null) return <SafetyItem projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'schedule' && projectId !== null) return <ScheduleItem projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'requirements' && projectId !== null) return <RequirementsItem projectId={projectId} itemId={itemId} />;
+  if (tool === 'hours' && projectId !== null) return <HoursItem projectId={projectId} itemId={itemId} />;
   if (tool === 'timesheets') return <TimesheetsItem itemId={itemId} />;
   return <EmptyState title="There is nothing to open here." />;
 }
@@ -119,11 +128,13 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   const isPhone = useIsPhone();
   const projectId = model.loc.projectId;
   const full = standalone || isPhone || model.rightFull;
-  const target = full && projectId !== null ? commentTarget(tool, itemId) : null;
+  const target = full && projectId !== null && boardLineOf(itemId) === null ? commentTarget(tool, itemId) : null;
   // One wrapper either way, so going full width never remounts the item. With comments the item takes its own height
-  // and the whole view scrolls; without, it fills the column as before.
+  // and the whole view scrolls; without, it fills the column as before. At full width (and alone in its window) the item
+  // sits in one centered, readable column, its header and footer with it.
+  const centered = full && !isPhone;
   return (
-    <div className={target === null ? 'h-full' : undefined}>
+    <div data-testid="item-view" className={`${target === null ? 'h-full' : ''} ${centered ? 'mx-auto w-full max-w-reading' : ''}`}>
       <Suspense fallback={<LoadingState />}>
         <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
       </Suspense>
@@ -136,17 +147,35 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   );
 }
 
-/** The right column's title for an open item. */
-export function itemTitle(tool: Tool, itemId: string): string {
+/** A bids item's kind, from the sub-view it opened in (the add forms are `new-<kind>` and `invite`). */
+const BIDS_KINDS: Readonly<Record<string, string>> = {
+  coverage: 'Package',
+  packages: 'Package',
+  subs: 'Sub',
+  received: 'Bid',
+  leveling: 'Bid',
+  questions: 'Question',
+  addenda: 'Addendum',
+  forms: 'Form',
+};
+
+function bidsTitle(itemId: string, view: string | undefined): string {
+  if (itemId === INVITE_ITEM) return 'Invite bidders';
+  const kind = BIDS_KINDS[view ?? 'coverage'] ?? 'Bids';
+  return itemId.startsWith('new-') ? `New ${kind.toLowerCase()}` : kind;
+}
+
+/** The right column's title for an open item: what the item is (never just the tool's name). `view`: the tool's sub-view. */
+export function itemTitle(tool: Tool, itemId: string, view?: string): string {
+  if (tool === 'board' || boardLineOf(itemId) !== null) return 'From the board';
   if (tool === 'files') return 'File';
-  if (tool === 'board') return 'From the board';
-  if (tool === 'bids') return 'Bids';
-  if (tool === 'calendar') return 'Calendar';
-  if (tool === 'dailies') return 'Dailies';
+  if (tool === 'bids') return bidsTitle(itemId, view);
+  const kind = itemKindTitle(tool, itemId);
+  if (kind !== null) return kind;
+  if (tool === 'dailies') return itemId === SETUP_ITEM ? 'Setup' : 'Daily report';
   if (tool === 'inspections') return itemId === SHARE_ITEM ? 'Share' : 'Inspection';
   if (tool === 'revs') return itemId === NEW_ITEM ? 'New list' : itemId === WALLS_ITEM ? 'Add walls' : 'Wall';
-  if (tool === 'deliveries') return 'Delivery';
-  if (tool === 'corrections') return 'Corrections';
+  if (tool === 'corrections') return itemId === NEW_ITEM ? 'New correction' : itemId === PROGRESS_ITEM ? 'Progress' : 'Correction';
   if (tool === 'rfis') return 'RFI';
   if (tool === 'permits') return 'Permit';
   if (tool === 'safety') return itemId === NEW_TOPIC_ITEM || itemId.startsWith(TOPIC_ITEM_PREFIX) ? 'Topic' : 'Meeting';

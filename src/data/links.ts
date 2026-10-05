@@ -7,6 +7,7 @@ import { supabase } from './client';
 import { throwIfError } from './errors';
 import { FunctionError, callFunction } from './functions';
 import { qk } from './keys';
+import { refreshRail } from './rail.queries';
 
 const accessSchema = z.object({
   ok: z.literal(true),
@@ -41,7 +42,7 @@ export function useEnterProject() {
   return useCallback(
     async (info: AccessLinkInfo): Promise<string | null> => {
       await acceptInvites();
-      await qc.invalidateQueries({ queryKey: qk.myProjects });
+      await Promise.all([qc.invalidateQueries({ queryKey: qk.myProjects }), refreshRail(qc)]);
       const projects = throwIfError(await supabase.rpc('my_projects'));
       qc.setQueryData(qk.myProjects, projects);
       const hit = projects.find((p) => p.project_id === info.project_id) ?? projects.find((p) => p.name === info.project_name);

@@ -8,6 +8,7 @@ import { qk } from './keys';
 import * as mock from './mock/jobs';
 import { isMock } from './mock';
 import { PROJECT_COLS, withSettings, type ProjectWithSettings } from './queries';
+import { refreshRail } from './rail.queries';
 import type { MyOrg, NewJobInput, OrgPatch, ProjectPatch, ProjectRow } from './types';
 
 async function createOrg(name: string, kind: string): Promise<string> {
@@ -45,7 +46,8 @@ export function useCreateJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createJob,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.myProjects }),
+    // The new job's rail is my position's recommendation there: without it the rail shows Files alone.
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: qk.myProjects }), refreshRail(qc)]),
   });
 }
 
@@ -73,6 +75,8 @@ export function useSaveProject(projectId: string) {
       // Name, number, stage and modules show in the job picker and the rail; turning DSA on adds its folders.
       await qc.invalidateQueries({ queryKey: qk.myProjects });
       if (patch.is_dsa !== undefined) await qc.invalidateQueries({ queryKey: qk.folders(projectId) });
+      // A tool switched on joins its recommended spot on the rail, not More.
+      if (patch.modules !== undefined) await refreshRail(qc);
     },
   });
 }

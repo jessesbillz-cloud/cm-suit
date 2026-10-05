@@ -79,7 +79,7 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const failed = data.layout.isError ? data.layout : data.projects.isError ? data.projects : null;
   if (data.layout.isPending || data.projects.isPending || failed) {
     return (
-      <div className="mx-auto flex max-w-6xl flex-col">
+      <div className="flex flex-col">
         {header}
         <Card padded={false}>
           {failed ? <ErrorState error={failed.error} onRetry={() => void failed.refetch()} /> : <LoadingState label="Loading calendar" />}
@@ -109,7 +109,7 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col" data-testid="calendar">
+    <div className="flex flex-col" data-testid="calendar">
       {header}
       <Card padded={false} className="overflow-hidden">
         {lines.isError ? <ErrorState error={lines.error} onRetry={() => void lines.refetch()} /> : null}

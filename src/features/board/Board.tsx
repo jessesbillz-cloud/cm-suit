@@ -117,7 +117,7 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
   );
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <PageHeader title={TOOL_META.board.label} icon={TOOL_META.board.icon} meta={meta} />
       <div className="flex flex-col gap-4">
         {projectId === null ? <TodayReports /> : null}

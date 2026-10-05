@@ -1,8 +1,9 @@
 // Schedule writes (migration 0062). Upload: the file goes into the job's Schedule folder through the one uploader (a
 // photo through the one compressor first), then the schedule-import function reads it into a draft. A draft's title,
 // data date and rows are saved one RPC each, version-checked; a row is removed (and put back) and a draft discarded
-// (and brought back) with Undo; Publish makes it the current schedule and Undo (the publisher, 15 minutes) puts the
-// old one back. Every write refreshes the job's schedule queries.
+// (and brought back) with Undo; a row the reader missed is added; Publish makes it the current schedule and Undo (the
+// publisher, 15 minutes) puts the old one back. Every write refreshes the job's schedule queries; a publish and its Undo
+// the calendar too.
 import { useCallback, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ import { callFunction } from './functions';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mock from './mock/schedule';
+import * as mockRows from './mock/scheduleRows';
 import { importedSchema, publishedSchema, type ActivityInput, type Imported, type Published } from './schedule.types';
 import { uploadFile } from './upload';
 
@@ -33,6 +35,12 @@ function first<T>(rows: T[]): T {
 function useRefresh(projectId: string) {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: qk.schedule(projectId) });
+}
+
+/** After a publish or its Undo the server re-mirrors the look-ahead onto the calendar (schedule_calendar_sync). */
+function useRefreshWithCalendar(projectId: string) {
+  const qc = useQueryClient();
+  return () => Promise.all([qc.invalidateQueries({ queryKey: qk.schedule(projectId) }), qc.invalidateQueries({ queryKey: qk.calendar })]);
 }
 
 async function scheduleFolder(projectId: string): Promise<string> {
@@ -110,6 +118,25 @@ export function useSaveActivity(projectId: string) {
   });
 }
 
+/** A row the reader missed, added to a draft (0081). Resolves to its id; adding the same row again returns it. */
+export function useAddActivity(projectId: string, versionId: string) {
+  const refresh = useRefresh(projectId);
+  return useMutation({
+    mutationFn: async (a: ActivityInput): Promise<string> => {
+      if (isMock()) return mockRows.addActivity(versionId, a);
+      return z.string().parse(
+        throwIfError(
+          await supabase.rpc('schedule_activity_add', {
+            p_version_id: versionId, p_code: a.code, p_name: a.name, p_wbs: a.wbs, p_area: a.area, p_trade: a.trade,
+            p_start: sqlNull(a.start), p_finish: sqlNull(a.finish), p_is_milestone: a.isMilestone,
+          }),
+        ),
+      );
+    },
+    onSettled: refresh,
+  });
+}
+
 async function removeRow(id: string, removed: boolean): Promise<void> {
   if (isMock()) return mock.removeActivity(id, removed);
   throwIfErrorMaybe(await supabase.rpc('schedule_activity_remove', { p_activity_id: id, p_removed: removed }));
@@ -139,7 +166,7 @@ export function useDiscardDraft(projectId: string) {
 
 /** Publish a draft (with its version): the job's current schedule from now on. */
 export function usePublish(projectId: string) {
-  const refresh = useRefresh(projectId);
+  const refresh = useRefreshWithCalendar(projectId);
   return useMutation({
     mutationFn: async (v: { id: string; version: number }): Promise<Published> => {
       if (isMock()) return mock.publish(v.id, v.version);
@@ -162,7 +189,8 @@ export function useScheduleUndo(projectId: string) {
       try {
         await undo();
       } finally {
-        await qc.invalidateQueries({ queryKey: qk.schedule(projectId) });
+        // An Undo of a publish moves the calendar's look-ahead lines back too.
+        await Promise.all([qc.invalidateQueries({ queryKey: qk.schedule(projectId) }), qc.invalidateQueries({ queryKey: qk.calendar })]);
       }
     };
     return {

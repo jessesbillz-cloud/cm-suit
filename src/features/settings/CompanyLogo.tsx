@@ -1,11 +1,13 @@
 // Settings > Company, "Logo": the company's logo, printed on its official RFIs. PNG or JPEG; a photo over 2 MB is made
-// smaller first. Upload / Replace, and Remove. Org admins only (the card around it already is).
-import { useRef } from 'react';
+// smaller first. Upload / Replace, and Remove with Undo (the removal waits for the toast to close, no "are you sure?").
+// Org admins only (the card around it already is).
+import { useRef, useState } from 'react';
 import { LoaderCircle, Trash2, Upload } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useOrgLogo, useRemoveOrgLogo, useUploadOrgLogo } from '../../data/org.mutations';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
+import { useToast } from '../../ui/Toast';
 import { SettingRow } from './SettingRow';
 
 export function CompanyLogo({ orgId }: { orgId: string }) {
@@ -13,8 +15,32 @@ export function CompanyLogo({ orgId }: { orgId: string }) {
   const upload = useUploadOrgLogo(orgId);
   const remove = useRemoveOrgLogo(orgId);
   const input = useRef<HTMLInputElement>(null);
-  const url = logo.data?.url ?? null;
+  const toast = useToast();
+  // Removed but still undoable: hidden here until the toast closes.
+  const [removing, setRemoving] = useState(false);
+  const url = removing ? null : (logo.data?.url ?? null);
   const problem = logo.error ?? upload.error ?? remove.error;
+
+  function removeLogo() {
+    setRemoving(true);
+    toast.show({
+      message: 'Logo removed.',
+      durationMs: 6000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setRemoving(false);
+        },
+      },
+      onCommit: () => {
+        remove.mutate(undefined, {
+          onSettled: () => {
+            setRemoving(false);
+          },
+        });
+      },
+    });
+  }
 
   return (
     <SettingRow label="Logo" testId="company-logo">
@@ -42,9 +68,7 @@ export function CompanyLogo({ orgId }: { orgId: string }) {
             icon={Trash2}
             loading={remove.isPending}
             data-testid="company-logo-remove"
-            onClick={() => {
-              remove.mutate();
-            }}
+            onClick={removeLogo}
           >
             Remove
           </Button>

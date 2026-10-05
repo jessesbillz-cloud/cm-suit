@@ -2,7 +2,8 @@
 // they change, version-checked), the counts that matter (rows needing dates, rows to check), what the import noticed,
 // and the one action: Publish (Undo for 15 minutes). Discard has Undo too.
 import { useState } from 'react';
-import { CircleAlert, Trash2 } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useDiscardDraft, usePublish, useSaveDraft, useScheduleUndo } from '../../data/schedule.mutations';
 import type { Version } from '../../data/schedule.types';
@@ -97,7 +98,21 @@ export function DraftHead({ projectId, draft, isPhone, onPublished, onDiscarded,
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip status="pending" label="Draft" />
         <span className="text-[13px] font-medium text-ink-2">{sourceLabel(draft.source_kind)}</span>
-        {draft.file_name ? <span className="min-w-0 break-words text-[13px] text-ink-3">{draft.file_name}</span> : null}
+        {draft.file_id !== null && draft.file_name ? (
+          // The source beside the rows it was read into (rule 12: a person checks them): its own window on a desktop,
+          // full screen on a phone. Files' viewer shows it.
+          <Link
+            to="/p/$projectId/$tool/$itemId"
+            params={{ projectId, tool: 'files', itemId: draft.file_id }}
+            search={isPhone ? {} : { window: '1' as const }}
+            {...(isPhone ? {} : { target: '_blank' })}
+            data-testid="schedule-source-open"
+            className="inline-flex min-w-0 items-center gap-1 break-words text-[13px] font-medium text-accent hover:underline"
+          >
+            <span className="min-w-0 break-words">{draft.file_name}</span>
+            <Icon icon={ExternalLink} size={12} className="shrink-0" />
+          </Link>
+        ) : null}
         <div className="ml-auto">
           <SaveState pending={save.isPending} saved={save.isSuccess} problem={save.isError ? messageOf(save.error) : null} />
         </div>

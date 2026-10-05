@@ -167,12 +167,18 @@ export const MOCK_PEOPLE: Person[] = [
   { user_id: 'mock-someone', member_id: 'member-2', full_name: 'Sample Reviewer', company: 'Sample Design', role: 'architect', status: 'active', access_ends_at: null },
   { user_id: 'mock-user-inspector', member_id: 'member-3', full_name: 'Sample Inspector', company: 'Sample Inspection', role: 'inspector', status: 'active', access_ends_at: null },
   { user_id: 'mock-user-sub', member_id: 'member-4', full_name: 'Sample Sub', company: 'Sample Drywall', role: 'sub', status: 'active', access_ends_at: null },
+  // Invited, not signed in yet: no user, the name is the email's first part (people_display).
+  { user_id: null, member_id: 'member-5', full_name: 'sample.invitee', company: '', role: 'viewer', status: 'invited', access_ends_at: null },
 ];
 
 export const MOCK_ROLES: RoleRow[] = [
-  { name: 'pm', description: 'Project manager' },
-  { name: 'architect', description: 'Architect / engineer of record' },
-  { name: 'viewer', description: 'Read-only' },
+  { name: 'architect', description: 'Architect / engineer of record', invitable: true },
+  { name: 'bidder', description: 'Invited to bid', invitable: false },
+  { name: 'inspector', description: 'Inspector of record', invitable: true },
+  { name: 'pm', description: 'Project manager', invitable: true },
+  { name: 'viewer', description: 'Read-only', invitable: true },
+  { name: 'requester', description: 'Requester', invitable: false },
+  { name: 'sub', description: 'Subcontractor on the job', invitable: true },
 ];
 
 export function mockProfile(userId: string, email: string): ProfileRow {

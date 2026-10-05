@@ -9,7 +9,7 @@ import { ORG_KINDS } from '../../lib/jobs';
 import { Card } from '../../ui/Card';
 import { SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
-import { ErrorState } from '../../ui/States';
+import { ErrorState, LoadingState } from '../../ui/States';
 import { CompanyLogo } from './CompanyLogo';
 import { FIELD_ROW } from './SettingRow';
 
@@ -58,6 +58,7 @@ function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
   }
 
   if (admin.isError) return <ErrorState error={admin.error} onRetry={() => void admin.refetch()} />;
+  // Not mine to run: no card at all (is_org_admin says no, or has not answered yet).
   if (admin.data !== true) return null;
   return (
     <Card title={titled ? org.name : 'Company'} actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
@@ -71,7 +72,7 @@ function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
 
 export function CompanySettings() {
   const orgs = useMyOrgs();
-  if (orgs.isPending) return null;
+  if (orgs.isPending) return <LoadingState label="Loading your company" />;
   if (orgs.isError) return <ErrorState error={orgs.error} onRetry={() => void orgs.refetch()} />;
   // One company (the usual case) is just "Company"; with several, each card carries its name.
   return (

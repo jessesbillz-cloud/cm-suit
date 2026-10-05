@@ -30,6 +30,7 @@ export function DockedBoard({ projectId, onOpen }: DockedBoardProps) {
           zone={zoneOf(l.project_id)}
           selected={false}
           compact
+          testId="board-line"
           onOpen={onOpen}
         />
       ))}
