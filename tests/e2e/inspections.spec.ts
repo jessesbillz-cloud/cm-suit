@@ -4,12 +4,23 @@
 // The mock seeds a month of requests on the sample jobs (the calendar's), keeping 9:00-10:00 today free on job-a, so
 // the new request's number is whatever the database (mock) gives next.
 import process from 'node:process';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 
 interface TapWindow {
   __taps: number;
+}
+
+/** Opens a page; the test's first page can reload itself once (a new build taking over) while this navigation starts. */
+async function open(page: Page, path: string): Promise<void> {
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
 }
 
 test.describe('inspections (SPEC §13.2)', () => {
@@ -75,7 +86,7 @@ test.describe('inspections (SPEC §13.2)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'anon');
     });
-    await page.goto('/r/job-a?t=sample-request-token-sample-request-token-1');
+    await open(page, '/r/job-a?t=sample-request-token-sample-request-token-1');
     await page.getByTestId('public-time').selectOption('11:00');
     await page.getByTestId('public-items').fill('Sample hold-downs at grid 2');
     await page.getByTestId('public-name').fill('Sample Foreman');
@@ -89,15 +100,19 @@ test.describe('inspections (SPEC §13.2)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'pm');
     });
-    await page.goto(`/p/job-a/inspections/mock-ir-${n}`);
+    await open(page, `/p/job-a/inspections/mock-ir-${n}`);
     const pane = page.getByTestId('ir-pane');
     await pane.getByTestId('ir-confirm').click();
+    // Each step waits for the last save (the next one carries its version).
+    await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
     await expect(pane.getByTestId('ir-attendance-be_present')).toHaveText('Be present with the IOR');
     await expect(pane.getByTestId('ir-attendance-alone')).toHaveText("I've got this alone");
     await pane.getByTestId('ir-attendance-be_present').click();
     await expect(pane.getByTestId('ir-attendance-be_present')).toHaveAttribute('aria-checked', 'true');
     await pane.getByTestId('ir-result-approved').click();
+    await expect(pane.getByTestId('ir-outcome')).toContainText('Approved');
     await pane.getByTestId('ir-generate').click();
+    await expect(pane.getByTestId('ir-view-ir')).toBeVisible();
 
     // Send results: the link requester is there and checked; a typed address joins the list checked. Nothing is sent.
     await pane.getByTestId('ir-send-open').click();

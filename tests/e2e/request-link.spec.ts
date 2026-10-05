@@ -3,12 +3,23 @@
 // 0055; requesting with no login is request-no-login.spec.ts). The mock hands out fixed sample tokens
 // (src/data/mock/requestLink.ts).
 import process from 'node:process';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 const TOKEN = 'sample-request-token-sample-request-token-1';
 const HUB = 'mock-hub-1';
 const HUB_TOKEN = 'sample-hub-token-sample-hub-token-sample-h1';
+
+/** Opens a page; the test's first page can reload itself once (a new build taking over) while this navigation starts. */
+async function open(page: Page, path: string): Promise<void> {
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
+}
 
 test.describe('request link (SPEC §6.4 #4)', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
@@ -54,7 +65,7 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'anon');
     });
-    await page.goto(`/r/job-a?t=${TOKEN}`);
+    await open(page, `/r/job-a?t=${TOKEN}`);
     await page.getByTestId('public-time').selectOption('14:00');
     await page.getByTestId('public-items').fill('Sample header nailing, east wall');
     await page.getByTestId('public-name').fill('Sample Foreman');
@@ -69,13 +80,13 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'visitor');
     });
-    await page.goto(`/r/job-a?t=${TOKEN}`);
+    await open(page, `/r/job-a?t=${TOKEN}`);
     await page.getByTestId('request-signin').click();
     await page.getByLabel('Your name').fill('Sample Foreman');
     await page.getByLabel('Company').fill('Sample Framing Co');
     await page.getByTestId('request-join-go').click();
     await expect(page).toHaveURL(/\/p\/job-a\/inspections\/new/);
-    await page.goto(`/p/job-a/inspections/mock-ir-${n}`);
+    await open(page, `/p/job-a/inspections/mock-ir-${n}`);
     const pane = page.getByTestId('ir-pane');
     await expect(pane).toContainText('Sample header nailing, east wall');
     await expect(pane.getByRole('button', { name: 'Withdraw' })).toBeVisible();
