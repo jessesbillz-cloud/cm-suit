@@ -64,16 +64,14 @@ async function planSheet(client: Db, projectId: string, fileId: string): Promise
 Deno.serve(handle(async (req) => {
   const { user, client } = await requireUser(req);
   const body = await parseJson(req, Body, 4096);
-  if (body.action === 'plan') {
+  if ('project_id' in body) {
     const f = await planSheet(client, body.project_id, body.file_id);
+    if (body.action === 'plan_download') {
+      return ok(req, { url: await signedDownloadUrl(serviceClient(), 'files', f.storage_path, f.original_name), filename: f.original_name });
+    }
     // The viewer reads it whole: a size it can hold.
     checkSheetSize(f.size);
     return ok(req, { url: await signedViewUrl(serviceClient(), f.storage_path), filename: f.original_name });
-  }
-  if (body.action === 'plan_download') {
-    const f = await planSheet(client, body.project_id, body.file_id);
-    const url = await signedDownloadUrl(serviceClient(), 'files', f.storage_path, f.original_name);
-    return ok(req, { url, filename: f.original_name });
   }
   const ctx = await context(client, body.request_id);
   const service = serviceClient();
