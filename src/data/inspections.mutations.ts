@@ -1,5 +1,6 @@
 // Inspection writes, requester and GC side (SPEC §13.2), plus the pieces every IR write shares. Every write is an RPC
 // that runs as me, with a version check; the database numbers requests and keeps their history.
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { compressPhoto, jpegName } from '../lib/compressPhoto';
 import { saveFile } from '../lib/saveFile';
@@ -11,7 +12,7 @@ import { callFunction } from './functions';
 import { qk } from './keys';
 import * as mock from './mock/inspections';
 import { isMock } from './mock';
-import { uploadFile } from './upload';
+import { isAbortError, removeOwnUpload, removeUnfinishedUpload, uploadFile } from './upload';
 import { irDownloadSchema, type IrRequest, type IrRowRaw, type IrWhen, type NewBlock, type NewIrRequest } from './inspections.types';
 
 type Fns = Database['public']['Functions'];
@@ -45,12 +46,16 @@ export async function irRpc<N extends IrRpcName>(name: N, args: Fns[N]['Args']):
 }
 
 /** After a write: the open request shows the new row at once (its next save carries the new version), then every
- *  inspections query of the job refreshes. */
+ *  inspections query of the job refreshes; an OFS request's walls (Revs) and its board lines too. */
 function useIrApply() {
   const qc = useQueryClient();
-  return (row: IrRowRaw) => {
+  return async (row: IrRowRaw) => {
     qc.setQueryData<IrRequest | null>(qk.inspectionsPart(row.project_id, 'request', row.id), (old) => (old ? { ...old, ...row } : old));
-    return qc.invalidateQueries({ queryKey: qk.inspections(row.project_id) });
+    await qc.invalidateQueries({ queryKey: qk.inspections(row.project_id) });
+    if (row.kind === 'ofs') {
+      await qc.invalidateQueries({ queryKey: qk.revs(row.project_id) });
+      await qc.invalidateQueries({ queryKey: qk.board(row.project_id) });
+    }
   };
 }
 
@@ -131,22 +136,72 @@ export interface IrUpload {
   name: string;
 }
 
-/** Uploads request photos/PDFs (or result photos) through the one uploader into the job's inspection folder. */
+/** How far the files being sent are, all together (0 to 1), or null when nothing is going up. */
+type Progress = number | null;
+
+/**
+ * Uploads request photos/PDFs (or result photos) through the one uploader into the job's inspection folder, with the
+ * progress of the files picked together and Stop (an upload stopped half way is taken back: remove_unfinished_upload).
+ */
 export function useIrUpload(projectId: string) {
   const user = useUser();
-  return useMutation({
+  const [progress, setProgress] = useState<Progress>(null);
+  const stopper = useRef<AbortController | null>(null);
+  const upload = useMutation({
     mutationFn: async (files: File[]): Promise<IrUpload[]> => {
       const folderId = await attachmentsFolder(projectId);
+      const prepared = await Promise.all(files.map(prepareIrFile));
+      const total = prepared.reduce((n, f) => n + f.size, 0) || 1;
+      const controller = new AbortController();
+      stopper.current = controller;
       const out: IrUpload[] = [];
-      for (const picked of files) {
-        const file = await prepareIrFile(picked);
-        const signal = new AbortController().signal;
-        const { fileId } = await uploadFile({ file, projectId, folderId, userId: user.id, signal, onProgress: () => undefined });
-        out.push({ id: fileId, name: file.name });
+      let done = 0;
+      setProgress(0);
+      try {
+        for (const file of prepared) {
+          // The files row as soon as it is registered (a closure sets it): what Stop takes back.
+          const registered: { id: string | null } = { id: null };
+          try {
+            const { fileId } = await uploadFile({
+              file, projectId, folderId, userId: user.id, signal: controller.signal,
+              onRegistered: (id) => {
+                registered.id = id;
+              },
+              onProgress: (loaded) => {
+                setProgress((done + loaded) / total);
+              },
+            });
+            out.push({ id: fileId, name: file.name });
+            done += file.size;
+          } catch (e) {
+            // Stopped: nothing of this pick stays in the folder (the half-sent file and the ones already sent).
+            if (isAbortError(e)) {
+              if (registered.id !== null) await removeUnfinishedUpload(registered.id);
+              for (const f of out) await removeOwnUpload(f.id, user.id);
+            }
+            throw e;
+          }
+        }
+      } finally {
+        stopper.current = null;
+        setProgress(null);
       }
       return out;
     },
   });
+  return {
+    upload,
+    progress,
+    stop: () => {
+      stopper.current?.abort();
+    },
+  };
+}
+
+/** A file taken off a new request before it is sent: it leaves the job's request folder too (my own upload, soft). */
+export function useRemoveIrUpload() {
+  const user = useUser();
+  return useMutation({ mutationFn: (fileId: string) => removeOwnUpload(fileId, user.id) });
 }
 
 /** "View IR" and a request's own files: a fresh signed URL per click, the original filename (lib/saveFile). */

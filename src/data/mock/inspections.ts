@@ -1,6 +1,7 @@
 // Mock inspections for e2e: synthetic requests kept in sessionStorage (its own key), read and changed by the database's
 // rules (mock/irRules: who holds which right, who reads a request, who decides it now, the route of an OFS request,
-// each step's refusals). PDFs and email are server-only and are not mocked. `list`, `request`, `events` and `calendar`
+// each step's refusals). Generate IR is mocked as the database records it (complete, the IR on file); the PDF's bytes
+// and email are server-only and are not mocked. `list`, `request`, `events` and `calendar`
 // answer as the signed-in mock user reads them; the `server*` reads are what the database's own functions see (the
 // link's receipts and day, the revs status).
 import { todayInZone } from '../../lib/dates';
@@ -272,6 +273,26 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   return next;
 }
 
+/** ir-pdf 'generate' as ir_sign + ir_attach_pdf record it: the request is complete with its IR on file (no bytes). */
+export async function generateIr(requestId: string): Promise<{ id: string }> {
+  await delay();
+  const me = mockUser().id;
+  const r = readable(requestId);
+  mustDecide(me, r);
+  if (r.result === null) throw refuse('Record the result first.');
+  const now = new Date().toISOString();
+  const next: IrRowRaw = {
+    ...r, status: 'complete', ir_file_id: `mock-ir-pdf-${r.id}`, content_hash: 'sample', signed_at: now, signed_by: me,
+    pdf_stale: false, pdf_postponed: r.status === 'postponed', version: r.version + 1, updated_at: now,
+  };
+  write((s) => ({
+    ...s,
+    requests: s.requests.map((x) => (x.id === next.id ? next : x)),
+    events: [...s.events, { id: s.events.length + 1, request_id: next.id, action: 'pdf', actor_id: me, created_at: now }],
+  }));
+  return { id: next.id };
+}
+
 export async function addBlock(b: NewBlock): Promise<void> {
   await delay();
   write((s) => ({ ...s, blocks: [...s.blocks, {
@@ -299,6 +320,15 @@ export async function addLinkRequest(a: Args, who: { name: string; phone: string
     requested_by: null, created_by: null, requester_name: who.name, requester_phone: who.phone === '' ? null : who.phone,
     requester_email: who.email === '' ? null : who.email.toLowerCase(),
   });
+}
+
+/** link_request_join (0075): the job's link requests sent from this address become this person's. Answers how many. */
+export function claimLinkRequests(projectId: string, email: string, userId: string): number {
+  const mine = (r: IrRowRaw) =>
+    r.project_id === projectId && r.requested_by === null && r.deleted_at === null && r.requester_email === email.toLowerCase();
+  const n = read().requests.filter(mine).length;
+  if (n > 0) write((s) => ({ ...s, requests: s.requests.map((r) => (mine(r) ? { ...r, requested_by: userId } : r)) }));
+  return n;
 }
 
 /** A revs request (0056): an OFS request numbered like any, with the next OFS IR number (mock/revRequests adds its

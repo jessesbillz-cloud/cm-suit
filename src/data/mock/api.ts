@@ -219,6 +219,14 @@ export async function removeUnfinishedUpload(fileId: string): Promise<void> {
   writeMock((m) => ({ ...m, removedUploads: [...m.removedUploads, fileId] }));
 }
 
+/** My own finished upload taken back before any record uses it (a soft delete): hidden from every read. */
+export async function removeOwnUpload(fileId: string): Promise<void> {
+  await delay();
+  const row = readMock().files.find((f) => f.id === fileId);
+  if (row && row.created_by !== mockUser().id) throw toDataError({ message: 'not_found', code: 'P0002' });
+  writeMock((m) => ({ ...m, removedUploads: m.removedUploads.includes(fileId) ? m.removedUploads : [...m.removedUploads, fileId] }));
+}
+
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {
   await delay();
   const f = allFiles().find((x) => x.id === fileId);

@@ -8,6 +8,7 @@ import type { IrRequest } from '../../data/inspections.types';
 import { usePeopleDisplay } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { SelectField, TextField } from '../../ui/Fields';
+import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { ChoiceRow } from './ChoiceRow';
 
@@ -95,7 +96,21 @@ export function HelperStep({ row, me, owner }: HelperStepProps) {
       </div>
     );
   }
-  const others = (people.data ?? []).filter((p) => p.user_id !== null && p.user_id !== me && (roles.data ?? []).includes(p.role));
+  if (people.isError || roles.isError) {
+    return (
+      <ErrorState
+        title="Helpers did not load."
+        error={people.error ?? roles.error}
+        className="m-0"
+        onRetry={() => {
+          void people.refetch();
+          void roles.refetch();
+        }}
+      />
+    );
+  }
+  if (people.isPending || roles.isPending) return <LoadingState label="Loading helpers" />;
+  const others = people.data.filter((p) => p.user_id !== null && p.user_id !== me && roles.data.includes(p.role));
   if (others.length === 0 && row.helper_id === null) return null;
   const options = [{ value: '', label: 'None' }, ...others.map((p) => ({ value: p.user_id ?? '', label: p.full_name }))];
   return (

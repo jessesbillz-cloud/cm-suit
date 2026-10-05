@@ -17,7 +17,10 @@
 //             OFS request answers one extra question, special inspection required? (`special_required`, 0061; no
 //             other kind may carry it), and always takes the GC step, then the inspector, who sends it to OFS. The
 //             answer carries the private receipt token once;
-//   status    by that receipt alone: the tracker's facts (with whether an OFS request is with OFS) and the result line;
+//   status    by that receipt alone: the tracker's facts (with whether an OFS request is with OFS), the result line, and
+//             (0075) the postponement, the attendance call and whether the IR is made;
+//   ir        (0075) by that receipt alone: the IR PDF once made (link_request_ir_file: scan rules, a download line with
+//             the visitor's address) as a 10-minute download URL with its filename;
 //   join      AFTER the visitor proved their email with the Auth email code ("Sign in to see all your requests"):
 //             records a requester invite on that job for the signed-in address (from the session, never the body);
 //             accept_invites then binds it. An address already on the job is never changed; a revoked or ended one is
@@ -35,7 +38,7 @@
 // per IP (the address the edge saw, clientIp) and per token or receipt on every call; tighter ones on submit (before its
 // body is read), on join and on making a map PDF. Only a map save may be bigger than 4 KB (its strokes, up to 2 MB).
 import { created, handlePublic, HttpError, ok } from '../_shared/http.ts';
-import { type Db, publicDbError, publicRpc, serviceClient, storageError } from '../_shared/db.ts';
+import { type Db, publicDbError, publicRpc, serviceClient, signedDownloadUrl, storageError } from '../_shared/db.ts';
 import { optionalUser, requireUser } from '../_shared/auth.ts';
 import { isMultipart, parseText, readBody, readForm } from '../_shared/validate.ts';
 import { clientIp, limit } from '../_shared/ratelimit.ts';
@@ -44,6 +47,7 @@ import { sha256Hex } from '../_shared/crypto.ts';
 import {
   calendarAnswer,
   hubAnswer,
+  irFileOf,
   joinAnswer,
   openAnswer,
   registeredFiles,
@@ -51,7 +55,15 @@ import {
   type SubmitRequest,
   submitAnswer,
 } from '../_shared/requestLink.ts';
-import { isMapRequest, LinkBody, MAP_SAVE_MAX_BYTES, REQUEST_MAX_BYTES, type SubmitOfsRequest, submitPayload } from '../_shared/requestLinkRevs.ts';
+import {
+  ipOrNull,
+  isMapRequest,
+  LinkBody,
+  MAP_SAVE_MAX_BYTES,
+  REQUEST_MAX_BYTES,
+  type SubmitOfsRequest,
+  submitPayload,
+} from '../_shared/requestLinkRevs.ts';
 import { type LinkArgs, mapAction, revs } from './revs.ts';
 import { type CheckedFile, checkedFiles, MAX_SUBMIT_BYTES, payloadOf, TOO_LARGE } from '../_shared/requestFiles.ts';
 
@@ -169,6 +181,18 @@ Deno.serve(handlePublic(async (req) => {
     const raw = await publicRpc<unknown>(service, 'link_request_status', { p_project_id: body.project_id, p_receipt_hash: receiptHash });
     if (raw === null) throw new HttpError(404, 'That request is not available.');
     return ok(req, statusAnswer(raw));
+  }
+
+  if (body.action === 'ir') {
+    const receiptHash = await sha256Hex(body.receipt);
+    // Its own bucket: each call signs a URL and writes a download line.
+    await limit(service, `request-link:ir:${receiptHash.slice(0, 32)}`, 20, 20 / 3600);
+    const raw = await publicRpc<unknown>(service, 'link_request_ir_file', {
+      p_project_id: body.project_id, p_receipt_hash: receiptHash, p_ip: ipOrNull(ip),
+    });
+    if (raw === null) throw new HttpError(404, 'That request is not available.');
+    const f = irFileOf(raw);
+    return ok(req, { url: await signedDownloadUrl(service, 'files', f.storage_path, f.original_name), filename: f.original_name });
   }
 
   const tokenHash = await sha256Hex(body.token);

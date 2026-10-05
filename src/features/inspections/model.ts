@@ -78,7 +78,8 @@ export function requestChip(r: ChipInput, ofsDecide = false): Chip {
   if (r.status === 'postponed') return { status: 'postponed', label: 'Postponed' };
   if (r.result === 'approved') return { status: 'approved', label: 'Approved' };
   if (r.result === 'not_approved') return { status: 'not_approved', label: 'Not approved' };
-  if (r.status === 'confirmed' && r.helper_id !== null) return { status: 'assigned', label: 'Helper' };
+  // A helper on it: still confirmed (green, as MDR; no blue), with its own word.
+  if (r.status === 'confirmed' && r.helper_id !== null) return { status: 'confirmed', label: 'Helper' };
   if (r.status === 'confirmed' || r.status === 'complete') return { status: 'confirmed', label: 'Confirmed' };
   return { status: 'pending', label: withOfs(r) && !ofsDecide ? WITH_OFS : 'Pending' };
 }
@@ -129,8 +130,8 @@ export function postponeLabel(reason: string | null): string {
 }
 
 export const ATTENDANCE = [
-  { value: 'be_present', label: 'Be present' },
-  { value: 'alone', label: "I've got this" },
+  { value: 'be_present', label: 'Be present with the IOR' },
+  { value: 'alone', label: "I've got this alone" },
 ] as const;
 
 export function attendanceLabel(v: string | null): string | null {
@@ -291,6 +292,7 @@ const ACTIONS: Record<string, string> = {
   send: 'Results sent',
   send_ofs: 'Sent to OFS',
   unsend_ofs: 'Send undone',
+  link_join: 'Requester signed in',
 };
 
 export function actionLabel(action: string): string {

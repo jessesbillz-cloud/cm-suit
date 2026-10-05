@@ -198,6 +198,9 @@ export const REQUEST_NO_LOGIN_RPCS: [string, Record<string, unknown>][] = [
     p_email: null, p_request_date: '2030-01-01', p_kind: 'ior', p_items: 'probe', p_notice_ack: true,
   }],
   ['link_request_status', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  // 0075: the IR by the receipt (service role only) and the hub link's undo (its owner).
+  ['link_request_ir_file', { p_project_id: ZERO_UUID, p_receipt_hash: 'x', p_ip: null }],
+  ['undo_request_hub_rotation', {}],
   ['link_request_answer', { p_request_id: ZERO_UUID }],
   ['ir_folder_make', { p_project_id: ZERO_UUID, p_which: 'attachments' }],
   ['ir_calendar_rows', { p_project_id: ZERO_UUID, p_from: '2030-01-01', p_to: '2030-01-01', p_viewer: null, p_team: true, p_decide: true }],

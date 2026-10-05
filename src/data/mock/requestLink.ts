@@ -5,6 +5,7 @@ import { FunctionError } from '../functions';
 import type { HubAnswer, HubState, JoinAnswer, LinkKey, MadeHub, MadeLink, OpenAnswer, RequestLinkState } from '../requestLink.types';
 import { MOCK_PROJECTS } from './fixtures';
 import { mockSignedOut, mockUser } from './index';
+import { claimLinkRequests } from './inspections';
 import { permitJobRows } from './permitJobs';
 import { delay } from './store';
 
@@ -18,6 +19,8 @@ const NOT_ACTIVE = 'This link is not active. Ask the inspector for the current o
 interface State {
   links: Record<string, string>;
   hub: string | null;
+  /** When the hub link before the current one was made (Undo puts it back). */
+  prevHub?: string | null;
   joined: string[];
 }
 
@@ -84,8 +87,16 @@ export async function rotateHub(): Promise<MadeHub> {
   await delay();
   if (!decides()) throw new FunctionError(403, 'forbidden', "You don't have access to that.", null, null);
   const made_at = new Date().toISOString();
-  write((s) => ({ ...s, hub: made_at }));
+  write((s) => ({ ...s, prevHub: s.hub, hub: made_at }));
   return { hub_id: MOCK_HUB_ID, token: MOCK_HUB_TOKEN, made_at };
+}
+
+/** undo_request_hub_rotation: the previous hub link back, once. */
+export async function undoRotateHub(): Promise<void> {
+  await delay();
+  const s = read();
+  if (s.prevHub === undefined || s.prevHub === null) throw new FunctionError(404, 'not_found', 'Nothing to undo.', null, null);
+  write((x) => ({ ...x, hub: x.prevHub ?? null, prevHub: null }));
 }
 
 export async function open(key: LinkKey): Promise<OpenAnswer> {
@@ -101,6 +112,9 @@ export async function join(key: LinkKey): Promise<JoinAnswer> {
   const job = jobFor(key);
   const already = !isVisitor() || read().joined.includes(job.project_id);
   if (!already) write((s) => ({ ...s, joined: [...s.joined, job.project_id] }));
+  // 0075: the job's link requests sent from the verified address are the joiner's now (also when already on the job).
+  const me = mockUser();
+  claimLinkRequests(job.project_id, me.email, me.id);
   return { project_name: job.name, status: already ? 'member' : 'added' };
 }
 

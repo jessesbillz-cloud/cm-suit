@@ -194,6 +194,17 @@ export function isAbortError(e: unknown): boolean {
 }
 
 /**
+ * Takes back my own finished upload that no record uses yet (a photo taken off a form before it is sent): a soft delete
+ * of my own row (the files update policy: the uploader, deleted_at only). Safe to repeat.
+ */
+export async function removeOwnUpload(fileId: string, userId: string): Promise<void> {
+  if (isMock()) return mock.removeOwnUpload(fileId);
+  throwIfErrorMaybe(
+    await supabase.from('files').update({ deleted_at: new Date().toISOString() }).eq('id', fileId).eq('created_by', userId).is('deleted_at', null),
+  );
+}
+
+/**
  * Takes back the files row of an upload that never finished (remove_unfinished_upload): the caller's own row only,
  * never a finished file, safe to repeat. The same file picked again then registers a new row and starts clean.
  */
