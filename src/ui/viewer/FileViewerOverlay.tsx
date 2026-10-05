@@ -1,7 +1,7 @@
 // The full-screen viewer: fixed over the whole window on a dark backdrop. A top bar with the file's name (and "2 of 5"
 // in a list), Download, Delete (when the item allows it) and Close; Prev / Next at the sides of a list. Escape closes it,
 // left / right move through the list, Tab stays inside, and focus goes back where it was when it closes.
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Download, Trash2, X } from 'lucide-react';
 import { Icon } from '../Icon';
@@ -63,9 +63,12 @@ export function FileViewerOverlay({ items, index, onIndex, onRemoved, onClose }:
     };
   }, []);
 
-  if (!item) return null;
-
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  // Keys work wherever the focus went: a button that just disabled itself (Fit at the fit, Download while it runs)
+  // drops the focus to the page, so the viewer listens on the document while it is open (it is the top layer).
+  const keys = useRef<(e: KeyboardEvent) => void>(() => undefined);
+  const onKeys = (e: KeyboardEvent) => {
+    const el = root.current;
+    if (!el) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -75,20 +78,35 @@ export function FileViewerOverlay({ items, index, onIndex, onRemoved, onClose }:
     } else if (e.key === 'ArrowRight' && next) {
       e.preventDefault();
       next();
-    } else if (e.key === 'Tab' && root.current) {
-      const list = focusables(root.current);
+    } else if (e.key === 'Tab') {
+      const list = focusables(el);
       const first = list[0];
       const last = list[list.length - 1];
       if (!first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
+      const inside = el.contains(document.activeElement);
+      if (!inside || (e.shiftKey && document.activeElement === first)) {
         e.preventDefault();
-        last.focus();
+        (e.shiftKey ? last : first).focus();
       } else if (!e.shiftKey && document.activeElement === last) {
         e.preventDefault();
         first.focus();
       }
     }
   };
+  useEffect(() => {
+    keys.current = onKeys;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      keys.current(e);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  if (!item) return null;
 
   const remove = item.remove;
   return createPortal(
@@ -101,7 +119,6 @@ export function FileViewerOverlay({ items, index, onIndex, onRemoved, onClose }:
       tabIndex={-1}
       // Over everything but the toast (z-50), so a Delete's Undo shows on top of it.
       className="fixed inset-0 z-[45] flex flex-col bg-[#0b0f17]/95 text-white outline-none"
-      onKeyDown={onKeyDown}
     >
       <div className="flex min-h-14 shrink-0 items-center gap-1 border-b border-white/10 px-2 pt-[env(safe-area-inset-top)] sm:gap-2 sm:px-4">
         <div className="min-w-0 flex-1 px-1">
