@@ -292,6 +292,7 @@ const ACTIONS: Record<string, string> = {
   send: 'Results sent',
   send_ofs: 'Sent to OFS',
   unsend_ofs: 'Send undone',
+  link_join: 'Requester signed in',
 };
 
 export function actionLabel(action: string): string {
