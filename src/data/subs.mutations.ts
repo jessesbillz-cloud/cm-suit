@@ -8,6 +8,7 @@ import { callFunction } from './functions';
 import { qk } from './keys';
 import { isMock } from './mock';
 import { notInMock } from './mock/bids';
+import * as mockSubs from './mock/subs';
 import { SUB_COLS, toSubRow } from './subs.queries';
 import { importResultSchema, type CslbResult, type ImportResult, type SubPatch, type SubRow } from './subs.types';
 
@@ -112,5 +113,22 @@ export function useImportSubs() {
       return callFunction('import-subs', form, importResultSchema);
     },
     onSettled: (_r, _e, v) => refresh(v.orgId),
+  });
+}
+
+/** Remove a sub from the directory (or bring it back). Its history and the bids that named it stay. Returns the new
+ *  version, which Undo sends. */
+export function useRemoveSub() {
+  const refresh = useRefreshSubs();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { row: SubRow; version: number; removed: boolean }): Promise<number> => {
+      if (isMock()) return mockSubs.setRemoved(v.row.id, v.version, v.removed);
+      return throwIfError(await supabase.rpc('set_sub_removed', { p_sub_id: v.row.id, p_version: v.version, p_removed: v.removed }));
+    },
+    onSuccess: (_n, v) => {
+      if (v.removed) qc.setQueryData<SubRow[]>(qk.subs(v.row.org_id), (old) => old?.filter((s) => s.id !== v.row.id));
+    },
+    onSettled: (_r, _e, v) => refresh(v.row.org_id),
   });
 }

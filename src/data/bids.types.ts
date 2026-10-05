@@ -9,16 +9,19 @@ export type CoverageRow = Fns['bid_coverage']['Returns'][number];
 
 export type PackageRow = Pick<Tables<'bid_packages'>, 'id' | 'project_id' | 'code' | 'name' | 'scope_text' | 'spec_sections' | 'version'>;
 
-export type InviteRow = Pick<Tables<'bid_invites'>, 'id' | 'package_id' | 'member_id' | 'status' | 'decline_reason'>;
+/** One bidder's invite to one package, with the address it went to (managers read it; a bidder only their own). */
+export type InviteRow = Pick<Tables<'bid_invites'>, 'id' | 'package_id' | 'member_id' | 'status' | 'decline_reason'> & {
+  email: string | null;
+};
 
 export type QuestionRow = Pick<
   Tables<'bid_questions'>,
-  'id' | 'project_id' | 'package_id' | 'number' | 'question' | 'status' | 'created_at' | 'version'
+  'id' | 'project_id' | 'package_id' | 'member_id' | 'number' | 'question' | 'status' | 'created_at' | 'version'
 >;
 
 export type AddendumRow = Pick<Tables<'addenda'>, 'id' | 'project_id' | 'number' | 'title' | 'body' | 'file_ids' | 'issued_at' | 'version'>;
 
-export type AckRow = Pick<Tables<'addendum_acks'>, 'addendum_id' | 'member_id'>;
+export type AckRow = Pick<Tables<'addendum_acks'>, 'addendum_id' | 'member_id' | 'acked_at'>;
 
 export type SubmissionRow = Pick<
   Tables<'bid_submissions'>,
@@ -33,6 +36,16 @@ export type SubName = Pick<Tables<'subs'>, 'id' | 'company'>;
 
 /** A file in "Bids received": the row's name, the intake's duplicate check (name + size) and the read chip. */
 export type ReceivedFile = Pick<Tables<'files'>, 'id' | 'original_name' | 'size' | 'text_status' | 'upload_complete'>;
+
+/** A findings correction before Confirm (SPEC §11.6): the AI drafts, a person fixes and confirms. */
+export interface FindingsEdits {
+  bidder_name: string | null;
+  bid_date: string | null;
+  prevailing_wage: string | null;
+  validity_days: number | null;
+  /** Only for pricing roles, and only when the bid has a pricing row; undefined leaves the money alone. */
+  base_amount?: number | null | undefined;
+}
 
 /** What extract-bid answers; only the parts the app acts on (linking the sub) are pinned. */
 export const readBidResultSchema = z

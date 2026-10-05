@@ -1,7 +1,16 @@
 // Synthetic sub directory for the e2e mock: a handful of "Sample" companies in the mock company's org and a little
-// history on Sample Job A. Reads only; directory writes are not simulated (notInMock).
+// history on Sample Job A. Remove (with Undo) is simulated; other directory writes are not (notInMock).
+import { conflictError } from '../errors';
 import type { SubHistoryRow, SubRow } from '../subs.types';
 import { delay } from './store';
+
+const KEY = 'e2e-mock-subs-removed';
+
+/** Removed sub ids and the version each one is at (sessionStorage, never module state). */
+function removedState(): Record<string, { removed: boolean; version: number }> {
+  const raw = window.sessionStorage.getItem(KEY);
+  return raw === null ? {} : (JSON.parse(raw) as Record<string, { removed: boolean; version: number }>);
+}
 
 const ORG = 'org-sample';
 
@@ -55,7 +64,18 @@ const SUBS: SubRow[] = [
 
 export async function list(orgId: string): Promise<SubRow[]> {
   await delay();
-  return SUBS.filter((s) => s.org_id === orgId);
+  const state = removedState();
+  return SUBS.filter((s) => s.org_id === orgId && state[s.id]?.removed !== true).map((s) => ({ ...s, version: state[s.id]?.version ?? s.version }));
+}
+
+/** set_sub_removed: a version check; returns the new version. */
+export async function setRemoved(id: string, version: number, removed: boolean): Promise<number> {
+  await delay();
+  const state = removedState();
+  const current = state[id]?.version ?? SUBS.find((s) => s.id === id)?.version;
+  if (current === undefined || current !== version) throw conflictError();
+  window.sessionStorage.setItem(KEY, JSON.stringify({ ...state, [id]: { removed, version: version + 1 } }));
+  return version + 1;
 }
 
 export async function history(subId: string): Promise<SubHistoryRow[]> {
