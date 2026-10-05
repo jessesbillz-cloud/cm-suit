@@ -1,6 +1,6 @@
-// Walls: every wall as a callout tile, by level (and by list when a job has more than one): the wall's name big (it
-// wraps, never cut), its grid or room small, and a slim bar of what passed, is requested or failed. A tap opens the
-// wall's own page.
+// Walls: every wall as a callout tile, by level (and by list when a job has more than one): its tag (F6a) small, the
+// wall's name big (it wraps, never cut), its grid or room small, and a slim bar of what passed, is requested or
+// failed. A tap opens the wall's own page.
 import { Settings2 } from 'lucide-react';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
@@ -42,6 +42,11 @@ function WallTile({ area, setup, index, onOpen }: WallTileProps) {
         }}
       >
         <span className="flex flex-col gap-0.5">
+          {area.wall_tag ? (
+            <span className="text-[12.5px] font-semibold leading-4 text-ink-3" data-testid="rev-wall-tag">
+              {area.wall_tag}
+            </span>
+          ) : null}
           <span className="break-words text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">{title}</span>
           {sub ? <span className="break-words text-[13px] font-medium text-ink-2">{sub}</span> : null}
         </span>

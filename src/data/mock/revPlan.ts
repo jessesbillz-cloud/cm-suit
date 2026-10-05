@@ -2,7 +2,7 @@
 // level; the same wall again comes back as it is; a wall of that name not on the plan yet is placed there), and a
 // wall's place set at once with a version check (a null line takes it off the plan). State is mock/revs'.
 import type { Tables } from '../database.types';
-import { parseArea, wallLineSchema, type RevArea, type WallLine } from '../revs.types';
+import { NO_WALL_DETAILS, parseArea, wallLineSchema, type RevArea, type WallLine } from '../revs.types';
 import { bump, checkVersion, clean, fail, listOf, must, newId, read, same, stamp, write } from './revs';
 import { delay } from './store';
 
@@ -38,7 +38,7 @@ export async function drawArea(v: {
   const row: Tables<'rev_areas'> = {
     ...stamp(), org_id: l.org_id, project_id: l.project_id, id: newId('mock-rev-area'), list_id: l.id, level: clean(v.level),
     name: clean(v.name), sheet_file_id: v.sheetFileId, sheet_page: v.page, geom: v.geom,
-    position: Math.max(0, ...live.map((a) => a.position)) + 1,
+    position: Math.max(0, ...live.map((a) => a.position)) + 1, ...NO_WALL_DETAILS,
   };
   write((x) => ({ ...x, areas: [...x.areas, row] }));
   return parseArea(row);

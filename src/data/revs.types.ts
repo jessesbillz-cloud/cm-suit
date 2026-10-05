@@ -8,16 +8,25 @@ import type { Tables } from './database.types';
 export const REV_LIST_COLS = 'id, project_id, name, phase, permit_id, position, version, deleted_at';
 export const REV_COLS = 'id, project_id, list_id, number, name, version, deleted_at';
 export const REV_ITEM_COLS = 'id, project_id, rev_id, name, company, position, version, deleted_at';
-export const REV_AREA_COLS = 'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at';
+export const REV_AREA_COLS =
+  'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at, wall_tag, rating, ul_design, fire_area, sheet_ref, check_note';
 export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, version, deleted_at';
 export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version';
 
 export type RevList = Pick<Tables<'rev_lists'>, 'id' | 'project_id' | 'name' | 'phase' | 'permit_id' | 'position' | 'version' | 'deleted_at'>;
 export type Rev = Pick<Tables<'revs'>, 'id' | 'project_id' | 'list_id' | 'number' | 'name' | 'version' | 'deleted_at'>;
 export type RevItem = Pick<Tables<'rev_items'>, 'id' | 'project_id' | 'rev_id' | 'name' | 'company' | 'position' | 'version' | 'deleted_at'>;
+
+/** A wall's details (0082), each optional: its tag (F6a), rating, UL design, fire area, the sheet number as text (A201A,
+ *  apart from the linked sheet file) and what still needs checking against the plans; with the most each one holds. */
+export const WALL_DETAIL_MAX = { wall_tag: 20, rating: 80, ul_design: 40, fire_area: 120, sheet_ref: 20, check_note: 300 } as const;
+export type WallDetailKey = keyof typeof WALL_DETAIL_MAX;
+export type WallDetails = Pick<Tables<'rev_areas'>, WallDetailKey>;
+export const NO_WALL_DETAILS: WallDetails = { wall_tag: null, rating: null, ul_design: null, fire_area: null, sheet_ref: null, check_note: null };
+
 type RevAreaRow = Pick<
   Tables<'rev_areas'>,
-  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'sheet_page' | 'geom' | 'position' | 'version' | 'deleted_at'
+  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'sheet_page' | 'geom' | 'position' | 'version' | 'deleted_at' | WallDetailKey
 >;
 
 /**

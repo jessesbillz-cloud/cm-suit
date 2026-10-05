@@ -1,11 +1,13 @@
 // The shown item's facts in one short line under the drawing: "Passed · IR 377 · OFS 0065 · Oct 2" (the IR opens the
 // request in Inspections), "Failed: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. Managers mark
-// the item N/A for this wall, or clear it, at once; the toast offers Undo (no "are you sure").
+// the item N/A for this wall, or clear it, at once; the toast offers Undo (no "are you sure"). An item signed off
+// before the app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens
+// over the items) or clears it.
 import { messageOf } from '../../data/errors';
 import { useMarkRevNa } from '../../data/revs.mutations';
 import type { RevArea } from '../../data/revs.types';
 import { useToast } from '../../ui/Toast';
-import { chipOf, irLine, naToggle } from './model';
+import { beforeLine, canSignBefore, chipOf, irLine, naToggle, signedBefore } from './model';
 import type { WallItem } from './wallPage';
 
 interface WallFactsProps {
@@ -16,7 +18,12 @@ interface WallFactsProps {
   timeZone: string;
   canManage: boolean;
   onOpenRequest: (requestId: string) => void;
+  /** A manager: sign the shown item off before the app, or clear that. */
+  onSignBefore?: ((item: WallItem) => void) | undefined;
+  onClearBefore?: ((item: WallItem) => void) | undefined;
 }
+
+const LINK = '-my-1 min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3';
 
 function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea; shown: WallItem }) {
   const mark = useMarkRevNa();
@@ -45,7 +52,7 @@ function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea
   return (
     <button
       type="button"
-      className="-my-1 ml-auto min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3"
+      className={LINK}
       disabled={mark.isPending}
       data-testid="rev-na"
       onClick={() => {
@@ -57,7 +64,7 @@ function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea
   );
 }
 
-export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenRequest }: WallFactsProps) {
+export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenRequest, onSignBefore, onClearBefore }: WallFactsProps) {
   if (!shown) return <div className="min-h-8" data-testid="rev-facts" />;
   const { cell, item } = shown;
   const chip = chipOf(cell.status);
@@ -65,11 +72,27 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
   const requestId = cell.request_id;
   const failed = cell.status === 'failed';
   const why = failed && cell.note ? cell.note : null;
+  const before = signedBefore(cell);
+  const signed = beforeLine(cell, timeZone);
   return (
     <div className="flex min-h-8 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[14px] leading-5" data-testid="rev-facts" data-status={cell.status}>
       <span className="font-semibold" style={{ color: `var(--status-${chip.key}-fg)` }}>
-        {why ? 'Failed:' : chip.label}
+        {why ? 'Failed:' : before ? 'Done' : chip.label}
       </span>
+      {signed !== null ? (
+        <>
+          <Dot />
+          <span className="font-medium tabular-nums text-ink-2" data-testid="rev-before-line">
+            {signed}
+          </span>
+        </>
+      ) : null}
+      {before && cell.note ? (
+        <>
+          <Dot />
+          <span className="min-w-0 break-words text-ink-2">{cell.note}</span>
+        </>
+      ) : null}
       {why ? (
         <span className="min-w-0 break-words text-danger" data-testid="rev-item-note">
           {why}
@@ -96,7 +119,21 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
           <span className="break-words text-ink-3">{item.company}</span>
         </>
       ) : null}
-      {canManage ? <NaButton key={item.id} projectId={projectId} area={area} shown={shown} /> : null}
+      {canManage ? (
+        <span className="ml-auto flex shrink-0 items-center">
+          {before && onClearBefore ? (
+            <button type="button" className={LINK} data-testid="rev-before-clear" onClick={() => { onClearBefore(shown); }}>
+              Clear
+            </button>
+          ) : null}
+          {canSignBefore(cell.status) && onSignBefore ? (
+            <button type="button" className={LINK} data-testid="rev-before" onClick={() => { onSignBefore(shown); }}>
+              Signed off before
+            </button>
+          ) : null}
+          <NaButton key={item.id} projectId={projectId} area={area} shown={shown} />
+        </span>
+      ) : null}
     </div>
   );
 }

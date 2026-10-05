@@ -13,7 +13,8 @@ import {
   useSaveRevList,
 } from '../../data/revs.mutations';
 import { useMoveRev, usePlaceRevArea } from '../../data/revs.plan';
-import type { Rev, RevArea, RevItem, RevKind, RevList } from '../../data/revs.types';
+import type { Rev, RevArea, RevItem, RevKind, RevList, WallDetails } from '../../data/revs.types';
+import { useSaveWallDetails } from '../../data/revs.walls';
 import { useToast } from '../../ui/Toast';
 
 export interface ListValues {
@@ -26,7 +27,15 @@ export interface WallValues {
   level: string;
   name: string;
   sheetFileId: string | null;
+  /** Tag, rating, UL design, fire area, sheet number, what to check (0082); null = none. */
+  details: WallDetails;
 }
+
+const detailsFrom = (a: RevArea): WallDetails => ({
+  wall_tag: a.wall_tag, rating: a.rating, ul_design: a.ul_design, fire_area: a.fire_area, sheet_ref: a.sheet_ref, check_note: a.check_note,
+});
+
+const sameDetails = (a: WallDetails, b: WallDetails) => (Object.keys(a) as (keyof WallDetails)[]).every((k) => a[k] === b[k]);
 
 export function useSetupActions(projectId: string) {
   const toast = useToast();
@@ -38,6 +47,7 @@ export function useSetupActions(projectId: string) {
   const restore = useRestoreRev();
   const place = usePlaceRevArea();
   const move = useMoveRev();
+  const saveDetails = useSaveWallDetails();
 
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
@@ -47,7 +57,7 @@ export function useSetupActions(projectId: string) {
   };
 
   return {
-    busy: [saveList, saveRev, saveItem, saveArea, remove, restore, place, move].some((m) => m.isPending),
+    busy: [saveList, saveRev, saveItem, saveArea, remove, restore, place, move, saveDetails].some((m) => m.isPending),
 
     /** Saves; true when saved (the form closes). */
     list: async (list: RevList, v: ListValues): Promise<boolean> => {
@@ -109,11 +119,16 @@ export function useSetupActions(projectId: string) {
       }
     },
 
+    /** A wall's name, level, sheet, then its details when they changed (a second save on the new version). */
     wall: async (area: RevArea, v: WallValues): Promise<boolean> => {
       try {
-        const row = await saveArea.mutateAsync({ area, ...v, position: null });
+        const was = detailsFrom(area);
+        const changed = !sameDetails(was, v.details);
+        const base = await saveArea.mutateAsync({ area, level: v.level, name: v.name, sheetFileId: v.sheetFileId, position: null });
+        const row = changed ? await saveDetails.mutateAsync({ area: base, details: v.details }) : base;
         saved('Wall saved.', async () => {
-          const back = await saveArea.mutateAsync({ area: row, level: area.level, name: area.name, sheetFileId: area.sheet_file_id, position: null });
+          const plain = changed ? await saveDetails.mutateAsync({ area: row, details: was }) : row;
+          const back = await saveArea.mutateAsync({ area: plain, level: area.level, name: area.name, sheetFileId: area.sheet_file_id, position: null });
           if (area.geom !== null && back.geom === null) {
             await place.mutateAsync({ area: back, sheetFileId: area.sheet_file_id, page: area.sheet_page, geom: area.geom });
           }

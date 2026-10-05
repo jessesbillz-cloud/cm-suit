@@ -3,7 +3,7 @@
 // request (status only), the revs request itself, and the request's map by its receipt.
 import { z } from 'zod';
 import type { CalendarRow, DurationKind, IrKind } from './inspections.types';
-import { irStrokesSchema, type RevSetup, type RevStatusRow } from './revs.types';
+import { irStrokesSchema, NO_WALL_DETAILS, type RevSetup, type RevStatusRow } from './revs.types';
 
 /** One line of the job's day as an outsider sees it: time, length, type and color. */
 const dayRowSchema = z.object({
@@ -126,7 +126,7 @@ export function asPublicRevs(projectId: string, raw: PublicRevsAnswer): PublicRe
       revs: raw.revs.map((r) => ({ ...row, ...r })),
       items: raw.items.map((i) => ({ ...row, ...i })),
       // The link's walls carry no line on the plan (0059: the visitor's picker doesn't use the plan yet).
-      areas: raw.areas.map((a) => ({ ...row, ...a, sheet_page: 1, geom: null })),
+      areas: raw.areas.map((a) => ({ ...row, ...a, ...NO_WALL_DETAILS, sheet_page: 1, geom: null })),
       marks: raw.status
         .filter((s) => s.status === 'na')
         .map((s) => ({ ...row, id: `na:${s.area_id}:${s.item_id}`, area_id: s.area_id, item_id: s.item_id, kind: 'na' })),

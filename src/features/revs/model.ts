@@ -8,10 +8,10 @@ import type { StatusKey } from '../../lib/status';
 
 type CellStatus = RevStatusRow['status'];
 
-export const VIEWS = ['walls', 'open', 'setup'] as const;
+export const VIEWS = ['walls', 'open', 'checklist', 'setup'] as const;
 export type RevView = (typeof VIEWS)[number];
 
-export const VIEW_LABELS: Record<RevView, string> = { walls: 'Walls', open: 'Open', setup: 'Setup' };
+export const VIEW_LABELS: Record<RevView, string> = { walls: 'Walls', open: 'Open', checklist: 'Checklist', setup: 'Setup' };
 
 /** The view in the URL; Setup only for those who manage the lists. Walls by default. */
 export function parseView(v: string | undefined, canManage: boolean): RevView {
@@ -128,6 +128,31 @@ const CHIPS: Record<CellStatus, { key: StatusKey; label: string }> = {
 
 export function chipOf(status: CellStatus): { key: StatusKey; label: string } {
   return CHIPS[status];
+}
+
+/** Signed off before the app (0082): passed, with no request behind it. */
+export function signedBefore(cell: RevStatusRow): boolean {
+  return cell.status === 'passed' && cell.request_id === null;
+}
+
+/** "OFS #0041 · Sep 21": what signed a cell off before the app (its day in the job's calendar), or null. */
+export function beforeLine(cell: RevStatusRow, timeZone: string): string | null {
+  if (!signedBefore(cell)) return null;
+  const parts: string[] = [];
+  if (cell.ofs_number !== null) parts.push(`OFS #${String(cell.ofs_number).padStart(4, '0')}`);
+  if (cell.at !== null) parts.push(formatInZone(cell.at, timeZone, 'MMM d'));
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/** A manager may sign off before the app an item not yet passed or N/A. */
+export function canSignBefore(status: CellStatus): boolean {
+  return status !== 'passed' && status !== 'na';
+}
+
+/** The wall's details in one short line: "F6a · 1 HR · UL U419 · Fire Area 2 · A201A"; null when it has none. */
+export function detailsLine(area: RevArea): string | null {
+  const parts = [area.wall_tag, area.rating, area.ul_design, area.fire_area, area.sheet_ref].filter((x): x is string => x !== null && x !== '');
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 /** "IR 12 · OFS 0065 · Oct 2": the request that decides a passed, requested or failed item, in the job's calendar. */

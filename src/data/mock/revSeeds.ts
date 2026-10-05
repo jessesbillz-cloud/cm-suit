@@ -7,6 +7,7 @@
 import { addDays, format, parseISO } from 'date-fns';
 import type { Tables } from '../database.types';
 import type { IrRowRaw } from '../inspections.types';
+import { NO_WALL_DETAILS } from '../revs.types';
 
 const REVS_JOB = 'job-s';
 const ORG = 'org-owner';
@@ -69,7 +70,7 @@ export function seedSetup() {
     list.map(([name, company], k) => ({ ...base, id: itemId(n, k + 1), rev_id: `mock-rev-${String(n)}`, name, company, position: k + 1 })),
   );
   const areas: Tables<'rev_areas'>[] = WALLS.map(([level, name, sheet, page, line], i) => ({
-    ...base, id: areaId(i + 1), list_id: LIST_ID, level, name, sheet_file_id: sheet, sheet_page: page, geom: line, position: i + 1,
+    ...base, id: areaId(i + 1), list_id: LIST_ID, level, name, sheet_file_id: sheet, sheet_page: page, geom: line, position: i + 1, ...NO_WALL_DETAILS,
   }));
   const marks: Tables<'rev_marks'>[] = [
     { ...base, id: 'mock-rev-mark-1', area_id: areaId(6), item_id: itemId(4, 2), kind: 'na' },
