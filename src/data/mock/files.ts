@@ -5,12 +5,12 @@ import { conflictError, toDataError } from '../errors';
 import type { FileFacts } from '../files';
 import type { FolderRow } from '../types';
 import * as api from './api';
-import { SEED_DAILY_PDF_ID } from './boardSeeds';
+import { SEED_DAILY_PDF_ID, SEED_IR_PDF_ID } from './boardSeeds';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
 
 /** Server-made records in the mock (a daily report's PDF, an IR PDF): they stay on file. */
-const KEPT = new Set([SEED_DAILY_PDF_ID, 'job-b-ir-12']);
+const KEPT = new Set([SEED_DAILY_PDF_ID, SEED_IR_PDF_ID]);
 
 function versionOf(id: string): number {
   return readMock().fileVersions[id] ?? 1;

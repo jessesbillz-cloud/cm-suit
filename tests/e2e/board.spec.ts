@@ -166,4 +166,38 @@ test.describe('message board (SPEC §7.3)', () => {
     await expect(today).toContainText('Time TBD');
     await expect(today.getByTestId('cal-line').filter({ hasText: 'Sample Concrete Co' })).not.toContainText('Confirmed');
   });
+
+  test('View opens the record in the file viewer: a file, an IR, a daily, an RFI, a correction\'s photos', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The right column is the desktop frame.');
+    const right = page.getByTestId('right-column');
+    const viewer = page.getByTestId('file-viewer');
+    // The pane shows the record just opened (not the one before it) before View is pressed.
+    async function viewPdf(kind: string, name: string) {
+      await expect(right.getByTestId('item-kind')).toHaveText(kind);
+      await right.getByTestId('item-view').click();
+      await expect(viewer.getByTestId('viewer-name')).toHaveText(name);
+      await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+      await page.keyboard.press('Escape');
+      await expect(viewer).toHaveCount(0);
+    }
+
+    await page.goto('/p/job-a/board');
+    await openLine(page, 'Sample Plan Set A.pdf was added to Plans');
+    await viewPdf('File', 'Sample Plan Set A.pdf');
+    await openLine(page, 'RFI 002 impact claimed');
+    await viewPdf('RFI 002', 'RFI 002.pdf');
+
+    await page.goto('/p/job-b/board');
+    await openLine(page, 'IR 12 results: Approved');
+    await viewPdf('IR 12', 'IR 12.pdf');
+    await expect(right.getByRole('button', { name: 'Download IR' })).toBeVisible();
+    await openLine(page, 'Daily report #7');
+    await viewPdf('Daily report #7', 'Sample Daily Report 7.pdf');
+    await openLine(page, 'CN-004 opened');
+    await expect(right.getByTestId('item-kind')).toHaveText('CN-004');
+    await right.getByTestId('item-view').click();
+    await expect(viewer.getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+  });
 });

@@ -5,6 +5,7 @@ import { conflictError, DataError } from '../errors';
 import type { NewRfiInput, RfiEventKind, RfiFields, RfiRow, RfiSettings, RouteChoice } from '../rfis.types';
 import { find, forbidden, has, holds, jobSettings, me, nameOf, read, settingsOut, strip, write } from './rfis';
 import type { RfiMockState, StoredRfi, StoredStep } from './rfiSeeds';
+import { sheetUrl } from './sheet';
 import { delay } from './store';
 
 const DAY = 86_400_000;
@@ -198,4 +199,10 @@ export async function pdf(id: string): Promise<{ blob: Blob; filename: string }>
   const safe = r.title.replace(/[^A-Za-z0-9 ._-]+/g, '').trim();
   const filename = r.number === null ? `RFI Draft ${safe}.pdf` : `RFI ${String(r.number).padStart(3, '0')} ${safe}.pdf`;
   return { blob: new Blob([`Synthetic e2e RFI PDF: ${r.title}\n`], { type: 'application/pdf' }), filename };
+}
+
+/** The RFI's PDF to look at: the synthetic plan set stands in for it (real pages for the viewer to draw). */
+export async function viewUrl(id: string): Promise<string> {
+  await pdf(id);
+  return sheetUrl();
 }
