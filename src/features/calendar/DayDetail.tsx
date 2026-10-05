@@ -1,8 +1,10 @@
 // The selected day under the calendar (MDR's day panel): the weekday over the big date and the day's count, Add and
 // Block time, the day's requests by state (each a card that opens in the right column with the inspector's steps),
-// blocked time, the day's other lines (deliveries, meetings, milestones, due items), then the week's look-ahead.
+// blocked time, the day's other lines under their kind (Deliveries, Meetings, Milestones, Due ...), then the week's
+// look-ahead.
 import { CalendarOff, Plus } from 'lucide-react';
 import type { CalendarLine } from '../../data/calendar.types';
+import { kindLabel } from '../../lib/calendarKinds';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
@@ -61,6 +63,20 @@ function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetail
   );
 }
 
+/** The day's other lines by kind, in the order the kinds first appear (the day's order). */
+function byKind(entries: readonly LineEntry[]): { kind: string; entries: LineEntry[] }[] {
+  const out: { kind: string; entries: LineEntry[] }[] = [];
+  for (const e of entries) {
+    const group = out.find((g) => g.kind === e.line.kind);
+    if (group) group.entries.push(e);
+    else out.push({ kind: e.line.kind, entries: [e] });
+  }
+  return out;
+}
+
+/** Section words: the kind's label, shortened where the filter's longer name reads oddly as a heading. */
+const HEADINGS: Record<string, string> = { my_due: 'Due' };
+
 export function DayDetail(props: DayDetailProps) {
   const { day, entries, week, lookahead, showJob, openId, onOpenRequest, onOpenLine } = props;
   const requests = entries.filter((e): e is IrEntry => e.type === 'ir');
@@ -93,14 +109,18 @@ export function DayDetail(props: DayDetailProps) {
             </section>
           ))}
           {others.length > 0 ? (
-            <section data-testid="cal-others">
-              <SectionTitle label="Other" count={others.length} />
-              <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
-                {others.map((e) => (
-                  <LineRow key={e.key} line={e.line} showJob={showJob} selected={e.line.id === openId} onOpen={onOpenLine} />
-                ))}
-              </div>
-            </section>
+            <div data-testid="cal-others" className="flex flex-col gap-6">
+              {byKind(others).map((g) => (
+                <section key={g.kind} data-testid={`cal-kind-${g.kind}`}>
+                  <SectionTitle label={HEADINGS[g.kind] ?? kindLabel(g.kind)} count={g.entries.length} />
+                  <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+                    {g.entries.map((e) => (
+                      <LineRow key={e.key} line={e.line} showJob={showJob} selected={e.line.id === openId} onOpen={onOpenLine} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           ) : null}
           {groups.length === 0 && others.length === 0 ? (
             <p data-testid="cal-day-empty" className="py-4 text-center text-sm text-ink-2">

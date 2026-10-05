@@ -9,7 +9,7 @@ import type { CalendarInspection, CalendarLine } from '../../data/calendar.types
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
 import { rowChip } from '../inspections/model';
-import { lineDay, statusKey } from './model';
+import { lineChip, lineDay } from './model';
 
 export type Entry =
   | { type: 'ir'; key: string; day: string; time: string; projectId: string; projectName: string; row: CalendarInspection }
@@ -107,7 +107,7 @@ export function bannerOf(e: Entry): Banner {
     const tone = rowChip(e.row).status;
     return { label: shortType(e.row), tone, paused: tone === 'postponed', kind: null };
   }
-  return { label: e.line.title, tone: statusKey(e.line.status), paused: false, kind: e.line.kind };
+  return { label: e.line.title, tone: lineChip(e.line)?.status ?? null, paused: false, kind: e.line.kind };
 }
 
 type RequestGroup = 'pending' | 'postponed' | 'confirmed' | 'done' | 'blocked';

@@ -25,6 +25,26 @@ export const DRAFT_ITEM_PREFIX = 'draft-';
 export const VERSION_ITEM_PREFIX = 'v-';
 /** Requirements: read a spec section with AI. */
 export const READ_ITEM = 'read';
+/** Calendar: my calendar feed link. */
+export const SUBSCRIBE_ITEM = 'subscribe';
+/** Calendar: an inspection request opens as `ir.<job>.<request>` (its job travels with it on All my jobs). */
+export const REQUEST_ITEM_PREFIX = 'ir.';
+
+/**
+ * The right column's title for the items whose kind the id already says (Oct 4 audit: "titles say the item's kind"):
+ * the calendar's add form, blocked time, feed link, an inspection request or a line; the deliveries' post form or a
+ * delivery. Null for other tools (the frame keeps its own titles for those).
+ */
+export function itemKindTitle(tool: string, itemId: string): string | null {
+  if (tool === 'calendar') {
+    if (itemId === NEW_ITEM) return 'New line';
+    if (itemId === BLOCK_ITEM) return 'Block time';
+    if (itemId === SUBSCRIBE_ITEM) return 'Subscribe';
+    return itemId.startsWith(REQUEST_ITEM_PREFIX) ? 'Inspection' : 'Calendar line';
+  }
+  if (tool === 'deliveries') return itemId === NEW_ITEM ? 'Post delivery' : 'Delivery';
+  return null;
+}
 
 /**
  * Items that are pages of their own: on a desktop they fill the main area instead of the right column (the right column

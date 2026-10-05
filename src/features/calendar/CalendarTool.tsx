@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import type { CalendarLine } from '../../data/calendar.types';
 import { useCapability, useJobsWithCapability, useMyProjects } from '../../data/queries';
 import { detectZone, todayInZone } from '../../lib/dates';
+import { toolIsOn } from '../../lib/jobs';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
@@ -43,6 +44,12 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const week = useMemo(() => visibleDays('week', selected), [selected]);
   const data = useCalendarData(projectId, days);
   const manage = useCapability(projectId, 'calendar.manage');
+  // All my jobs: Add shows only when some job with the calendar on lets me add lines (as Block time does).
+  const calendarJobs = useMemo(
+    () => (projectId === null ? (projects.data ?? []).filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id) : []),
+    [projects.data, projectId],
+  );
+  const managers = useJobsWithCapability(calendarJobs, 'calendar.manage');
   const deciders = useJobsWithCapability(data.irJobs, 'ir.decide');
   // Share is the job team's (the GC team and inspectors: ir.view_all), not every requester's.
   const team = useJobsWithCapability(data.irJobs, 'ir.view_all');
@@ -90,8 +97,8 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const shareJobs = (data.projects.data ?? [])
     .filter((p) => (team.ids ?? []).includes(p.project_id))
     .map((p) => ({ project_id: p.project_id, name: p.name }));
-  // All my jobs: the add form picks the job (and checks it); one job: only with calendar.manage.
-  const canAdd = projectId === null || manage.data === true;
+  // All my jobs: the add form picks the job; one job: only with calendar.manage.
+  const canAdd = projectId === null ? (managers.ids ?? []).length > 0 : manage.data === true;
   const canBlock = (deciders.ids ?? []).length > 0;
   const lookahead = week.flatMap((d) => byDay.get(d) ?? []).filter((e): e is LineEntry => isLookahead(e));
 
