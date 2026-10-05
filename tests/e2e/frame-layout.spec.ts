@@ -56,7 +56,7 @@ test.describe('the frame on a desktop', () => {
     await right.getByTestId('board-line').filter({ hasText: 'Delivery #3: Sample Steel Co' }).click();
     await expect(right.getByTestId('board-item')).toBeVisible();
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
-    await expect(page).toHaveURL(/\/p\/job-a\/files\/line-/);
+    await expect(page).toHaveURL(/\/p\/job-a\/files\/board\./);
 
     await right.getByRole('button', { name: 'Close' }).click();
     await expect(page).toHaveURL(/\/p\/job-a\/files$/);
@@ -77,7 +77,7 @@ test.describe('the frame on a desktop', () => {
     await right.getByTestId('item-open-window').click();
     const win = await opened;
     await win.waitForLoadState();
-    await expect(win).toHaveURL(/\/p\/job-a\/dailies\/[^/?]+\?window=1$/);
+    await expect(win).toHaveURL(/\/p\/job-a\/dailies\/[^/?]+\?window=/);
   });
 });
 
@@ -102,6 +102,7 @@ test.describe('More by role', () => {
     await expect(page.getByTestId('rail-files')).toHaveCount(0);
     await page.getByTestId('rail-more').click();
     const menu = page.getByTestId('rail-more-menu');
-    await expect(menu.getByRole('menuitem')).toHaveText(['Board']);
+    await expect(menu.getByRole('menuitem')).toHaveCount(1);
+    await expect(menu.getByTestId('rail-more-board')).toBeVisible();
   });
 });

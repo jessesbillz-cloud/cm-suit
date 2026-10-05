@@ -31,10 +31,10 @@ export const INVITE_ITEM = 'invite';
 export const READ_ITEM = 'read';
 
 /**
- * A board line opened from the docked board beside another tool: `line-<activity id>`, an item of the tool I'm in, so
- * the main area stays put and Close brings the docked board back (SPEC §7.2).
+ * A board line opened from the docked board beside another tool: `board.<activity id>`, an item of the tool I'm in, so
+ * the main area stays put and Close brings the docked board back (SPEC §7.2). A dot never starts a record's id.
  */
-const BOARD_LINE_PREFIX = 'line-';
+const BOARD_LINE_PREFIX = 'board.';
 
 export function boardLineItem(activityId: string): string {
   return `${BOARD_LINE_PREFIX}${activityId}`;
