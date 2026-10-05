@@ -1,15 +1,18 @@
 // The frame every opened board line shares: what the record is (its tool's icon, type and number), its name, the job
-// and when the line happened, my tasks about it with Done in place, then the record's facts and its actions: open it
-// where it lives, and download it when there is something to download.
+// and when the line happened, my tasks about it (TaskEnd: Done, Acknowledge or Open), then the record's facts and its
+// actions: open it where it lives, and download it when there is something to download. In its full view the record's
+// comments sit under it, as they do where it lives.
 import type { ReactNode } from 'react';
-import { ArrowUpRight, Check, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, type LucideIcon } from 'lucide-react';
 import type { OpenExtra } from '../../app/frame/useOpenTarget';
+import type { CommentTarget } from '../../data/comments.types';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { ReadingPane } from '../../ui/ReadingPane';
-import { StatusChip } from '../../ui/StatusChip';
+import { CommentsPanel } from '../comments/CommentsPanel';
+import { TaskEnd } from './TaskEnd';
 import { useTaskDone } from './useTaskDone';
 
 /** What the board line gives every record's pane. */
@@ -25,6 +28,9 @@ export interface ItemFrame {
   open: { label: string; go: (extra?: OpenExtra) => void } | null;
   /** My open tasks about this record. */
   tasks: readonly TaskRow[];
+  /** The record's comments, in its full view (full width, its own window, the phone); null in the preview. Shown only
+   *  while the record is there (a missing one has no `open`). */
+  comments: CommentTarget | null;
   onPrev?: (() => void) | undefined;
   onNext?: (() => void) | undefined;
   onOpenWindow?: (() => void) | undefined;
@@ -61,21 +67,7 @@ function TaskStrip({ task, zone, busy, onDone }: { task: TaskRow; zone: string; 
         <p className="break-words font-medium text-ink">{task.title}</p>
         {task.due_at ? <p className="text-xs text-ink-2">Due {formatInZone(task.due_at, zone, 'MMM d')}</p> : null}
       </div>
-      {task.requires_signature ? (
-        <StatusChip status="pending" label="Needs your signature" />
-      ) : (
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={Check}
-          loading={busy}
-          onClick={() => {
-            onDone(task);
-          }}
-        >
-          Done
-        </Button>
-      )}
+      <TaskEnd task={task} busy={busy} onDone={onDone} />
     </div>
   );
 }
@@ -129,6 +121,11 @@ export function EntityPane({ frame, label, title, download, openExtra, children 
         ))}
         {children}
       </div>
+      {frame.comments && frame.open ? (
+        <div className="-mx-5 -mb-4 mt-4">
+          <CommentsPanel key={`${frame.comments.entityType}:${frame.comments.entityId}`} target={frame.comments} />
+        </div>
+      ) : null}
     </ReadingPane>
   );
 }

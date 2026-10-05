@@ -1,5 +1,6 @@
 // The message board (SPEC §7.3): the default main area. One line per event, newest first, unread bold,
-// scrolls back forever, filter by type (and by job via the picker), click opens the line in the right column.
+// scrolls back forever, filter by type (and by job via the picker), click opens the line in the right column. The type
+// filter lists every kind (boardKinds); with one picked, older pages load by themselves until a line of it shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMarkRead } from '../../data/mutations';
 import { useBoardFeed, useReadMark } from '../../data/queries';
@@ -13,12 +14,16 @@ import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
+import { filterKinds } from './boardKinds';
 import { BoardLineRow } from './BoardLineRow';
 import { NeedsYou } from './NeedsYou';
 import { TodayReports } from './TodayReports';
 import { useNeedsYou } from './useNeedsYou';
 import { WhatsNew } from './WhatsNew';
 import { useProjectZones } from './zones';
+
+/** How many pages a picked type loads by itself before "Show older" is left to the person. */
+const AUTO_PAGES = 10;
 
 interface BoardProps {
   projectId: string | null;
@@ -60,7 +65,7 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
   const [seen, setSeen] = useState<{ key: string; since: string | null } | null>(null);
 
   const lines = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data]);
-  const kinds = useMemo(() => [...new Set(lines.map((l) => l.kind))].sort(), [lines]);
+  const kinds = useMemo(() => filterKinds(lines.map((l) => l.kind)), [lines]);
   const unreadCount = useMemo(() => lines.filter((l) => l.unread).length, [lines]);
   const visible = lines.filter((l) => (kind === 'all' || l.kind === kind) && (!unreadOnly || l.unread));
 
@@ -78,6 +83,14 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
       },
     });
   }, [firstPage, projectId, mark.isSuccess, mark.data, markRead, toast]);
+
+  // A kind picked with no line of it loaded yet: the older pages come in by themselves, a few at most.
+  const pages = feed.data?.pages.length ?? 0;
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = feed;
+  useEffect(() => {
+    if (kind === 'all' || visible.length > 0 || !hasNextPage || isFetchingNextPage || pages >= AUTO_PAGES) return;
+    void fetchNextPage();
+  }, [kind, visible.length, hasNextPage, isFetchingNextPage, pages, fetchNextPage]);
 
   const sinceAt = projectId !== null && seen?.key === projectId ? seen.since : null;
   const since = projectId !== null && sinceAt ? formatInZone(sinceAt, zoneOf(projectId), 'MMM d, h:mm a') : null;

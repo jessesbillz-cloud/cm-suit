@@ -52,9 +52,21 @@ export async function markRead(projectIds: string[], at: string): Promise<void> 
 
 export async function tasks(projectId: string | null): Promise<TaskRow[]> {
   await delay();
-  const state = readMock().tasks;
-  return MOCK_TASKS.filter((t) => state[t.id]?.done !== true && (projectId === null || t.project_id === projectId)).map((t) => ({
-    ...t,
+  const { tasks: state, bidder } = readMock();
+  const me = mockUser().id;
+  // An acknowledged addendum's task is done (acknowledge_addendum closes it).
+  const closed = (t: TaskRow) => state[t.id]?.done === true || (t.kind === 'addendum_ack' && t.entity_id !== null && t.entity_id in bidder.acks);
+  return MOCK_TASKS.filter(
+    (t) => (t.assignee === undefined || t.assignee === me) && !closed(t) && (projectId === null || t.project_id === projectId),
+  ).map((t): TaskRow => ({
+    id: t.id,
+    project_id: t.project_id,
+    kind: t.kind,
+    title: t.title,
+    entity_type: t.entity_type,
+    entity_id: t.entity_id,
+    due_at: t.due_at,
+    requires_signature: t.requires_signature,
     version: state[t.id]?.version ?? t.version,
   }));
 }
