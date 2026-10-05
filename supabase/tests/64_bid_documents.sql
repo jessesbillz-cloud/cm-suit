@@ -1,5 +1,5 @@
 begin;
-select plan(54);
+select plan(59);
 -- Migration 0076: an invited bidder reads the job's Plans and Specs (and the folders under them without their own
 -- access list) and an issued addendum's files, through folder_can_read and the download gate; never another folder,
 -- another job, a draft addendum's file, another bidder's bid, or anything once access has ended. Draft addenda are
@@ -90,6 +90,18 @@ exception when others then
   return 'refused:' || sqlstate;
 end $$;
 grant execute on function pg_temp.dl(uuid) to public;
+-- Preview (the file viewer) as the logged-in person: the file's name, or the refusal's code.
+create function pg_temp.pv(p_file uuid) returns text language plpgsql as $$
+begin
+  return (select original_name from public.authorize_preview(p_file));
+exception when others then
+  return 'refused:' || sqlstate;
+end $$;
+grant execute on function pg_temp.pv(uuid) to public;
+-- Download lines of a file, whoever is logged in (a preview writes none).
+create function pg_temp.dl_lines(p_file uuid) returns int language sql stable security definer as $$
+  select count(*)::int from public.downloads where file_id = p_file $$;
+grant execute on function pg_temp.dl_lines(uuid) to public;
 -- Files the logged-in person can list, by name.
 create function pg_temp.seen() returns text[] language sql as $$
   select coalesce(array_agg(original_name order by original_name), '{}') from public.files
@@ -164,12 +176,17 @@ select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000766', pg_tem
 select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000763', pg_temp.v('addenda')), 'bidder cannot browse the Addenda folder');
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000763');
+-- The viewer: authorize_preview asks the download gate (0074 over 0076's addendum branch); not logged as a download.
+select is(pg_temp.pv(pg_temp.v('fIssued')), 'Sample SK-1.pdf', 'bidder previews an issued addendum''s file');
+select is(pg_temp.dl_lines(pg_temp.v('fIssued')), 0, 'the preview is not logged as a download');
+select is(pg_temp.pv(pg_temp.v('fDraft')), 'refused:42501', 'bidder cannot preview a draft addendum''s file');
 select is(pg_temp.dl(pg_temp.v('fIssued')), 'Sample SK-1.pdf', 'bidder downloads an issued addendum''s file');
 select ok('Sample SK-1.pdf' = any (pg_temp.seen()), 'bidder sees an issued addendum''s file');
 select is(pg_temp.dl(pg_temp.v('fDraft')), 'refused:42501', 'bidder cannot download a draft addendum''s file');
 select ok(not ('Sample draft sketch.pdf' = any (pg_temp.seen())), 'bidder does not see a draft addendum''s file');
 select pg_temp.login('a0000000-0000-0000-0000-000000000765');
 select is(pg_temp.dl(pg_temp.v('fIssued')), 'refused:42501', 'another job''s bidder cannot download the addendum''s file');
+select is(pg_temp.pv(pg_temp.v('fIssued')), 'refused:42501', 'another job''s bidder cannot preview it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000767');
 select is(pg_temp.dl(pg_temp.v('fIssued')), 'refused:42501', 'a bidder whose access ended cannot download it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000766');
@@ -188,6 +205,8 @@ select throws_ok($$ select public.add_addendum_file(pg_temp.v('aReport'), pg_tem
 select pg_temp.login('a0000000-0000-0000-0000-000000000763');
 select is(pg_temp.dl('e0000000-0000-0000-0000-000000000765'), 'refused:42501',
   'bidder still cannot download a report, even on an issued addendum');
+select is(pg_temp.pv('e0000000-0000-0000-0000-000000000765'), 'refused:42501',
+  'nor preview it');
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Discard a draft addendum, Undo

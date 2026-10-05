@@ -12,6 +12,7 @@ import type { FileRow, FolderRow } from '../types';
 import * as api from './api';
 import { mockUser } from './index';
 import { permitJobZone } from './permitJobs';
+import { sheetUrl } from './sheet';
 import { yearOn, type StoredPermit } from './permitSeeds';
 import { fail, has, mustHave, nameOf, read, stored, write } from './permitStore';
 import { delay, readMock, writeMock } from './store';
@@ -208,8 +209,8 @@ export async function record(ref: PermitRef, items: readonly Item[]): Promise<Re
   return { set_no: setNo, files: items.length, issued: mode === 'issue' };
 }
 
-/** A stamped sheet for the browser's viewer (synthetic text, never a real file). */
-export async function viewBlob(fileId: string): Promise<Blob> {
-  const f = await fileOf(fileId);
-  return new Blob([`Synthetic stamped sheet: ${f.original_name}\n`], { type: 'text/plain' });
+/** A stamped sheet for the file viewer: the synthetic plan set (mock/sheet), never a real file. */
+export async function viewUrl(fileId: string): Promise<string> {
+  await fileOf(fileId);
+  return sheetUrl();
 }

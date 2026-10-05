@@ -1,15 +1,19 @@
 // Required bid forms (SPEC §11.1): the job's checklist, "With the bid" then "After award", each form with its legal
-// reference, attached file and status. A row opens the form on the right; "Add form" adds one this job needs.
+// reference, attached file (View walks the attached files in the viewer; Download is one click) and status. A row opens
+// the form on the right; "Add form" adds one this job needs.
 // Bids managers only (RLS); the list and the Forms tab count come from the one query.
 import { Plus } from 'lucide-react';
 import { useBidForms } from '../../data/bidForms';
+import { usePreviewFetch } from '../../data/preview';
 import type { ProjectRow } from '../../data/types';
 import { formatInZone, todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { useFileViewer } from '../../ui/FileViewer';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { useDownload } from '../files/useDownload';
+import { fileViewerItem } from '../files/viewerItems';
 import { FormRow } from './FormRow';
 import { formChip, groupForms, NEW_FORM_ITEM, settledCount } from './forms';
 
@@ -39,6 +43,9 @@ export function FormsView({ projectId, selectedId, onOpen, project }: FormsViewP
   const download = useDownload();
   const today = todayInZone(project.timezone);
   const items = forms.data?.items ?? [];
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const files = items.flatMap((i) => (i.file ? [fileViewerItem(i.file, preview)] : [])).filter((f) => f.kind !== 'other');
 
   const add = (
     <Button size="sm" icon={Plus} data-testid="forms-add" onClick={() => {
@@ -71,6 +78,13 @@ export function FormsView({ projectId, selectedId, onOpen, project }: FormsViewP
                 selected={item.id === selectedId}
                 downloading={item.file !== null && download.pendingId === item.file.id}
                 onOpen={onOpen}
+                onView={
+                  item.file && files.some((f) => f.id === item.file?.id)
+                    ? () => {
+                        viewer.open(files, files.findIndex((f) => f.id === item.file?.id));
+                      }
+                    : undefined
+                }
                 onDownload={download.start}
               />
             ))}

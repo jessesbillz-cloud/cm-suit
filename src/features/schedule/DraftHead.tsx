@@ -1,23 +1,27 @@
-// The top of a draft's review: what it is (its source and file), the scheduler's data date and the title (saved as
-// they change, version-checked), the counts that matter (rows needing dates, rows to check), what the import noticed,
-// and the one action: Publish (Undo for 15 minutes). Discard has Undo too.
+// The top of a draft's review: what it is (its source; its file with View and Download), the scheduler's data date
+// and the title (saved as they change, version-checked), the counts that matter (rows needing dates, rows to check),
+// what the import noticed, and the one action: Publish (Undo for 15 minutes). Discard has Undo too.
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react';
+import { CircleAlert, Download, Eye, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useDiscardDraft, usePublish, useSaveDraft, useScheduleUndo } from '../../data/schedule.mutations';
 import type { Version } from '../../data/schedule.types';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { SaveState } from '../../ui/SaveState';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { useViewerDownload } from '../../ui/viewer/useViewerDownload';
 import { sourceLabel } from './model';
 
 interface DraftHeadProps {
   projectId: string;
   draft: Version;
+  /** The source file (sourceFile.ts); `beside` when it already shows next to the rows (no View then). */
+  source: ViewerItem | null;
+  beside: boolean;
   isPhone: boolean;
   /** After Publish (to the look-ahead), after Discard (to Updates), after an Undo of either (back to the draft). */
   onPublished: () => void;
@@ -32,12 +36,14 @@ function blocker(d: Version): string | null {
   return null;
 }
 
-export function DraftHead({ projectId, draft, isPhone, onPublished, onDiscarded, onBack }: DraftHeadProps) {
+export function DraftHead({ projectId, draft, source, beside, isPhone, onPublished, onDiscarded, onBack }: DraftHeadProps) {
   const save = useSaveDraft(projectId, draft.id);
   const publish = usePublish(projectId);
   const undo = useScheduleUndo(projectId);
   const discard = useDiscardDraft(projectId);
   const toast = useToast();
+  const viewer = useFileViewer();
+  const download = useViewerDownload();
   const [title, setTitle] = useState(draft.title ?? '');
   const stop = blocker(draft);
 
@@ -98,20 +104,31 @@ export function DraftHead({ projectId, draft, isPhone, onPublished, onDiscarded,
       <div className="flex flex-wrap items-center gap-2">
         <StatusChip status="pending" label="Draft" />
         <span className="text-[13px] font-medium text-ink-2">{sourceLabel(draft.source_kind)}</span>
-        {draft.file_id !== null && draft.file_name ? (
-          // The source beside the rows it was read into (rule 12: a person checks them): its own window on a desktop,
-          // full screen on a phone. Files' viewer shows it.
-          <Link
-            to="/p/$projectId/$tool/$itemId"
-            params={{ projectId, tool: 'files', itemId: draft.file_id }}
-            search={isPhone ? {} : { window: '1' as const }}
-            {...(isPhone ? {} : { target: '_blank' })}
-            data-testid="schedule-source-open"
-            className="inline-flex min-w-0 items-center gap-1 break-words text-[13px] font-medium text-accent hover:underline"
-          >
-            <span className="min-w-0 break-words">{draft.file_name}</span>
-            <Icon icon={ExternalLink} size={12} className="shrink-0" />
-          </Link>
+        {source ? (
+          // The source the rows were read from (rule 12: a person checks them): beside the rows on a desktop, View on a
+          // phone (full screen), and one-click Download.
+          <span className="flex min-w-0 items-center gap-1" data-testid="schedule-source">
+            <span className="min-w-0 break-words text-[13px] font-medium text-ink" data-testid="schedule-source-name">
+              {source.name}
+            </span>
+            {source.kind !== 'other' && !beside ? (
+              <Button size="sm" variant="quiet" icon={Eye} aria-label={`View ${source.name}`} data-testid="schedule-source-view" onClick={() => {
+                  viewer.open([source]);
+                }}
+              />
+            ) : null}
+            <Button
+              size="sm"
+              variant="quiet"
+              icon={Download}
+              aria-label={`Download ${source.name}`}
+              data-testid="schedule-source-download"
+              loading={download.pendingId === source.id}
+              onClick={() => {
+                download.start(source);
+              }}
+            />
+          </span>
         ) : null}
         <div className="ml-auto">
           <SaveState pending={save.isPending} saved={save.isSuccess} problem={save.isError ? messageOf(save.error) : null} />

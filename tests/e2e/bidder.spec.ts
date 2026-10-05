@@ -1,6 +1,7 @@
 // The bidder's page (SPEC §11.4) against the e2e mock (VITE_E2E_MOCK=true): the mock bidder on Sample Job A sees the
 // job's Plans and Specs and the issued addendum's sketch, and nothing from Reports or Photos (the mock applies the
-// same read rules as the database, 0076); downloads them in one click; submits a bid through the upload queue, gets
+// same read rules as the database, 0076); downloads them in one click; views the plan set and the issued addendum's
+// sketch in the file viewer (the preview gate's addendum branch); submits a bid through the upload queue, gets
 // a receipt and downloads that bid again.
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
@@ -35,6 +36,24 @@ test.describe('bidder page (SPEC §11.4)', () => {
     const file = page.waitForEvent('download');
     await sketch.click();
     expect((await file).suggestedFilename()).toBe('Sample SK-1 revised schedule.pdf');
+  });
+
+  test('the plan set and the issued addendum file open in the viewer', async ({ page }) => {
+    await page.goto('/p/job-a/bids');
+    const viewer = page.getByTestId('file-viewer');
+    await page.getByRole('button', { name: 'View Sample Plan Set A.pdf' }).click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample Plan Set A.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'View Sample SK-1 revised schedule.pdf' }).click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample SK-1 revised schedule.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    // The bidder never deletes an addendum's file.
+    await expect(viewer.getByTestId('viewer-delete')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
   });
 
   test('the bidder cannot open other folders in Files', async ({ page }) => {

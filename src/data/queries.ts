@@ -230,6 +230,21 @@ export function useFile(fileId: string | null) {
   return useQuery({ queryKey: qk.file(fileId ?? ''), queryFn: fileId ? () => fetchFile(fileId) : skipToken });
 }
 
+function filesInOrder(results: UseQueryResult<FileRow | null>[]): FileRow[] {
+  return results.flatMap((r) => (r.data ? [r.data] : []));
+}
+
+/**
+ * The file rows behind a list of ids (a delivery's photos, an addendum's files), in that order, sharing useFile's
+ * cache: the list a file viewer walks with its arrows. Files still loading, gone or unreadable are left out.
+ */
+export function useFilesById(ids: readonly string[]): FileRow[] {
+  return useQueries({
+    queries: ids.map((id) => ({ queryKey: qk.file(id), queryFn: () => fetchFile(id) })),
+    combine: filesInOrder,
+  });
+}
+
 export function usePeopleDisplay(projectId: string | null) {
   return useQuery({
     queryKey: qk.people(projectId ?? ''),

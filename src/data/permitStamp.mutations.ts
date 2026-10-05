@@ -1,7 +1,8 @@
 // Permit stamp writes (migration 0053, edge function permit-stamp). The server stamps one PDF per call ('stamp'), then
 // records the set once ('record': the permit is issued, or the set revised); both need a fresh sign-in (SignButton
-// handles 403 reauth_required). Opening a stamped sheet asks the same function for a viewer URL. The official's own
+// handles 403 reauth_required). Viewing a stamped sheet asks the same function for a URL the file viewer shows. The official's own
 // PDFs upload into the job's "To stamp" folder through the shared upload queue (progress, Stop, Remove).
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from './client';
@@ -54,24 +55,29 @@ export function useRecordSet() {
   });
 }
 
+/** The URL lives 10 minutes (the function's signedViewUrl); the cache hands it out for 8. */
+const VIEW_FRESH_MS = 8 * 60_000;
+
 /**
- * A stamped sheet in the browser's own viewer. The tab is opened by the tap itself (so no pop-up blocker stops it) and
- * sent to a fresh signed URL when the server answers; on a failure it closes again.
+ * A stamped sheet for the file viewer: `(permitId, fileId)` resolves to a fresh signed URL from permit-stamp 'view'
+ * (the permit's sets read as the caller, then the download gate), cached a little less than it lives so walking the set
+ * with the arrows doesn't ask again.
  */
-export function useApprovedView() {
-  return useMutation({
-    mutationFn: async (v: { permitId: string; fileId: string; tab: Window }): Promise<void> => {
-      try {
-        const url = isMock()
-          ? URL.createObjectURL(await mockStamp.viewBlob(v.fileId))
-          : (await callFunction('permit-stamp', { action: 'view', permit_id: v.permitId, file_id: v.fileId }, viewResultSchema)).url;
-        v.tab.location.replace(url);
-      } catch (e) {
-        v.tab.close();
-        throw e;
-      }
-    },
-  });
+export function useApprovedViewUrl(): (permitId: string, fileId: string) => Promise<string> {
+  const qc = useQueryClient();
+  return useCallback(
+    (permitId: string, fileId: string) =>
+      qc.query({
+        queryKey: qk.permitsPart('approved-view', fileId),
+        queryFn: async (): Promise<string> => {
+          if (isMock()) return await mockStamp.viewUrl(fileId);
+          return (await callFunction('permit-stamp', { action: 'view', permit_id: permitId, file_id: fileId }, viewResultSchema)).url;
+        },
+        staleTime: VIEW_FRESH_MS,
+        gcTime: VIEW_FRESH_MS,
+      }),
+    [qc],
+  );
 }
 
 async function uploadsFolder(permitId: string): Promise<string> {

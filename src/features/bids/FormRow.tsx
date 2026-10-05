@@ -1,6 +1,6 @@
-// One form on the checklist: name with its legal reference in small gray, the attached file with a one-click
-// download, the due day, and the status chip. The row opens the form on the right.
-import { Download, Paperclip } from 'lucide-react';
+// One form on the checklist: name with its legal reference in small gray, the attached file with View (the file
+// viewer) and a one-click download, the due day, and the status chip. The row opens the form on the right.
+import { Download, Eye, Paperclip } from 'lucide-react';
 import type { BidFormItem } from '../../data/bidForms';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
@@ -15,10 +15,12 @@ interface FormRowProps {
   selected: boolean;
   downloading: boolean;
   onOpen: (id: string) => void;
+  /** Present when the attached file can be shown (a photo or a PDF). */
+  onView?: (() => void) | undefined;
   onDownload: (fileId: string, size: number) => void;
 }
 
-export function FormRow({ item, chip, selected, downloading, onOpen, onDownload }: FormRowProps) {
+export function FormRow({ item, chip, selected, downloading, onOpen, onView, onDownload }: FormRowProps) {
   const due = item.due_on !== null && item.status === 'to_do' ? formatDay(item.due_on, 'MMM d') : null;
   // The whole row opens the form; the name is a button so the keyboard reaches it (its click bubbles up here).
   // Desktop: name | file | due | chip in columns. Phone: name, due and chip on one line, the file under them.
@@ -42,6 +44,19 @@ export function FormRow({ item, chip, selected, downloading, onOpen, onDownload 
           <>
             <Icon icon={Paperclip} size={14} className="shrink-0 text-ink-3" />
             <span className="min-w-0 flex-1 break-words text-xs text-ink-2">{item.file.original_name}</span>
+            {onView ? (
+              <Button
+                size="sm"
+                variant="quiet"
+                icon={Eye}
+                aria-label={`View ${item.file.original_name}`}
+                data-testid={`form-view-${item.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView();
+                }}
+              />
+            ) : null}
             <Button
               size="sm"
               variant="quiet"

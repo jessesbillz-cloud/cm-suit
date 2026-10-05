@@ -7,6 +7,7 @@
 import { todayInZone } from '../../lib/dates';
 import { conflictError, DataError } from '../errors';
 import type { Activity, ActivityInput, DraftRow, Imported, Published, ScheduleStatus, SourceKind, Version, VersionRow } from '../schedule.types';
+import * as api from './api';
 import { mockUser } from './index';
 import { draftRows as sampleRows, FILE_ROWS, READ_ROWS, seedSchedules, shift, TZ, type StoredActivity, type StoredVersion } from './scheduleSeeds';
 import { delay } from './store';
@@ -207,7 +208,8 @@ export async function importFile(projectId: string, file: File): Promise<Importe
   need('schedule.manage');
   const kind = kindOf(file.name);
   const text = kind === 'csv' ? await file.text() : '';
-  await delay();
+  // The original lands in the job's Schedule folder like any upload, so it can be viewed and downloaded.
+  const stored = await api.addUploadedFile(projectId, folder(projectId), file.name, file.type || 'application/octet-stream', file.size);
   let made: StoredVersion | undefined;
   write((s) => {
     const id = `mock-sched-${String(s.seq)}`;
@@ -218,7 +220,7 @@ export async function importFile(projectId: string, file: File): Promise<Importe
     made = {
       id, project_id: projectId, number: null, status: 'draft', source_kind: kind, title: kind === 'xer' ? 'Sample Master Schedule' : null,
       // The file's own data date (an XER, an XML); else the upload day, which the person corrects (schedule-import).
-      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : t, file_id: `${id}-file`, file_name: file.name,
+      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : t, file_id: stored.id, file_name: file.name,
       created_at: new Date().toISOString(), created_by_name: 'Sol Sample', published_at: null, published_by_name: null, activities: rows.length,
       version: 1, model: kind === 'pdf' || kind === 'photo' ? 'sample-model' : null, warnings: kind === 'photo' ? ['Sample: one row\'s dates were read off its bar.'] : [],
       deleted: false, created_by: mockUser().id, published_by: null, supersedes_id: null,

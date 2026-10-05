@@ -43,6 +43,14 @@ test.describe('bid forms (SPEC §11.1)', () => {
     await expect(page.getByTestId('form-download-Bid bond')).toBeVisible();
     await expect(count).toHaveText('7');
 
+    // The attached bond opens in the viewer from the list.
+    await page.getByTestId('form-view-Bid bond').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample bid bond.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+
     // Back to To do: missing again.
     if (isMobile) await bond.click();
     await page.getByTestId('form-status-to_do').click();

@@ -16,7 +16,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { UploadList } from '../files/UploadList';
 import { AckList } from './AckList';
-import { FileLine } from './FileLine';
+import { FileLines } from './FileLine';
 import { IssueButton } from './IssueButton';
 import { useBidsNav } from './useBidsNav';
 
@@ -108,14 +108,7 @@ function DraftAddendum({ row }: { row: AddendumRow }) {
           }}
         />
       </label>
-      <ul className="flex flex-col gap-2">
-        {row.file_ids.map((id) => (
-          <FileLine key={id} fileId={id} onRemove={() => {
-              remove(id);
-            }}
-          />
-        ))}
-      </ul>
+      <FileLines ids={row.file_ids} onRemove={remove} />
       {folder.data !== undefined ? <UploadList folderId={folder.data} /> : null}
       {folder.isError ? <p className="text-sm text-danger">{messageOf(folder.error)}</p> : null}
       {folder.data !== undefined ? <AttachFiles row={row} folderId={folder.data} onFiles={attach} /> : null}
@@ -160,11 +153,7 @@ function IssuedAddendum({ row }: { row: AddendumRow }) {
   return (
     <ReadingPane number={String(row.number)} title={row.title} meta={<StatusChip status="confirmed" label="Issued" />}>
       <p className="whitespace-pre-wrap break-words">{row.body}</p>
-      <ul className="my-4 flex flex-col gap-2">
-        {row.file_ids.map((id) => (
-          <FileLine key={id} fileId={id} />
-        ))}
-      </ul>
+      <FileLines ids={row.file_ids} className="my-4 flex flex-col gap-2" />
       {acks.isError ? <ErrorState error={acks.error} onRetry={() => void acks.refetch()} /> : null}
       {invites.isError ? <ErrorState error={invites.error} onRetry={() => void invites.refetch()} /> : null}
       {acks.data && invites.data && project.data ? (
