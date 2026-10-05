@@ -1,23 +1,23 @@
--- 0072 Each company sets up its daily form's fields (SPEC §18.1 principle 10; Jesse: "Every form comes as our standard
--- with every field worth having; each company ticks the fields it wants, renames and reorders them, adds its own. That's
+-- 0072 Each company sets up its daily form's fields (SPEC §18.1 principle 10, Jesse: "Every form comes as our standard
+-- with every field worth having, each company ticks the fields it wants, renames and reorders them, adds its own. That's
 -- not ours to dictate."). For the built-in forms made of fields and tables (the superintendent's and the foreman's
--- daily); the VIS form and the work log are fixed and are not touched.
+-- daily), the VIS form and the work log are fixed and are not touched.
 --   1. The company's version of a form is data: orgs.settings.daily_forms[<form id>] = { seq, fields, tables }, one entry
---      per field, table and column (key, on, label; null label = our name), in the company's order. The ONE zod schema
---      and the ONE resolver are in _shared/reportForms.ts (formSetupSchema, companyForm); daily_form_setup_problem
+--      per field, table and column (key, on, label, null label = our name), in the company's order. The ONE zod schema
+--      and the ONE resolver are in _shared/reportForms.ts (formSetupSchema, companyForm), daily_form_setup_problem
 --      checks the same shape and limits here. No setup saved = our standard form, exactly as before.
 --   2. Keys never change (a rename is a label). The company's own fields and columns get the keys "x_<n>" from this
---      database: add_daily_form_field counts seq up and gives the next one; a key is never given twice, and a setup can
+--      database: add_daily_form_field counts seq up and gives the next one, a key is never given twice, and a setup can
 --      only hold keys this form gave out.
 --   3. Who: the company's own admins (is_org_admin), through save_daily_form / add_daily_form_field, version-checked
---      against the company row. orgs.settings is a column admins may update directly (0013); a trigger keeps
+--      against the company row. orgs.settings is a column admins may update directly (0013), a trigger keeps
 --      daily_forms out of that path, so the checks can't be skipped. Reading needs nothing new: everyone on a job
 --      already reads the job's company row ("orgs: members read", 0002).
 --   4. A signed report keeps the form it was signed on: daily_reports.form, written only by finish_daily_submit (the
 --      server) and never replaced once the report is submitted, so a later change to the company's form never changes
 --      what an old report prints. The form is part of the content hash (submit-daily). finish_daily_submit gains
---      p_form; the 5-argument one is retired (renamed, rights taken away), not dropped.
---   Carryover is unchanged: it works by keys, which never change; a renamed count or hours column is still cleared.
+--      p_form, the 5-argument one is retired (renamed, rights taken away), not dropped.
+--   Carryover is unchanged: it works by keys, which never change, a renamed count or hours column is still cleared.
 
 -- 1. A signed report keeps its form -----------------------------------------------------------------------------------
 alter table public.daily_reports
@@ -58,7 +58,7 @@ begin
     status = 'submitted', signed_at = sign_pending_at, signed_by = author_id, content_hash = p_content_hash,
     pdf_file_id = f.id, filename = coalesce(filename, left(p_filename, 400)), submitted_at = coalesce(submitted_at, now()),
     signed_version = version + 1, sign_pending_hash = null, sign_pending_at = null,
-    -- The form a submitted report was signed on stays; a first signing (or one from before 0072) records it.
+    -- The form a submitted report was signed on stays, a first signing (or one from before 0072) records it.
     form = case when status = 'submitted' and form is not null then form else p_form end
   where id = r.id
   returning * into r;
@@ -79,7 +79,7 @@ revoke execute on function public.finish_daily_submit(uuid, int, text, uuid, tex
 grant execute on function public.finish_daily_submit(uuid, int, text, uuid, text, jsonb) to service_role;
 
 -- 2. The setup's shape and limits (formSetupSchema in _shared/reportForms.ts says the same) ----------------------------
--- What is wrong with a form's setup, or null. Which keys are a form's built-in ones is the app's registry; here: the
+-- What is wrong with a form's setup, or null. Which keys are a form's built-in ones is the app's registry, here: the
 -- shape, the lengths, the counts, the company's own keys, and something left on.
 create function public.daily_form_setup_problem(p_setup jsonb)
 returns text
@@ -126,7 +126,7 @@ begin
   if exists (select 1 from jsonb_array_elements(v_all) x group by x->>'g', x->'e'->>'key' having count(*) > 1) then
     return 'A field is listed twice';
   end if;
-  -- The company's own fields and columns: named, with a key this form gave out; never a table.
+  -- The company's own fields and columns: named, with a key this form gave out, never a table.
   if exists (select 1 from jsonb_array_elements(v_all) x
               where case when (x->'e'->>'key') ~ '^x_[1-9][0-9]{0,5}$'
                          then x->>'g' = 't' or jsonb_typeof(x->'e'->'label') is distinct from 'string'
@@ -244,7 +244,7 @@ end;
 $$;
 revoke execute on function public.daily_form_store(uuid, text, jsonb, int, jsonb) from public, anon, authenticated;
 
--- Saves the company's setup of a form (ticks, names, order; its own fields taken off or put back). Answers the company
+-- Saves the company's setup of a form (ticks, names, order, its own fields taken off or put back). Answers the company
 -- row's new version and the setup as stored.
 create function public.save_daily_form(p_org_id uuid, p_form text, p_setup jsonb, p_version int)
 returns jsonb

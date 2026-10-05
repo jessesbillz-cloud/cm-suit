@@ -2,20 +2,20 @@
 --   1. PDF previews. authorize_preview (0047, audited in 0054) answered images only, so the app could show a photo but
 --      never a PDF. It now answers PDFs too (an application/pdf mime AND a .pdf name), through the very same gate as the
 --      download of that file (its folder, or the RFI or inspection request it is opened through), still not a download
---      (no downloads row; the gate's own line is undone), with the same 'file.preview' audit line. Anything else is
---      refused with not_image as before. The download edge function signs the URL; pdf.js in the app reads it.
+--      (no downloads row, the gate's own line is undone), with the same 'file.preview' audit line. Anything else is
+--      refused with not_image as before. The download edge function signs the URL, pdf.js in the app reads it.
 --   2. Signed records stay on file. A server-made record (a daily report's PDF, an IR PDF, an RFI PDF, an IR map, a
 --      safety sign-in sheet, a stamped approved sheet), and every earlier version of it, can't be deleted, renamed or
---      moved by anyone through the API. Before this only the stamped sets (0053) and sign-in sheets (0060) were kept; an
+--      moved by anyone through the API. Before this only the stamped sets (0053) and sign-in sheets (0060) were kept, an
 --      author could soft-delete their own submitted daily PDF (the uploader update policy, 0005), and then Download
---      failed. file_kept() is the one answer; a trigger refuses direct writes by people (current_user authenticated or
+--      failed. file_kept() is the one answer, a trigger refuses direct writes by people (current_user authenticated or
 --      anon), the way tg_permit_folders_keep does (0053). The server's own functions (Delete PDF & start over, a submit
 --      that could not finish) run as their owner or the server key and still can.
 --   3. Delete and Rename in Files: file_remove (soft delete) and file_rename, by the uploader (still on the job) or
 --      files.manage, the same people the update policy lets change a file, never for a kept record, never in the
 --      server's folders, with a version check. file_can_change answers the same question for the screen, so Delete
 --      and Rename show only when they would work. Undo (file_restore) brings a file back for the person who deleted it,
---      within the hour; nothing the server took away comes back that way.
+--      within the hour, nothing the server took away comes back that way.
 --   Nothing else changes: who reads and downloads files, the column grants and the policies stay as they are.
 
 -- =====================================================================================================================
@@ -131,7 +131,7 @@ create trigger keep_records before update of deleted_at, original_name, folder_i
 -- 3. Delete and Rename in Files
 -- =====================================================================================================================
 -- The one rule: a finished, live file, by its uploader (still on the job) or files.manage, not a record, not in the
--- server's folders. Raises the reason; file_can_change turns it into true / false.
+-- server's folders. Raises the reason, file_can_change turns it into true / false.
 create or replace function public.file_change_check(p_file_id uuid)
 returns void
 language plpgsql

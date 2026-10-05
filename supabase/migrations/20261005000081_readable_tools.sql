@@ -1,4 +1,4 @@
--- 0081 More and Edit list only the tools my role may read (audit Oct 4, frame #12; SPEC §18.3: people add tools
+-- 0081 More and Edit list only the tools my role may read (audit Oct 4, frame #12, SPEC §18.3: people add tools
 -- "within what the role may see"). Before, a job's More listed every tool the job has on, so a bidder, a requester or
 -- a safety manager got Dailies, Schedule, Hours and others that each opened to "You can't ..." or "No ... for you".
 --
@@ -22,7 +22,7 @@
 --       people        members.view or members.manage
 --       hours         dailies.write (my hours come from my own dailies)
 --   * Runs as the caller (security invoker), like my_recommended_tools. The app filters a job's rail, More and Edit by
---     it (lib/jobs railModel); modules switched off still hide a tool as before.
+--     it (lib/jobs railModel), modules switched off still hide a tool as before.
 --   * roles.invitable (below): the roles People's invite form offers. Bidder and requester join by their own links.
 --   * schedule_activity_add (below): "Add row" in a schedule draft's review (frame #20), for a row the reader missed.
 create or replace function public.my_readable_tools(p_project_id uuid default null)
@@ -74,7 +74,7 @@ alter table public.roles add column invitable boolean not null default true;
 update public.roles set invitable = false where name in ('bidder', 'requester');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- "Add row" in a schedule draft (audit Oct 4, frame #20; rule 12: a person confirms what the reader made, so a row it
+-- "Add row" in a schedule draft (audit Oct 4, frame #20, rule 12: a person confirms what the reader made, so a row it
 -- missed can be added before Publish). schedule.manage, drafts only (schedule_draft_lock, 0062). The row goes last and
 -- counts as checked. Safe to repeat: the same row (name, ID, dates) already on the draft is returned, not added twice.
 -- ---------------------------------------------------------------------------------------------------------------------

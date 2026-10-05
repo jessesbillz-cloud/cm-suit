@@ -1,11 +1,11 @@
 -- 0080 Revs and permits, from the Oct 4 audit (Jesse: "make sure there's an upload and a delete and a full screen ...
 -- make sure it goes somewhere").
 --   * A sheet stays while it is used: a finished PDF a live wall is on, or a request's map is drawn on (or is), can't be
---     removed (files.deleted_at). Files' own Delete then answers in words; pointing the walls at another sheet frees
+--     removed (files.deleted_at). Files' own Delete then answers in words, pointing the walls at another sheet frees
 --     it. Stamped approved sheets were kept already (0053 keep_stamped). An upload that never finished has no bytes and
 --     is no sheet: it stays removable (remove_unfinished_upload, 0065).
 --   * rev_move: Setup's Up / Down is one save. The item (or wall) swaps places with its neighbor in its rev (or on its
---     level of its list), and the group is numbered 1..n in that order, at once. The moved row is version-checked;
+--     level of its list), and the group is numbered 1..n in that order, at once. The moved row is version-checked,
 --     Undo is the same move the other way.
 --   * A backcheck can be taken back (Undo, like every other permit move): permit_review_withdraw, by the official, while
 --     the cycle is open and has no comments. It is kept (withdrawn_at), never deleted, and the review's next Backcheck

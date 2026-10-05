@@ -1,4 +1,4 @@
--- 0077 Taking a photo or ticket off a delivery (Oct 4 audit, deliveries #4; CLAUDE.md rule 16: Undo, not "are you sure?").
+-- 0077 Taking a photo or ticket off a delivery (Oct 4 audit, deliveries #4, CLAUDE.md rule 16: Undo, not "are you sure?").
 --   * remove_delivery_file(delivery, file): the delivery's poster (still able to post) or deliveries.manage takes the
 --     file off the delivery. The file itself is soft-deleted in the job's "Delivery tickets" folder, unless another
 --     delivery still shows it. Audited ('delivery.detach', so the delivery's History shows it). Safe to repeat.

@@ -47,6 +47,17 @@ for (const f of files.filter((p) => p.startsWith('prompts/fixtures/'))) {
   for (const t of TRIPWIRES) if (src.includes(t)) problems.push(`possible real job data in fixture ${f}: "${t}"`);
 }
 
+// The hosted SQL tool splits a migration on every `;`, comments included: a `;` in a comment inside an update cut it
+// before its `where`, and the tool refused the file (0072, Oct 5). Migrations applied before that keep their comments.
+const SEMICOLON_RULE_FROM = '20261004000072';
+for (const f of files.filter((p) => /^supabase\/migrations\/\d{14}_.*\.sql$/.test(p))) {
+  if (f.split('/')[2].slice(0, 14) < SEMICOLON_RULE_FROM) continue;
+  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+    const at = line.indexOf('--');
+    if (at >= 0 && line.slice(at).includes(';')) problems.push(`';' in a comment (the hosted tool splits on it): ${f}:${i + 1}`);
+  });
+}
+
 // Embedded prompt copies match prompts/<task>.md, and every task has synthetic fixtures.
 problems.push(...checkPrompts());
 

@@ -1,16 +1,16 @@
--- 0076 Bids audit fixes (Oct 4): the bidder reads the bid documents; addenda drafts stay private; drafts, packages and
+-- 0076 Bids audit fixes (Oct 4): the bidder reads the bid documents, addenda drafts stay private, drafts, packages and
 -- subs can be taken off with Undo.
 --   1. Plans and Specs for bidders. A member holding bids.submit (an invited bidder whose access hasn't ended) reads the
 --      job's Plans and Specs folders and every folder under them, through folder_can_read's default branch only: a
 --      folder with its own access list (or under one) keeps that list. No capability-matrix change: the bidder role
---      still holds bids.submit alone. "Bids received" stays sealed and pricing-only (0012); every other folder stays
+--      still holds bids.submit alone. "Bids received" stays sealed and pricing-only (0012), every other folder stays
 --      closed to bidders.
 --   2. Addendum files. They no longer go in Specs (now open to bidders, so a draft's files would show early). Each job
---      gets an "Addenda" folder ("Bid addenda" when the job has its own "Addenda"; kind 'addenda', made on first use by open_addenda_folder, read and written with
+--      gets an "Addenda" folder ("Bid addenda" when the job has its own "Addenda", kind 'addenda', made on first use by open_addenda_folder, read and written with
 --      bids.manage). A bidder reads a file there only once an addendum carrying it is issued (addendum_file_readable):
 --      in the files policy and the download gate. Files already attached to a draft move to the job's Addenda folder.
 --      add_addendum_file puts one file on a draft whatever its version (the upload queue attaches it after the bytes).
---   3. A draft addendum is discarded with Undo (set_addendum_discarded); an issued one never. Its number is not reused.
+--   3. A draft addendum is discarded with Undo (set_addendum_discarded), an issued one never. Its number is not reused.
 --   4. A package (when nothing was sent or received on it) and a sub are removed with Undo (set_bid_package_removed,
 --      set_sub_removed). A removed package's code is free again: the unique code is per live package.
 
@@ -131,7 +131,7 @@ $$;
 revoke execute on function public.authorize_download(uuid, text) from public, anon;
 grant execute on function public.authorize_download(uuid, text) to authenticated, service_role;
 
--- The job's Addenda folder, made once with its own access list (bids.manage reads and writes); a deleted one comes back.
+-- The job's Addenda folder, made once with its own access list (bids.manage reads and writes), a deleted one comes back.
 -- Internal: the caller checks.
 create or replace function public.addenda_folder_make(p_project_id uuid)
 returns uuid
