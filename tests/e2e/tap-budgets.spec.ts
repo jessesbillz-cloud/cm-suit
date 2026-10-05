@@ -118,6 +118,32 @@ test.describe('tap budgets (SPEC §7.9)', () => {
   }
 });
 
+test.describe("tap budgets, today's daily (SPEC §7.9)", () => {
+  test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
+    await installTapCounter(page, 'pm');
+  });
+
+  // From the report screen: Submit, then the signature confirm when the server asks for one (the mock session is fresh,
+  // so it signs straight away). Typing the report is not counted.
+  test("submit today's daily = at most 3 clicks + signature confirm", async ({ page }) => {
+    await page.goto('/p/job-a/dailies'); // setup: the report screen
+    await page.getByTestId('daily-today').click();
+    const editor = page.getByTestId('daily-editor');
+    await editor.getByTestId('note-general').fill('Sample note for the day.');
+    await expect(editor.getByText('Saved', { exact: true })).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(editor.getByTestId('daily-submit'), counter);
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+    expect(counter.n).toBeLessThanOrEqual(3);
+    expect(await taps(page)).toBe(counter.n);
+  });
+});
+
 test.describe('tap budgets, bidder (SPEC §7.9)', () => {
   test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
 
