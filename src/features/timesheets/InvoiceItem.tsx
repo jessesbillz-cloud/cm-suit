@@ -115,25 +115,19 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
             loading={remove.isPending}
             data-testid="invoice-delete"
             onClick={() => {
-              remove.mutate(
-                { id: inv.id, version: inv.version },
-                {
-                  onSuccess: () => {
-                    nav.close();
-                    toast.show({
-                      message: `${invoiceTitle(inv)} deleted.`,
-                      action: {
-                        label: 'Undo',
-                        // This pane is gone by then: the promise reports a failure.
-                        onClick: () => {
-                          restore.mutateAsync(inv.id).catch(fail);
-                        },
-                      },
-                    });
+              // The promise, not per-call callbacks: the list drops this invoice (and this pane) before they would run.
+              remove.mutateAsync({ id: inv.id, version: inv.version }).then(() => {
+                nav.close();
+                toast.show({
+                  message: `${invoiceTitle(inv)} deleted.`,
+                  action: {
+                    label: 'Undo',
+                    onClick: () => {
+                      restore.mutateAsync(inv.id).catch(fail);
+                    },
                   },
-                  onError: fail,
-                },
-              );
+                });
+              }, fail);
             }}
           >
             Delete

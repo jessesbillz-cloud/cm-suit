@@ -188,17 +188,21 @@ test.describe('dailies (SPEC §13.1)', () => {
     await expect(setup.getByTestId('daily-recipients')).toHaveValue('');
     await setup.getByTestId('daily-recipients-team').click();
     await expect(setup.getByTestId('daily-recipients')).toHaveValue(/inspector@example\.test/);
+    await expect(setup.getByTestId('daily-recipients-team')).toHaveCount(0);
+    // Still editable, and kept.
+    await setup.getByTestId('daily-recipients').fill('sample.reviewer@example.test');
+    await setup.getByTestId('daily-recipients').blur();
+    await expect(setup.getByText('Saving', { exact: true })).toHaveCount(0);
     await expect(setup.getByText('Saved', { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId('daily-recipients')).toHaveValue('sample.reviewer@example.test');
+    // No Reminder: nothing sends it yet.
+    await expect(page.getByRole('combobox', { name: 'Reminder' })).toHaveCount(0);
 
-    // A form set up for the first time starts with the team.
-    await setup.getByTestId('daily-form-gc_daily').click();
+    // A form set up for the first time starts with the team (never me).
+    await page.getByTestId('daily-form-gc_daily').click();
     const recipients = page.getByTestId('daily-recipients');
     await expect(recipients).toHaveValue(/super@example\.test/);
     await expect(recipients).not.toHaveValue(/pm@example\.test/);
-    await recipients.fill('sample.reviewer@example.test');
-    await recipients.blur();
-    await expect(page.getByTestId('daily-setup').getByText('Saved', { exact: true })).toBeVisible();
-    // No Reminder: nothing sends it yet.
-    await expect(page.getByRole('combobox', { name: 'Reminder' })).toHaveCount(0);
   });
 });
