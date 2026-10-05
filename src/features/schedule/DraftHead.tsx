@@ -105,7 +105,7 @@ export function DraftHead({ projectId, draft, isPhone, onPublished, onDiscarded,
             to="/p/$projectId/$tool/$itemId"
             params={{ projectId, tool: 'files', itemId: draft.file_id }}
             search={isPhone ? {} : { window: '1' as const }}
-            target={isPhone ? undefined : '_blank'}
+            {...(isPhone ? {} : { target: '_blank' })}
             data-testid="schedule-source-open"
             className="inline-flex min-w-0 items-center gap-1 break-words text-[13px] font-medium text-accent hover:underline"
           >
