@@ -32,8 +32,6 @@ export const SUBSCRIBE_ITEM = 'subscribe';
 export const INVITE_ITEM = 'invite';
 /** Requirements: read a spec section with AI. */
 export const READ_ITEM = 'read';
-/** Calendar: my calendar feed link. */
-export const SUBSCRIBE_ITEM = 'subscribe';
 /** Calendar: an inspection request opens as `ir.<job>.<request>` (its job travels with it on All my jobs). */
 export const REQUEST_ITEM_PREFIX = 'ir.';
 
