@@ -18,7 +18,10 @@ interface NoLoginProbe {
 }
 
 const DAY_KEYS = 'duration_kind,duration_min,kind,start_time,status_key';
-const FACT_KEYS = 'duration_kind,duration_min,gc_step,kind,number,ofs_sent,project_name,request_date,result,result_note,special_kind,start_time,status';
+// 0075: the postponement, the attendance call and whether the IR is made.
+const FACT_KEYS =
+  'attendance,duration_kind,duration_min,gc_step,has_ir,kind,number,ofs_sent,postpone_note,postpone_reason,postpone_until,project_name,' +
+  'request_date,result,result_note,special_kind,start_time,status';
 
 const keysOf = (o: unknown): string => Object.keys(o ?? {}).sort().join(',');
 

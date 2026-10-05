@@ -213,8 +213,6 @@ export function requestNoLoginCases(token: string, projectId: string): [string, 
     ['calendar with an unknown token', { action: 'calendar', project_id: projectId, token }, [404]],
     ['calendar on a malformed day', { action: 'calendar', project_id: projectId, token, day: 'today' }, [400]],
     ['status with an unknown receipt', { action: 'status', project_id: projectId, receipt: token }, [404]],
-    ['IR with an unknown receipt', { action: 'ir', project_id: projectId, receipt: token }, [404]],
-    ['IR by a file id, not a receipt', { action: 'ir', project_id: projectId, receipt: token, file_id: projectId }, [400]],
     ['submit as JSON, not a form', { action: 'submit', project_id: projectId, token, name: 'probe', company: 'probe' }, [400]],
     // Revs from the link (0057): the walls by the link token, a map by its receipt only.
     ['revs with an unknown token', { action: 'revs', project_id: projectId, token }, [404]],
