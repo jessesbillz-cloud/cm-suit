@@ -152,20 +152,50 @@ function pdfBlob(base64: string): Blob {
   return new Blob([bytes], { type: 'application/pdf' });
 }
 
-async function savePdf(body: object): Promise<void> {
-  const out = isMock() ? await mockHours.pdf(body) : await callFunction('timesheets', body, pdfAnswerSchema);
+/** A PDF the timesheets function rendered: its filename and its bytes (base64). */
+interface RenderedPdf {
+  filename: string;
+  pdf: string;
+}
+
+function renderPdf(body: object): Promise<RenderedPdf> {
+  return isMock() ? mockHours.pdf(body) : callFunction('timesheets', body, pdfAnswerSchema);
+}
+
+/** Saves a rendered PDF (one click, its own filename). */
+export async function saveRenderedPdf(out: RenderedPdf): Promise<void> {
   await saveFile(pdfBlob(out.pdf), out.filename);
 }
 
-/** Signs and downloads a month's timesheet for one company's jobs (SignButton handles the re-confirmation). */
+/**
+ * A rendered PDF for the file viewer (ui/FileViewer): a data: URL of the bytes already in hand, which pdf.js reads in
+ * place. Nothing to revoke when the viewer closes (an object URL would be, and the viewer has no close hook for it).
+ */
+export function renderedPdfUrl(out: RenderedPdf): string {
+  return `data:application/pdf;base64,${out.pdf}`;
+}
+
+/** Signs and downloads a month's timesheet for one company's jobs (SignButton handles the re-confirmation). Answers the
+ *  signed PDF, so View can show it without signing again. */
 export function useTimesheetPdf() {
   return useMutation({
-    mutationFn: ({ month, orgId }: { month: string; orgId: string }) => savePdf({ action: 'timesheet', month, org_id: orgId }),
+    mutationFn: async ({ month, orgId }: { month: string; orgId: string }): Promise<RenderedPdf> => {
+      const out = await renderPdf({ action: 'timesheet', month, org_id: orgId });
+      await saveRenderedPdf(out);
+      return out;
+    },
   });
 }
 
 export function useInvoicePdf() {
   return useMutation({
-    mutationFn: (invoiceId: string) => savePdf({ action: 'invoice', invoice_id: invoiceId }),
+    mutationFn: async (invoiceId: string): Promise<void> => {
+      await saveRenderedPdf(await renderPdf({ action: 'invoice', invoice_id: invoiceId }));
+    },
   });
+}
+
+/** The invoice's PDF to look at (the same rendering as its Download). */
+export async function invoicePdfUrl(invoiceId: string): Promise<string> {
+  return renderedPdfUrl(await renderPdf({ action: 'invoice', invoice_id: invoiceId }));
 }

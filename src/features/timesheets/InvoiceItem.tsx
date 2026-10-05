@@ -1,15 +1,23 @@
 // One invoice (right column; full screen on the phone): its lines as saved (job, hours, rate, amount), the total, the
-// PDF in one click, Draft / Sent / Paid set by hand, Update to price a draft again from today's hours, and Delete for a
+// PDF in one click (and View, full screen), Draft / Sent / Paid set by hand, Update to price a draft again from today's hours, and Delete for a
 // draft (with Undo; the number is kept for it).
-import { Download, RefreshCw, Trash2 } from 'lucide-react';
+import { Download, Eye, RefreshCw, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useDeleteInvoice, useInvoicePdf, useRefreshInvoice, useRestoreInvoice, useSetInvoiceStatus } from '../../data/hours.mutations';
+import {
+  invoicePdfUrl,
+  useDeleteInvoice,
+  useInvoicePdf,
+  useRefreshInvoice,
+  useRestoreInvoice,
+  useSetInvoiceStatus,
+} from '../../data/hours.mutations';
 import { useInvoices } from '../../data/hours.queries';
 import type { InvoiceRow } from '../../data/hours.types';
 import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/format';
 import { hoursText, monthLabel } from '../../lib/timesheet';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -60,6 +68,7 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
   const restore = useRestoreInvoice();
   const nav = useTimesheetsNav();
   const toast = useToast();
+  const viewer = useFileViewer();
   const chip = invoiceChip(inv.status);
   const fail = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
@@ -87,6 +96,24 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
           }}
         >
           Download
+        </Button>
+        <Button
+          icon={Eye}
+          data-testid="invoice-view"
+          onClick={() => {
+            viewer.open([
+              {
+                // A new version after Update shows the new rendering.
+                id: `invoice:${inv.id}:${String(inv.version)}`,
+                name: `${invoiceTitle(inv)}.pdf`,
+                kind: 'pdf',
+                url: () => invoicePdfUrl(inv.id),
+                download: () => pdf.mutateAsync(inv.id),
+              },
+            ]);
+          }}
+        >
+          View
         </Button>
         {inv.status === 'draft' ? (
           <Button
