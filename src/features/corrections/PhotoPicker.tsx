@@ -31,9 +31,9 @@ function LocalThumb({ photo, onRemove, onRetry }: ThumbProps) {
     <li className={PHOTO_BOX} data-testid="cn-picked-photo">
       {url ? <img src={url} alt={photo.file.name} className="h-full w-full object-cover" /> : null}
       {!image ? (
-        <span className="flex h-full w-full flex-col items-center justify-center gap-1 p-1.5 text-center text-ink-2">
-          <Icon icon={fileIcon(photo.file.name, photo.file.type)} size={22} />
-          <span className="line-clamp-2 break-all text-[11px] leading-4">{photo.file.name}</span>
+        <span className="flex h-full w-full flex-col items-center justify-center gap-1 overflow-auto p-1.5 text-center text-ink-2">
+          <Icon icon={fileIcon(photo.file.name, photo.file.type)} size={22} className="shrink-0" />
+          <span className="wrap-anywhere text-[11px] leading-4">{photo.file.name}</span>
         </span>
       ) : null}
       {photo.status === 'uploading' ? (
