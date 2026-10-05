@@ -177,7 +177,8 @@ insert into res values ('s1', pg_temp.send('c0000000-0000-0000-0000-000000000481
   '(555) 010-2030', ' Visitor@Example.test ', pg_temp.d(2), '10:00', 'ior', 'North wall framing', true));
 select is(pg_temp.j('s1')->>'number', '3', 'submit: the next number from the job''s one numbering');
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('s1')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('receipt'),
+  $$ values ('attendance'::text), ('duration_kind'), ('duration_min'), ('gc_step'), ('has_ir'), ('kind'), ('number'), ('ofs_sent'),
+            ('postpone_note'), ('postpone_reason'), ('postpone_until'), ('project_name'), ('receipt'),
             ('request_date'), ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'submit: the receipt facts and the receipt token');
 select is(pg_temp.j('s1')->>'status', 'pending', 'submit: GC step off, straight to the inspector');
@@ -310,7 +311,8 @@ select throws_ok($$ select pg_temp.send('c0000000-0000-0000-0000-000000000481', 
 -- ---------------------------------------------------------------------------------------------------------------------
 insert into res values ('st', public.link_request_status('c0000000-0000-0000-0000-000000000481', pg_temp.h(pg_temp.j('s1')->>'receipt')));
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('st')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('request_date'),
+  $$ values ('attendance'::text), ('duration_kind'), ('duration_min'), ('gc_step'), ('has_ir'), ('kind'), ('number'), ('ofs_sent'),
+            ('postpone_note'), ('postpone_reason'), ('postpone_until'), ('project_name'), ('request_date'),
             ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'status: the tracker''s facts and the result line only');
 select ok(pg_temp.j('st')::text not like '%555%' and pg_temp.j('st')::text not like '%visitor@%'

@@ -4443,6 +4443,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          prev_rotated_at: string | null
+          prev_token_hash: string | null
           rotated_at: string
           token_hash: string
           user_id: string
@@ -4450,6 +4452,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          prev_rotated_at?: string | null
+          prev_token_hash?: string | null
           rotated_at?: string
           token_hash: string
           user_id: string
@@ -4457,6 +4461,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          prev_rotated_at?: string | null
+          prev_token_hash?: string | null
           rotated_at?: string
           token_hash?: string
           user_id?: string
@@ -9836,6 +9842,10 @@ export type Database = {
         Args: { p_hub_id: string; p_token_hash: string }
         Returns: Json
       }
+      link_request_ir_file: {
+        Args: { p_ip?: string; p_project_id: string; p_receipt_hash: string }
+        Returns: Json
+      }
       link_request_join: {
         Args: {
           p_company: string
@@ -13644,6 +13654,7 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: undefined
       }
+      undo_request_hub_rotation: { Args: never; Returns: undefined }
       undo_request_link_rotation: {
         Args: { p_project_id: string }
         Returns: undefined

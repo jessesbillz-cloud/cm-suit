@@ -244,12 +244,12 @@ select lives_ok($$ select public.ir_helper_report(pg_temp.rid('A'), pg_temp.ver(
   'helper: reports passed');
 reset role;
 select results_eq($$ select status from public.calendar_entries where source_id = pg_temp.rid('A') $$,
-  $$ values ('assigned'::text) $$, 'mirror: a confirmed request with a helper is blue (assigned)');
+  $$ values ('confirmed'::text) $$, 'mirror: a confirmed request with a helper stays green (MDR has no blue; 0075)');
 set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000184');
 select lives_ok($$ select public.ir_set_attendance(pg_temp.rid('A'), pg_temp.ver('A'), 'be_present') $$, 'inspector: attendance call');
 reset role;
-select is((select title from public.calendar_entries where source_id = pg_temp.rid('A')), 'IR 1 IOR · Sample Concrete Co · Be present',
+select is((select title from public.calendar_entries where source_id = pg_temp.rid('A')), 'IR 1 IOR · Sample Concrete Co · Be present with the IOR',
   'mirror: the attendance call shows on the GC''s calendar');
 set local role authenticated;
 

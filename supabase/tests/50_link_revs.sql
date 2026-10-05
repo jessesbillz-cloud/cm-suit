@@ -175,7 +175,8 @@ select is(public.link_request_revs('c0000000-0000-0000-0000-000000000502', pg_te
 insert into res values ('s1', pg_temp.ofs('c0000000-0000-0000-0000-000000000501', pg_temp.h('job-token'), 'Sample Visitor',
   array['wA', 'wB', 'wC'], array['stuff', 'tow']));
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('s1')) k order by 1 $$,
-  $$ values ('duration_kind'::text), ('duration_min'), ('gc_step'), ('kind'), ('number'), ('ofs_sent'), ('project_name'), ('receipt'),
+  $$ values ('attendance'::text), ('duration_kind'), ('duration_min'), ('gc_step'), ('has_ir'), ('kind'), ('number'), ('ofs_sent'),
+            ('postpone_note'), ('postpone_reason'), ('postpone_until'), ('project_name'), ('receipt'),
             ('request_date'), ('result'), ('result_note'), ('special_kind'), ('start_time'), ('status') $$,
   'submit: the same receipt as any link request');
 select is(array[pg_temp.j('s1')->>'number', pg_temp.j('s1')->>'kind', pg_temp.j('s1')->>'status'], array['1', 'ofs', 'gc_review'],

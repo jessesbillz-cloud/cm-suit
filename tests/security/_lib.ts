@@ -198,6 +198,9 @@ export const REQUEST_NO_LOGIN_RPCS: [string, Record<string, unknown>][] = [
     p_email: null, p_request_date: '2030-01-01', p_kind: 'ior', p_items: 'probe', p_notice_ack: true,
   }],
   ['link_request_status', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  // 0075: the IR by the receipt (service role only) and the hub link's undo (its owner).
+  ['link_request_ir_file', { p_project_id: ZERO_UUID, p_receipt_hash: 'x', p_ip: null }],
+  ['undo_request_hub_rotation', {}],
   ['link_request_answer', { p_request_id: ZERO_UUID }],
   ['ir_folder_make', { p_project_id: ZERO_UUID, p_which: 'attachments' }],
   ['ir_calendar_rows', { p_project_id: ZERO_UUID, p_from: '2030-01-01', p_to: '2030-01-01', p_viewer: null, p_team: true, p_decide: true }],
@@ -210,6 +213,8 @@ export function requestNoLoginCases(token: string, projectId: string): [string, 
     ['calendar with an unknown token', { action: 'calendar', project_id: projectId, token }, [404]],
     ['calendar on a malformed day', { action: 'calendar', project_id: projectId, token, day: 'today' }, [400]],
     ['status with an unknown receipt', { action: 'status', project_id: projectId, receipt: token }, [404]],
+    ['IR with an unknown receipt', { action: 'ir', project_id: projectId, receipt: token }, [404]],
+    ['IR by a file id, not a receipt', { action: 'ir', project_id: projectId, receipt: token, file_id: projectId }, [400]],
     ['submit as JSON, not a form', { action: 'submit', project_id: projectId, token, name: 'probe', company: 'probe' }, [400]],
     // Revs from the link (0057): the walls by the link token, a map by its receipt only.
     ['revs with an unknown token', { action: 'revs', project_id: projectId, token }, [404]],
