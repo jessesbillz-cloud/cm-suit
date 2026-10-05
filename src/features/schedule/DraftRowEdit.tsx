@@ -1,51 +1,53 @@
 // One draft row being fixed, in place: name, Activity ID, start and finish, area and trade, milestone. Save (with the
-// row's version) or Remove (Undo in the toast). Saving marks the row checked.
+// row's version) or Remove (Undo in the toast). Saving marks the row checked. With no row it is "Add row": a row the
+// reader missed, added last on the draft.
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useRemoveActivity, useSaveActivity, useScheduleUndo } from '../../data/schedule.mutations';
-import type { DraftRow } from '../../data/schedule.types';
+import { useAddActivity, useRemoveActivity, useSaveActivity, useScheduleUndo } from '../../data/schedule.mutations';
+import type { ActivityInput, DraftRow } from '../../data/schedule.types';
 import { Button } from '../../ui/Button';
 import { CheckField, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 interface DraftRowEditProps {
   projectId: string;
-  row: DraftRow;
+  versionId: string;
+  /** null: a new row. */
+  row: DraftRow | null;
   onDone: () => void;
 }
 
-export function DraftRowEdit({ projectId, row, onDone }: DraftRowEditProps) {
-  const save = useSaveActivity(projectId);
+export function DraftRowEdit({ projectId, versionId, row, onDone }: DraftRowEditProps) {
+  const saveRow = useSaveActivity(projectId);
+  const add = useAddActivity(projectId, versionId);
+  const save = row === null ? add : saveRow;
   const remove = useRemoveActivity(projectId);
   const undo = useScheduleUndo(projectId);
   const toast = useToast();
-  const [name, setName] = useState(row.name);
-  const [code, setCode] = useState(row.activity_code ?? '');
-  const [start, setStart] = useState(row.start_date ?? '');
-  const [finish, setFinish] = useState(row.finish_date ?? '');
-  const [area, setArea] = useState(row.area ?? '');
-  const [trade, setTrade] = useState(row.trade ?? '');
-  const [milestone, setMilestone] = useState(row.is_milestone);
+  const [name, setName] = useState(row?.name ?? '');
+  const [code, setCode] = useState(row?.activity_code ?? '');
+  const [start, setStart] = useState(row?.start_date ?? '');
+  const [finish, setFinish] = useState(row?.finish_date ?? '');
+  const [area, setArea] = useState(row?.area ?? '');
+  const [trade, setTrade] = useState(row?.trade ?? '');
+  const [milestone, setMilestone] = useState(row?.is_milestone ?? false);
   const backwards = start !== '' && finish !== '' && finish < start;
 
   function doSave() {
-    save.mutate(
-      {
-        id: row.id,
-        version: row.version,
-        input: {
-          code, name, wbs: row.wbs ?? '', area, trade, start: start === '' ? null : start,
-          finish: milestone ? (start === '' ? null : start) : finish === '' ? null : finish, isMilestone: milestone,
-        },
-      },
-      { onSuccess: onDone },
-    );
+    const input: ActivityInput = {
+      code, name, wbs: row?.wbs ?? '', area, trade, start: start === '' ? null : start,
+      finish: milestone ? (start === '' ? null : start) : finish === '' ? null : finish, isMilestone: milestone,
+    };
+    if (row === null) add.mutate(input, { onSuccess: onDone });
+    else saveRow.mutate({ id: row.id, version: row.version, input }, { onSuccess: onDone });
   }
 
   async function doRemove() {
+    if (row === null) return;
+    const id = row.id;
     try {
-      await remove.mutateAsync(row.id);
+      await remove.mutateAsync(id);
     } catch (e) {
       toast.show({ message: messageOf(e), tone: 'error' });
       return;
@@ -56,7 +58,7 @@ export function DraftRowEdit({ projectId, row, onDone }: DraftRowEditProps) {
       action: {
         label: 'Undo',
         onClick: () => {
-          undo.restoreRow(row.id).catch((e: unknown) => {
+          undo.restoreRow(id).catch((e: unknown) => {
             toast.show({ message: messageOf(e), tone: 'error' });
           });
         },
@@ -97,9 +99,11 @@ export function DraftRowEdit({ projectId, row, onDone }: DraftRowEditProps) {
         <Button variant="quiet" size="sm" onClick={onDone}>
           Cancel
         </Button>
-        <Button variant="quiet" size="sm" icon={Trash2} className="ml-auto" loading={remove.isPending} data-testid="schedule-edit-remove" onClick={() => void doRemove()}>
-          Remove
-        </Button>
+        {row !== null ? (
+          <Button variant="quiet" size="sm" icon={Trash2} className="ml-auto" loading={remove.isPending} data-testid="schedule-edit-remove" onClick={() => void doRemove()}>
+            Remove
+          </Button>
+        ) : null}
       </div>
     </li>
   );

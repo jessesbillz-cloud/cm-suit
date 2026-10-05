@@ -1,6 +1,7 @@
-// The rail (0040): my role's recommended tools on each of my jobs, and what needs me per record type (the badges).
+// The rail (0040): my role's recommended tools on each of my jobs, the tools I may read there (0081), and what needs me
+// per record type (the badges).
 // Both run as the caller in the database; zod checks what comes back.
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { TypeCount } from '../lib/toolCounts';
 import { supabase } from './client';
@@ -19,6 +20,24 @@ async function fetchRecommended(): Promise<Record<string, string[]>> {
 /** Job id -> my recommended rail there (my role's list, minus the job's switched-off tools). One call for all my jobs. */
 export function useRecommendedTools() {
   return useQuery({ queryKey: qk.recommendedTools, queryFn: fetchRecommended, staleTime: 5 * 60_000 });
+}
+
+async function fetchReadable(): Promise<Record<string, string[]>> {
+  const rows = isMock() ? await mockRail.readableTools() : recommendedSchema.parse(throwIfError(await supabase.rpc('my_readable_tools')));
+  return Object.fromEntries(rows.map((r) => [r.project_id, r.tools]));
+}
+
+/** Job id -> the tools my role may read there (0081, has_capability): a job's rail, More and Edit offer only these. */
+export function useReadableTools() {
+  return useQuery({ queryKey: qk.readableTools, queryFn: fetchReadable, staleTime: 5 * 60_000 });
+}
+
+/**
+ * After a new job, an accepted invite or a job's tools changing: my recommended and readable tools there are new, or the
+ * rail falls back to Files alone and every other tool lands under More for up to five minutes.
+ */
+export async function refreshRail(qc: QueryClient): Promise<void> {
+  await Promise.all([qc.invalidateQueries({ queryKey: qk.recommendedTools }), qc.invalidateQueries({ queryKey: qk.readableTools })]);
 }
 
 const countsSchema = z.array(z.object({ entity_type: z.string().nullable(), n: z.number().int() }));

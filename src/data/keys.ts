@@ -70,6 +70,8 @@ export const qk = {
   viewAs: ['testing_view_as'] as const,
   /** My role's recommended rail on each of my jobs (0040). */
   recommendedTools: ['my_recommended_tools'] as const,
+  /** The tools my role may read on each of my jobs (0081): More and Edit offer only these. */
+  readableTools: ['my_readable_tools'] as const,
   /** What needs me per record type (0040): under the tasks prefix, so every task write refreshes the rail badges. */
   toolCounts: (projectId: string | null) => ['tasks', 'tool_counts', projectId ?? 'all'] as const,
   /** Every hours query (my hours, contract hours, billing, invoices; 0043) sits under this prefix: one refresh after any write. */

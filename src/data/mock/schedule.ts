@@ -217,7 +217,8 @@ export async function importFile(projectId: string, file: File): Promise<Importe
     if (rows.length === 0) throw new DataError('No activities in this file.', '22023', 'empty');
     made = {
       id, project_id: projectId, number: null, status: 'draft', source_kind: kind, title: kind === 'xer' ? 'Sample Master Schedule' : null,
-      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : null, file_id: `${id}-file`, file_name: file.name,
+      // The file's own data date (an XER, an XML); else the upload day, which the person corrects (schedule-import).
+      data_date: kind === 'xer' || kind === 'msp_xml' ? shift(t, -1) : t, file_id: `${id}-file`, file_name: file.name,
       created_at: new Date().toISOString(), created_by_name: 'Sol Sample', published_at: null, published_by_name: null, activities: rows.length,
       version: 1, model: kind === 'pdf' || kind === 'photo' ? 'sample-model' : null, warnings: kind === 'photo' ? ['Sample: one row\'s dates were read off its bar.'] : [],
       deleted: false, created_by: mockUser().id, published_by: null, supersedes_id: null,
@@ -260,6 +261,34 @@ export async function saveActivity(id: string, expected: number, input: Activity
     return { ...s, activities: s.activities.map((x) => (x.id === id ? patched : x)) };
   });
   return next;
+}
+
+/** schedule_activity_add (0081): last on the draft, checked; the same row again is the same row. */
+export async function addActivity(versionId: string, input: ActivityInput): Promise<string> {
+  await delay();
+  let made = '';
+  write((s) => {
+    const v = draftOf(s, versionId);
+    if (input.name.trim() === '') throw new DataError('Add a name.', '23514', null);
+    const blank = (x: string) => (x.trim() === '' ? null : x.trim());
+    const same = live(s, v.id).find(
+      (a) => a.name === input.name.trim() && a.activity_code === blank(input.code) && a.start_date === input.start && a.finish_date === input.finish,
+    );
+    if (same) {
+      made = same.id;
+      return s;
+    }
+    made = `${v.id}-x${String(s.seq)}`;
+    const sort = Math.max(0, ...s.activities.filter((a) => a.version_id === v.id).map((a) => a.sort)) + 1;
+    const row: StoredActivity = {
+      id: made, version_id: v.id, project_id: v.project_id, activity_code: blank(input.code), name: input.name.trim(), wbs: blank(input.wbs),
+      area: blank(input.area), trade: blank(input.trade), start_date: input.start, finish_date: input.finish, actual_start: null,
+      actual_finish: null, percent: null, is_milestone: input.isMilestone, csi_division: null, sort, unsure: false, source_ref: null, version: 1,
+      deleted: false,
+    };
+    return { ...s, activities: [...s.activities, row], seq: s.seq + 1 };
+  });
+  return made;
 }
 
 export async function removeActivity(id: string, removed: boolean): Promise<void> {

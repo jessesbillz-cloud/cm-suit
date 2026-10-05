@@ -1,6 +1,7 @@
 // Schedule (migration 0062) against the e2e mock: the superintendent uploads a CSV look-ahead on a job with no
-// schedule, the draft opens for review (no data date, a row without dates: Publish waits), fixes them, publishes
-// (Undo puts it back to a draft), and the look-ahead shows the activities. A reader sees the look-ahead, the 2-month
+// schedule, the draft opens for review (the data date prefilled with the upload day, a row without dates: Publish
+// waits; the source file one click away in Files), fixes the row, adds one the reader missed, publishes (Undo puts it
+// back to a draft), and the look-ahead shows the activities. A reader sees the look-ahead, the 2-month
 // window and an activity, and has no Upload. State lives in the tab's sessionStorage.
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
@@ -40,16 +41,15 @@ test.describe('schedule', () => {
     ].join('\n');
     await page.getByTestId('schedule-upload-input').first().setInputFiles({ name: 'Sample look-ahead.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
 
-    // The draft: three rows in file order, one without dates; no data date yet, so Publish waits.
+    // The draft: three rows in file order, one without dates; the data date is the upload day, so only the row waits.
     await expect(page).toHaveURL(/\/p\/job-b\/schedule\/draft-/);
     await expect(page.getByTestId('schedule-draft-head')).toContainText('CSV');
     await expect(page.getByTestId('schedule-draft-counts')).toContainText('3 activities');
     await expect(page.getByTestId('schedule-draft-counts')).toContainText('1 need dates');
     await expect(page.getByTestId('schedule-publish')).toBeDisabled();
-    await expect(page.getByTestId('schedule-blocker')).toHaveText('Add the data date.');
-
-    await page.getByTestId('schedule-data-date').fill(jobDay(0));
+    await expect(page.getByTestId('schedule-data-date')).toHaveValue(jobDay(0));
     await expect(page.getByTestId('schedule-blocker')).toHaveText('1 activity needs a start date.');
+    await expect(page.getByTestId('schedule-source-open')).toHaveText('Sample look-ahead.csv');
 
     // Fix the undated row in place: the "Need dates" button shows only it.
     await page.getByTestId('schedule-draft-filter-dates').click();
@@ -59,6 +59,15 @@ test.describe('schedule', () => {
     await expect(page.getByTestId('schedule-row-edit')).toHaveCount(0);
     await expect(page.getByTestId('schedule-blocker')).toHaveCount(0);
 
+    // A row the reader missed: Add row, then fill it in place.
+    await page.getByTestId('schedule-add-row').click();
+    await page.getByTestId('schedule-edit-name').fill('Sample strip forms');
+    await page.getByTestId('schedule-edit-start').fill(jobDay(7));
+    await page.getByTestId('schedule-edit-save').click();
+    await expect(page.getByTestId('schedule-row-edit')).toHaveCount(0);
+    await expect(page.getByTestId('schedule-draft-counts')).toContainText('4 activities');
+    await expect(page.getByTestId('schedule-blocker')).toHaveCount(0);
+
     // Publish: Update 1, the look-ahead shows the rows; Undo puts it back to a draft, and it publishes again.
     await page.getByTestId('schedule-publish').click();
     await expect(page).toHaveURL(/\/p\/job-b\/schedule$/);
@@ -66,6 +75,7 @@ test.describe('schedule', () => {
     await expect(page.getByTestId('schedule-lookahead')).toContainText('Sample form footings');
     await expect(page.getByTestId('schedule-lookahead')).toContainText('Sample pour footings');
     await expect(page.getByTestId('schedule-lookahead')).toContainText('Sample punch walk');
+    await expect(page.getByTestId('schedule-lookahead')).toContainText('Sample strip forms');
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page).toHaveURL(/\/p\/job-b\/schedule\/draft-/);
     await expect(page.getByTestId('schedule-publish')).toBeEnabled();

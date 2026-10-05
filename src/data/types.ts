@@ -46,7 +46,8 @@ export type ProfileRow = Pick<
   'user_id' | 'email' | 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user' | 'version'
 >;
 
-export type ProfilePatch = Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user'>;
+/** What a profile save changes: only the fields that changed (Settings > Profile saves as I go). */
+export type ProfilePatch = Partial<Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user'>>;
 
 export type ProjectRow = Pick<
   Tables<'projects'>,
@@ -91,7 +92,7 @@ export interface NewJobInput {
   isDsa: boolean;
 }
 
-export type RoleRow = Pick<Tables<'roles'>, 'name' | 'description'>;
+export type RoleRow = Pick<Tables<'roles'>, 'name' | 'description' | 'invitable'>;
 
 export interface AppUser {
   id: string;

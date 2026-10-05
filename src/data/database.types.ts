@@ -5361,18 +5361,21 @@ export type Database = {
         Row: {
           daily_form: string | null
           description: string
+          invitable: boolean
           name: string
           recommended_tools: string[]
         }
         Insert: {
           daily_form?: string | null
           description?: string
+          invitable?: boolean
           name: string
           recommended_tools?: string[]
         }
         Update: {
           daily_form?: string | null
           description?: string
+          invitable?: boolean
           name?: string
           recommended_tools?: string[]
         }
@@ -10113,6 +10116,13 @@ export type Database = {
           timezone: string
         }[]
       }
+      my_readable_tools: {
+        Args: { p_project_id?: string }
+        Returns: {
+          project_id: string
+          tools: string[]
+        }[]
+      }
       my_recommended_tools: {
         Args: { p_project_id?: string }
         Returns: {
@@ -13068,6 +13078,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      schedule_activity_add: {
+        Args: {
+          p_area: string
+          p_code: string
+          p_finish: string
+          p_is_milestone: boolean
+          p_name: string
+          p_start: string
+          p_trade: string
+          p_version_id: string
+          p_wbs: string
+        }
+        Returns: string
       }
       schedule_activity_remove: {
         Args: { p_activity_id: string; p_removed: boolean }

@@ -1,8 +1,9 @@
 // A draft's rows in file order: the whole name, its dates (red "No date" where the start is missing), the Activity ID,
 // area and trade, and "Check" on a row the reader wasn't sure of. A tap fixes the row in place. When some rows need
-// dates or a check, buttons show only those.
+// dates or a check, buttons show only those. "Add row" adds one the reader missed, at the end.
 import { useState } from 'react';
-import { Flag } from 'lucide-react';
+import { Flag, Plus } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import type { DraftRow } from '../../data/schedule.types';
 import { ChipPick } from '../../ui/ChipPick';
 import { Icon } from '../../ui/Icon';
@@ -18,8 +19,12 @@ type Filter = 'all' | 'dates' | 'check';
 
 interface DraftRowsProps {
   projectId: string;
+  versionId: string;
   rows: readonly DraftRow[];
 }
+
+/** The form for a new row, when it is open (never a row id). */
+const NEW_ROW = 'new';
 
 function Row({ row, onEdit }: { row: DraftRow; onEdit: () => void }) {
   const facts = [row.activity_code, row.area, row.trade].filter((x): x is string => x !== null && x !== '').join(' · ');
@@ -49,7 +54,7 @@ function Row({ row, onEdit }: { row: DraftRow; onEdit: () => void }) {
   );
 }
 
-export function DraftRows({ projectId, rows }: DraftRowsProps) {
+export function DraftRows({ projectId, versionId, rows }: DraftRowsProps) {
   const [editing, setEditing] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const dates = rows.filter((r) => r.start_date === null).length;
@@ -78,14 +83,31 @@ export function DraftRows({ projectId, rows }: DraftRowsProps) {
       <ul className="divide-y divide-line">
         {shown.slice(0, SHOWN).map((r) =>
           r.id === editing ? (
-            <DraftRowEdit key={r.id} projectId={projectId} row={r} onDone={() => { setEditing(null); }} />
+            <DraftRowEdit key={r.id} projectId={projectId} versionId={versionId} row={r} onDone={() => { setEditing(null); }} />
           ) : (
             <Row key={r.id} row={r} onEdit={() => { setEditing(r.id); }} />
           ),
         )}
+        {editing === NEW_ROW ? (
+          <DraftRowEdit key={NEW_ROW} projectId={projectId} versionId={versionId} row={null} onDone={() => { setEditing(null); }} />
+        ) : null}
       </ul>
       {shown.length > SHOWN ? <p className="px-4 py-3 text-[13px] text-ink-3">{SHOWN} of {shown.length}</p> : null}
-      {shown.length === 0 ? <p className="px-4 py-6 text-center text-sm text-ink-2">Nothing here.</p> : null}
+      {shown.length === 0 && editing !== NEW_ROW ? <p className="px-4 py-6 text-center text-sm text-ink-2">Nothing here.</p> : null}
+      {editing === NEW_ROW ? null : (
+        <div className="border-t border-line px-4 py-3 sm:px-5">
+          <Button
+            icon={Plus}
+            data-testid="schedule-add-row"
+            onClick={() => {
+              setFilter('all');
+              setEditing(NEW_ROW);
+            }}
+          >
+            Add row
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

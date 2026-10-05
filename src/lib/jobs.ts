@@ -128,10 +128,16 @@ function defaultJobTools(recommended: readonly string[]): string[] {
 /**
  * A job's rail. Under its name: my own list for this job (`choice`; Edit decides), else my default there (my position's
  * recommendation, my_recommended_tools, then Files), in that order. More: the job's other tools. A list may name tools
- * the job has off; they just don't show.
+ * the job has off; they just don't show. `readable` (my_readable_tools, 0081): the tools my role may read there; the
+ * rest show nowhere, not under More and not in Edit (SPEC §18.3: "within what the role may see"). null = not known.
  */
-export function jobRail(choice: readonly string[] | null, recommended: readonly string[], modules: readonly string[]): RailModel {
-  const on = railForJob(JOB_TOOLS, modules);
+export function jobRail(
+  choice: readonly string[] | null,
+  recommended: readonly string[],
+  modules: readonly string[],
+  readable: readonly string[] | null = null,
+): RailModel {
+  const on = railForJob(JOB_TOOLS, modules).filter((t) => readable === null || readable.includes(t));
   const chosen = choice ?? defaultJobTools(recommended);
   const job = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
   return { general: [], job, more: on.filter((t) => !job.includes(t)) };
@@ -144,13 +150,15 @@ interface RailJob {
 
 /**
  * The rail the frame shows: on All my jobs (`projectId` null) the cross-job tools; on a job, that job's part only.
- * `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none).
+ * `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none); `readable` too
+ * (my_readable_tools; a missing id = not known yet, nothing hidden).
  */
 export function railModel(
   projectId: string | null,
   jobs: readonly RailJob[],
   recommended: Readonly<Record<string, readonly string[]>>,
   choices: Readonly<Record<string, readonly string[] | null>>,
+  readable: Readonly<Record<string, readonly string[]>> = {},
 ): RailModel {
   if (projectId === null) {
     const general = allJobsRail(
@@ -160,7 +168,7 @@ export function railModel(
     return { general, job: [], more: [] };
   }
   const modules = jobs.find((j) => j.project_id === projectId)?.modules ?? [];
-  return jobRail(choices[projectId] ?? null, recommended[projectId] ?? [], modules);
+  return jobRail(choices[projectId] ?? null, recommended[projectId] ?? [], modules, readable[projectId] ?? null);
 }
 
 /**
