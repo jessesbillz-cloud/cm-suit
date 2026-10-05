@@ -1,7 +1,8 @@
-// The formal notice as a file on the item: attach one (the one uploader, into Photos/Corrections), or remove it.
+// The formal notice as a file on the item: attach one (the one uploader, into Reports/Corrections: a document, not a
+// photo), or remove it. A notice attached before 0078 stays where it was.
 import { useRef, useState } from 'react';
 import { Paperclip, X } from 'lucide-react';
-import { useCorrectionFileUpload } from '../../data/corrections.mutations';
+import { useCorrectionNoticeUpload } from '../../data/corrections.mutations';
 import { usePhotoFiles } from '../../data/corrections.queries';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
@@ -14,7 +15,7 @@ interface NoticeFileProps {
 }
 
 export function NoticeFile({ projectId, fileId, onChange }: NoticeFileProps) {
-  const upload = useCorrectionFileUpload();
+  const upload = useCorrectionNoticeUpload();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export function NoticeFile({ projectId, fileId, onChange }: NoticeFileProps) {
         type="file"
         accept="application/pdf,image/*"
         hidden
+        data-testid="cn-notice-input"
         onChange={(e) => {
           const picked = e.target.files?.[0];
           e.target.value = '';

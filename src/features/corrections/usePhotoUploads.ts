@@ -1,6 +1,7 @@
 // Photos picked for a new item or a step: compressed (lib/compressPhoto) and uploaded at once (data/upload through
 // the data layer), shown from the local file meanwhile. The save uses the ids of the finished ones. React state only.
 // The caller passes its module's uploader (which folder the photos land in): corrections and RFIs share this hook.
+// A file that is not an image (a PDF on an RFI answer) goes up as it is.
 import { useCallback, useRef, useState } from 'react';
 import { messageOf } from '../../data/errors';
 import { compressPhoto, jpegName } from '../../lib/compressPhoto';
@@ -17,6 +18,7 @@ export interface PickedPhoto {
 }
 
 async function compress(f: File): Promise<File> {
+  if (!f.type.startsWith('image/')) return f;
   return new File([await compressPhoto(f)], jpegName(f.name), { type: 'image/jpeg', lastModified: f.lastModified });
 }
 

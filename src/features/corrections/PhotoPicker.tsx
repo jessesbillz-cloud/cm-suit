@@ -1,8 +1,10 @@
 // Camera (phone) and Upload, and the picked photos as thumbnails with their upload state (SPEC §7.7: never three
-// buttons). Previews come from the local file; the stored copy is the compressed one.
+// buttons). Previews come from the local file; the stored copy is the compressed one. A picker that also takes
+// documents (an RFI answer) shows a non-image as its file icon and name.
 import { useEffect, useRef, useState } from 'react';
 import { Camera, LoaderCircle, RotateCw, Upload, X } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { PHOTO_BOX, PHOTO_GRID, PHOTO_REMOVE } from '../../ui/Thumb';
 import type { PhotoUploads, PickedPhoto } from './usePhotoUploads';
@@ -15,17 +17,25 @@ interface ThumbProps {
 
 function LocalThumb({ photo, onRemove, onRetry }: ThumbProps) {
   const [url, setUrl] = useState<string | null>(null);
+  const image = photo.file.type.startsWith('image/');
   useEffect(() => {
+    if (!image) return undefined;
     const u = URL.createObjectURL(photo.file);
     setUrl(u);
     return () => {
       URL.revokeObjectURL(u);
     };
-  }, [photo.file]);
+  }, [photo.file, image]);
 
   return (
     <li className={PHOTO_BOX} data-testid="cn-picked-photo">
       {url ? <img src={url} alt={photo.file.name} className="h-full w-full object-cover" /> : null}
+      {!image ? (
+        <span className="flex h-full w-full flex-col items-center justify-center gap-1 p-1.5 text-center text-ink-2">
+          <Icon icon={fileIcon(photo.file.name, photo.file.type)} size={22} />
+          <span className="line-clamp-2 break-all text-[11px] leading-4">{photo.file.name}</span>
+        </span>
+      ) : null}
       {photo.status === 'uploading' ? (
         <span className="absolute inset-0 flex items-center justify-center bg-card/60">
           <Icon icon={LoaderCircle} size={18} className="animate-spin text-ink-2" label="Uploading" />
@@ -59,9 +69,11 @@ interface PhotoPickerProps {
   isPhone: boolean;
   /** The Upload input's test id (each module's e2e names its own). */
   inputTestId?: string | undefined;
+  /** What Upload takes: photos, or photos and PDFs (an RFI answer). */
+  accept?: string | undefined;
 }
 
-export function PhotoPicker({ uploads, isPhone, inputTestId = 'cn-photo-input' }: PhotoPickerProps) {
+export function PhotoPicker({ uploads, isPhone, inputTestId = 'cn-photo-input', accept = 'image/*' }: PhotoPickerProps) {
   const camera = useRef<HTMLInputElement>(null);
   const picker = useRef<HTMLInputElement>(null);
 
@@ -109,7 +121,7 @@ export function PhotoPicker({ uploads, isPhone, inputTestId = 'cn-photo-input' }
       <input
         ref={picker}
         type="file"
-        accept="image/*"
+        accept={accept}
         multiple
         hidden
         data-testid={inputTestId}

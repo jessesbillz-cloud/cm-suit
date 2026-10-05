@@ -20,6 +20,7 @@ import {
   stepsFor,
   visibleRows,
   weeklySnapshot,
+  undoableStep,
   type Caps,
 } from './model';
 
@@ -59,6 +60,10 @@ describe('labels and chips', () => {
     expect(statusChip('open').status).toBe('pending');
     expect(statusChip('signed_off').status).toBe('confirmed');
     expect(statusChip('reopened').status).toBe('not_approved');
+    // Corrected and Signed off look different; Ready is not the co-inspector's blue (assigned).
+    expect(statusChip('corrected').status).not.toBe(statusChip('signed_off').status);
+    expect(STATUS[statusChip('corrected').status].bg).not.toBe(STATUS[statusChip('signed_off').status].bg);
+    expect(statusChip('ready').status).not.toBe('assigned');
   });
 });
 
@@ -198,5 +203,24 @@ describe('header counts', () => {
     expect(logSummary(rows)).toBe('3 open · 1 ready');
     expect(logSummary([row({ number: 1 })])).toBe('1 open');
     expect(logSummary([])).toBe('0 open');
+  });
+});
+
+describe('undo from the pane', () => {
+  const at = Date.parse('2026-09-20T16:00:00Z');
+  const h = (seq: number, action: CorrectionHistoryRow['action'], actor: string, minutesAgo: number): CorrectionHistoryRow => ({
+    id: `h${String(seq)}`, seq, correction_id: 'c1', actor_user_id: actor, action, from_status: null, to_status: null, note: '',
+    photo_ids: [], created_at: minutesAgo === 0 ? '2026-09-20T16:00:00Z' : `2026-09-20T15:${String(60 - minutesAgo).padStart(2, '0')}:00Z`, undoes: null,
+  });
+  it('my own latest create or step, within 15 minutes', () => {
+    expect(undoableStep([h(1, 'created', 'me', 3)], 'me', at)?.id).toBe('h1');
+    expect(undoableStep([h(1, 'created', 'me', 30), h(2, 'signed_off', 'me', 14)], 'me', at)?.id).toBe('h2');
+  });
+  it('nothing once 15 minutes pass, when someone else moved it last, or after an edit or an undo', () => {
+    expect(undoableStep([h(1, 'created', 'me', 15)], 'me', at)).toBeNull();
+    expect(undoableStep([h(1, 'created', 'me', 1), h(2, 'ready', 'sub', 0)], 'me', at)).toBeNull();
+    expect(undoableStep([h(1, 'created', 'me', 1), h(2, 'edited', 'me', 0)], 'me', at)).toBeNull();
+    expect(undoableStep([h(1, 'ready', 'me', 2), h(2, 'undone', 'me', 1)], 'me', at)).toBeNull();
+    expect(undoableStep([], 'me', at)).toBeNull();
   });
 });
