@@ -39,16 +39,15 @@ export function QuestionAnswerForm({ projectId, q, current, onDone }: QuestionAn
       return;
     }
     setProblem(null);
-    answer.mutate(
-      { question: q, questionText: questionText.trim(), answer: answerText.trim(), packageOnly },
-      {
-        onSuccess: () => {
-          toast.show({ message: `Answer ${String(q.number)} published.` });
-          onDone();
-        },
-        onError: (e) => {
-          setProblem(messageOf(e));
-        },
+    // Promise-based on purpose: the saved question comes back with a new version, which remounts this form before
+    // per-call callbacks would run.
+    answer.mutateAsync({ question: q, questionText: questionText.trim(), answer: answerText.trim(), packageOnly }).then(
+      () => {
+        toast.show({ message: `Answer ${String(q.number)} published.` });
+        onDone();
+      },
+      (e: unknown) => {
+        toast.show({ tone: 'error', message: `Not published: ${messageOf(e)}` });
       },
     );
   }
@@ -58,14 +57,9 @@ export function QuestionAnswerForm({ projectId, q, current, onDone }: QuestionAn
       message: `Dismissing question ${String(q.number)}.`,
       action: { label: 'Undo', onClick: () => undefined },
       onCommit: () => {
-        setStatus.mutate(
-          { question: q, status: 'dismissed' },
-          {
-            onError: (e) => {
-              toast.show({ tone: 'error', message: `Not dismissed: ${messageOf(e)}` });
-            },
-          },
-        );
+        setStatus.mutateAsync({ question: q, status: 'dismissed' }).catch((e: unknown) => {
+          toast.show({ tone: 'error', message: `Not dismissed: ${messageOf(e)}` });
+        });
       },
     });
   }
@@ -75,15 +69,12 @@ export function QuestionAnswerForm({ projectId, q, current, onDone }: QuestionAn
       setProblem('Word the question as it will be published first.');
       return;
     }
-    toAddendum.mutate(
-      { question: q, body: addendumBody(questionText, answerText) },
-      {
-        onSuccess: (a) => {
-          nav.open(a.id, 'addenda');
-        },
-        onError: (e) => {
-          setProblem(messageOf(e));
-        },
+    toAddendum.mutateAsync({ question: q, body: addendumBody(questionText, answerText) }).then(
+      (a) => {
+        nav.open(a.id, 'addenda');
+      },
+      (e: unknown) => {
+        toast.show({ tone: 'error', message: `No addendum made: ${messageOf(e)}` });
       },
     );
   }

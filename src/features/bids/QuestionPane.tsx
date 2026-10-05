@@ -40,14 +40,10 @@ function QuestionBody({ projectId, q, answer }: QuestionBodyProps) {
   );
 
   function reopen() {
-    setStatus.mutate(
-      { question: q, status: 'open' },
-      {
-        onError: (e) => {
-          toast.show({ tone: 'error', message: `Not reopened: ${messageOf(e)}` });
-        },
-      },
-    );
+    // Promise-based: the reopened question has a new version, which remounts this pane.
+    setStatus.mutateAsync({ question: q, status: 'open' }).catch((e: unknown) => {
+      toast.show({ tone: 'error', message: `Not reopened: ${messageOf(e)}` });
+    });
   }
 
   const showForm = q.status === 'open' || again;
