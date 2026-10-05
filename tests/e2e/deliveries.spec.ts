@@ -1,11 +1,12 @@
 // Deliveries (SPEC §13.3) against the e2e mock: Sample Job A has a Sample Concrete Co delivery today 7:00-8:00, a
 // Sample Lumber one today with its time TBD, and #3 (Sample Steel Co) two days out whose ticket was deleted in Files.
 // Posting 7:30 shows the heads-up and lands as Standby on the board; a post for another day shows that day; the
-// three weeks hold still under a tapped day; a photo or ticket comes off with Undo; Delete knows my name; a month row
+// three weeks hold still under a tapped day; a photo or ticket comes off with Undo; a tap on a tile opens the file
+// viewer over the delivery's files (the photo, the ticket's pages, Delete with Undo); Delete knows my name; a month row
 // opens its delivery; the Calendar sees a new post at once; TV mode opens with its clock; the delivery link made in
 // the Link view prints a poster with its QR code and opens the public board, where a typed name posts a delivery and
 // gets a receipt, even where the browser blocks storage. Test ids: delivery-day-<day>, delivery-day-cards,
-// delivery-card, delivery-form, delivery-tbd, delivery-duration, delivery-file, delivery-file-remove,
+// delivery-card, delivery-form, delivery-tbd, delivery-duration, delivery-file, delivery-file-remove, delivery-file-view,
 // delivery-delete-name, delivery-month-row, delivery-poster, qr-code, cal-kind-deliveries.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
@@ -156,6 +157,36 @@ test.describe('deliveries (SPEC §13.3)', () => {
 
     await right.getByRole('button', { name: 'History' }).click();
     await expect(right).toContainText('Photo removed');
+  });
+
+  test('a tile opens the viewer over the delivery\'s photo and ticket; Delete there comes off with Undo', async ({ page }) => {
+    await page.goto(`/p/job-a/deliveries/mock-delivery-3?day=${fromToday(2)}`);
+    const right = page.getByTestId('right-column');
+    await expect(right.getByTestId('delivery-receipt-number')).toHaveText('#3');
+    await right.locator('input[type="file"]').last().setInputFiles([
+      { name: 'Sample unload photo.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...new Array<number>(60).fill(0)]) },
+      { name: 'Sample steel ticket.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 sample ticket') },
+    ]);
+    await expect(right.getByTestId('delivery-file')).toHaveCount(2);
+
+    await right.getByRole('button', { name: 'View Sample unload photo.jpg' }).click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByRole('img', { name: 'Sample unload photo.jpg' })).toBeVisible();
+    await expect(viewer.getByTestId('viewer-count')).toContainText('of 2');
+    // The other file is the ticket: its first page.
+    const toTicket = viewer.getByTestId((await viewer.getByTestId('viewer-count').textContent()) === '1 of 2' ? 'viewer-next' : 'viewer-prev');
+    await toTicket.click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample steel ticket.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+
+    // Delete takes the ticket off the delivery; the viewer stays on the photo; Undo puts it back.
+    await viewer.getByTestId('viewer-delete').click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample unload photo.jpg');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+    await expect(right.getByTestId('delivery-file')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(right.getByTestId('delivery-file')).toHaveCount(2);
   });
 
   test("Delete knows the signed-in person's name; Undo brings the delivery back", async ({ page }) => {
