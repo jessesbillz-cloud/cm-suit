@@ -90,6 +90,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
 ## Schema changes
 - **Only through a migration file** in `supabase/migrations/`, applied by the pipeline. Never run DDL by hand against staging or production.
 - Regenerate types after every migration, and commit them in the same PR.
+- No `;` in a migration's comments: the hosted SQL tool splits on it and refuses the cut statement (hygiene checks it).
 
 ## Repo hygiene (enforced by CI and the pre-commit hook)
 - **Folder map:**

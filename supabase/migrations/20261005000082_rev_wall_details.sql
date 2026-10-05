@@ -1,16 +1,16 @@
 -- 0082 Revs: what each rated wall is, and what was signed off before the app (Jesse, Oct 5: the real Hunter Hall
--- fire-rated wall inspections start with the CSU fire marshal through Revs; 48 rated walls are loaded, each with facts
+-- fire-rated wall inspections start with the CSU fire marshal through Revs, 48 rated walls are loaded, each with facts
 -- from a plan review, and many already had OFS sign-offs on paper, OFS IR #0001-#0068).
 --   * A wall's details on rev_areas, all optional: its tag (e.g. F6a), rating, UL design, fire area, the sheet number as
---     text (A201A; apart from the linked sheet file) and what still needs checking against the plans. Saved by
---     rev_area_details_save (revs.manage, version-checked like rev_area_save; the row's touch and audit triggers).
+--     text (A201A, apart from the linked sheet file) and what still needs checking against the plans. Saved by
+--     rev_area_details_save (revs.manage, version-checked like rev_area_save, the row's touch and audit triggers).
 --   * rev_signoffs: a wall x item the fire marshal signed off before the app, with its OFS IR number, the day and a note
---     (all optional). One live row per wall and item; read like rev_marks (revs.read; removed rows for revs.manage);
+--     (all optional). One live row per wall and item, read like rev_marks (revs.read, removed rows for revs.manage),
 --     written only by rev_signoff_set (many items at once: a whole rev) and rev_signoff_clear (its Undo), revs.manage.
 --   * Status: such a cell is passed, with its OFS number and day, unless an in-app request on that cell is newer (asked
 --     for after the end of the signed-off day, or after it was last set when no day was given): then the in-app result
 --     decides it as before. N/A still comes first. rev_status_rows carries every other rule of 0057 unchanged, so
---     rev_status, the request link's walls and the permit's open inspections all follow; ir_ofs_cells skips such a cell
+--     rev_status, the request link's walls and the permit's open inspections all follow, ir_ofs_cells skips such a cell
 --     like a passed one (a request doesn't ask again for what is signed off).
 
 -- =====================================================================================================================
@@ -24,7 +24,7 @@ alter table public.rev_areas
   add column sheet_ref text check (sheet_ref is null or length(btrim(sheet_ref)) between 1 and 20),
   add column check_note text check (check_note is null or length(btrim(check_note)) between 1 and 300);
 
--- Typed text, tidied (rev_clean), or null when empty; too long is refused in words.
+-- Typed text, tidied (rev_clean), or null when empty, too long is refused in words.
 create or replace function public.rev_text_or_null(p_text text, p_max int, p_what text)
 returns text
 language plpgsql
@@ -39,7 +39,7 @@ end;
 $$;
 
 -- A wall's tag, rating, UL design, fire area, sheet number and what to check (null or empty = none). Version-checked
--- when a version is given; the same values again return the wall as it is.
+-- when a version is given, the same values again return the wall as it is.
 create or replace function public.rev_area_details_save(p_id uuid, p_version int, p_wall_tag text, p_rating text, p_ul_design text,
                                                         p_fire_area text, p_sheet_ref text, p_check_note text)
 returns public.rev_areas
@@ -86,7 +86,7 @@ create table public.rev_signoffs (
   project_id uuid not null,
   area_id uuid not null,
   item_id uuid not null,
-  -- The OFS IR that signed it off (#0041), the day, and a note; each optional.
+  -- The OFS IR that signed it off (#0041), the day, and a note, each optional.
   ofs_number int check (ofs_number is null or ofs_number between 1 and 999999),
   signed_on date,
   note text check (note is null or length(btrim(note)) between 1 and 300),
@@ -157,7 +157,7 @@ end;
 $$;
 
 -- Signed off before the app: these items of this wall (one, or a whole rev), with the OFS IR number, the day and a
--- note (each optional; the day not after today on the job's clock). An item signed off already takes the new values.
+-- note (each optional, the day not after today on the job's clock). An item signed off already takes the new values.
 -- Returns the sign-offs, in item order.
 create or replace function public.rev_signoff_set(p_area_id uuid, p_item_ids uuid[], p_ofs_number int, p_signed_on date, p_note text)
 returns setof public.rev_signoffs
@@ -194,7 +194,7 @@ end;
 $$;
 
 -- Undo: these items of this wall are no longer signed off before (kept, removed). Returns what was cleared, for its own
--- Undo; a repeat clears nothing.
+-- Undo, a repeat clears nothing.
 create or replace function public.rev_signoff_clear(p_area_id uuid, p_item_ids uuid[])
 returns setof public.rev_signoffs
 language plpgsql
@@ -217,7 +217,7 @@ $$;
 -- =====================================================================================================================
 -- Status and the request's cells, with the sign-offs
 -- =====================================================================================================================
--- 0057's rows, plus: na > signed off before (passed: its OFS number, its day at noon on the job's clock, its note; no
+-- 0057's rows, plus: na > signed off before (passed: its OFS number, its day at noon on the job's clock, its note, no
 -- request) > passed > requested > failed > open. A newer in-app request leaves the sign-off out (rev_signoff_live).
 create or replace function public.rev_status_rows(p_project_id uuid)
 returns table (area_id uuid, item_id uuid, status text, request_id uuid, ir_number int, ofs_number int, at timestamptz, note text)

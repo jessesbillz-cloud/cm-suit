@@ -7,16 +7,16 @@
 --     member").
 --   * The visitor's tracker (link_request_answer): the postponement (reason, note to the requester, expected date) while
 --     postponed, the attendance call, and whether the IR is made. Never the inspector's note to the GC, never a name.
---   * The IR by the receipt (link_request_ir_file): the same gate as the status link; scan rules; a download line.
+--   * The IR by the receipt (link_request_ir_file): the same gate as the status link, scan rules, a download line.
 --   * The hub link's "New link" can be undone for 15 minutes by its owner, like the job link (the previous hash kept).
---   * Words and colors as MDR: attendance reads "Be present with the IOR" / "I've got this alone" on the calendar line;
+--   * Words and colors as MDR: attendance reads "Be present with the IOR" / "I've got this alone" on the calendar line,
 --     a confirmed request with a helper is confirmed (green), not blue.
 
 -- =====================================================================================================================
 -- 1. Joining claims the joiner's earlier link requests
 -- =====================================================================================================================
 alter table public.inspection_requests drop constraint inspection_requests_requester_kind;
--- A link request names the visitor and how to reach them; once they join, the member stands behind it as well.
+-- A link request names the visitor and how to reach them, once they join, the member stands behind it as well.
 alter table public.inspection_requests add constraint inspection_requests_requester_kind check (
   requested_by is not null
   or (requester_name is not null and (requester_phone is not null or requester_email is not null))
@@ -232,7 +232,7 @@ $$;
 -- =====================================================================================================================
 -- 4. MDR's words and colors
 -- =====================================================================================================================
--- A confirmed request with a helper is confirmed (MDR's palette has no blue); the chip says "Helper".
+-- A confirmed request with a helper is confirmed (MDR's palette has no blue), the chip says "Helper".
 create or replace function public.ir_status_key(p_status text, p_result text, p_helper uuid)
 returns text
 language sql
@@ -288,7 +288,7 @@ update public.calendar_entries set status = 'confirmed'
  where source_type = 'inspection_request' and status = 'assigned';
 
 -- =====================================================================================================================
--- Grants (SPEC §6.2): the link function is service-role only; the undo is the hub owner's (authenticated); the rest
+-- Grants (SPEC §6.2): the link function is service-role only, the undo is the hub owner's (authenticated), the rest
 -- keep what they had (create or replace keeps grants).
 -- =====================================================================================================================
 revoke execute on function public.link_request_ir_file(uuid, text, text) from public, anon, authenticated;

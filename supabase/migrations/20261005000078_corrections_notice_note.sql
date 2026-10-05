@@ -1,13 +1,13 @@
 -- 0078 Corrections, from the Oct 4 audit (findings 5, 6 and 30).
 --   * A correction's formal notice is a document, not a photo: it now goes in the job's Reports / "Corrections" folder
 --     (made on first use, like Reports / "Inspection reports"), never in Photos / Corrections. correction_notice_folder
---     hands it out to the people who attach notices (the creator: corrections.create; the inspector: corrections.close);
+--     hands it out to the people who attach notices (the creator: corrections.create, the inspector: corrections.close),
 --     corrections.view reads it. Notices already attached stay where they are (nothing moves).
 --   * "Corrections" under Reports is a name the system owns (folder_name_reserved carries the whole list, 0069's plus
 --     this one).
 --   * Edit adds and removes an item's own photos: the table already allows it (0026: update (photo_ids) for the creator
---     or an inspector, the guard checks every added photo). No new function; tests/62 proves it.
---   * Corrected / Sign off take one tap (Undo, as before); the note comes after if wanted. correction_step_note puts a
+--     or an inspector, the guard checks every added photo). No new function, tests/62 proves it.
+--   * Corrected / Sign off take one tap (Undo, as before), the note comes after if wanted. correction_step_note puts a
 --     note on my own latest step while undo_correction would still take it back (15 minutes) and only when it has none.
 --     History stays append-only for everything else: the trigger lets through only that one line's note, inside this
 --     function (a transaction-local flag, like undo_correction's).

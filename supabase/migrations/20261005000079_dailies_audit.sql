@@ -2,14 +2,14 @@
 --   1. remove_daily_photo also takes the photo's file out of the author's Photos folder (soft delete, like every file),
 --      when the author uploaded it there and no other report of theirs still shows it. Before, a removed photo stayed
 --      behind in Photos/<author> (#15).
---   2. daily_team_emails(job): the job's team for a new daily setup's recipients (MDR's "project team recipients"; CLAUDE.md
+--   2. daily_team_emails(job): the job's team for a new daily setup's recipients (MDR's "project team recipients", CLAUDE.md
 --      rule 16, prefill what is known): the active members whose role reads the job's dailies (dailies.read_all), never
 --      the caller and never a bidder. SECURITY INVOKER: project_members' own read rule (members.view) answers, so it shows
 --      only what the caller could already see. Recipients stay editable in Setup (#8).
 --   3. my_daily_today answers today's report's version too, so All my jobs uses the Dailies button's words for the same
 --      state: Start (nothing yet, or untouched), Continue (written in), Edit submitted (#23). The return type changes, so
 --      the 0045 function is retired (renamed, execute revoked) and a new one takes its name.
---   4. A draft invoice can be deleted, with Undo (#28): invoices.deleted_at (soft delete; numbers are never reused).
+--   4. A draft invoice can be deleted, with Undo (#28): invoices.deleted_at (soft delete, numbers are never reused).
 --      delete_invoice (a draft, mine, version-checked), restore_invoice (Undo, safe to repeat). Asking for that month's
 --      invoice again brings the same invoice and number back, priced from today's hours. A deleted invoice can't be read,
 --      updated, marked or rendered.

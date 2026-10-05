@@ -1,26 +1,26 @@
 -- 0073 Requirements: each sub sees the lines that are theirs, and only those (Jesse, Oct 4: "requirements visible to
--- each sub for their own lines"; SPEC §18.4 P4.4: "each owned by a sub, visible to that sub on day one").
+-- each sub for their own lines", SPEC §18.4 P4.4: "each owned by a sub, visible to that sub on day one").
 --
 -- PROVISIONAL MATRIX CHANGE (Jesse reviews): a new capability, requirements.read_own, for the roles a sub's people hold:
 -- 'sub' (the sub's office) and 'foreman' (the crew lead). Not 'requester' (the no-login field request, 0055: their own
 -- requests only), not 'bidder' (walled: not on the job yet), not 'viewer'. Requirements joins the sub's recommended rail
 -- before Files (five tools before, six now). The foreman keeps what 0069 gave him (requirements.read, the tool under
--- More); read_own adds only the evidence on his own company's lines and their reminder.
+-- More), read_own adds only the evidence on his own company's lines and their reminder.
 --
 --   * Whose line it is, as data: requirements.company_org_id -> orgs(id), nullable. It is the same company a membership
 --     carries (project_members.member_org_id -> orgs), the one thing about "my company on this job" a member cannot set
---     for himself (members.manage or the invite writes it; a profile's company is free text he types, and the subs
+--     for himself (members.manage or the invite writes it, a profile's company is free text he types, and the subs
 --     directory and the deliveries' company list are names with no tie to a membership). The words (responsible) stay:
 --     a role, the owner, a company not on the job yet. Picking a company writes its name into the words. Nothing links
---     by itself: a person with requirements.manage picks the company (requirement_save); the AI's drafts never do.
+--     by itself: a person with requirements.manage picks the company (requirement_save), the AI's drafts never do.
 --   * Reading: the row is read by requirements.read as before (drafts by requirements.manage), OR when it is kept (not a
 --     draft), not removed, and its company is the company of the caller's own active membership on that job in a role
---     that holds requirements.read_own (requirement_mine). requirements_list runs as the caller, so it follows; it now
+--     that holds requirements.read_own (requirement_mine). requirements_list runs as the caller, so it follows, it now
 --     also answers company_org_id and mine. The spec book's sections (the Read spec form) answer only to
 --     requirements.manage (the app never asked for anyone else).
 --   * Writing stays with requirements.manage. One narrow write for a company's own people: requirement_evidence_own (a
---     note and/or a file on their own kept line, with the version; a file someone else attached is not theirs to take
---     off or replace; someone else's line is "not found"). The managers get one board line ("Evidence added: ...").
+--     note and/or a file on their own kept line, with the version, a file someone else attached is not theirs to take
+--     off or replace, someone else's line is "not found"). The managers get one board line ("Evidence added: ...").
 --     Their files go in the job's Requirements folder, which requirements.read_own may write and not read (as
 --     ir.request on "Inspection requests", 0024): they see the files they added, never the folder.
 --   * Reminder: the morning check also gives the line's "due" task to the line's own company's people (the same line,
@@ -36,7 +36,7 @@ insert into public.role_permissions (role, capability, requires_aal2) values
   ('sub', 'requirements.read_own', false), ('foreman', 'requirements.read_own', false)
 on conflict do nothing;
 
--- Before Files (else at the end); a rail stays at eight at most (0040).
+-- Before Files (else at the end), a rail stays at eight at most (0040).
 update public.roles
    set recommended_tools = case
          when 'files' = any (recommended_tools)
@@ -197,7 +197,7 @@ $$;
 -- =====================================================================================================================
 -- The reminder's tasks for a line's own company (internal)
 -- =====================================================================================================================
--- The line's "due" task for each of its company's people (requirements.read_own; the matrix says who) who has none
+-- The line's "due" task for each of its company's people (requirements.read_own, the matrix says who) who has none
 -- open: only while the line is kept, open or requested, not optional and dated. Answers how many it made.
 create or replace function public.requirement_own_tasks(p_id uuid, p_today date)
 returns int
@@ -232,7 +232,7 @@ end;
 $$;
 
 -- The line went to another company (or to none): the open "due" tasks of people who do not manage the register are
--- done (they can no longer read the line; the managers keep theirs).
+-- done (they can no longer read the line, the managers keep theirs).
 create or replace function public.requirement_own_tasks_done(p_id uuid)
 returns void
 language sql
@@ -252,7 +252,7 @@ $$;
 -- Writes
 -- =====================================================================================================================
 -- 0069's add / change, plus the company the line belongs to (null: none). A picked company must be on the job, and its
--- name becomes the words. The old form is retired; p_company_org_id is last and optional, so a call without it is the
+-- name becomes the words. The old form is retired, p_company_org_id is last and optional, so a call without it is the
 -- same call as before.
 alter function public.requirement_save(uuid, uuid, integer, uuid, text, text, text, text, text, text, text, text, integer,
                                        integer, text, text, date)
@@ -349,10 +349,10 @@ begin
      where x.id = r.id
      returning * into r;
     if r.due_on is distinct from v_due then
-      -- A moved due date: the old reminder's tasks are done; the morning check reminds for the new one.
+      -- A moved due date: the old reminder's tasks are done, the morning check reminds for the new one.
       perform public.requirement_tasks_done(r.id);
     elsif r.company_org_id is distinct from v_company_was then
-      -- Another company's line now: the old company's tasks are done; if the line was already reminded for this due
+      -- Another company's line now: the old company's tasks are done, if the line was already reminded for this due
       -- date, the new company's people get theirs now (else the morning check does it).
       perform public.requirement_own_tasks_done(r.id);
       if exists (select 1 from public.requirement_reminders rr
@@ -493,7 +493,7 @@ begin
     --    where r.project_id = p.id and r.deleted_at is null and r.activity_code <> ''
     --      and a.project_id = r.project_id and a.activity_code = r.activity_code
     --      /* and a is in the job's current schedule version */
-    --      and r.trigger_date is distinct from a.start;
+    --      and r.trigger_date is distinct from a.start,
     -- (or read schedule_upcoming(p.id, 120) and match on activity_code). The user's own trigger_date stays the
     -- fallback for a requirement whose activity is not on the schedule.
 
@@ -536,7 +536,7 @@ end;
 $$;
 
 -- =====================================================================================================================
--- Grants: the RPCs people call; the helpers are internal (a new function is callable by nobody until granted)
+-- Grants: the RPCs people call, the helpers are internal (a new function is callable by nobody until granted)
 -- =====================================================================================================================
 do $$
 declare f text;
