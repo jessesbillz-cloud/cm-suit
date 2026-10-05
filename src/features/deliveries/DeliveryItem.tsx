@@ -1,7 +1,9 @@
-// A delivery in the right column (or full screen on a phone): its receipt, photos, Edit / Delete for its poster and
-// deliveries.manage, and its history behind one link. Item 'new' is the post form.
-import { useState } from 'react';
-import { History, Pencil, Printer, Trash2 } from 'lucide-react';
+// A delivery in the right column (or full screen on a phone, or its own window): its receipt, photos, Edit / Delete for
+// its poster and deliveries.manage, and its history behind one link. Item 'new' is the post form. Opened from somewhere
+// else (the Calendar, the Board) the deliveries board behind it moves to the delivery's day. The receipt has no stored
+// PDF, so it prints (SPEC §7.2's Download applies once the worker renders receipts).
+import { useEffect, useRef, useState } from 'react';
+import { ExternalLink, History, Pencil, Printer, Trash2 } from 'lucide-react';
 import { useIsPhone } from '../../app/frame/useIsPhone';
 import { useUser } from '../../data/auth';
 import { useDelivery } from '../../data/deliveries.queries';
@@ -27,6 +29,8 @@ import { NEW_ITEM, useDeliveriesNav } from './useDeliveriesNav';
 interface DeliveryItemProps {
   projectId: string;
   itemId: string;
+  /** Open in new window (the frame passes it on a desktop, outside a window of its own). */
+  onOpenWindow?: (() => void) | undefined;
 }
 
 interface PaneProps {
@@ -35,11 +39,12 @@ interface PaneProps {
   row: DeliveryRow;
   tz: string;
   canChange: boolean;
+  onOpenWindow?: (() => void) | undefined;
 }
 
 type Mode = 'view' | 'edit' | 'delete' | 'history' | 'print';
 
-function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps) {
+function DeliveryPane({ projectId, projectName, row, tz, canChange, onOpenWindow }: PaneProps) {
   const [mode, setMode] = useState<Mode>('view');
   const restore = useRestoreDelivery(projectId);
   const toast = useToast();
@@ -73,11 +78,24 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
     <ItemFrame
       title={`Delivery #${String(row.number)}`}
       action={
-        <Button size="sm" variant="quiet" icon={Printer} onClick={() => {
-            setMode('print');
-          }}>
-          Print
-        </Button>
+        <>
+          {onOpenWindow ? (
+            <Button
+              size="sm"
+              variant="quiet"
+              icon={ExternalLink}
+              aria-label="Open in new window"
+              title="Open in new window"
+              data-testid="delivery-open-window"
+              onClick={onOpenWindow}
+            />
+          ) : null}
+          <Button size="sm" variant="quiet" icon={Printer} onClick={() => {
+              setMode('print');
+            }}>
+            Print
+          </Button>
+        </>
       }
     >
       <div className="flex flex-col gap-3">
@@ -131,12 +149,23 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange }: PaneProps)
   );
 }
 
-function ExistingDelivery({ projectId, itemId }: DeliveryItemProps) {
+function ExistingDelivery({ projectId, itemId, onOpenWindow }: DeliveryItemProps) {
   const q = useDelivery(projectId, itemId);
   const project = useProject(projectId);
   const post = useCapability(projectId, 'deliveries.post');
   const manage = useCapability(projectId, 'deliveries.manage');
   const me = useUser();
+  const nav = useDeliveriesNav(projectId);
+  // Opened with no day picked (from the Calendar, the Board, a link): the board behind shows the delivery's day.
+  const date = q.data?.delivery_date ?? null;
+  const showDay = nav.day === null && !nav.standalone ? date : null;
+  const moved = useRef(false);
+  const { showDayOf } = nav;
+  useEffect(() => {
+    if (showDay === null || moved.current) return;
+    moved.current = true;
+    showDayOf(itemId, showDay);
+  }, [showDay, itemId, showDayOf]);
 
   if (q.isPending || project.isPending) return <LoadingState label="Loading the delivery" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
@@ -144,10 +173,20 @@ function ExistingDelivery({ projectId, itemId }: DeliveryItemProps) {
   if (q.data === null) return <EmptyState title="This delivery is no longer here." />;
   const row = q.data;
   const canChange = manage.data === true || (row.created_by === me.id && post.data === true);
-  return <DeliveryPane projectId={projectId} projectName={project.data.name} row={row} tz={project.data.timezone} canChange={canChange} />;
+  return (
+    <DeliveryPane
+      projectId={projectId}
+      projectName={project.data.name}
+      row={row}
+      tz={project.data.timezone}
+      canChange={canChange}
+      onOpenWindow={onOpenWindow}
+    />
+  );
 }
 
 function NewDelivery({ projectId }: { projectId: string }) {
+  const isPhone = useIsPhone();
   const project = useProject(projectId);
   const post = useCapability(projectId, 'deliveries.post');
   const nav = useDeliveriesNav(projectId);
@@ -156,10 +195,10 @@ function NewDelivery({ projectId }: { projectId: string }) {
   if (post.isError) return <ErrorState error={post.error} onRetry={() => void post.refetch()} />;
   if (!post.data) return <EmptyState title="You can't post deliveries on this job." />;
   const tz = project.data.timezone;
-  return <PostDelivery projectId={projectId} tz={tz} day={nav.day ?? todayInZone(tz)} onPosted={nav.open} />;
+  return <PostDelivery projectId={projectId} tz={tz} day={nav.day ?? todayInZone(tz)} onPosted={nav.open} isPhone={isPhone} />;
 }
 
-export function DeliveryItem({ projectId, itemId }: DeliveryItemProps) {
+export function DeliveryItem({ projectId, itemId, onOpenWindow }: DeliveryItemProps) {
   if (itemId === NEW_ITEM) return <NewDelivery projectId={projectId} />;
-  return <ExistingDelivery key={itemId} projectId={projectId} itemId={itemId} />;
+  return <ExistingDelivery key={itemId} projectId={projectId} itemId={itemId} onOpenWindow={onOpenWindow} />;
 }

@@ -1,5 +1,8 @@
 // The board: the three-week grid on top, the picked day's deliveries below as rows with a time column. Presentational;
-// the app and the public link each load the three weeks and hand them in (inside an unpadded card).
+// the app and the public link each load the three weeks (useBoardWindow) and hand them in (inside an unpadded card).
+// The grid holds still under a tapped day (MDR); only the arrows move it, or a picked day outside it (Today, a post
+// for another week).
+import { useState } from 'react';
 import { formatDay } from '../../lib/dates';
 import { byTime, countByDay, shiftDay, threeWeekDays } from '../../lib/deliveries';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -10,27 +13,49 @@ import { ThreeWeekGrid } from './ThreeWeekGrid';
 interface BoardProps {
   tz: string;
   today: string;
-  /** The picked day; the three weeks start with its week. */
+  /** The three weeks on screen (useBoardWindow). */
+  days: readonly string[];
+  /** The picked day. */
   day: string;
   rows: readonly CardDelivery[] | undefined;
   isPending: boolean;
   error: unknown;
   onRetry: () => void;
   onPickDay: (day: string) => void;
+  /** The arrows: the grid moves by whole weeks (useBoardWindow's shift). */
+  onShift: (weeks: number) => void;
   /** Opens a delivery (app only). */
   onOpen?: ((id: string) => void) | undefined;
   /** The delivery open in the right column (app only). */
   selectedId?: string | null | undefined;
 }
 
-/** The three weeks the board shows for a picked day. */
-export function boardWindow(day: string): { days: string[]; from: string; to: string } {
-  const days = threeWeekDays(day);
-  return { days, from: days[0] ?? day, to: days[days.length - 1] ?? day };
+/**
+ * The three weeks the board shows: they start with the picked day's week and then hold still while days inside them
+ * are picked. `shift` (the arrows) moves them by whole weeks and the picked day with them, so it stays inside.
+ */
+export function useBoardWindow(day: string, onPickDay: (day: string) => void) {
+  const [state, setState] = useState({ anchor: day, seen: day });
+  let anchor = state.anchor;
+  if (day !== state.seen) {
+    // A new picked day: the grid stays unless the day is outside it.
+    anchor = threeWeekDays(state.anchor).includes(day) ? state.anchor : day;
+    setState({ anchor, seen: day });
+  }
+  const days = threeWeekDays(anchor);
+  return {
+    days,
+    from: days[0] ?? day,
+    to: days[days.length - 1] ?? day,
+    shift: (weeks: number) => {
+      // The day moves with the grid, so it lands inside the moved weeks and they hold when it arrives.
+      setState({ anchor: shiftDay(anchor, weeks * 7), seen: day });
+      onPickDay(shiftDay(day, weeks * 7));
+    },
+  };
 }
 
-export function Board({ tz, today, day, rows, isPending, error, onRetry, onPickDay, onOpen, selectedId }: BoardProps) {
-  const { days } = boardWindow(day);
+export function Board({ tz, today, days, day, rows, isPending, error, onRetry, onPickDay, onShift, onOpen, selectedId }: BoardProps) {
   const counts = countByDay(rows ?? []);
   const dayRows = (rows ?? []).filter((r) => r.delivery_date === day).sort(byTime);
 
@@ -43,9 +68,7 @@ export function Board({ tz, today, day, rows, isPending, error, onRetry, onPickD
           today={today}
           selected={day}
           onPick={onPickDay}
-          onShift={(weeks) => {
-            onPickDay(shiftDay(day, weeks * 7));
-          }}
+          onShift={onShift}
           onToday={() => {
             onPickDay(today);
           }}

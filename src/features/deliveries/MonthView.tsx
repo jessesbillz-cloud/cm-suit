@@ -1,4 +1,5 @@
-// Month: the summary of one month (by day, with totals), printable, and "I reviewed this month" for deliveries.manage.
+// Month: the summary of one month (by day, with totals; a row opens its delivery), printable, and "I reviewed this
+// month" for deliveries.manage.
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { useDeliveries } from '../../data/deliveries.queries';
@@ -20,9 +21,12 @@ interface MonthViewProps {
   day: string;
   canManage: boolean;
   onPickDay: (day: string) => void;
+  /** Opens a delivery in the right column; the board behind it shows the delivery's day. */
+  onOpen: (id: string, day: string) => void;
+  selectedId: string | null;
 }
 
-export function MonthView({ projectId, projectName, tz, day, canManage, onPickDay }: MonthViewProps) {
+export function MonthView({ projectId, projectName, tz, day, canManage, onPickDay, onOpen, selectedId }: MonthViewProps) {
   const days = monthDays(day);
   const first = days[0] ?? day;
   const last = days[days.length - 1] ?? day;
@@ -59,7 +63,7 @@ export function MonthView({ projectId, projectName, tz, day, canManage, onPickDa
       {rows.isPending ? <LoadingState label="Loading the month" /> : null}
       {rows.isError ? <ErrorState error={rows.error} onRetry={() => void rows.refetch()} /> : null}
       {rows.data?.length === 0 ? <EmptyState icon={TOOL_META.deliveries.icon} title="No deliveries this month." /> : null}
-      {rows.data && rows.data.length > 0 ? <MonthSummary rows={rows.data} tz={tz} /> : null}
+      {rows.data && rows.data.length > 0 ? <MonthSummary rows={rows.data} tz={tz} onOpen={onOpen} selectedId={selectedId} /> : null}
       {canManage ? (
         <div className="border-t border-line p-4">
           <MonthReview projectId={projectId} month={first} tz={tz} />

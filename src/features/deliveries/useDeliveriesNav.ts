@@ -19,9 +19,11 @@ export { NEW_ITEM } from '../../lib/itemIds';
 
 export function useDeliveriesNav(projectId: string) {
   const navigate = useNavigate();
-  const search: { view?: string | undefined; day?: string | undefined } = useSearch({ strict: false });
+  const search: { view?: string | undefined; day?: string | undefined; window?: string | undefined } = useSearch({ strict: false });
   const view = parseDeliveryView(search.view);
   const day = parseDay(search.day);
+  /** The item is alone in its own window (?window=1): there is no board behind it. */
+  const standalone = search.window === '1';
   const keep = (next: Partial<{ view: DeliveryView; day: string | null }>) => {
     const v = next.view ?? view;
     const d = next.day === undefined ? day : next.day;
@@ -36,10 +38,24 @@ export function useDeliveriesNav(projectId: string) {
     void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: 'deliveries' }, search: keep({ day: next }) });
   }
 
-  /** Opens a delivery (or the post form, NEW_ITEM) in the right column; the board stays as it was. */
-  function open(itemId: string) {
-    void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool: 'deliveries', itemId }, search: keep({}) });
+  /** Opens a delivery (or the post form, NEW_ITEM) in the right column; with `onDay`, the board shows that day too. */
+  function open(itemId: string, onDay?: string) {
+    void navigate({
+      to: '/p/$projectId/$tool/$itemId',
+      params: { projectId, tool: 'deliveries', itemId },
+      search: keep(onDay === undefined ? {} : { day: onDay }),
+    });
   }
 
-  return { view, day, setView, pickDay, open };
+  /** The board behind an open delivery moves to its day (replacing the address, so Back skips the move). */
+  function showDayOf(itemId: string, onDay: string) {
+    void navigate({
+      to: '/p/$projectId/$tool/$itemId',
+      params: { projectId, tool: 'deliveries', itemId },
+      search: keep({ day: onDay }),
+      replace: true,
+    });
+  }
+
+  return { view, day, standalone, setView, pickDay, open, showDayOf };
 }

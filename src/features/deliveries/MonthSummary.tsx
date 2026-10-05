@@ -1,4 +1,5 @@
-// The monthly summary (SPEC §13.3): deliveries by day with totals. The same table on screen and on paper.
+// The monthly summary (SPEC §13.3): deliveries by day with totals. The same table on screen and on paper; on screen
+// each delivery opens in the right column, as on the board.
 import { formatDay } from '../../lib/dates';
 import { byTime } from '../../lib/deliveries';
 import type { DeliveryRow } from '../../data/deliveries.types';
@@ -11,9 +12,26 @@ const CELL = 'px-3 py-3 align-top';
 interface MonthSummaryProps {
   rows: readonly DeliveryRow[];
   tz: string;
+  /** On screen: a delivery opens (absent on paper). */
+  onOpen?: ((id: string, day: string) => void) | undefined;
+  selectedId?: string | null | undefined;
 }
 
-export function MonthSummary({ rows, tz }: MonthSummaryProps) {
+function Line({ r, tz }: { r: DeliveryRow; tz: string }) {
+  return (
+    <>
+      <span className="w-28 shrink-0 tabular-nums text-ink-2">{timeRange(r, tz)}</span>
+      <span className="min-w-0 wrap-anywhere font-medium">{r.company}</span>
+      <span className="min-w-0 wrap-anywhere text-ink-2">{r.description}</span>
+      <span className="tabular-nums text-ink-3">#{r.number}</span>
+      {r.standby ? <StandbyChip /> : null}
+    </>
+  );
+}
+
+const LINE = 'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink';
+
+export function MonthSummary({ rows, tz, onOpen, selectedId }: MonthSummaryProps) {
   const days = [...new Set(rows.map((r) => r.delivery_date))].sort();
   const standby = rows.filter((r) => r.standby).length;
   return (
@@ -33,15 +51,29 @@ export function MonthSummary({ rows, tz }: MonthSummaryProps) {
               <td className={`${CELL} whitespace-nowrap pl-4 font-medium text-ink`}>{formatDay(d, 'EEE, MMM d')}</td>
               <td className={CELL}>
                 <ul className="flex flex-col gap-1.5">
-                  {list.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-ink">
-                      <span className="w-28 shrink-0 tabular-nums text-ink-2">{timeRange(r, tz)}</span>
-                      <span className="min-w-0 wrap-anywhere font-medium">{r.company}</span>
-                      <span className="min-w-0 wrap-anywhere text-ink-2">{r.description}</span>
-                      <span className="tabular-nums text-ink-3">#{r.number}</span>
-                      {r.standby ? <StandbyChip /> : null}
-                    </li>
-                  ))}
+                  {list.map((r) =>
+                    onOpen ? (
+                      <li key={r.id}>
+                        <button
+                          type="button"
+                          data-testid="delivery-month-row"
+                          aria-current={r.id === selectedId ? 'true' : undefined}
+                          className={`${LINE} -mx-1.5 w-[calc(100%+0.75rem)] rounded-md px-1.5 py-0.5 text-left transition-colors ${
+                            r.id === selectedId ? 'bg-accent-soft/60' : 'hover:bg-page/60'
+                          }`}
+                          onClick={() => {
+                            onOpen(r.id, r.delivery_date);
+                          }}
+                        >
+                          <Line r={r} tz={tz} />
+                        </button>
+                      </li>
+                    ) : (
+                      <li key={r.id} className={LINE}>
+                        <Line r={r} tz={tz} />
+                      </li>
+                    ),
+                  )}
                 </ul>
               </td>
               <td className={`${CELL} pr-4 text-right font-semibold tabular-nums text-ink`}>{list.length}</td>

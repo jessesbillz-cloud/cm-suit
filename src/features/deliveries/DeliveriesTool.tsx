@@ -12,7 +12,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { Board, boardWindow } from './Board';
+import { Board, useBoardWindow } from './Board';
 import { LinkPanel } from './LinkPanel';
 import { MonthView } from './MonthView';
 import { TV_DAYS, TV_REFRESH_MS, TvView } from './TvView';
@@ -73,10 +73,10 @@ interface ScreenProps {
   itemId: string | null;
 }
 
-/** The three weeks around the picked day load here: the board shows them and the header counts the day. */
+/** The board's three weeks load here (useBoardWindow): the board shows them and the header counts the day. */
 function Screen({ projectId, projectName, tz, today, day, current, views, canPost, canManage, nav, itemId }: ScreenProps) {
-  const { from, to } = boardWindow(day);
-  const rows = useDeliveries(projectId, from, to);
+  const board = useBoardWindow(day, nav.pickDay);
+  const rows = useDeliveries(projectId, board.from, board.to);
   const dayCount = rows.data?.filter((r) => r.delivery_date === day).length;
 
   const actions = (
@@ -122,19 +122,32 @@ function Screen({ projectId, projectName, tz, today, day, current, views, canPos
           <Board
             tz={tz}
             today={today}
+            days={board.days}
             day={day}
             rows={rows.data}
             isPending={rows.isPending}
             error={rows.error}
             onRetry={() => void rows.refetch()}
             onPickDay={nav.pickDay}
-            onOpen={nav.open}
+            onShift={board.shift}
+            onOpen={(id) => {
+              nav.open(id);
+            }}
             selectedId={itemId}
           />
         </Card>
       ) : null}
       {current === 'month' ? (
-        <MonthView projectId={projectId} projectName={projectName} tz={tz} day={day} canManage={canManage} onPickDay={nav.pickDay} />
+        <MonthView
+          projectId={projectId}
+          projectName={projectName}
+          tz={tz}
+          day={day}
+          canManage={canManage}
+          onPickDay={nav.pickDay}
+          onOpen={nav.open}
+          selectedId={itemId}
+        />
       ) : null}
       {current === 'link' ? <LinkPanel projectId={projectId} projectName={projectName} tz={tz} /> : null}
     </Frame>
