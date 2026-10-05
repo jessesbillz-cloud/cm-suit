@@ -1,12 +1,16 @@
 // One PDF for a talk (an own topic, a company topic): picked from the phone or the computer and uploaded into the job's
-// Safety folder through the one uploader. Shows the file's name once it is in; Remove takes it off the form (the file
-// stays in the folder).
+// Safety folder through the one uploader. Shows the file's name once it is in; a tap on it (or View) shows its pages full
+// screen; Remove takes it off the form (the file stays in the folder).
 import { useRef, useState } from 'react';
-import { FileText, Upload, X } from 'lucide-react';
+import { Eye, FileText, Upload, X } from 'lucide-react';
+import { downloadFile } from '../../data/download';
 import { messageOf } from '../../data/errors';
+import { usePreviewFetch } from '../../data/preview';
+import { downloadTopicFile, topicFileUrl } from '../../data/safety.mutations';
 import { useSafetyUpload } from '../../data/safety.mutations';
 import { isAbortError } from '../../data/upload';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 
 export interface PickedPdf {
@@ -19,13 +23,29 @@ interface PdfFieldProps {
   value: PickedPdf | null;
   onChange: (pdf: PickedPdf | null) => void;
   testId: string;
+  /** The topic this PDF is already on: it opens through the topic's own gate (a company topic from another job). */
+  topic?: { id: string; fileId: string } | undefined;
 }
 
-export function PdfField({ projectId, value, onChange, testId }: PdfFieldProps) {
+export function PdfField({ projectId, value, onChange, testId, topic }: PdfFieldProps) {
   const upload = useSafetyUpload(projectId);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const view = (pdf: PickedPdf) => {
+    const t = topic?.fileId === pdf.id ? topic.id : null;
+    viewer.open([
+      {
+        id: pdf.id,
+        name: pdf.name,
+        kind: 'pdf',
+        url: async () => (t === null ? preview(pdf.id) : (await topicFileUrl(projectId, t)).url),
+        download: () => (t === null ? downloadFile(pdf.id) : downloadTopicFile(projectId, t)),
+      },
+    ]);
+  };
 
   async function take(file: File) {
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
@@ -51,7 +71,10 @@ export function PdfField({ projectId, value, onChange, testId }: PdfFieldProps) 
       {value ? (
         <span className="flex items-center gap-2 rounded-lg border border-line bg-card-head px-3 py-2 text-sm text-ink" data-testid={`${testId}-name`}>
           <Icon icon={FileText} size={16} className="shrink-0 text-ink-3" />
-          <span className="min-w-0 flex-1 break-words">{value.name}</span>
+          <button type="button" className="min-w-0 flex-1 break-words text-left hover:text-accent" onClick={() => { view(value); }}>
+            {value.name}
+          </button>
+          <Button size="sm" variant="quiet" icon={Eye} aria-label="View the PDF" data-testid={`${testId}-view`} onClick={() => { view(value); }} />
           <Button size="sm" variant="quiet" icon={X} aria-label="Remove the PDF" onClick={() => { onChange(null); }} />
         </span>
       ) : (

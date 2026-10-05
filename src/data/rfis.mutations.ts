@@ -245,39 +245,28 @@ export function useRfiPdf() {
 }
 
 /**
- * "Full screen": the RFI's PDF (made the same way as "PDF") in the browser's own viewer, which pages through it. The
- * tab is opened by the tap itself (so no pop-up blocker stops it) and sent to a fresh signed URL when the server
- * answers; on a failure it closes again.
+ * "Full screen": the RFI's PDF (made the same way as "PDF") for the file viewer: a fresh signed URL without the
+ * download header, through the same gate (logged). pdf.js reads it once, whole.
  */
-export function useRfiPdfView() {
-  return useMutation({
-    mutationFn: async (v: { ref: RfiRef; tab: Window }): Promise<void> => {
-      try {
-        const url = isMock()
-          ? URL.createObjectURL((await mockMoves.pdf(v.ref.id)).blob)
-          : (await callFunction('rfis', { action: 'view', rfi_id: v.ref.id }, viewResultSchema)).url;
-        v.tab.location.replace(url);
-      } catch (e) {
-        v.tab.close();
-        throw e;
-      }
-    },
-  });
+export async function rfiPdfViewUrl(rfiId: string): Promise<string> {
+  if (isMock()) return mockMoves.pdfView(rfiId);
+  return (await callFunction('rfis', { action: 'view', rfi_id: rfiId }, viewResultSchema)).url;
 }
 
 /** A photo, an answer file or the PDF of an RFI: one click, the original filename, a fresh signed URL. */
+export async function saveRfiFile(rfiId: string, fileId: string): Promise<void> {
+  if (isMock()) {
+    const { blob, filename } = await mockRfis.fileBlob(fileId);
+    await saveFile(blob, filename);
+    return;
+  }
+  const res = await callFunction('rfis', { action: 'download', rfi_id: rfiId, file_id: fileId }, downloadResultSchema);
+  await saveFile(res.url, res.filename);
+}
+
+/** The same, with a spinner per file. */
 export function useRfiDownload() {
-  return useMutation({
-    mutationFn: async (v: { rfiId: string; fileId: string }): Promise<void> => {
-      if (isMock()) {
-        const { blob, filename } = await mockRfis.fileBlob(v.fileId);
-        await saveFile(blob, filename);
-        return;
-      }
-      const res = await callFunction('rfis', { action: 'download', rfi_id: v.rfiId, file_id: v.fileId }, downloadResultSchema);
-      await saveFile(res.url, res.filename);
-    },
-  });
+  return useMutation({ mutationFn: (v: { rfiId: string; fileId: string }) => saveRfiFile(v.rfiId, v.fileId) });
 }
 
 async function rfiFolder(projectId: string): Promise<string> {

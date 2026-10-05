@@ -1,12 +1,15 @@
 // The formal notice as a file on the item: attach one (the one uploader, into Reports/Corrections: a document, not a
-// photo), or remove it. A notice attached before 0078 stays where it was.
+// photo), look at it full screen (a tap on its name), or remove it. A notice attached before 0078 stays where it was.
 import { useRef, useState } from 'react';
 import { Paperclip, X } from 'lucide-react';
 import { useCorrectionNoticeUpload } from '../../data/corrections.mutations';
 import { usePhotoFiles } from '../../data/corrections.queries';
 import { messageOf } from '../../data/errors';
+import { usePreviewFetch } from '../../data/preview';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
+import { fileViewerItem } from '../files/viewerItems';
 
 interface NoticeFileProps {
   projectId: string;
@@ -20,7 +23,11 @@ export function NoticeFile({ projectId, fileId, onChange }: NoticeFileProps) {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const file = usePhotoFiles(projectId, fileId === null ? [] : [fileId]);
-  const name = file.data?.[0]?.original_name ?? 'Notice file';
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const row = file.data?.[0];
+  const name = row?.original_name ?? 'Notice file';
+  const item = row ? fileViewerItem(row, preview) : null;
 
   function attach(picked: File) {
     setBusy(true);
@@ -39,7 +46,20 @@ export function NoticeFile({ projectId, fileId, onChange }: NoticeFileProps) {
       {fileId !== null ? (
         <div className="flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm">
           <Icon icon={Paperclip} size={16} className="text-ink-3" />
-          <span className="min-w-0 flex-1 break-words">{name}</span>
+          {item !== null && item.kind !== 'other' ? (
+            <button
+              type="button"
+              data-testid="cn-notice-open"
+              className="min-w-0 flex-1 break-words text-left hover:text-accent"
+              onClick={() => {
+                viewer.open([item]);
+              }}
+            >
+              {name}
+            </button>
+          ) : (
+            <span className="min-w-0 flex-1 break-words">{name}</span>
+          )}
           <button
             type="button"
             aria-label="Remove notice file"

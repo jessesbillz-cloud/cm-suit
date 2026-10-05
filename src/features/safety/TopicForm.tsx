@@ -99,7 +99,13 @@ export function TopicForm({ projectId, orgId, topic, onSaved, onCancel }: TopicF
           <TextField label="Regulation" value={source} onChange={setSource} maxLength={120} testId="safety-topic-source" />
           <TextField label="Link" value={url} onChange={setUrl} maxLength={300} type="url" testId="safety-topic-url" />
         </div>
-        <PdfField projectId={projectId} value={shownPdf} onChange={setPdf} testId="safety-topic-pdf" />
+        <PdfField
+          projectId={projectId}
+          value={shownPdf}
+          onChange={setPdf}
+          testId="safety-topic-pdf"
+          topic={topic?.file_id ? { id: topic.id, fileId: topic.file_id } : undefined}
+        />
         {save.isError ? (
           <p role="alert" className="text-sm text-danger">
             {messageOf(save.error)}

@@ -8,15 +8,15 @@ import { History } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useProject } from '../../data/queries';
-import { useRfiPdf, useRfiPdfView } from '../../data/rfis.mutations';
+import { rfiPdfViewUrl, useRfiPdf } from '../../data/rfis.mutations';
 import { useRfiDetail, useRfiList, useRfiProgress } from '../../data/rfis.queries';
-import type { RfiDetail, RfiEvent } from '../../data/rfis.types';
-import { blankTab } from '../../lib/openTab';
+import type { RfiDetail, RfiEvent, RfiRow } from '../../data/rfis.types';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { PaneSection } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
-import { neighbors, visibleRows } from './model';
+import { neighbors, rfiLabel, visibleRows } from './model';
 import { stripsByRfi } from './progress';
 import { RfiActions } from './RfiActions';
 import { RfiBody } from './RfiBody';
@@ -41,6 +41,11 @@ function returnedEvent(d: RfiDetail): RfiEvent | null {
   return last?.kind === 'returned' ? last : null;
 }
 
+/** The RFI's PDF in the file viewer (its pages; Download inside is the head's own "PDF"). */
+function rfiPdfItem(rfi: RfiRow, download: () => Promise<void>): ViewerItem {
+  return { id: `rfi-pdf-${rfi.id}`, name: `${rfiLabel(rfi.number)} · ${rfi.title}`, kind: 'pdf', url: () => rfiPdfViewUrl(rfi.id), download };
+}
+
 function isTyping(target: EventTarget): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 }
@@ -53,7 +58,7 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const progress = useRfiProgress(projectId);
   const project = useProject(projectId);
   const pdf = useRfiPdf();
-  const view = useRfiPdfView();
+  const viewer = useFileViewer();
   const toast = useToast();
   const root = useRef<HTMLElement>(null);
   // While editing, the pane keeps the title it opened with: a saved title must not pull focus out of the form.
@@ -119,14 +124,8 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
         }}
         downloading={pdf.isPending}
         onView={() => {
-          const tab = blankTab();
-          if (tab === null) {
-            toast.show({ tone: 'error', message: 'Allow pop-ups to see it full screen.' });
-            return;
-          }
-          view.mutate({ ref: d.rfi, tab }, { onError: failed });
+          viewer.open([rfiPdfItem(d.rfi, () => pdf.mutateAsync(d.rfi))]);
         }}
-        viewing={view.isPending}
         isPhone={isPhone}
       />
       <div className="flex flex-1 flex-col gap-3 overflow-auto px-5 py-4 text-sm leading-6 text-ink" data-testid="rfi-pane">

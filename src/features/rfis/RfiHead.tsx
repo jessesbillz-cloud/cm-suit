@@ -1,6 +1,6 @@
 // The RFI pane's header (Jesse, Sep 30): what it is (number, status), the WHOLE title, who asked and when, and exactly
-// three actions: open it alone in its own window, download its PDF, and page through the PDF full screen (the
-// browser's own viewer, in a new tab). The PDF buttons wait, with a short reason, until there is something to print.
+// three actions: open it alone in its own window, download its PDF, and page through the PDF full screen (the app's
+// file viewer). The PDF buttons wait, with a short reason, until there is something to print.
 import { Download, ExternalLink, FileQuestion, Maximize2, type LucideIcon } from 'lucide-react';
 import type { RfiDetail } from '../../data/rfis.types';
 import { formatInZone } from '../../lib/dates';
@@ -20,7 +20,6 @@ interface RfiHeadProps {
   onDownload: () => void;
   downloading: boolean;
   onView: () => void;
-  viewing: boolean;
   /** Bigger targets on the phone. */
   isPhone: boolean;
 }
@@ -58,7 +57,7 @@ function asked(d: RfiDetail, tz: string): string {
   return d.rfi.sent_at === null ? d.originator_name : `${d.originator_name} · Asked ${formatInZone(d.rfi.sent_at, tz, 'MMM d, yyyy')}`;
 }
 
-export function RfiHead({ detail, title, timeZone, onOpenWindow, onDownload, downloading, onView, viewing, isPhone }: RfiHeadProps) {
+export function RfiHead({ detail, title, timeZone, onOpenWindow, onDownload, downloading, onView, isPhone }: RfiHeadProps) {
   const chip = statusChip(detail.rfi.status);
   const wait = pdfWait(detail.rfi);
   const size = isPhone ? 'md' : 'sm';
@@ -73,7 +72,7 @@ export function RfiHead({ detail, title, timeZone, onOpenWindow, onDownload, dow
         <span className="ml-auto flex items-center gap-0.5" data-testid="rfi-head-actions">
           {onOpenWindow ? <Action icon={ExternalLink} label="Open in new window" testId="rfi-pop-out" onClick={onOpenWindow} size={size} /> : null}
           <Action icon={Download} label="Download PDF" testId="rfi-pdf" onClick={onDownload} loading={downloading} wait={wait} size={size} />
-          <Action icon={Maximize2} label="Full screen" testId="rfi-full-screen" onClick={onView} loading={viewing} wait={wait} size={size} />
+          <Action icon={Maximize2} label="Full screen" testId="rfi-full-screen" onClick={onView} wait={wait} size={size} />
         </span>
       </div>
       <h1 className="mt-1 break-words text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink" data-testid="rfi-title-text">

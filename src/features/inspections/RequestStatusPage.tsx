@@ -40,7 +40,7 @@ export function RequestStatusPage() {
           <div data-testid="public-status">
             <RequestFactsView facts={status.data} />
           </div>
-          {status.data.has_ir ? <PublicIr projectId={projectId} receipt={receipt} /> : null}
+          {status.data.has_ir ? <PublicIr projectId={projectId} receipt={receipt} number={status.data.number} /> : null}
           <PublicMap projectId={projectId} receipt={receipt} />
         </div>
       </Card>

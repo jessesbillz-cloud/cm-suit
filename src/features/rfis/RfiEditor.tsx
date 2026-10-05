@@ -1,10 +1,12 @@
 // The RFI's typed fields: title, question and photos first (all most RFIs need), then a quiet "More" section with the
 // suggestion, reference, needed-by date and possible impact. Nothing below the photos is required. Autosaves.
-import { X } from 'lucide-react';
+import { usePreviewFetch } from '../../data/preview';
+import { saveRfiFile } from '../../data/rfis.mutations';
 import type { RfiFileRef } from '../../data/rfis.types';
 import { CheckField, FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
-import { Icon } from '../../ui/Icon';
-import { PHOTO_BOX, PHOTO_GRID, PHOTO_REMOVE, Thumb } from '../../ui/Thumb';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
+import { PhotoTile } from '../../ui/PhotoTile';
+import { PHOTO_GRID } from '../../ui/Thumb';
 import { PhotoPicker } from '../corrections/PhotoPicker';
 import type { RfiDraft } from './useRfiDraft';
 
@@ -18,26 +20,37 @@ interface KeptPhotosProps {
   onRemove: (id: string) => void;
 }
 
-/** Photos already on the RFI (shown through it): kept unless taken off here. */
+/** Photos already on the RFI (shown through it): kept unless taken off here. A tap opens them full screen. */
 function KeptPhotos({ rfiId, photos, kept, onRemove }: KeptPhotosProps) {
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const shown = photos.filter((p) => kept.includes(p.id));
   if (shown.length === 0) return null;
+  const items: ViewerItem[] = shown.map((p) => ({
+    id: p.id,
+    name: p.original_name,
+    kind: 'image',
+    url: () => preview(p.id, { rfiId }),
+    download: () => saveRfiFile(rfiId, p.id),
+    remove: () => {
+      onRemove(p.id);
+    },
+  }));
   return (
     <ul className={PHOTO_GRID} aria-label="Photos on this RFI">
-      {shown.map((p) => (
-        <li key={p.id} className={PHOTO_BOX}>
-          <Thumb fileId={p.id} via={{ rfiId }} alt={p.original_name} fill />
-          <button
-            type="button"
-            aria-label={`Remove ${p.original_name}`}
-            className={PHOTO_REMOVE}
-            onClick={() => {
-              onRemove(p.id);
-            }}
-          >
-            <Icon icon={X} size={14} />
-          </button>
-        </li>
+      {shown.map((p, i) => (
+        <PhotoTile
+          key={p.id}
+          fileId={p.id}
+          via={{ rfiId }}
+          name={p.original_name}
+          onOpen={() => {
+            viewer.open(items, i);
+          }}
+          onRemove={() => {
+            onRemove(p.id);
+          }}
+        />
       ))}
     </ul>
   );
