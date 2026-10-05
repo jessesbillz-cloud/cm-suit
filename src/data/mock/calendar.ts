@@ -7,6 +7,7 @@ import type { CalendarFeedState, CalendarInspection, CalendarLine, CalendarLineF
 import { conflictError, DataError } from '../errors';
 import { capability } from './bids';
 import { MOCK_PROJECTS } from './fixtures';
+import * as mockDeliveries from './deliveries';
 import * as mockIr from './inspections';
 import { delay } from './store';
 
@@ -93,10 +94,38 @@ function fixtures(): MockRow[] {
   });
 }
 
-/** Every line, fixture or added, as this test left it (deleted ones included). */
+/** The mock's live deliveries on the sample jobs, mirrored as the database does (0025): "{company}: {description}",
+ *  Standby = pending, time TBD = an all-day line. */
+function deliveryLines(): MockRow[] {
+  return mockDeliveries
+    .liveRows()
+    .filter((d) => MOCK_PROJECTS.some((p) => p.project_id === d.project_id))
+    .map((d) => {
+      const job = jobOf(d.project_id);
+      return {
+        id: `cal-${d.id}`,
+        project_id: d.project_id,
+        kind: 'deliveries',
+        source_type: 'delivery',
+        source_id: d.id,
+        title: `${d.company}: ${d.description}`,
+        location: null,
+        starts_at: d.starts_at ?? fromZonedInput(`${d.delivery_date}T00:00`, job.timezone) ?? '',
+        ends_at: d.starts_at === null ? null : new Date(Date.parse(d.starts_at) + d.duration_min * 60_000).toISOString(),
+        all_day: d.starts_at === null,
+        status: d.standby ? 'pending' : 'confirmed',
+        version: d.version,
+        project_name: job.name,
+        timezone: job.timezone,
+        deleted: false,
+      };
+    });
+}
+
+/** Every line, fixture, mirrored or added, as this test left it (deleted ones included). */
 function allRows(): MockRow[] {
   const { rows } = read();
-  const base = fixtures().map((f) => rows[f.id] ?? f);
+  const base = [...fixtures(), ...deliveryLines()].map((f) => rows[f.id] ?? f);
   return [...base, ...Object.values(rows).filter((r) => !base.some((b) => b.id === r.id))];
 }
 

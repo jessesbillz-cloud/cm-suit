@@ -16,7 +16,7 @@ import { AddLine } from './AddLine';
 import { BlockPanel } from './BlockPanel';
 import { EditLine } from './EditLine';
 import { KindTile } from './LineRow';
-import { BLOCK_ITEM, lineTime, NEW_LINE, parseRequestItem, statusKey, SUBSCRIBE_ITEM } from './model';
+import { BLOCK_ITEM, lineChip, lineTime, NEW_LINE, parseRequestItem, SUBSCRIBE_ITEM } from './model';
 import { SubscribePanel } from './SubscribePanel';
 import { useCalendarNav, type CalendarNav } from './useCalendarNav';
 
@@ -28,7 +28,7 @@ interface CalendarItemProps {
 
 function LineSummary({ line, nav }: { line: CalendarLine; nav: CalendarNav }) {
   const opensElsewhere = line.source_type !== 'manual' && lineTarget(line) !== null;
-  const key = statusKey(line.status);
+  const chip = lineChip(line);
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start gap-3">
@@ -39,7 +39,7 @@ function LineSummary({ line, nav }: { line: CalendarLine; nav: CalendarNav }) {
             {kindLabel(line.kind)} · {line.project_name}
           </p>
         </div>
-        {key ? <StatusChip status={key} /> : null}
+        {chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
       </div>
       <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
         <dt className="text-ink-3">When</dt>

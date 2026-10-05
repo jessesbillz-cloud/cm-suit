@@ -10980,6 +10980,10 @@ export type Database = {
         Args: { p_photo_id: string; p_version: number }
         Returns: undefined
       }
+      remove_delivery_file: {
+        Args: { p_delivery_id: string; p_file_id: string }
+        Returns: undefined
+      }
       remove_unfinished_upload: {
         Args: { p_file_id: string }
         Returns: undefined
@@ -11384,6 +11388,10 @@ export type Database = {
         }[]
       }
       restore_delivery: { Args: { p_id: string }; Returns: undefined }
+      restore_delivery_file: {
+        Args: { p_delivery_id: string; p_file_id: string }
+        Returns: undefined
+      }
       rev_area_check: {
         Args: { p_level: string; p_name: string }
         Returns: undefined

@@ -1,5 +1,5 @@
-// The post form (SPEC §13.3): company (the job's list, most-used first; "Other" adds a name), date, time or TBD,
-// duration, description. Overlaps are never refused: the heads-up says who is already there and the button says the
+// The post form (SPEC §13.3): company (the job's list, most-used first; "Other" adds a name), date, time with Time TBD
+// under it, duration (not asked when the time is TBD), description. Overlaps are never refused: the heads-up says who is already there and the button says the
 // delivery posts as Standby. Controlled; the app and the public link each own the value and the overlap check.
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
@@ -71,34 +71,38 @@ export function PostForm({ value, onChange, companies, headsUp, busy, submitLabe
         <TextField label="Date" type="date" value={value.date} testId="delivery-date" onChange={(v) => {
             set({ date: v });
           }} />
-        <label className={LABEL}>
-          Time
-          <input
-            type="time"
-            className={CONTROL}
-            value={value.time ?? ''}
-            disabled={value.time === null}
-            data-testid="delivery-time"
-            onChange={(e) => {
-              set({ time: e.target.value });
+        <div className="flex flex-col">
+          <label className={LABEL}>
+            Time
+            <input
+              type="time"
+              className={CONTROL}
+              value={value.time ?? ''}
+              disabled={value.time === null}
+              data-testid="delivery-time"
+              onChange={(e) => {
+                set({ time: e.target.value });
+              }}
+            />
+          </label>
+          <CheckField label="Time TBD" checked={value.time === null} testId="delivery-tbd" onChange={(tbd) => {
+              set({ time: tbd ? null : '' });
+            }} />
+        </div>
+      </div>
+      {value.time === null ? null : (
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label="Duration"
+            value={String(value.duration_min)}
+            options={DURATIONS.map((m) => ({ value: String(m), label: durationLabel(m) }))}
+            testId="delivery-duration"
+            onChange={(v) => {
+              set({ duration_min: Number(v) });
             }}
           />
-        </label>
-      </div>
-      <div className="grid grid-cols-2 items-end gap-3">
-        <SelectField
-          label="Duration"
-          value={String(value.duration_min)}
-          options={DURATIONS.map((m) => ({ value: String(m), label: durationLabel(m) }))}
-          testId="delivery-duration"
-          onChange={(v) => {
-            set({ duration_min: Number(v) });
-          }}
-        />
-        <CheckField label="Time TBD" checked={value.time === null} onChange={(tbd) => {
-            set({ time: tbd ? null : '' });
-          }} />
-      </div>
+        </div>
+      )}
       <TextField label="Description" value={value.description} testId="delivery-description" onChange={(v) => {
           set({ description: v });
         }} />

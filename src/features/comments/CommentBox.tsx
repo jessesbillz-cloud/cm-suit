@@ -1,11 +1,12 @@
-// Writing comments: the one-line box with Send under the list, and the box that replaces a comment's text while its
-// author edits it. Sending twice by accident adds one comment (the key); an edit keeps the earlier text (database).
+// Writing comments: the box with Send under the list (it grows to a few lines; Enter sends, Shift+Enter starts a new
+// line), and the box that replaces a comment's text while its author edits it. Sending twice by accident adds one
+// comment (the key); an edit keeps the earlier text (database).
 import { useState } from 'react';
 import { useAddComment, useEditComment } from '../../data/comments.mutations';
 import { COMMENT_MAX, type CommentRow, type CommentTarget } from '../../data/comments.types';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
-import { FIELD_AREA, FIELD_CONTROL } from '../../ui/Fields';
+import { FIELD_AREA } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 interface CommentBoxProps {
@@ -19,37 +20,46 @@ export function CommentBox({ target }: CommentBoxProps) {
   const [key, setKey] = useState(() => crypto.randomUUID());
   const empty = text.trim() === '';
 
+  const send = () => {
+    if (empty || add.isPending) return;
+    add.mutate(
+      { body: text, key },
+      {
+        onSuccess: () => {
+          setText('');
+          setKey(crypto.randomUUID());
+        },
+        onError: (err) => {
+          toast.show({ tone: 'error', message: `Not sent: ${messageOf(err)}` });
+        },
+      },
+    );
+  };
+
   return (
     <form
-      className="mt-3 flex gap-2"
+      className="mt-3 flex items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        if (empty || add.isPending) return;
-        add.mutate(
-          { body: text, key },
-          {
-            onSuccess: () => {
-              setText('');
-              setKey(crypto.randomUUID());
-            },
-            onError: (err) => {
-              toast.show({ tone: 'error', message: `Not sent: ${messageOf(err)}` });
-            },
-          },
-        );
+        send();
       }}
     >
-      <input
-        type="text"
+      <textarea
         aria-label="Comment"
         placeholder="Add a comment"
-        autoComplete="off"
+        rows={Math.min(6, Math.max(2, text.split('\n').length))}
         maxLength={COMMENT_MAX}
         data-testid="comment-input"
-        className={`${FIELD_CONTROL} min-w-0 flex-1`}
+        className={`${FIELD_AREA} min-w-0 flex-1 resize-none`}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            send();
+          }
         }}
       />
       <Button type="submit" variant="primary" loading={add.isPending} disabled={empty} data-testid="comment-send">

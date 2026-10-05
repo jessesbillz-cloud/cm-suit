@@ -1,5 +1,6 @@
 // The job's delivery link (SPEC §6.4 #3), for deliveries.manage: make a new link (the old one stops working; Undo on
-// the toast), copy it, print the poster. Only the link's hash is stored, so the link itself shows once, right here.
+// the toast), copy it, print the poster with its QR code (the one QR drawing, inspections' QrCode). Only the link's
+// hash is stored, so the link itself shows once, right here.
 import { useState } from 'react';
 import { Copy, Link2, Printer } from 'lucide-react';
 import { useDeliveryLinkState } from '../../data/deliveries.queries';
@@ -7,11 +8,13 @@ import { useRotateDeliveryLink, useUndoDeliveryLink } from '../../data/deliverie
 import { messageOf } from '../../data/errors';
 import { formatInZone } from '../../lib/dates';
 import { deliveryLinkUrl } from '../../lib/deliveries';
+import { shortLinkText } from '../../lib/requestLink';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { QrCode } from '../inspections/QrSheet';
 import { PrintSheet } from './PrintSheet';
 
 interface LinkPanelProps {
@@ -25,14 +28,19 @@ interface PosterProps {
   url: string;
 }
 
-/** The poster for the job site: the link, large. (A QR code comes later.) */
+const PAGE_CSS = '@page { size: letter portrait; margin: 0.5in; }';
+
+/** The poster for the job site (MDR: poster, QR code or bookmark): the job, the QR code, the link. One Letter page. */
 function Poster({ projectName, url }: PosterProps) {
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center gap-8 text-center" data-testid="delivery-poster">
-      <p className="text-3xl font-medium text-ink-2">{projectName}</p>
-      <h1 className="text-7xl font-bold text-ink">Deliveries</h1>
-      <p className="text-3xl text-ink">Post your delivery and check the board:</p>
-      <p className="break-all font-mono text-3xl font-semibold text-ink">{url}</p>
+    <div className="flex min-h-[80vh] flex-col items-center justify-center gap-6 text-center print:min-h-[9.5in]" data-testid="delivery-poster">
+      <style>{PAGE_CSS}</style>
+      <p className="break-words text-2xl font-medium text-ink-2">{projectName}</p>
+      <h1 className="text-5xl font-bold text-ink sm:text-7xl print:text-7xl">Deliveries</h1>
+      <p className="text-2xl text-ink">Post your delivery and check the board</p>
+      <QrCode text={url} />
+      <p className="text-xl text-ink">Scan with your phone camera</p>
+      <p className="max-w-full break-all font-mono text-[13px] text-ink-2">{shortLinkText(url)}</p>
     </div>
   );
 }

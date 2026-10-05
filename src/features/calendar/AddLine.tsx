@@ -1,10 +1,10 @@
 // Add a manual line (calendar.manage). Prefilled with the day that was clicked and the current job; on "All my jobs"
-// the job is picked here (starting on the most recent) and checked with has_capability.
+// the job is picked here (starting on the most recent) among the jobs that let me add lines (has_capability).
 import { useState } from 'react';
 import { useAddCalendarLine } from '../../data/calendar.mutations';
 import { messageOf } from '../../data/errors';
 import { useSaveLayout } from '../../data/mutations';
-import { useCapability, useMyProjects, useUserLayout } from '../../data/queries';
+import { useCapability, useJobsWithCapability, useMyProjects, useUserLayout } from '../../data/queries';
 import type { MyProject } from '../../data/types';
 import { MANUAL_KINDS } from '../../lib/calendarKinds';
 import { todayInZone } from '../../lib/dates';
@@ -94,13 +94,18 @@ function AddForm({ jobs, initialJobId, showJobField, types, nav }: AddFormProps)
 export function AddLine({ projectId, nav }: AddLineProps) {
   const projects = useMyProjects();
   const layout = useUserLayout();
-  if (projects.isPending || layout.isPending) return <LoadingState label="Loading" />;
+  const calendarJobs = (projects.data ?? []).filter((p) => toolIsOn('calendar', p.modules));
+  const managers = useJobsWithCapability(projectId === null ? calendarJobs.map((p) => p.project_id) : [], 'calendar.manage');
+  if (projects.isPending || layout.isPending || (projectId === null && managers.ids === undefined && managers.error === null)) {
+    return <LoadingState label="Loading" />;
+  }
   if (projects.isError) return <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />;
   if (layout.isError) return <ErrorState error={layout.error} onRetry={() => void layout.refetch()} />;
+  if (managers.error) return <ErrorState error={managers.error} onRetry={managers.refetch} />;
 
   const { recent_project_ids: recent, calendar_types: types } = layout.data.choices;
-  // One job: that job. All my jobs: the ones with the calendar on, starting on the most recent.
-  const jobs = projectId !== null ? projects.data : projects.data.filter((p) => toolIsOn('calendar', p.modules));
+  // One job: that job. All my jobs: the ones with the calendar on where I may add lines, starting on the most recent.
+  const jobs = projectId !== null ? projects.data : calendarJobs.filter((p) => (managers.ids ?? []).includes(p.project_id));
   const initial = projectId ?? recent.find((id) => jobs.some((j) => j.project_id === id)) ?? jobs[0]?.project_id;
   if (initial === undefined) return <EmptyState title="No job has the calendar on." icon={TOOL_META.calendar.icon} />;
   return <AddForm jobs={jobs} initialJobId={initial} showJobField={projectId === null} types={types} nav={nav} />;

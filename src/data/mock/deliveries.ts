@@ -55,7 +55,8 @@ function seed(): State {
     rows: [
       seedRow(1, today, '07:00', 60, 'Sample Concrete Co', 'Sample slab pour'),
       seedRow(2, today, null, 30, 'Sample Lumber', 'Sample blocking'),
-      seedRow(3, shiftDay(today, 2), '09:00', 90, 'Sample Steel Co', 'Sample joists'),
+      // Its ticket was deleted in Files (the id no longer opens): the delivery shows no tile for it.
+      { ...seedRow(3, shiftDay(today, 2), '09:00', 90, 'Sample Steel Co', 'Sample joists'), file_ids: ['mock-file-deleted-ticket'] },
       // Today on the GC job (data/mock/gcJobs): what its superintendent's daily fills in.
       { ...seedRow(1, today, '06:30', 60, 'Sample Concrete Co', 'Sample footing pour'), id: 'mock-delivery-g1', project_id: 'job-g' },
       { ...seedRow(2, today, '10:00', 30, 'Sample Steel Co', 'Sample embeds'), id: 'mock-delivery-g2', project_id: 'job-g' },
@@ -80,6 +81,11 @@ function write(update: (s: State) => State): State {
 
 function live(s: State, projectId: string): DeliveryRow[] {
   return s.rows.filter((r) => r.project_id === projectId && r.deleted_at === null);
+}
+
+/** Every live delivery, for the mock calendar's mirror (0025 tg_delivery_calendar). Synchronous: no delay of its own. */
+export function liveRows(): DeliveryRow[] {
+  return read().rows.filter((r) => r.deleted_at === null);
 }
 
 export async function list(projectId: string, from: string, to: string): Promise<DeliveryRow[]> {
@@ -261,6 +267,24 @@ export async function folder(projectId: string): Promise<string> {
 }
 
 export async function attach(id: string, fileId: string): Promise<void> {
+  await delay();
+  write((s) => ({ ...s, rows: s.rows.map((r) => (r.id === id && !r.file_ids.includes(fileId) ? { ...r, file_ids: [...r.file_ids, fileId] } : r)) }));
+}
+
+/** remove_delivery_file: off the delivery; repeats are fine. (The mock keeps no folder, so the file itself stays.) */
+export async function removeFile(id: string, fileId: string): Promise<void> {
+  await delay();
+  write((s) => ({
+    ...s,
+    rows: s.rows.map((r) => (r.id === id ? { ...r, file_ids: r.file_ids.filter((f) => f !== fileId) } : r)),
+    history: s.rows.some((r) => r.id === id && r.file_ids.includes(fileId))
+      ? [...s.history, { delivery_id: id, at: new Date().toISOString(), action: 'delivery.detach', actor_name: 'Sample PM', details: {} }]
+      : s.history,
+  }));
+}
+
+/** restore_delivery_file: back on the delivery; repeats are fine. */
+export async function restoreFile(id: string, fileId: string): Promise<void> {
   await delay();
   write((s) => ({ ...s, rows: s.rows.map((r) => (r.id === id && !r.file_ids.includes(fileId) ? { ...r, file_ids: [...r.file_ids, fileId] } : r)) }));
 }

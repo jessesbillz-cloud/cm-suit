@@ -1,11 +1,12 @@
 // One calendar line as a full-width row (the day under the calendar, its look-ahead): the time, the kind's icon in a
-// square, the title with its place and job under it, and the status chip (lib/status). Titles wrap, never cut off.
+// square, the title with its place and job under it, and the status chip (lib/status; model lineChip). Titles wrap,
+// never cut off.
 import type { CalendarLine } from '../../data/calendar.types';
 import { CALENDAR_KINDS, isCalendarKind, kindLabel, lineTarget } from '../../lib/calendarKinds';
 import { formatInZone } from '../../lib/dates';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
-import { lineTime, statusKey } from './model';
+import { lineChip, lineTime } from './model';
 
 interface LineRowProps {
   line: CalendarLine;
@@ -31,7 +32,7 @@ export function KindTile({ kind }: { kind: string }) {
 
 export function LineRow({ line, showJob, selected, timeLabel, onOpen }: LineRowProps) {
   const opens = lineTarget(line) !== null;
-  const key = statusKey(line.status);
+  const chip = lineChip(line);
   const end = timeLabel === undefined && !line.all_day && line.ends_at !== null ? formatInZone(line.ends_at, line.timezone, 'h:mm a') : null;
   const meta = [line.location, showJob ? line.project_name : null].filter((v): v is string => v !== null && v !== '').join(' · ');
   return (
@@ -55,7 +56,7 @@ export function LineRow({ line, showJob, selected, timeLabel, onOpen }: LineRowP
         <span className="block break-words text-sm font-medium text-ink">{line.title}</span>
         {meta !== '' ? <span className="block break-words text-xs text-ink-2">{meta}</span> : null}
       </span>
-      {key ? <StatusChip status={key} /> : null}
+      {chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
     </button>
   );
 }

@@ -1,11 +1,13 @@
 // Post a delivery from the app (right column, item 'new'). Prefilled: the picked day and my company when it is on the
-// job's list. After posting, the receipt opens in its place.
+// job's list. After posting, the receipt opens in its place and the board shows the posted day. One title: on a
+// desktop the right column's own, so the form starts with its fields; the phone's full screen has none, so it keeps its own.
 import { useState } from 'react';
 import { useUser } from '../../data/auth';
 import { useDeliveries, useDeliveryCompanies } from '../../data/deliveries.queries';
 import { usePostDelivery } from '../../data/deliveries.mutations';
 import type { DeliveryInput } from '../../data/deliveries.types';
 import { messageOf } from '../../data/errors';
+import { itemKindTitle, NEW_ITEM } from '../../lib/itemIds';
 import { usePeopleDisplay } from '../../data/queries';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
@@ -17,7 +19,8 @@ interface PostDeliveryProps {
   projectId: string;
   tz: string;
   day: string;
-  onPosted: (id: string) => void;
+  onPosted: (id: string, day: string) => void;
+  isPhone: boolean;
 }
 
 interface PostFormCardProps extends PostDeliveryProps {
@@ -25,7 +28,7 @@ interface PostFormCardProps extends PostDeliveryProps {
   myCompany: string;
 }
 
-function PostFormCard({ projectId, tz, day, onPosted, companies, myCompany }: PostFormCardProps) {
+function PostFormCard({ projectId, tz, day, onPosted, isPhone, companies, myCompany }: PostFormCardProps) {
   const [value, setValue] = useState<DeliveryInput>({
     company: companies.includes(myCompany) ? myCompany : '',
     date: day,
@@ -38,8 +41,7 @@ function PostFormCard({ projectId, tz, day, onPosted, companies, myCompany }: Po
   const toast = useToast();
   const headsUp = headsUpFor(sameDay.data ?? [], value, tz);
 
-  return (
-    <ItemFrame title="Post delivery">
+  const form = (
       <PostForm
         value={value}
         onChange={setValue}
@@ -49,15 +51,17 @@ function PostFormCard({ projectId, tz, day, onPosted, companies, myCompany }: Po
         submitLabel={headsUp ? 'Post as Standby' : 'Post delivery'}
         onSubmit={() => {
           post.mutate(value, {
-            onSuccess: onPosted,
+            onSuccess: (id) => {
+              onPosted(id, value.date);
+            },
             onError: (e) => {
               toast.show({ tone: 'error', message: `Not posted: ${messageOf(e)}` });
             },
           });
         }}
       />
-    </ItemFrame>
   );
+  return isPhone ? <ItemFrame title={itemKindTitle('deliveries', NEW_ITEM) ?? ''}>{form}</ItemFrame> : <div className="px-5 py-4">{form}</div>;
 }
 
 export function PostDelivery(props: PostDeliveryProps) {

@@ -121,7 +121,8 @@ export function toBoardLine(a: ActivityRow, unread: boolean): BoardLine {
   };
 }
 
-export const MOCK_TASKS: TaskRow[] = [
+/** The mock's tasks; `assignee` (a mock user id) keeps a task to that user, the rest are everyone's. */
+export const MOCK_TASKS: (TaskRow & { assignee?: string })[] = [
   {
     id: 'task-1',
     project_id: 'job-a',
@@ -132,6 +133,32 @@ export const MOCK_TASKS: TaskRow[] = [
     due_at: '2026-09-30T00:00:00Z',
     requires_signature: false,
     version: 1,
+  },
+  // The bidder's addendum (bids 0011): acknowledged in place, which closes it.
+  {
+    id: 'task-ack-1',
+    project_id: 'job-a',
+    kind: 'addendum_ack',
+    title: 'Acknowledge addendum 1',
+    entity_type: 'addendum',
+    entity_id: 'add-1',
+    due_at: null,
+    requires_signature: false,
+    version: 1,
+    assignee: 'mock-user-bidder',
+  },
+  // The inspector's re-inspection (corrections 0026): closed by the correction, so it opens the correction.
+  {
+    id: 'task-reinspect-1',
+    project_id: 'job-b',
+    kind: 'correction.reinspect',
+    title: 'Re-inspect CN-004: Sample missing firestop at corridor penetrations',
+    entity_type: 'correction',
+    entity_id: SEED_CN_ID,
+    due_at: null,
+    requires_signature: false,
+    version: 1,
+    assignee: 'mock-user-inspector',
   },
 ];
 

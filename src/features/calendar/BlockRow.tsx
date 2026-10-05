@@ -1,8 +1,12 @@
 // Blocked time in the day under the calendar: the hours (or all day) and the job. The inspector who can block time
-// removes it with one tap; the toast's Undo keeps it (the removal happens when the toast goes).
+// removes it with one tap: it leaves the calendar at once, and the toast's Undo brings it back (the removal is saved
+// when the toast goes). A removal that fails puts the block back and says why.
+import { useQueryClient } from '@tanstack/react-query';
 import { CalendarOff, X } from 'lucide-react';
+import type { CalendarInspection } from '../../data/calendar.types';
 import { messageOf } from '../../data/errors';
 import { useRemoveBlock } from '../../data/inspections.mutations';
+import { qk } from '../../data/keys';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
@@ -17,20 +21,39 @@ function hours(entry: IrEntry): string {
   return `${clockLabel(start)} – ${clockLabel(hhmm)}`;
 }
 
+/** One job's cached calendar answer (calendar.queries fetchInspections). */
+interface CachedJob {
+  projectId: string;
+  rows: CalendarInspection[];
+}
+
+/** The job's calendar answers (calendar.queries useCalendarInspections), every range on screen or cached. */
+function monthKey(projectId: string) {
+  return qk.inspectionsPartAll(projectId, 'calendar-month');
+}
+
 export function BlockRow({ entry, showJob }: { entry: IrEntry; showJob: boolean }) {
   const remove = useRemoveBlock(entry.projectId);
+  const qc = useQueryClient();
   const toast = useToast();
   const id = entry.row.id;
 
   function doRemove(blockId: string) {
+    const key = monthKey(entry.projectId);
+    const putBack = () => qc.invalidateQueries({ queryKey: key });
+    // Off the calendar now (every repeat of a weekly block goes with it); the next answer from the server decides.
+    void qc.cancelQueries({ queryKey: key });
+    qc.setQueriesData<CachedJob>({ queryKey: key }, (job) =>
+      job ? { ...job, rows: job.rows.filter((r) => !(r.is_block && r.id === blockId)) } : job,
+    );
     toast.show({
       message: 'Blocked time removed.',
-      action: { label: 'Undo', onClick: () => undefined },
+      action: { label: 'Undo', onClick: () => void putBack() },
       onCommit: () => {
-        remove.mutate(blockId, {
-          onError: (e) => {
-            toast.show({ tone: 'error', message: `Not removed: ${messageOf(e)}` });
-          },
+        // mutateAsync: this row may be gone by now (another day picked); the error must still show.
+        void remove.mutateAsync(blockId).catch((e: unknown) => {
+          void putBack();
+          toast.show({ tone: 'error', message: `Not removed: ${messageOf(e)}` });
         });
       },
     });

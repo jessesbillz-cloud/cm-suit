@@ -11,6 +11,8 @@ export const qk = {
   layout: ['user_layout'] as const,
   folders: (projectId: string) => ['folders', projectId] as const,
   files: (folderId: string) => ['files', folderId] as const,
+  /** Every folder's file list (a file removed from somewhere other than Files). */
+  filesAll: ['files'] as const,
   file: (fileId: string) => ['file', fileId] as const,
   /** A file's version, whether I may delete or rename it, and its earlier versions (under qk.file: one refresh). */
   fileFacts: (fileId: string) => ['file', fileId, 'facts'] as const,
@@ -46,6 +48,8 @@ export const qk = {
   /** Every inspections query of a job sits under this prefix: one invalidation after any IR write. */
   inspections: (projectId: string) => ['inspections', projectId] as const,
   inspectionsPart: (projectId: string, part: string, id = '') => ['inspections', projectId, part, id] as const,
+  /** Every id of one part (e.g. the calendar's months of a job). */
+  inspectionsPartAll: (projectId: string, part: string) => ['inspections', projectId, part] as const,
   /** The roles holding ir.decide (who can be a co-inspector), read from the capability matrix. */
   decideRoles: ['role_permissions', 'ir.decide'] as const,
   /** Every deliveries query of a job sits under this prefix: one invalidation after any delivery write. */

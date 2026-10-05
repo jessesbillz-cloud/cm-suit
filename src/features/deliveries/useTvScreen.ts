@@ -1,6 +1,6 @@
 // What the trailer TV needs from the browser (SPEC §13.3): a live clock, the screen kept awake (Wake Lock API, where
-// the browser has it) and full screen while it is up.
-import { useEffect, useState } from 'react';
+// the browser has it), full screen while it is up, and lists that page through when a busy day overflows the screen.
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { todayInZone } from '../../lib/dates';
 
 /** The current time, ticking every second. */
@@ -51,6 +51,39 @@ export function useWakeLock(): void {
       if (lock) void lock.release();
     };
   }, []);
+}
+
+/** How long each screenful of a long list stays up before the next one. */
+const PAGE_MS = 8000;
+
+/**
+ * A TV list that holds more than the screen shows: it scrolls (by hand too) and turns a page by itself every few
+ * seconds, back to the top after the last. `more` says whether anything is out of view, so the screen can say so.
+ */
+export function useTvPaging<T extends HTMLElement>(): { ref: RefObject<T>; more: boolean } {
+  const ref = useRef<T>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => {
+      setMore(el.scrollHeight > el.clientHeight + 1);
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    const t = window.setInterval(() => {
+      check();
+      if (el.scrollHeight <= el.clientHeight + 1) return;
+      const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      el.scrollTo({ top: atEnd ? 0 : el.scrollTop + el.clientHeight, behavior: 'smooth' });
+    }, PAGE_MS);
+    return () => {
+      observer.disconnect();
+      window.clearInterval(t);
+    };
+  }, []);
+  return { ref, more };
 }
 
 /** Asks for full screen (call from a tap); leaving TV mode leaves full screen. */
