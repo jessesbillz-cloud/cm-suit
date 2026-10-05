@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
+import { NO_WALL_DETAILS, type Rev, type RevArea, type RevItem, type RevList, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import {
   canAsk,
   cellOf,
@@ -23,7 +23,7 @@ const item = (r: number, k: number, name: string): RevItem => ({
   ...base, id: `i${String(r)}${String(k)}`, rev_id: `r${String(r)}`, name, company: null, position: k,
 });
 const wall = (n: number, level: string, name: string): RevArea => ({
-  ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, position: n,
+  ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: n,
 });
 
 const SETUP: RevSetup = {

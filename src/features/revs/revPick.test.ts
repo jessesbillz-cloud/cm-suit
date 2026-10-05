@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RevSetup, RevStatusRow } from '../../data/revs.types';
+import { NO_WALL_DETAILS, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import {
   firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
   sheetCount, statusIndex, titlePreview, toggleItem, wallsByLevel, type RevPick,
@@ -22,9 +22,9 @@ const SETUP: RevSetup = {
     { ...row, id: 'seal', rev_id: 'r2', name: 'CJ Seal', company: null, position: 4 },
   ],
   areas: [
-    { ...row, id: 'w10', list_id: 'l1', level: 'Level 10', name: 'Wall Z', sheet_file_id: null, sheet_page: 1, geom: null, position: 1 },
-    { ...row, id: 'w1', list_id: 'l1', level: 'Level 02', name: 'Wall A', sheet_file_id: null, sheet_page: 1, geom: null, position: 2 },
-    { ...row, id: 'w2', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: 'sheet-2', sheet_page: 1, geom: null, position: 3 },
+    { ...row, id: 'w10', list_id: 'l1', level: 'Level 10', name: 'Wall Z', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 1 },
+    { ...row, id: 'w1', list_id: 'l1', level: 'Level 02', name: 'Wall A', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 2 },
+    { ...row, id: 'w2', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: 'sheet-2', sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 3 },
   ],
   marks: [],
 };

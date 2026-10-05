@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { IrRevItem, RevSetup } from '../../data/revs.types';
+import { NO_WALL_DETAILS, type IrRevItem, type RevSetup } from '../../data/revs.types';
 import { allPassed, cellChip, cellGroups, draftOf, draftToSave, leftToDo, oneLevel, savedResults, settle, type Edits } from './revCells';
 
 const row = { project_id: 'job', version: 1, deleted_at: null };
@@ -12,9 +12,9 @@ const SETUP: RevSetup = {
     { ...row, id: 'caulk', rev_id: 'r2', name: 'CJ Caulking', company: null, position: 2 },
   ],
   areas: [
-    { ...row, id: 'b', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: null, sheet_page: 1, geom: null, position: 2 },
-    { ...row, id: 'a', list_id: 'l1', level: 'Level 02', name: 'Wall A', sheet_file_id: null, sheet_page: 1, geom: null, position: 1 },
-    { ...row, id: 'z', list_id: 'l1', level: 'Level 10', name: 'Wall Z', sheet_file_id: null, sheet_page: 1, geom: null, position: 1 },
+    { ...row, id: 'b', list_id: 'l1', level: 'Level 02', name: 'Wall B', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 2 },
+    { ...row, id: 'a', list_id: 'l1', level: 'Level 02', name: 'Wall A', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 1 },
+    { ...row, id: 'z', list_id: 'l1', level: 'Level 10', name: 'Wall Z', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 1 },
   ],
   marks: [],
 };

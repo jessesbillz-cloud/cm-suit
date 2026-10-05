@@ -1,7 +1,7 @@
 // e2e mock of the revs request side (0056), with the database's rules in short form: the status of every wall x item
-// (na > passed > requested > failed > open), the revs request (1 to 3 items, walls of one list, passed and N/A cells
-// skipped, colors by item order, an OFS request numbered like any), the map (the requester before a result, or whoever
-// decides the request now; never once signed; a version check) and the results per cell (the deputy's, once the
+// (na > signed off before, 0082 > passed > requested > failed > open), the revs request (1 to 3 items, walls of one
+// list, passed and N/A cells skipped, colors by item order, an OFS request numbered like any), the map (the requester
+// before a result, or whoever decides the request now; never once signed; a version check) and the results per cell (the deputy's, once the
 // request is with OFS: 0061). The requests themselves live in mock/inspections, read as the signed-in mock user may
 // (the status counts every request, as rev_status does); the map PDF is server-only, so a render here answers a
 // stand-in file id.
@@ -15,6 +15,7 @@ import { mockUser } from './index';
 import * as mockIr from './inspections';
 import { decideCap, holds } from './irRules';
 import { fail, has, read, write, type RevMockState } from './revs';
+import { signoffOf } from './revWalls';
 
 type Cell = Tables<'ir_rev_items'>;
 
@@ -50,6 +51,12 @@ function cellStatus(s: RevMockState, reqs: Map<string, IrRequest>, areaId: strin
   const mark = s.marks.find((m) => m.area_id === areaId && m.item_id === itemId && m.deleted_at === null);
   if (mark) return { ...empty, status: 'na', at: mark.updated_at };
   const live = s.cells.filter((c) => c.area_id === areaId && c.item_id === itemId && reqs.has(c.request_id));
+  // Signed off before the app (0082), unless an in-app request on it is newer.
+  const before = signoffOf(s, areaId, itemId, live.map((c) => c.created_at));
+  if (before) {
+    const at = before.signed_on === null ? null : `${before.signed_on}T19:00:00Z`;
+    return { ...empty, status: 'passed', ofs_number: before.ofs_number, at, note: before.note };
+  }
   const of = (c: Cell) => {
     const q = reqs.get(c.request_id);
     return { request_id: c.request_id, ir_number: q?.number ?? null, ofs_number: q?.ofs_number ?? null };

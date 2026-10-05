@@ -5,7 +5,7 @@
 // sessionStorage (its own key), never module state.
 import { DataError, conflictError } from '../errors';
 import type { Tables } from '../database.types';
-import { parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
+import { NO_WALL_DETAILS, parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
 import { mockUser } from './index';
 import { seedCells, seedMaps, seedSetup } from './revSeeds';
 import { delay } from './store';
@@ -18,13 +18,15 @@ export interface RevMockState {
   items: Tables<'rev_items'>[];
   areas: Tables<'rev_areas'>[];
   marks: Tables<'rev_marks'>[];
+  /** Signed off before the app (0082). */
+  signoffs: Tables<'rev_signoffs'>[];
   cells: Tables<'ir_rev_items'>[];
   maps: Tables<'ir_maps'>[];
 }
 
 export function read(): RevMockState {
   const raw = window.sessionStorage.getItem(KEY);
-  return raw === null ? { ...seedSetup(), cells: seedCells(), maps: seedMaps() } : (JSON.parse(raw) as RevMockState);
+  return raw === null ? { ...seedSetup(), cells: seedCells(), maps: seedMaps(), signoffs: [] } : (JSON.parse(raw) as RevMockState);
 }
 
 export function write(update: (s: RevMockState) => RevMockState): RevMockState {
@@ -185,7 +187,7 @@ export async function addAreas(v: { listId: string; level: string; names: string
     position += 1;
     const row = {
       ...stamp(), org_id: l.org_id, project_id: l.project_id, id: newId('mock-rev-area'), list_id: l.id, level: clean(v.level), name,
-      sheet_file_id: v.sheetFileId, sheet_page: 1, geom: null, position,
+      sheet_file_id: v.sheetFileId, sheet_page: 1, geom: null, position, ...NO_WALL_DETAILS,
     };
     added.push(row);
     out.push(row);

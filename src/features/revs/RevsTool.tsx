@@ -1,11 +1,12 @@
 // Revs (0056): a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2: "anyone can see what's left
 // on each wall at any time"). Walls: every wall by level as a callout tile with its tally (List), or the level's plan
 // sheet with its walls drawn on it (Plan, 0059); a tap opens the wall's own page (the main area; its own screen on the
-// phone). Open: the end-of-job check, what is still open and where. Setup (revs.manage): the lists, pasted from OSFM's
+// phone). Open: the end-of-job check, what is still open and where. Checklist: the fire marshal's sheet, every wall by
+// rev, printed letter landscape (0082). Setup (revs.manage): the lists, pasted from OSFM's
 // legend, and the walls. What shows is decided by has_capability, never role names.
 import { useMemo, type ReactNode } from 'react';
-import { Plus } from 'lucide-react';
-import { useCapability } from '../../data/queries';
+import { Plus, Printer } from 'lucide-react';
+import { useCapability, useMyProjects } from '../../data/queries';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { NEW_ITEM, opensInMain, WALLS_ITEM } from '../../lib/itemIds';
 import { Button } from '../../ui/Button';
@@ -14,6 +15,7 @@ import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import { ChecklistView } from './ChecklistView';
 import { VIEWS, VIEW_LABELS, indexStatus, metaLine, type RevView } from './model';
 import { OpenView } from './OpenView';
 import { PlanView } from './plan/PlanView';
@@ -75,6 +77,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const nav = useRevsNav(projectId, canManage);
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
+  const jobs = useMyProjects();
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const views = VIEWS.filter((v) => v !== 'setup' || canManage).map((v) => ({ value: v, label: VIEW_LABELS[v] }));
   const view = nav.view;
@@ -97,6 +100,9 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
     );
   } else if (view === 'setup') {
     body = <SetupView projectId={projectId} setup={setup.data} isPhone={isPhone} onNewList={() => { nav.open(NEW_ITEM); }} />;
+  } else if (view === 'checklist') {
+    const jobName = jobs.data?.find((p) => p.project_id === projectId)?.name ?? '';
+    body = <ChecklistView setup={setup.data} index={index} jobName={jobName} onOpen={nav.open} />;
   } else if (view === 'open') {
     body = <OpenView setup={setup.data} index={index} selectedId={itemId} onOpen={nav.open} />;
   } else if (nav.plan) {
@@ -118,6 +124,18 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
       actions={
         view === 'setup' ? (
           <SetupActions onOpen={nav.open} hasLists={(setup.data?.lists.length ?? 0) > 0} isPhone={isPhone} />
+        ) : view === 'checklist' ? (
+          <Button
+            icon={Printer}
+            className={isPhone ? 'h-10' : ''}
+            disabled={!setup.data || !status.data || setup.data.areas.length === 0}
+            data-testid="rev-print"
+            onClick={() => {
+              window.print();
+            }}
+          >
+            Print
+          </Button>
         ) : view === 'walls' ? (
           <Segments<WallsMode>
             label="Walls"

@@ -16,6 +16,10 @@
 // Oct 4 audit: sheet-full / sheet-exit (data-full on the frame), sheet-zoom (+ / - / sheet-fit; sheet-frame data-zoom),
 // plan-download, rev-wall-sheet (opens the plan) and rev-wall-sheet-download, rev-wall-edit / rev-wall-remove,
 // rev-add-rev, plan-open-setup, sheet-clear, rev-sheet-more, rev-sheet-superseded, rev-wall-back.
+// Oct 5 (0082): rev-wall-<tag|rating|ul|fire-area|sheet-ref|check>-input, rev-wall-details, rev-wall-check(-note),
+// rev-wall-tag (a tile's), rev-before (an item), rev-before-rev (a rev's line), rev-before-form, rev-before-ofs / -date /
+// -note, rev-before-line, rev-before-clear, rev-view-checklist, rev-checklist, rev-check-table, rev-check-row-<area>,
+// rev-check-<rev number> (data-mark), rev-check-total-<rev number>, rev-print.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -421,5 +425,107 @@ test.describe('revs', () => {
     await expect(page.getByTestId('sheet-frame').locator('svg path')).toHaveCount(4);
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('sheet-exit')).toHaveCount(0);
+  });
+  test("a manager sets a wall's details: one line under its name, a Check chip with the note, the tag on its tile", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-5');
+    const wall = page.getByTestId('rev-wall-page');
+    await expect(wall.getByTestId('rev-wall-details')).toHaveCount(0);
+    await wall.getByTestId('rev-wall-edit').click();
+    await wall.getByTestId('rev-wall-tag-input').fill('F6a');
+    await wall.getByTestId('rev-wall-rating-input').fill('1 HR');
+    await wall.getByTestId('rev-wall-ul-input').fill('UL U419');
+    await wall.getByTestId('rev-wall-fire-area-input').fill('Fire Area 2');
+    await wall.getByTestId('rev-wall-sheet-ref-input').fill('A201A');
+    await wall.getByTestId('rev-wall-check-input').fill('Sample head of wall joint');
+    await wall.getByTestId('rev-form-save').click();
+    await expect(wall.getByTestId('rev-wall-details')).toHaveText('F6a · 1 HR · UL U419 · Fire Area 2 · A201A');
+    await expect(wall.getByTestId('rev-wall-check-note')).toHaveCount(0);
+    await wall.getByTestId('rev-wall-check').click();
+    await expect(wall.getByTestId('rev-wall-check-note')).toHaveText('Sample head of wall joint');
+    await page.getByTestId('rev-wall-back').click();
+    await expect(page.getByTestId('rev-wall-mock-rev-area-5').getByTestId('rev-wall-tag')).toHaveText('F6a');
+  });
+
+  test('a manager signs an item and a whole rev off before the app, each with Undo; others see them done', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-2');
+    const wall = page.getByTestId('rev-wall-page');
+    const beams = wall.getByTestId('rev-item-mock-rev-item-1-3');
+    await beams.click();
+    await wall.getByTestId('rev-before').click();
+    await wall.getByTestId('rev-before-ofs').fill('41');
+    await wall.getByTestId('rev-before-date').fill('2026-09-21');
+    await wall.getByTestId('rev-before-note').fill('Sample paper IR');
+    await wall.getByTestId('rev-form-save').click();
+    await expect(beams.locator('[data-status]')).toHaveAttribute('data-status', 'passed');
+    await expect(wall.getByTestId('rev-facts')).toContainText('Done');
+    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0041 · Sep 21');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(beams.locator('[data-status]')).toHaveAttribute('data-status', 'open');
+
+    // A whole rev at once: CJ's two items; Undo takes both back.
+    const stuffing = wall.getByTestId('rev-item-mock-rev-item-2-1');
+    const caulking = wall.getByTestId('rev-item-mock-rev-item-2-2');
+    await wall.getByTestId('rev-section-2').getByTestId('rev-before-rev').click();
+    await wall.getByTestId('rev-before-ofs').fill('52');
+    await wall.getByTestId('rev-form-save').click();
+    await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'passed');
+    await expect(caulking.locator('[data-status]')).toHaveAttribute('data-status', 'passed');
+    await expect(wall.getByTestId('rev-section-2').getByTestId('rev-before-rev')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'open');
+    await expect(caulking.locator('[data-status]')).toHaveAttribute('data-status', 'open');
+
+    // Signed off again, then Clear on the item, and its Undo puts the same sign-off back.
+    await wall.getByTestId('rev-section-2').getByTestId('rev-before-rev').click();
+    await wall.getByTestId('rev-before-ofs').fill('52');
+    await wall.getByTestId('rev-form-save').click();
+    await stuffing.click();
+    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052');
+    await wall.getByTestId('rev-before-clear').click();
+    await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'open');
+    await page.getByRole('button', { name: 'Undo' }).last().click();
+    await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'passed');
+
+    // The PM reads it as done, with no sign-off buttons.
+    await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-2');
+    await wall.getByTestId('rev-item-mock-rev-item-2-1').click();
+    await expect(wall.getByTestId('rev-facts')).toContainText('Done');
+    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052');
+    await expect(wall.getByTestId('rev-before')).toHaveCount(0);
+    await expect(wall.getByTestId('rev-before-clear')).toHaveCount(0);
+    await expect(wall.getByTestId('rev-before-rev')).toHaveCount(0);
+  });
+
+  test('Checklist: per level, walls by rev with done, failed, requested, open and totals; a sign-off shows done; it prints', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
+    await openAs(page, 'inspector', '/p/job-s/revs');
+    await page.getByTestId('rev-view-checklist').click();
+    const list = page.getByTestId('rev-checklist');
+    const row = (n: number) => list.getByTestId(`rev-check-row-mock-rev-area-${String(n)}`);
+    await expect(row(1).getByTestId('rev-check-0')).toHaveAttribute('data-mark', 'done');
+    await expect(row(1).getByTestId('rev-check-1')).toHaveAttribute('data-mark', 'open');
+    await expect(row(1).getByTestId('rev-check-1')).toHaveText('2/3');
+    await expect(row(2).getByTestId('rev-check-1')).toHaveAttribute('data-mark', 'failed');
+    await expect(row(4).getByTestId('rev-check-2')).toHaveAttribute('data-mark', 'requested');
+    const level1 = list.getByTestId('rev-check-table').first();
+    await expect(level1.getByTestId('rev-check-total-0')).toHaveText('3/3');
+    await expect(level1.getByTestId('rev-check-total-1')).toHaveText('0/3');
+    await expect(page.getByTestId('rev-print')).toBeEnabled();
+
+    // Rev 1 signed off before on the elevator shaft: done on the checklist, one of three in the total.
+    await row(3).getByRole('button', { name: /Elevator 1 shaft/ }).click();
+    const wall = page.getByTestId('rev-wall-page');
+    await wall.getByTestId('rev-section-1').getByTestId('rev-before-rev').click();
+    await wall.getByTestId('rev-form-save').click();
+    await expect(wall.getByTestId('rev-item-mock-rev-item-1-1').locator('[data-status]')).toHaveAttribute('data-status', 'passed');
+    await page.getByTestId('rev-wall-back').click();
+    await expect(row(3).getByTestId('rev-check-1')).toHaveAttribute('data-mark', 'done');
+    await expect(level1.getByTestId('rev-check-total-1')).toHaveText('1/3');
+
+    // The fire marshal reads it too.
+    await openAs(page, 'ahj', '/p/job-s/revs?view=checklist');
+    await expect(row(3).getByTestId('rev-check-1')).toHaveAttribute('data-mark', 'done');
   });
 });
