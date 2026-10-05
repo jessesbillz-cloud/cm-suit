@@ -4,7 +4,9 @@ import {
   bucketByDay,
   inspectionJobs,
   isWeekendDay,
+  lineChip,
   lineDay,
+  lineTime,
   parseCalView,
   parseDay,
   parseRequestItem,
@@ -114,6 +116,17 @@ describe('calendar days', () => {
     expect(statusKey('confirmed')).toBe('confirmed');
     expect(statusKey('made_up')).toBeNull();
     expect(statusKey(null)).toBeNull();
+  });
+
+  it('a delivery reads Standby or nothing, and Time TBD instead of All day', () => {
+    const delivery = (status: string | null, allDay: boolean) =>
+      line('d', '2026-10-05T15:00:00Z', { kind: 'deliveries', source_type: 'delivery', source_id: 'd-1', status, all_day: allDay });
+    expect(lineChip(delivery('confirmed', false))).toBeNull();
+    expect(lineChip(delivery('pending', false))).toEqual({ status: 'pending', label: 'Standby' });
+    expect(lineTime(delivery('confirmed', true))).toBe('Time TBD');
+    // Everything else as before.
+    expect(lineChip(line('m', '2026-10-05T15:00:00Z', { status: 'confirmed' }))).toEqual({ status: 'confirmed' });
+    expect(lineTime(line('m', '2026-10-05T15:00:00Z', { all_day: true }))).toBe('All day');
   });
 });
 

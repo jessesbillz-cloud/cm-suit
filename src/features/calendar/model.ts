@@ -4,6 +4,7 @@
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, isWeekend, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { CalendarLine, CalendarRange } from '../../data/calendar.types';
 import { formatDay, formatInZone, startOfDayInZone } from '../../lib/dates';
+import { REQUEST_ITEM_PREFIX } from '../../lib/itemIds';
 import { toolIsOn } from '../../lib/jobs';
 import { STATUS, type StatusKey } from '../../lib/status';
 
@@ -12,14 +13,13 @@ export type CalView = (typeof CAL_VIEWS)[number];
 
 export const VIEW_LABELS: Record<CalView, string> = { month: 'Month', week: 'Week' };
 
-/** Right-column items that are not a line: the add form, blocked time, the feed link. Lines and requests are ids. */
-export const NEW_LINE = 'new';
-export const BLOCK_ITEM = 'block';
-export const SUBSCRIBE_ITEM = 'subscribe';
+/** Right-column items that are not a line: the add form, blocked time, the feed link (lib/itemIds, where the frame
+ *  titles them). Lines and requests are ids. */
+export { BLOCK_ITEM, NEW_ITEM as NEW_LINE, SUBSCRIBE_ITEM } from '../../lib/itemIds';
 
 /** A request opened from the calendar: its job travels with it ("All my jobs" has no job in the address). */
 export function requestItemId(projectId: string, requestId: string): string {
-  return `ir.${projectId}.${requestId}`;
+  return `${REQUEST_ITEM_PREFIX}${projectId}.${requestId}`;
 }
 
 export function parseRequestItem(itemId: string): { projectId: string; requestId: string } | null {
@@ -118,9 +118,25 @@ export function visibleLines<L extends Pick<CalendarLine, 'kind' | 'project_id'>
   return lines.filter((l) => on.has(l.kind) && (projectId !== null || calendarJobs.has(l.project_id)));
 }
 
-/** "All day" or the start time in the job's zone. */
-export function lineTime(line: Pick<CalendarLine, 'starts_at' | 'timezone' | 'all_day'>): string {
-  return line.all_day ? 'All day' : formatInZone(line.starts_at, line.timezone, 'h:mm a');
+/** A mirrored delivery (0025): its all-day line is a delivery whose time is TBD, its "pending" is Standby. */
+function isDelivery(line: { source_type?: string | undefined }): boolean {
+  return line.source_type === 'delivery';
+}
+
+/** "All day" (a delivery: "Time TBD") or the start time in the job's zone. */
+export function lineTime(line: Pick<CalendarLine, 'starts_at' | 'timezone' | 'all_day'> & { source_type?: string | undefined }): string {
+  if (line.all_day) return isDelivery(line) ? 'Time TBD' : 'All day';
+  return formatInZone(line.starts_at, line.timezone, 'h:mm a');
+}
+
+/**
+ * The chip (and the month banner's color) a line wears, or null. A delivery has no state to show unless it is on
+ * Standby (MDR): an ordinary one wears none, a Standby one the pending color with the word Standby.
+ */
+export function lineChip(line: Pick<CalendarLine, 'status' | 'source_type'>): { status: StatusKey; label?: string } | null {
+  const key = statusKey(line.status);
+  if (!isDelivery(line)) return key === null ? null : { status: key };
+  return key === 'pending' ? { status: 'pending', label: 'Standby' } : null;
 }
 
 export function rangeLabel(view: CalView, days: readonly string[], anchor: string): string {

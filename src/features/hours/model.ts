@@ -2,7 +2,8 @@
 // line and a report's name on a day row.
 import type { HoursBudgetRow, HoursDayRow } from '../../data/hours.types';
 import { dailyHeaderSchema } from '../../lib/dailies';
-import { computeBudgets, hoursText, sumHours, type BudgetRow } from '../../lib/timesheet';
+import { HOURS_MONTH_PREFIX, HOURS_WEEK_PREFIX } from '../../lib/itemIds';
+import { computeBudgets, hoursText, sumHours, weekOf, type BudgetRow } from '../../lib/timesheet';
 
 export type HoursView = 'days' | 'weeks' | 'months';
 
@@ -12,8 +13,8 @@ export const HOURS_VIEWS: readonly { value: HoursView; label: string }[] = [
   { value: 'months', label: 'Months' },
 ];
 
-/** The right column's contract hours form (a report id opens that day). */
-export { CONTRACT_ITEM } from '../../lib/itemIds';
+/** The right column's contract hours form, a week or a month (a report id opens that day). */
+export { CONTRACT_ITEM, HOURS_MONTH_PREFIX, HOURS_WEEK_PREFIX } from '../../lib/itemIds';
 
 /** MDR's prompt after submit: 0 / 2 / 4 / 6 / 8, or another number. */
 export const PRESET_HOURS = [0, 2, 4, 6, 8] as const;
@@ -49,4 +50,17 @@ export function reportName(d: Pick<HoursDayRow, 'header' | 'number'>): string {
   const h = dailyHeaderSchema.safeParse(d.header);
   const label = h.success && h.data.label !== '' ? h.data.label : 'Daily report';
   return d.number === null ? label : `${label} #${String(d.number)}`;
+}
+
+/** A week or month item's days (newest first), or null when the item is not a week or a month. */
+export function periodDays<T extends Pick<HoursDayRow, 'report_date'>>(itemId: string, days: readonly T[]): { kind: 'week' | 'month'; key: string; days: T[] } | null {
+  if (itemId.startsWith(HOURS_WEEK_PREFIX)) {
+    const key = itemId.slice(HOURS_WEEK_PREFIX.length);
+    return { kind: 'week', key, days: days.filter((d) => weekOf(d.report_date) === key) };
+  }
+  if (itemId.startsWith(HOURS_MONTH_PREFIX)) {
+    const key = itemId.slice(HOURS_MONTH_PREFIX.length);
+    return { kind: 'month', key, days: days.filter((d) => d.report_date.startsWith(`${key}-`)) };
+  }
+  return null;
 }

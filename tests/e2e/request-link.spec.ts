@@ -3,12 +3,23 @@
 // 0055; requesting with no login is request-no-login.spec.ts). The mock hands out fixed sample tokens
 // (src/data/mock/requestLink.ts).
 import process from 'node:process';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 const TOKEN = 'sample-request-token-sample-request-token-1';
 const HUB = 'mock-hub-1';
 const HUB_TOKEN = 'sample-hub-token-sample-hub-token-sample-h1';
+
+/** Opens a page; the test's first page can reload itself once (a new build taking over) while this navigation starts. */
+async function open(page: Page, path: string): Promise<void> {
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
+}
 
 test.describe('request link (SPEC §6.4 #4)', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
@@ -47,6 +58,38 @@ test.describe('request link (SPEC §6.4 #4)', () => {
     await page.getByLabel('Company').fill('Sample Framing Co');
     await page.getByTestId('request-join-go').click();
     await expect(page).toHaveURL(/\/p\/job-a\/inspections\/new/);
+  });
+
+  test('joining makes the requests sent earlier from that address the joiner\'s (0075)', async ({ page }) => {
+    // Signed out, the visitor asks with the address they will sign in with (the mock 'visitor' is visitor@example.test).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'anon');
+    });
+    await open(page, `/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('public-time').selectOption('14:00');
+    await page.getByTestId('public-items').fill('Sample header nailing, east wall');
+    await page.getByTestId('public-name').fill('Sample Foreman');
+    await page.getByTestId('public-company').fill('Sample Framing Co');
+    await page.getByTestId('public-email').fill('visitor@example.test');
+    await page.getByTestId('public-ack').check();
+    await page.getByTestId('public-submit').click();
+    await expect(page.getByTestId('public-ir-number')).toHaveText(/^IR \d+$/);
+    const n = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
+
+    // Signed in, they join from the link: the request is theirs now (read in full, theirs to move or withdraw).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'visitor');
+    });
+    await open(page, `/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('request-signin').click();
+    await page.getByLabel('Your name').fill('Sample Foreman');
+    await page.getByLabel('Company').fill('Sample Framing Co');
+    await page.getByTestId('request-join-go').click();
+    await expect(page).toHaveURL(/\/p\/job-a\/inspections\/new/);
+    await open(page, `/p/job-a/inspections/mock-ir-${n}`);
+    const pane = page.getByTestId('ir-pane');
+    await expect(pane).toContainText('Sample header nailing, east wall');
+    await expect(pane.getByRole('button', { name: 'Withdraw' })).toBeVisible();
   });
 
   test('a dead link says so', async ({ page }) => {

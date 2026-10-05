@@ -35,6 +35,9 @@ interface MockState {
   files: FileRow[];
   /** Ids of unfinished uploads their uploader removed (remove_unfinished_upload): the rows stay, hidden from every read. */
   removedUploads: string[];
+  /** Files deleted in Files (file_remove), hidden from every read, and each changed file's version (file_rename). */
+  removedFiles: string[];
+  fileVersions: Record<string, number>;
   profile: ProfileRow | null;
   revoked: string[];
   bidder: MockBidderState;
@@ -45,6 +48,8 @@ interface MockState {
   mfa: MockMfa;
   /** Bid packages added in this test, and edits to the fixture ones (by id). */
   packages: PackageRow[];
+  /** Ids of bid packages removed in this test (set_bid_package_removed). */
+  removedPackages: string[];
 }
 
 const EMPTY: MockState = {
@@ -54,6 +59,8 @@ const EMPTY: MockState = {
   folders: [],
   files: [],
   removedUploads: [],
+  removedFiles: [],
+  fileVersions: {},
   profile: null,
   revoked: [],
   bidder: { acks: {}, intents: {}, submissions: [], questions: [] },
@@ -62,6 +69,7 @@ const EMPTY: MockState = {
   projects: [],
   mfa: { factorId: null, verified: false, level: 'aal1' },
   packages: [],
+  removedPackages: [],
 };
 
 export function readMock(): MockState {

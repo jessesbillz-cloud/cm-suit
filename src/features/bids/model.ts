@@ -27,7 +27,7 @@ export function parseView(v: string | undefined): BidsView {
 }
 
 /** The right-column item that holds the invite form (never a row id: rows are uuids). */
-export const INVITE_ITEM = 'invite';
+export { INVITE_ITEM } from '../../lib/itemIds';
 
 /** The right-column item that holds the "Add sub" form. */
 export const NEW_SUB_ITEM = 'new-sub';

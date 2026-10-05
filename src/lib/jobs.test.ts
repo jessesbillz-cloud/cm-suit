@@ -76,6 +76,13 @@ describe('jobs', () => {
     expect(railModel('a', jobs, rec, own).more).toEqual(['files', 'bids', 'inspections', 'rfis', 'deliveries', 'corrections', 'people']);
     expect(railModel('b', jobs, rec, own).job).toEqual(['rfis', 'files']);
   });
+  it('a job: tools my role may not read show nowhere, not under More and not in my own list', () => {
+    const jobs = [{ project_id: 'a', modules: FIELD }];
+    expect(railModel('a', jobs, { a: ['bids'] }, {}, { a: ['board', 'bids'] })).toEqual({ general: [], job: ['bids'], more: ['board'] });
+    expect(railModel('a', jobs, { a: ['bids'] }, { a: ['dailies', 'bids'] }, { a: ['board', 'bids'] }).job).toEqual(['bids']);
+    // Not known yet: nothing hidden.
+    expect(railModel('a', jobs, { a: ['bids'] }, {}, {}).more).toContain('dailies');
+  });
   it('a job: a list naming tools the job has off shows each tool once; an empty list is a choice', () => {
     expect(jobRail(['dailies', 'bids', 'calendar', 'files', 'timesheets'], [], ['files', 'bids', 'calendar'])).toEqual({
       general: [],
@@ -148,6 +155,7 @@ describe('jobs', () => {
       'corrections',
       'safety',
       'schedule',
+      'requirements',
       'people',
       'hours',
     ]);

@@ -16,10 +16,11 @@ type Mode = 'none' | 'answer' | 'send_back' | 'void';
 
 interface RfiActionsProps {
   detail: RfiDetail;
+  isPhone: boolean;
   onEdit: () => void;
 }
 
-export function RfiActions({ detail, onEdit }: RfiActionsProps) {
+export function RfiActions({ detail, isPhone, onEdit }: RfiActionsProps) {
   const { can, rfi } = detail;
   const forward = useForwardRfi();
   const sendBack = useSendBackRfi();
@@ -36,7 +37,7 @@ export function RfiActions({ detail, onEdit }: RfiActionsProps) {
   };
   const nextLabel = detail.route.find((s) => s.state === 'next')?.label ?? '';
 
-  if (mode === 'answer') return <AnswerForm row={rfi} onDone={none} />;
+  if (mode === 'answer') return <AnswerForm row={rfi} isPhone={isPhone} onDone={none} />;
   if (mode === 'send_back') {
     return (
       <NoteForm

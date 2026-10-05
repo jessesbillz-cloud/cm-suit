@@ -1,8 +1,11 @@
 // The email code step (6-10 digits, whatever Auth is set to), shared by sign-in, access links and share links. No passwords anywhere.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sendCode, verifyCode } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
+
+/** After "Send a new code", how long until it can be sent again (sign-in sends one code a minute at most). */
+const RESEND_WAIT_MS = 60_000;
 
 /** The public pages' one input look: a 44px box with the accent focus ring. */
 export const INPUT =
@@ -22,6 +25,16 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  // "Send a new code" comes back after a minute, so a second lost email never strands anyone on this screen.
+  useEffect(() => {
+    if (!resent) return undefined;
+    const t = window.setTimeout(() => {
+      setResent(false);
+    }, RESEND_WAIT_MS);
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, [resent]);
 
   function submit() {
     const digits = code.replace(/\D/g, '');

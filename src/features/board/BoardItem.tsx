@@ -8,7 +8,7 @@ import { useOpenTarget } from '../../app/frame/useOpenTarget';
 import { useActivity, useBoardFeed, useMyProjects, usePeopleDisplay, useTasks } from '../../data/queries';
 import type { ActivityRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
-import { entityTarget } from '../../lib/entityTarget';
+import { commentEntity, entityTarget } from '../../lib/entityTarget';
 import { humanize } from '../../lib/format';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
@@ -28,7 +28,8 @@ interface BoardItemProps {
   boardProjectId: string | null;
   onNavigate: (activityId: string) => void;
   onOpenWindow?: (() => void) | undefined;
-  /** Show my tasks about the record, with Done. Off beside the board, whose "Needs you" already shows them. */
+  /** Its full view (full width, its own window, the phone): my tasks about the record, with Done, and its comments. Off
+   *  beside the board, whose "Needs you" already shows the tasks. */
   showTasks: boolean;
 }
 
@@ -83,6 +84,12 @@ export function BoardItem({ activityId, boardProjectId, onNavigate, onOpenWindow
   const zone = zoneOf(a.project_id);
   const jobName = projects.data?.find((p) => p.project_id === a.project_id)?.name ?? '';
   const target = entityTarget(a.entity_type, a.entity_id);
+  // The record takes comments where it lives (lib/entityTarget's one mapping): the same thread shows here.
+  const commentType = target && target.itemId !== null ? commentEntity(target.tool) : null;
+  const comments =
+    showTasks && commentType !== null && commentType === a.entity_type && target?.itemId
+      ? { projectId: a.project_id, entityType: commentType, entityId: target.itemId }
+      : null;
   const frame: ItemFrame = {
     projectId: a.project_id,
     zone,
@@ -99,6 +106,7 @@ export function BoardItem({ activityId, boardProjectId, onNavigate, onOpenWindow
     tasks: showTasks
       ? (tasks.data ?? []).filter((t) => a.entity_type !== null && t.entity_type === a.entity_type && t.entity_id === a.entity_id)
       : [],
+    comments,
     onPrev: prev
       ? () => {
           onNavigate(prev);

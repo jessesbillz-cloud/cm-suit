@@ -4,7 +4,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { saveFile } from '../lib/saveFile';
 import { supabase } from './client';
-import { throwIfError } from './errors';
+import { throwIfError, throwIfErrorMaybe } from './errors';
 import { callFunction } from './functions';
 import { pdfAnswerSchema, type BillingSave, type InvoiceStatus } from './hours.types';
 import { qk } from './keys';
@@ -22,7 +22,8 @@ interface HoursSave {
   hours: number;
 }
 
-/** A submitted report's hours (the author only). The report's version moves, so the job's dailies are read again. */
+/** A submitted report's hours (the author only). The report's version moves, so the job's dailies are read again (after a
+ *  conflict too, so the next tap carries the version the server has). */
 export function useSetDailyHours(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -30,7 +31,7 @@ export function useSetDailyHours(projectId: string) {
       isMock()
         ? mockHours.setHours(reportId, version, hours)
         : throwIfError(await supabase.rpc('set_daily_hours', { p_report_id: reportId, p_version: version, p_hours: hours })),
-    onSuccess: () =>
+    onSettled: () =>
       Promise.all([qc.invalidateQueries({ queryKey: qk.hours }), qc.invalidateQueries({ queryKey: qk.dailies(projectId) })]),
   });
 }
@@ -123,6 +124,27 @@ export function useSetInvoiceStatus() {
   });
 }
 
+/** A draft invoice deleted (Undo is restore). Its number is never reused: asking for the month again brings it back. */
+export function useDeleteInvoice() {
+  const refresh = useRefreshHours();
+  return useMutation({
+    mutationFn: async ({ id, version }: { id: string; version: number }): Promise<void> => {
+      if (isMock()) return mockHours.deleteInvoice(id, version);
+      throwIfErrorMaybe(await supabase.rpc('delete_invoice', { p_invoice_id: id, p_version: version }));
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useRestoreInvoice() {
+  const refresh = useRefreshHours();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      isMock() ? mockHours.restoreInvoice(id) : throwIfError(await supabase.rpc('restore_invoice', { p_invoice_id: id })),
+    onSuccess: refresh,
+  });
+}
+
 function pdfBlob(base64: string): Blob {
   const bin = atob(base64);
   const bytes = new Uint8Array(bin.length);
@@ -130,20 +152,50 @@ function pdfBlob(base64: string): Blob {
   return new Blob([bytes], { type: 'application/pdf' });
 }
 
-async function savePdf(body: object): Promise<void> {
-  const out = isMock() ? await mockHours.pdf(body) : await callFunction('timesheets', body, pdfAnswerSchema);
+/** A PDF the timesheets function rendered: its filename and its bytes (base64). */
+interface RenderedPdf {
+  filename: string;
+  pdf: string;
+}
+
+function renderPdf(body: object): Promise<RenderedPdf> {
+  return isMock() ? mockHours.pdf(body) : callFunction('timesheets', body, pdfAnswerSchema);
+}
+
+/** Saves a rendered PDF (one click, its own filename). */
+export async function saveRenderedPdf(out: RenderedPdf): Promise<void> {
   await saveFile(pdfBlob(out.pdf), out.filename);
 }
 
-/** Signs and downloads a month's timesheet for one company's jobs (SignButton handles the re-confirmation). */
+/**
+ * A rendered PDF for the file viewer (ui/FileViewer): a data: URL of the bytes already in hand, which pdf.js reads in
+ * place. Nothing to revoke when the viewer closes (an object URL would be, and the viewer has no close hook for it).
+ */
+export function renderedPdfUrl(out: RenderedPdf): string {
+  return `data:application/pdf;base64,${out.pdf}`;
+}
+
+/** Signs and downloads a month's timesheet for one company's jobs (SignButton handles the re-confirmation). Answers the
+ *  signed PDF, so View can show it without signing again. */
 export function useTimesheetPdf() {
   return useMutation({
-    mutationFn: ({ month, orgId }: { month: string; orgId: string }) => savePdf({ action: 'timesheet', month, org_id: orgId }),
+    mutationFn: async ({ month, orgId }: { month: string; orgId: string }): Promise<RenderedPdf> => {
+      const out = await renderPdf({ action: 'timesheet', month, org_id: orgId });
+      await saveRenderedPdf(out);
+      return out;
+    },
   });
 }
 
 export function useInvoicePdf() {
   return useMutation({
-    mutationFn: (invoiceId: string) => savePdf({ action: 'invoice', invoice_id: invoiceId }),
+    mutationFn: async (invoiceId: string): Promise<void> => {
+      await saveRenderedPdf(await renderPdf({ action: 'invoice', invoice_id: invoiceId }));
+    },
   });
+}
+
+/** The invoice's PDF to look at (the same rendering as its Download). */
+export async function invoicePdfUrl(invoiceId: string): Promise<string> {
+  return renderedPdfUrl(await renderPdf({ action: 'invoice', invoice_id: invoiceId }));
 }

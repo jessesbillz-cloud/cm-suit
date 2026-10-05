@@ -107,6 +107,39 @@ export function useSafetyTopics(orgId: string | null) {
   });
 }
 
+async function fetchLastLocation(projectId: string): Promise<string> {
+  if (isMock()) return mock.lastLocation(projectId);
+  const rows: unknown = throwIfError(
+    await supabase
+      .from('safety_meetings')
+      .select('location')
+      .eq('project_id', projectId)
+      .neq('location', '')
+      .order('opened_at', { ascending: false })
+      .limit(1),
+  );
+  return z.array(z.object({ location: z.string() })).parse(rows)[0]?.location ?? '';
+}
+
+/** Where the job's latest meeting was held ('' when none says): a new meeting starts there (prefill what's known). */
+export function useLastMeetingLocation(projectId: string) {
+  return useQuery({ queryKey: qk.safetyPart(projectId, 'last_location'), queryFn: () => fetchLastLocation(projectId) });
+}
+
+async function fetchBuilderRoles(): Promise<string[]> {
+  if (isMock()) return mock.builderRoles();
+  const rows = throwIfError(await supabase.from('role_permissions').select('role').eq('capability', 'corrections.mark_ready'));
+  return rows.map((r) => r.role);
+}
+
+/**
+ * The roles that build the work: those holding corrections.mark_ready (the capability matrix, never a role name in
+ * code). A tailgate ticks in these people; office roles sign from the QR if they are there.
+ */
+export function useBuilderRoles() {
+  return useQuery({ queryKey: qk.builderRoles, queryFn: fetchBuilderRoles, staleTime: Infinity });
+}
+
 async function fetchDue(projectId: string): Promise<SafetyDue> {
   if (isMock()) return mock.due(projectId);
   const rows: unknown = throwIfError(await supabase.rpc('safety_due', { p_project_id: projectId }));

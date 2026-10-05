@@ -1,5 +1,8 @@
 // Settings objects (CLAUDE.md rule 9): one zod schema per settings object, defaults defined here only.
 // orgs.settings and projects.settings are jsonb; the data layer parses them through these schemas.
+// orgs.settings.daily_forms (each company's setup of its daily forms, SPEC §18.1 principle 10) is a settings object of its
+// own: its one schema and default are shared with the edge functions (supabase/functions/_shared/reportForms.ts
+// formSetupSchema), it is read through data/dailies.queries useCompanyForms and saved only by save_daily_form.
 import { z } from 'zod';
 
 export const ORG_SETTINGS_DEFAULTS = {

@@ -50,7 +50,6 @@ export function statusKey(r: Pick<Row, 'status' | 'result' | 'helper_id'>): stri
   if (r.status === 'gc_review') return 'gc_review';
   if (r.status === 'returned') return 'blocked';
   if (r.result === 'approved' || r.result === 'not_approved') return r.result;
-  if (r.status === 'confirmed' && r.helper_id !== null) return 'assigned';
   return r.status === 'confirmed' || r.status === 'complete' ? 'confirmed' : 'pending';
 }
 

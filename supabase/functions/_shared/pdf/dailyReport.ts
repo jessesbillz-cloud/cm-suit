@@ -4,6 +4,9 @@
 //
 // Nothing is ever cut off: long cells and notes wrap and flow onto continuation pages (the table header repeats), words
 // longer than a line are broken, and characters the standard fonts can't draw become '?' instead of failing.
+//
+// Its page pieces (the layout context, paragraphs, headings, photo pages, footers) are exported for the other built-in
+// forms' builder (gcDaily.ts), so every daily reads alike.
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { type DailyContent, type DailyHeader, NOTE_SECTIONS } from '../dailies.ts';
 import { plainSpaces } from './inspectionReport.ts';
@@ -46,21 +49,22 @@ export class PhotoReadError extends Error {
 
 const PAGE_W = 612;
 const PAGE_H = 792;
-const MARGIN = 48;
-const WIDTH = PAGE_W - 2 * MARGIN;
+export const MARGIN = 48;
+export const WIDTH = PAGE_W - 2 * MARGIN;
 const TOP = PAGE_H - MARGIN;
 const BOTTOM = 56;
 const FOOTER_Y = 20;
 /** Room kept at the bottom of the last page for the signature stamp (stamp.ts draws up to about 104pt). */
 export const SIGN_SPACE = 118;
-const GRAY = rgb(0.38, 0.38, 0.4);
+export const GRAY = rgb(0.38, 0.38, 0.4);
 const INK = rgb(0.1, 0.1, 0.12);
 const RULE = rgb(0.85, 0.85, 0.87);
 
 const COLS = { company: 140, crew: 44, hours: 50 };
 const DESC_W = WIDTH - COLS.company - COLS.crew - COLS.hours;
 
-interface Ctx {
+/** A PDF being laid out: the pages so far and where the next line goes. */
+export interface Ctx {
   doc: PDFDocument;
   font: PDFFont;
   bold: PDFFont;
@@ -71,6 +75,23 @@ interface Ctx {
   onText: ((t: DrawnText) => void) | undefined;
 }
 
+/** A new Letter document with its first page, titled (the title in plain ASCII). */
+export async function newCtx(title: string, onText: ((t: DrawnText) => void) | undefined): Promise<Ctx> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  doc.setTitle(title.replace(/[^\x20-\x7e]/g, '?'));
+  const first = doc.addPage([PAGE_W, PAGE_H]);
+  return { doc, font, bold, charset: new Set(font.getCharacterSet()), pages: [first], page: first, y: TOP, onText };
+}
+
+/** Ends the document: room for the signature stamp on the last page, the footers, the bytes. */
+export function finish(ctx: Ctx, header: DailyHeader, number: number, dateLabel: string): Promise<Uint8Array> {
+  if (ctx.y < SIGN_SPACE) addPage(ctx);
+  footers(ctx, header, number, dateLabel);
+  return ctx.doc.save();
+}
+
 function addPage(ctx: Ctx): void {
   ctx.page = ctx.doc.addPage([PAGE_W, PAGE_H]);
   ctx.pages.push(ctx.page);
@@ -78,7 +99,7 @@ function addPage(ctx: Ctx): void {
 }
 
 /** Text the standard fonts can draw: tabs become spaces, anything outside WinAnsi becomes '?'. */
-function clean(ctx: Ctx, s: string): string {
+export function clean(ctx: Ctx, s: string): string {
   let out = '';
   for (const ch of plainSpaces(s).replace(/\r\n?/g, '\n').replace(/\t/g, '    ')) {
     const cp = ch.codePointAt(0) ?? 63;
@@ -130,14 +151,14 @@ export function wrapText(font: PDFFont, size: number, text: string, width: numbe
   return lines;
 }
 
-function draw(ctx: Ctx, text: string, x: number, baseline: number, size: number, font: PDFFont, color = INK): void {
+export function draw(ctx: Ctx, text: string, x: number, baseline: number, size: number, font: PDFFont, color = INK): void {
   if (text === '') return;
   ctx.page.drawText(text, { x, y: baseline, size, font, color });
   ctx.onText?.({ page: ctx.pages.length - 1, x, y: baseline, size, text });
 }
 
 /** Moves to a new page when `height` doesn't fit above the bottom margin; runs `onBreak` on the new page. */
-function room(ctx: Ctx, height: number, onBreak?: () => void): void {
+export function room(ctx: Ctx, height: number, onBreak?: () => void): void {
   if (ctx.y - height < BOTTOM) {
     addPage(ctx);
     onBreak?.();
@@ -145,7 +166,7 @@ function room(ctx: Ctx, height: number, onBreak?: () => void): void {
 }
 
 /** A wrapped paragraph, line by line (so it flows across pages). */
-function paragraph(ctx: Ctx, text: string, size: number, font: PDFFont, color = INK, indent = 0): void {
+export function paragraph(ctx: Ctx, text: string, size: number, font: PDFFont, color = INK, indent = 0): void {
   const lh = size * 1.3;
   for (const line of wrapText(font, size, clean(ctx, text), WIDTH - indent)) {
     room(ctx, lh);
@@ -154,26 +175,30 @@ function paragraph(ctx: Ctx, text: string, size: number, font: PDFFont, color = 
   }
 }
 
-function rule(ctx: Ctx, gapAfter = 8): void {
+export function rule(ctx: Ctx, gapAfter = 8): void {
   ctx.page.drawLine({ start: { x: MARGIN, y: ctx.y }, end: { x: PAGE_W - MARGIN, y: ctx.y }, thickness: 0.6, color: RULE });
   ctx.y -= gapAfter;
 }
 
-function heading(ctx: Ctx, text: string): void {
+export function heading(ctx: Ctx, text: string): void {
   room(ctx, 16 + 14); // the heading never sits alone at the bottom of a page
   ctx.y -= 4;
   draw(ctx, clean(ctx, text), MARGIN, ctx.y - 11, 11, ctx.bold);
   ctx.y -= 16;
 }
 
-function titleBlock(ctx: Ctx, input: DailyPdfInput): void {
-  const h = input.header;
-  paragraph(ctx, `${h.label} #${input.number}`, 16, ctx.bold);
+/** The report's name and number, the job, the day and who wrote it. */
+export function jobTitle(ctx: Ctx, h: DailyHeader, number: number, dateLabel: string): void {
+  paragraph(ctx, `${h.label} #${number}`, 16, ctx.bold);
   paragraph(ctx, h.project_name, 12, ctx.bold);
   const job = [h.project_number ? `Job ${h.project_number}` : '', h.project_address].filter((s) => s !== '').join(' · ');
   if (job !== '') paragraph(ctx, job, 9, ctx.font, GRAY);
   const who = [h.author_name, h.author_company].filter((s) => s !== '').join(', ');
-  paragraph(ctx, [input.dateLabel, who].filter((s) => s !== '').join(' · '), 10, ctx.font);
+  paragraph(ctx, [dateLabel, who].filter((s) => s !== '').join(' · '), 10, ctx.font);
+}
+
+function titleBlock(ctx: Ctx, input: DailyPdfInput): void {
+  jobTitle(ctx, input.header, input.number, input.dateLabel);
   if (input.content.weather.trim() !== '') paragraph(ctx, `Weather: ${input.content.weather.trim()}`, 10, ctx.font);
   ctx.y -= 4;
   rule(ctx);
@@ -198,7 +223,7 @@ function tableHeader(ctx: Ctx): void {
   rule(ctx, 4);
 }
 
-function rightText(ctx: Ctx, text: string, right: number, baseline: number, size: number, font: PDFFont, color = INK): void {
+export function rightText(ctx: Ctx, text: string, right: number, baseline: number, size: number, font: PDFFont, color = INK): void {
   draw(ctx, text, right - font.widthOfTextAtSize(text, size), baseline, size, font, color);
 }
 
@@ -308,10 +333,10 @@ function photoCell(ctx: Ctx, image: PDFImage, p: DailyPdfPhoto, cell: Cell): voi
   }
 }
 
-async function photoPages(ctx: Ctx, input: DailyPdfInput): Promise<void> {
-  const per = input.photosPerPage;
-  const images = await Promise.all(input.photos.map((p, i) => embed(ctx.doc, p, i)));
-  const pageCount = Math.ceil(input.photos.length / per);
+/** The photos, `per` to a page; the last page keeps room for the signature. Throws PhotoReadError for a bad photo. */
+export async function photoPages(ctx: Ctx, photos: readonly DailyPdfPhoto[], per: 1 | 2 | 4): Promise<void> {
+  const images = await Promise.all(photos.map((p, i) => embed(ctx.doc, p, i)));
+  const pageCount = Math.ceil(photos.length / per);
   for (let pg = 0; pg < pageCount; pg++) {
     addPage(ctx);
     draw(ctx, pg === 0 ? 'Photos' : 'Photos (continued)', MARGIN, ctx.y - 11, 11, ctx.bold);
@@ -320,7 +345,7 @@ async function photoPages(ctx: Ctx, input: DailyPdfInput): Promise<void> {
     const slots = cells(per, bottom, top);
     slots.forEach((cell, i) => {
       const idx = pg * per + i;
-      const photo = input.photos[idx];
+      const photo = photos[idx];
       const image = images[idx];
       if (photo && image) photoCell(ctx, image, photo, cell);
     });
@@ -328,9 +353,8 @@ async function photoPages(ctx: Ctx, input: DailyPdfInput): Promise<void> {
   }
 }
 
-function footers(ctx: Ctx, input: DailyPdfInput): void {
-  const h = input.header;
-  const left = clean(ctx, `${h.project_name} · ${h.label} #${input.number} · ${input.dateLabel}`);
+function footers(ctx: Ctx, h: DailyHeader, number: number, dateLabel: string): void {
+  const left = clean(ctx, `${h.project_name} · ${h.label} #${number} · ${dateLabel}`);
   const max = WIDTH - 70;
   const size = Math.max(4, Math.min(7.5, (7.5 * max) / Math.max(ctx.font.widthOfTextAtSize(left, 7.5), 1)));
   ctx.pages.forEach((page, i) => {
@@ -346,22 +370,13 @@ function footers(ctx: Ctx, input: DailyPdfInput): void {
 
 /** Builds the daily report PDF. Throws PhotoReadError for a photo that isn't a readable JPEG or PNG. */
 export async function buildDailyReportPdf(input: DailyPdfInput, onText?: (t: DrawnText) => void): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const title = `${input.header.label} #${input.number} - ${input.header.project_name}`;
-  doc.setTitle(title.replace(/[^\x20-\x7e]/g, '?'));
-  const first = doc.addPage([PAGE_W, PAGE_H]);
-  const ctx: Ctx = { doc, font, bold, charset: new Set(font.getCharacterSet()), pages: [first], page: first, y: TOP, onText };
-
+  const ctx = await newCtx(`${input.header.label} #${input.number} - ${input.header.project_name}`, onText);
   titleBlock(ctx, input);
   workLog(ctx, input.content);
   notes(ctx, input.content);
-  if (input.photos.length > 0) await photoPages(ctx, input);
+  if (input.photos.length > 0) await photoPages(ctx, input.photos, input.photosPerPage);
   // The last page keeps room for the signature stamp.
-  if (ctx.y < SIGN_SPACE) addPage(ctx);
-  footers(ctx, input);
-  return doc.save();
+  return finish(ctx, input.header, input.number, input.dateLabel);
 }
 
 /** A calendar day (yyyy-MM-dd) as people read it: "Mon, Sep 28, 2026". No zone shift: it is a day, not an instant. */

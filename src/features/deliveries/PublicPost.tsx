@@ -1,5 +1,6 @@
 // Posting from the delivery link: the typed name (remembered on this device, like MDR), then the same form as the
-// app. The name goes on the receipt and in the log.
+// app. The name goes on the receipt and in the log. Where the browser blocks storage (Safari's "block all cookies",
+// some in-app browsers) the name simply isn't remembered: the form still works.
 import { useState } from 'react';
 import { useLinkBoard, useLinkPost } from '../../data/deliveryLink';
 import type { DeliveryInput, LinkReceipt } from '../../data/deliveries.types';
@@ -14,6 +15,25 @@ import { PostForm } from './PostForm';
 const NAME_KEY = 'app:delivery-name';
 const COMPANY_KEY = 'app:delivery-company';
 
+/** This device's remembered value, or '' where storage is blocked. */
+function recall(key: string): string {
+  try {
+    return window.localStorage.getItem(key) ?? '';
+  } catch (e) {
+    console.warn('Device storage is blocked; nothing remembered', e);
+    return '';
+  }
+}
+
+/** Remembers a value on this device; where storage is blocked it is not remembered (logged, never shown). */
+function remember(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn('Device storage is blocked; not remembered', e);
+  }
+}
+
 interface PublicPostProps {
   projectId: string;
   token: string;
@@ -25,9 +45,9 @@ interface PublicPostProps {
 }
 
 export function PublicPost({ projectId, token, tz, day, companies, onPosted, onCancel }: PublicPostProps) {
-  const [name, setName] = useState(() => window.localStorage.getItem(NAME_KEY) ?? '');
+  const [name, setName] = useState(() => recall(NAME_KEY));
   const [value, setValue] = useState<DeliveryInput>(() => ({
-    company: window.localStorage.getItem(COMPANY_KEY) ?? '',
+    company: recall(COMPANY_KEY),
     date: day,
     time: '',
     duration_min: 60,
@@ -60,8 +80,8 @@ export function PublicPost({ projectId, token, tz, day, companies, onPosted, onC
             { name: name.trim(), input: value },
             {
               onSuccess: (receipt) => {
-                window.localStorage.setItem(NAME_KEY, name.trim());
-                window.localStorage.setItem(COMPANY_KEY, value.company.trim());
+                remember(NAME_KEY, name.trim());
+                remember(COMPANY_KEY, value.company.trim());
                 onPosted(receipt);
               },
               onError: (e) => {

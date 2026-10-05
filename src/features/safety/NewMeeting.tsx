@@ -1,10 +1,11 @@
 // A new meeting (safety.run): Tailgate or Meeting (the big choice; nothing picked until someone taps one), the topic from
 // the library or an own topic (a title, notes or a PDF), where. Start makes it (the next number, me leading) and opens
-// its screen with the QR. Starting twice from one form is the same meeting (the form's key).
+// its screen with the QR. Starting twice from one form is the same meeting (the form's key). Where starts as the job's
+// last meeting's place (prefill what's known).
 import { useState } from 'react';
 import { BookOpen, PenLine, Play } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useSafetyTopics } from '../../data/safety.queries';
+import { useLastMeetingLocation, useSafetyTopics } from '../../data/safety.queries';
 import { useStartMeeting } from '../../data/safety.mutations';
 import type { Topic } from '../../data/safety.types';
 import { rememberLink } from '../../lib/requestLink';
@@ -40,7 +41,10 @@ export function NewMeeting({ projectId, orgId, onStarted }: NewMeetingProps) {
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [pdf, setPdf] = useState<PickedPdf | null>(null);
-  const [location, setLocation] = useState('');
+  const last = useLastMeetingLocation(projectId);
+  // null: not touched, so it shows the last meeting's place; typed text wins once there is any.
+  const [typed, setTyped] = useState<string | null>(null);
+  const location = typed ?? last.data ?? '';
   const ready = kind !== null && (own ? title.trim() !== '' : topic !== null);
 
   function submit() {
@@ -109,7 +113,7 @@ export function NewMeeting({ projectId, orgId, onStarted }: NewMeetingProps) {
             <Library orgId={orgId} picked={topic} onPick={setTopic} />
           )}
         </section>
-        <TextField label="Location" value={location} onChange={setLocation} maxLength={120} testId="safety-location" />
+        <TextField label="Location" value={location} onChange={setTyped} maxLength={120} testId="safety-location" />
         {start.isError ? (
           <p role="alert" className="text-sm text-danger">
             {messageOf(start.error)}

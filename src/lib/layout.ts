@@ -19,6 +19,7 @@ const TOOLS = [
   'corrections',
   'safety',
   'schedule',
+  'requirements',
   'people',
   'settings',
   'hours',
@@ -41,6 +42,7 @@ export const RAIL_TOOLS = [
   'corrections',
   'safety',
   'schedule',
+  'requirements',
   'people',
   'hours',
   'timesheets',
@@ -69,7 +71,7 @@ interface NotifyEventDef {
   note?: string;
 }
 
-export interface NotifyAreaDef {
+interface NotifyAreaDef {
   key: string;
   label: string;
   events: readonly NotifyEventDef[];
@@ -140,7 +142,6 @@ export const NOTIFY_AREAS = [
   },
 ] as const satisfies readonly NotifyAreaDef[];
 
-export type NotifyArea = (typeof NOTIFY_AREAS)[number]['key'];
 type NotifyKind = (typeof NOTIFY_AREAS)[number]['events'][number]['key'];
 
 /** Every event key, in tree order. */

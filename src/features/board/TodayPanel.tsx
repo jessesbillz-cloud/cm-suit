@@ -12,7 +12,7 @@ import { detectZone, formatDay, todayInZone } from '../../lib/dates';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
-import { bucketByDay, lineTime, rangeFor, statusKey, visibleLines } from '../calendar/model';
+import { bucketByDay, lineChip, lineTime, rangeFor, visibleLines } from '../calendar/model';
 import { useCalendarNav } from '../calendar/useCalendarNav';
 import { KindSquare } from './KindSquare';
 
@@ -31,7 +31,7 @@ interface TodayLineProps {
 
 function TodayLine({ line, showTime, showJob, onOpen }: TodayLineProps) {
   const opens = lineTarget(line) !== null;
-  const status = statusKey(line.status);
+  const chip = lineChip(line);
   const meta = [showJob ? line.project_name : '', line.location ?? ''].filter((s) => s !== '').join(' · ');
   return (
     <button
@@ -57,9 +57,9 @@ function TodayLine({ line, showTime, showJob, onOpen }: TodayLineProps) {
         <span className="block break-words text-sm leading-5 text-ink">{line.title}</span>
         {meta === '' ? null : <span className="mt-0.5 block text-[12px] leading-4 text-ink-2">{meta}</span>}
       </span>
-      {status ? (
+      {chip ? (
         <span className="shrink-0 pt-1">
-          <StatusChip status={status} />
+          <StatusChip status={chip.status} label={chip.label} />
         </span>
       ) : null}
     </button>

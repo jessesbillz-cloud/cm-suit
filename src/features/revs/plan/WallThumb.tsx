@@ -6,7 +6,7 @@ import { MapPin } from 'lucide-react';
 import type { RevArea, WallLine } from '../../../data/revs.types';
 import { usePlanSheetUrl } from '../../../data/sheetUrl';
 import { Button } from '../../../ui/Button';
-import { renderRegion, type PDFPageProxy } from '../map/pdfjs';
+import { renderRegion, type PDFPageProxy } from '../../../lib/pdf/pdfjs';
 import { useSheetPage } from '../map/useSheetPage';
 import { cappedDensity } from '../map/viewport';
 import { useWidth } from '../wall3d/useWidth';
@@ -123,7 +123,7 @@ export function WallThumb({ projectId, area, canManage, isPhone, onShow, onPlace
           {url.isError ? (
             <span className="absolute inset-0 flex items-center justify-center text-[13px] text-ink-2">Plan didn't open.</span>
           ) : url.data ? (
-            <ThumbBody url={url.data} area={area} w={Math.round(width)} h={height(isPhone)} />
+            <ThumbBody url={url.data.url} area={area} w={Math.round(width)} h={height(isPhone)} />
           ) : (
             <span className="absolute inset-0 animate-pulse bg-page" />
           )}

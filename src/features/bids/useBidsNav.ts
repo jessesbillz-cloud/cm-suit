@@ -1,7 +1,7 @@
 // Where the bids tool is: the sub-view (?view=) and the leveling package (?pkg=) live in the URL, the open row is
 // the frame's item. Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { parseView, type BidsView } from './model';
+import { INVITE_ITEM, parseView, type BidsView } from './model';
 
 export function useBidsNav(projectId: string) {
   const navigate = useNavigate();
@@ -27,5 +27,14 @@ export function useBidsNav(projectId: string) {
     });
   }
 
-  return { view, pkg, setView, setPkg, open };
+  /** The invite form, with a package already picked when it is opened from that package (coverage row). */
+  function invite(packageId?: string) {
+    void navigate({
+      to: '/p/$projectId/$tool/$itemId',
+      params: { projectId, tool: 'bids', itemId: INVITE_ITEM },
+      search: packageId !== undefined ? { view, pkg: packageId } : { view },
+    });
+  }
+
+  return { view, pkg, setView, setPkg, open, invite };
 }

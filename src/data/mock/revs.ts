@@ -5,7 +5,7 @@
 // sessionStorage (its own key), never module state.
 import { DataError, conflictError } from '../errors';
 import type { Tables } from '../database.types';
-import { parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
+import { NO_WALL_DETAILS, parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
 import { mockUser } from './index';
 import { seedCells, seedMaps, seedSetup } from './revSeeds';
 import { delay } from './store';
@@ -18,13 +18,15 @@ export interface RevMockState {
   items: Tables<'rev_items'>[];
   areas: Tables<'rev_areas'>[];
   marks: Tables<'rev_marks'>[];
+  /** Signed off before the app (0082). */
+  signoffs: Tables<'rev_signoffs'>[];
   cells: Tables<'ir_rev_items'>[];
   maps: Tables<'ir_maps'>[];
 }
 
 export function read(): RevMockState {
   const raw = window.sessionStorage.getItem(KEY);
-  return raw === null ? { ...seedSetup(), cells: seedCells(), maps: seedMaps() } : (JSON.parse(raw) as RevMockState);
+  return raw === null ? { ...seedSetup(), cells: seedCells(), maps: seedMaps(), signoffs: [] } : (JSON.parse(raw) as RevMockState);
 }
 
 export function write(update: (s: RevMockState) => RevMockState): RevMockState {
@@ -185,7 +187,7 @@ export async function addAreas(v: { listId: string; level: string; names: string
     position += 1;
     const row = {
       ...stamp(), org_id: l.org_id, project_id: l.project_id, id: newId('mock-rev-area'), list_id: l.id, level: clean(v.level), name,
-      sheet_file_id: v.sheetFileId, sheet_page: 1, geom: null, position,
+      sheet_file_id: v.sheetFileId, sheet_page: 1, geom: null, position, ...NO_WALL_DETAILS,
     };
     added.push(row);
     out.push(row);
@@ -253,6 +255,42 @@ export async function remove(kind: RevKind, id: string, version: number, removin
     row = r.row;
   }
   return { id: row.id, version: row.version, deleted_at: row.deleted_at };
+}
+
+/** rev_move (0080): swaps with the neighbor in its rev (an item) or on its level (a wall); the group numbered 1..n. */
+export async function move(kind: 'item' | 'area', id: string, version: number, dir: -1 | 1): Promise<RevRemoved> {
+  await delay();
+  must('revs.manage');
+  const s = read();
+  const rows: { id: string; position: number; name: string; version: number; deleted_at: string | null }[] = kind === 'item' ? s.items : s.areas;
+  const row = rows.find((r) => r.id === id);
+  if (!row) throw fail('That item no longer exists.', 'P0002');
+  if (row.deleted_at !== null) throw fail(kind === 'item' ? 'This item was removed.' : 'This wall was removed.');
+  checkVersion(row.version, version);
+  const group =
+    kind === 'item'
+      ? s.items.filter((i) => i.deleted_at === null && i.rev_id === s.items.find((x) => x.id === id)?.rev_id)
+      : s.areas.filter((a) => {
+          const me = s.areas.find((x) => x.id === id);
+          return a.deleted_at === null && me !== undefined && a.list_id === me.list_id && same(a.level, me.level);
+        });
+  const order = [...group].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)).map((r) => r.id);
+  const at = order.indexOf(id);
+  const there = order[at + dir];
+  if (there !== undefined) {
+    order[at + dir] = id;
+    order[at] = there;
+  }
+  const place = new Map(order.map((rid, n) => [rid, n + 1]));
+  const renumber = <T extends { id: string; position: number; version: number; updated_at: string }>(list: T[]): T[] =>
+    list.map((r) => {
+      const n = place.get(r.id);
+      return n === undefined || n === r.position ? r : bump(r, { position: n } as Partial<T>);
+    });
+  const next = write((x) => (kind === 'item' ? { ...x, items: renumber(x.items) } : { ...x, areas: renumber(x.areas) }));
+  const after: { id: string; version: number; deleted_at: string | null }[] = kind === 'item' ? next.items : next.areas;
+  const saved = after.find((r) => r.id === id) ?? row;
+  return { id: saved.id, version: saved.version, deleted_at: saved.deleted_at };
 }
 
 export async function markNa(areaId: string, itemId: string, on: boolean): Promise<RevMark | null> {

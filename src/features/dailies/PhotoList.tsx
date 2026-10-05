@@ -1,15 +1,20 @@
 // The report's photos as a grid: each tile shows its place on the report, the time taken, the row it belongs to and a
-// caption (saved on leaving the box), and on a company form an optional description (its "Photo Analysis" pages); remove
-// with Undo. Upload progress and failed uploads (with Retry) come from the one upload queue. The Camera and Upload
-// buttons sit in the header, or above the grid in Field Mode.
+// caption (saved on leaving the box), and on a company form an optional description (its "Photo Analysis" pages); a tap
+// on the picture opens the file viewer over all the report's photos (Download inside, and Delete while the report can
+// change); remove with Undo (usePhotoRemovals, owned by the editor so Submit can flush it), on the tile or in the viewer.
+// Upload progress and failed uploads (with Retry) come from the one upload queue. The count shows against the 40 a report
+// holds. The Camera and Upload buttons sit in the header, or above the grid in Field Mode.
 import { useState, type ReactNode } from 'react';
 import { LoaderCircle, RotateCw, X } from 'lucide-react';
-import { useDailyPhotoUploads, useRemoveDailyPhoto, useSaveDailyPhoto } from '../../data/dailies.mutations';
+import { useDailyPhotoUploads, useSaveDailyPhoto } from '../../data/dailies.mutations';
 import type { DailyPhotoRow } from '../../data/dailies.types';
+import { downloadFile } from '../../data/download';
 import { messageOf } from '../../data/errors';
-import type { WorkRow } from '../../lib/dailies';
+import { usePreviewFetch } from '../../data/preview';
+import { PHOTOS_PER_REPORT_MAX, type WorkRow } from '../../lib/dailies';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { Thumb } from '../../ui/Thumb';
 import { useToast } from '../../ui/Toast';
@@ -24,10 +29,16 @@ interface PhotoTileProps {
   rowLabel: string | null;
   locked: boolean;
   describe: boolean;
+  onView: () => void;
   onRemove: () => void;
 }
 
-function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, onRemove }: PhotoTileProps) {
+/** What a photo is called: its caption, or its place on the report. */
+function photoName(photo: DailyPhotoRow, index: number): string {
+  return photo.caption.trim() || `Photo ${String(index + 1)}`;
+}
+
+function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, onView, onRemove }: PhotoTileProps) {
   const save = useSaveDailyPhoto(projectId);
   const toast = useToast();
   const [caption, setCaption] = useState(photo.caption);
@@ -50,9 +61,17 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, on
   return (
     <li className="flex min-w-0 flex-col gap-2" data-testid="daily-photo">
       <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-        <Thumb fileId={photo.file_id} alt={photo.caption || `Photo ${String(index + 1)}`} fill iconSize={28} />
+        <button
+          type="button"
+          data-testid="daily-photo-view"
+          aria-label={`View photo ${String(index + 1)}`}
+          className="absolute inset-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onClick={onView}
+        >
+          <Thumb fileId={photo.file_id} alt={photoName(photo, index)} fill iconSize={28} />
+        </button>
         <span aria-hidden className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-black/10" />
-        <span className="absolute left-2 top-2 rounded-md bg-card px-1.5 text-xs font-medium tabular-nums text-ink shadow-control">
+        <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-card px-1.5 text-xs font-medium tabular-nums text-ink shadow-control">
           {index + 1}
         </span>
         {locked ? null : (
@@ -115,44 +134,45 @@ interface PhotoListProps {
   field: boolean;
   /** A company form: each photo takes an optional description. */
   describe: boolean;
+  /** Photos removed a moment ago (their Undo still open): not shown. */
+  hidden: readonly string[];
+  onRemove: (photo: DailyPhotoRow) => void;
 }
 
-export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field, describe }: PhotoListProps) {
-  const remove = useRemoveDailyPhoto(projectId);
+export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field, describe, hidden, onRemove }: PhotoListProps) {
   const uploads = useDailyPhotoUploads(projectId);
-  const toast = useToast();
-  const [hidden, setHidden] = useState<string[]>([]);
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const live = photos.filter((p) => p.deleted_at === null && !hidden.includes(p.id));
+  // The viewer walks every photo on the report; Delete there is the tile's remove, with the same Undo.
+  const items: ViewerItem[] = live.map((p, i) => ({
+    id: p.id,
+    name: photoName(p, i),
+    kind: 'image',
+    url: () => preview(p.file_id),
+    download: () => downloadFile(p.file_id),
+    remove: locked
+      ? undefined
+      : () => {
+          onRemove(p);
+        },
+  }));
   const rowName = new Map(rows.map((r) => [r.key, r.company.trim()]));
   const sending = uploads.items.filter((i) => i.status === 'queued' || i.status === 'uploading').length;
   const failed = uploads.items.filter((i) => i.status === 'failed');
-
-  function removeLater(photo: DailyPhotoRow) {
-    setHidden((h) => [...h, photo.id]);
-    toast.show({
-      message: 'Photo removed.',
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          setHidden((h) => h.filter((id) => id !== photo.id));
-        },
-      },
-      // Runs when the toast closes, maybe after this screen is gone: the promise reports a failure.
-      onCommit: () => {
-        remove.mutateAsync(photo).catch((e: unknown) => {
-          setHidden((h) => h.filter((id) => id !== photo.id));
-          toast.show({ tone: 'error', message: `Photo not removed: ${messageOf(e)}` });
-        });
-      },
-    });
-  }
+  const full = live.length >= PHOTOS_PER_REPORT_MAX;
 
   const empty = live.length === 0 && sending === 0 && failed.length === 0;
   return (
-    <Section title="Photos" count={live.length} actions={field ? undefined : buttons}>
+    <Section title="Photos" count={live.length} limit={PHOTOS_PER_REPORT_MAX} actions={field ? undefined : buttons} testId="daily-photos">
       {field || !empty ? (
         <div className="flex flex-col gap-3">
           {field ? buttons : null}
+          {full && !locked ? (
+            <p className="text-sm text-ink-2" data-testid="photos-full">
+              {PHOTOS_PER_REPORT_MAX} photos, the most a report holds.
+            </p>
+          ) : null}
           {sending > 0 ? (
             <p className="flex items-center gap-2 text-sm text-ink-2" data-testid="photos-uploading">
               <Icon icon={LoaderCircle} size={16} className="animate-spin text-accent" />
@@ -187,8 +207,11 @@ export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field,
                   rowLabel={p.row_key ? (rowName.get(p.row_key) ?? null) : null}
                   locked={locked}
                   describe={describe}
+                  onView={() => {
+                    viewer.open(items, i);
+                  }}
                   onRemove={() => {
-                    removeLater(p);
+                    onRemove(p);
                   }}
                 />
               ))}

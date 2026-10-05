@@ -71,6 +71,13 @@ test.describe('hours, timesheets and invoices (SPEC §15)', () => {
     const timesheet = page.waitForEvent('download');
     await page.getByTestId('timesheet-sign').click();
     expect((await timesheet).suggestedFilename()).toMatch(/TIMESHEET/);
+    // View: the signed copy full screen, without signing again.
+    await page.getByTestId('timesheet-view').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText(/TIMESHEET/);
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
 
     // No billing yet: set it up (the rate is mine only), then the month's invoice, numbered by the database.
     await page.getByTestId('timesheets-billing').click();
@@ -89,10 +96,68 @@ test.describe('hours, timesheets and invoices (SPEC §15)', () => {
     const pdf = page.waitForEvent('download');
     await invoice.getByTestId('invoice-pdf').click();
     expect((await pdf).suggestedFilename()).toMatch(/\.pdf$/);
+    await invoice.getByTestId('invoice-view').click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Invoice #1.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
 
     await invoice.getByTestId('invoice-status-paid').click();
     await expect(page.getByTestId('invoice-row-1')).toContainText('Paid');
     await invoice.getByTestId('invoice-status-draft').click();
     await expect(page.getByTestId('invoice-row-1')).toContainText('Draft');
+  });
+
+  test('quick taps on the hours chips: no conflict, and the report screen stays as it was', async ({ page }) => {
+    await submitTodayWithHours(page);
+    const editor = page.getByTestId('daily-editor');
+    // Field mode switched by hand: a remount would put it back.
+    const fieldMode = editor.getByRole('button', { name: 'Field mode' });
+    const before = await fieldMode.getAttribute('aria-pressed');
+    await fieldMode.click();
+    const prompt = page.getByTestId('hours-prompt');
+    await prompt.getByTestId('hours-chip-6').click();
+    await prompt.getByTestId('hours-chip-4').click();
+    await expect(prompt.getByTestId('hours-chip-4')).toHaveAttribute('aria-pressed', 'true');
+    await expect(prompt.getByTestId('hours-saved')).toBeVisible();
+    await expect(prompt.getByRole('alert')).toHaveCount(0);
+    await expect(fieldMode).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+  });
+
+  test('a week opens its days; a day opens to set its hours', async ({ page }) => {
+    await page.goto('/p/job-v/hours?view=weeks');
+    await page.getByTestId('hours-row').first().click();
+    const period = page.getByTestId('hours-period');
+    await expect(period).toBeVisible();
+    await period.getByTestId('hours-period-day').first().click();
+    await expect(page.getByTestId('hours-day')).toBeVisible();
+  });
+
+  test('a draft invoice is deleted with Undo; Download reads Download; the timesheet says downloaded', async ({ page }) => {
+    await submitTodayWithHours(page);
+    await page.goto('/all/timesheets');
+    const timesheet = page.waitForEvent('download');
+    await page.getByTestId('timesheet-sign').click();
+    await timesheet;
+    await expect(page.getByText(/timesheet downloaded\./)).toBeVisible();
+
+    await page.getByTestId('timesheets-billing').click();
+    await page.getByTestId('billing-name').fill('Sample Inspection Services');
+    await page.getByTestId('billing-rate').fill('90');
+    await page.getByTestId('billing-save').click();
+    await page.getByTestId('invoice-new').click();
+    const invoice = page.getByTestId('invoice-item');
+    await expect(invoice.getByTestId('invoice-pdf')).toHaveText('Download');
+
+    await invoice.getByTestId('invoice-delete').click();
+    await expect(page.getByTestId('invoice-row-1')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('invoice-row-1')).toBeVisible();
+
+    // A sent invoice has no Delete.
+    await page.getByTestId('invoice-row-1').click();
+    await page.getByTestId('invoice-item').getByTestId('invoice-status-sent').click();
+    await expect(page.getByTestId('invoice-item').getByTestId('invoice-delete')).toHaveCount(0);
   });
 });

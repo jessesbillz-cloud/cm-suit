@@ -1,9 +1,11 @@
 // The wall's items as buttons that say what each one is (MDR's Special kinds; ui/ChipPick), in rev order with only a
 // thin rev line between groups. Each has its status dot (lib/status). A tap shows the item on the 3-D wall; one still
-// to ask for is also picked for the request (picked: filled; shown: ringed).
+// to ask for is also picked for the request (picked: filled; shown: ringed). A manager signs off a whole rev on this
+// wall before the app (0082) from its line: the items not yet passed or N/A.
 import { ChipPick, type Chip } from '../../ui/ChipPick';
 import { EmptyState } from '../../ui/States';
-import { chipOf, type WallRev } from './model';
+import type { Rev } from '../../data/revs.types';
+import { canSignBefore, chipOf, type WallRev } from './model';
 import type { WallItem, WallPick } from './wallPage';
 
 interface WallItemsProps {
@@ -11,6 +13,8 @@ interface WallItemsProps {
   items: readonly WallItem[];
   pick: WallPick;
   onTap: (item: WallItem) => void;
+  /** A manager: the rev's items still to do, signed off before the app at once. */
+  onSignRev?: ((rev: Rev, itemIds: string[]) => void) | undefined;
 }
 
 function StatusDot({ status }: { status: WallItem['cell']['status'] }) {
@@ -31,7 +35,7 @@ function tapped(before: readonly string[], after: readonly string[]): string | u
   return after.find((v) => !before.includes(v)) ?? before.find((v) => !after.includes(v));
 }
 
-export function WallItems({ revs, items, pick, onTap }: WallItemsProps) {
+export function WallItems({ revs, items, pick, onTap, onSignRev }: WallItemsProps) {
   if (revs.length === 0) return <EmptyState title="This wall's list has no revs yet." />;
   const byId = new Map(items.map((i) => [i.item.id, i]));
   return (
@@ -43,11 +47,26 @@ export function WallItems({ revs, items, pick, onTap }: WallItemsProps) {
           mark: <StatusDot status={cell.status} />,
           title: chipOf(cell.status).label,
         }));
+        const toSign = cells.filter((c) => canSignBefore(c.cell.status)).map((c) => c.item.id);
         return (
           <section key={rev.id} className="flex flex-col gap-1.5" data-testid={`rev-section-${String(rev.number)}`}>
-            <h3 className="border-b border-line pb-0.5 text-[12px] font-semibold uppercase leading-5 tracking-[0.05em] text-ink-3">
-              Rev {rev.number} · {rev.name}
-            </h3>
+            <div className="flex items-end gap-2 border-b border-line pb-0.5">
+              <h3 className="min-w-0 flex-1 break-words text-[12px] font-semibold uppercase leading-5 tracking-[0.05em] text-ink-3">
+                Rev {rev.number} · {rev.name}
+              </h3>
+              {onSignRev && toSign.length > 0 ? (
+                <button
+                  type="button"
+                  className="-mb-0.5 shrink-0 rounded px-1.5 text-[12px] font-medium leading-5 text-accent hover:bg-accent-soft"
+                  data-testid="rev-before-rev"
+                  onClick={() => {
+                    onSignRev(rev, toSign);
+                  }}
+                >
+                  Signed off before
+                </button>
+              ) : null}
+            </div>
             {chips.length > 0 ? (
               <ChipPick
                 label={`Rev ${String(rev.number)} ${rev.name}`}

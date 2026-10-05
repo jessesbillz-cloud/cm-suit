@@ -1,14 +1,16 @@
-// Walls on the plan (migration 0059): a new wall drawn on its plan sheet and named (rev_area_draw), and a wall's place
-// set at once: its sheet, page and line, version-checked; a null line takes it off the plan (rev_area_place). Undo of a
-// new wall is rev_remove (useRemoveRev); Undo of a place sends the old place back with the new version. Both refresh
-// the job's revs.
+// Where things are. Walls on the plan (migration 0059): a new wall drawn on its plan sheet and named (rev_area_draw),
+// and a wall's place set at once: its sheet, page and line, version-checked; a null line takes it off the plan
+// (rev_area_place). Undo of a new wall is rev_remove (useRemoveRev); Undo of a place sends the old place back with the
+// new version. And an item's or a wall's place in its list (Setup's Up / Down, rev_move, 0080). All refresh the job's
+// revs.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
 import { throwIfError } from './errors';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mockPlan from './mock/revPlan';
-import { parseArea, type RevArea, type WallLine } from './revs.types';
+import * as mockRevs from './mock/revs';
+import { parseArea, revRemovedSchema, type RevArea, type RevRemoved, type WallLine } from './revs.types';
 
 /** A SQL null for an argument the generated types call required (PostgREST passes JSON null through). */
 function sqlNull<T>(v: T | null): T {
@@ -75,5 +77,18 @@ export function usePlaceRevArea() {
       return parseArea(one(data));
     },
     onSettled: (_r, _e, v) => refresh(v.area.project_id),
+  });
+}
+
+/** Up / Down in one save (rev_move, 0080): the item or wall swaps with its neighbor; Undo is the move the other way. */
+export function useMoveRev() {
+  const refresh = useRefreshRevs();
+  return useMutation({
+    mutationFn: async (v: { projectId: string; kind: 'item' | 'area'; id: string; version: number; dir: -1 | 1 }): Promise<RevRemoved> => {
+      if (isMock()) return mockRevs.move(v.kind, v.id, v.version, v.dir);
+      const data: unknown = throwIfError(await supabase.rpc('rev_move', { p_kind: v.kind, p_id: v.id, p_version: v.version, p_dir: v.dir }));
+      return revRemovedSchema.parse(data);
+    },
+    onSettled: (_r, _e, v) => refresh(v.projectId),
   });
 }

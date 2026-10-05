@@ -13,6 +13,8 @@ interface PermitItemProps {
   projectId: string | null;
   itemId: string;
   isPhone: boolean;
+  /** The right column at full width: the full view, History too. */
+  wide?: boolean | undefined;
   onOpenWindow?: (() => void) | undefined;
 }
 
@@ -31,7 +33,7 @@ function NewPermit({ projectId }: { projectId: string }) {
   return <PermitForm projectId={projectId} onCreated={nav.replace} />;
 }
 
-export function PermitItem({ projectId, itemId, isPhone, onOpenWindow }: PermitItemProps) {
+export function PermitItem({ projectId, itemId, isPhone, wide = false, onOpenWindow }: PermitItemProps) {
   const nav = usePermitsNav(projectId, itemId);
   if (itemId === NEW_ITEM) {
     return projectId === null ? <EmptyState title="Pick a job to add a permit." /> : <NewPermit projectId={projectId} />;
@@ -41,7 +43,7 @@ export function PermitItem({ projectId, itemId, isPhone, onOpenWindow }: PermitI
       key={itemId}
       itemId={itemId}
       showJob={projectId === null}
-      full={nav.standalone || isPhone}
+      full={nav.standalone || isPhone || wide}
       isPhone={isPhone}
       onOpenWindow={onOpenWindow}
     />

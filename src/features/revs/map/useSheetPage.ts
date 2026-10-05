@@ -2,7 +2,7 @@
 // read once, whatever page is picked) and closed again when the URL changes or the viewer goes away, so a phone holds
 // one sheet at a time. `pages` is the document's page count once it is open (the map's page picker).
 import { useEffect, useState } from 'react';
-import { openSheet, sheetErrorMessage, type PDFDocumentProxy, type PDFPageProxy } from './pdfjs';
+import { openSheet, sheetErrorMessage, type PDFDocumentProxy, type PDFPageProxy } from '../../../lib/pdf/pdfjs';
 
 type SheetPage =
   | { status: 'loading' }

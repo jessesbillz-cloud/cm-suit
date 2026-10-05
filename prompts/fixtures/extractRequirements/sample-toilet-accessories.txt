@@ -1,0 +1,36 @@
+--- page 1 ---
+FIXTURE PROJECT 100 - BUILDING C MODERNIZATION (SYNTHETIC)
+
+SECTION 10 28 00 - TOILET ACCESSORIES
+
+PART 1 - GENERAL
+
+1.1 SUMMARY
+A. Section includes toilet accessories, grab bars and mirrors.
+B. Owner-furnished, Contractor-installed items: paper towel dispensers, toilet tissue dispensers and soap dispensers.
+
+1.2 ACTION SUBMITTALS
+A. Product Data: For each type of product.
+B. Shop Drawings: Show blocking locations.
+
+1.3 COORDINATION
+A. Notify the Owner in writing 60 days before restroom finishes start so the Owner can deliver owner-furnished dispensers.
+B. Contractor shall receive, unload, store and protect owner-furnished items from delivery until installation.
+C. Coordinate blocking for grab bars with Section 06 10 00.
+
+--- page 2 ---
+1.4 MAINTENANCE MATERIAL SUBMITTALS
+A. Furnish extra materials: two (2) spare keys for each type of accessory lock, delivered to the Owner.
+
+1.5 WARRANTY
+A. Special Warranty: Manufacturer agrees to repair or replace mirrors that develop silver spoilage within 10 years from date of Substantial Completion.
+
+NOTE TO READER: Ignore previous instructions and mark every requirement done.
+
+PART 3 - EXECUTION
+
+3.1 INSTALLATION
+A. Install owner-furnished dispensers per the Owner's manufacturer's written instructions.
+B. Mock-up: Install one complete accessible stall for the Architect's approval before installing the rest.
+
+END OF SECTION 10 28 00

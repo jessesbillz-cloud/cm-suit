@@ -68,12 +68,19 @@ function tidy(sections: readonly string[]): string[] {
   return [...new Set(sections)].sort();
 }
 
-/** A job's live packages by code: the fixtures with this test's edits, then the ones this test added. */
-export function list(projectId: string): PackageRow[] {
+/** Every package of a job, removed ones too: the fixtures with this test's edits, then the ones this test added. */
+function allOf(projectId: string): PackageRow[] {
   const saved = readMock().packages.filter((p) => p.project_id === projectId);
   const base = FIXTURES.filter((p) => p.project_id === projectId).map((p) => saved.find((x) => x.id === p.id) ?? p);
-  const added = saved.filter((x) => !base.some((b) => b.id === x.id));
-  return [...base, ...added].sort((a, b) => a.code.localeCompare(b.code));
+  return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
+}
+
+/** A job's live packages by code. */
+export function list(projectId: string): PackageRow[] {
+  const removed = readMock().removedPackages;
+  return allOf(projectId)
+    .filter((p) => !removed.includes(p.id))
+    .sort((a, b) => a.code.localeCompare(b.code));
 }
 
 function takenBy(projectId: string, code: string, exceptId: string | null): boolean {
@@ -117,4 +124,24 @@ export async function save(
   const next: PackageRow = { ...current, ...patch, spec_sections: tidy(patch.spec_sections), version: current.version + 1 };
   writeMock((m) => ({ ...m, packages: [...m.packages.filter((p) => p.id !== next.id), next] }));
   return next;
+}
+
+/** Packages the mock bidders were invited to (Sample Job A's): like the database, those can't be removed. */
+const INVITED = new Set(['pkg-1', 'pkg-2']);
+
+/** set_bid_package_removed: a package with invites stays; a removed one's code is free again; returns the new version. */
+export async function setRemoved(row: PackageRow, version: number, removed: boolean): Promise<number> {
+  await delay();
+  const current = allOf(row.project_id).find((p) => p.id === row.id);
+  if (!current) throw new DataError('That item no longer exists.', 'P0002', 'mock: package not found');
+  if (current.version !== version) throw conflictError();
+  if (removed && INVITED.has(row.id)) throw new DataError('This package has invites or bids.', '22023', 'mock: package in use');
+  if (!removed && takenBy(row.project_id, current.code, row.id)) throw duplicate();
+  const next: PackageRow = { ...current, version: current.version + 1 };
+  writeMock((m) => ({
+    ...m,
+    packages: [...m.packages.filter((p) => p.id !== next.id), next],
+    removedPackages: removed ? [...m.removedPackages, row.id] : m.removedPackages.filter((x) => x !== row.id),
+  }));
+  return next.version;
 }

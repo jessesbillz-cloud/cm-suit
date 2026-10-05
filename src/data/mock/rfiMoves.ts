@@ -5,6 +5,7 @@ import { conflictError, DataError } from '../errors';
 import type { NewRfiInput, RfiEventKind, RfiFields, RfiRow, RfiSettings, RouteChoice } from '../rfis.types';
 import { find, forbidden, has, holds, jobSettings, me, nameOf, read, settingsOut, strip, write } from './rfis';
 import type { RfiMockState, StoredRfi, StoredStep } from './rfiSeeds';
+import { sheetUrl } from './sheet';
 import { delay } from './store';
 
 const DAY = 86_400_000;
@@ -189,6 +190,13 @@ export async function saveSettings(projectId: string, version: number, answerDay
   const next = { answer_days: answerDays, impact_days: impactDays, version: version + 1, route: steps };
   write((s) => ({ ...s, settings: { ...s.settings, [projectId]: next } }));
   return settingsOut(next);
+}
+
+/** The RFI PDF for the viewer: the synthetic plan set (mock/sheet), so there are real pages to draw. */
+export async function pdfView(id: string): Promise<string> {
+  await delay(200);
+  find(read(), id);
+  return sheetUrl();
 }
 
 /** The PDF of the current state (DRAFT before issue), named like the edge function names it. */

@@ -1,12 +1,15 @@
 // Timesheets (SPEC §15, All my jobs): a month of my hours across my jobs as the timesheet prints it (by job and day,
-// with my contract table), the signed timesheet PDF (rendered on the server; a signed record, so SignButton), and my
-// invoices (and my billing details, beside them). A timesheet is per company: with jobs from more than one, pick one.
+// with my contract table), the signed timesheet PDF (rendered on the server; a signed record, so SignButton; once signed,
+// View shows that signed copy full screen without signing again), and my invoices (and my billing details, beside them). A timesheet is per company: with jobs from more than one, pick one.
 import type { ReactNode } from 'react';
+import { Eye } from 'lucide-react';
 import { useHoursJobs, useMonthHours } from '../../data/hours.queries';
-import { useTimesheetPdf } from '../../data/hours.mutations';
+import { renderedPdfUrl, saveRenderedPdf, useTimesheetPdf } from '../../data/hours.mutations';
 import type { HoursJob } from '../../data/hours.types';
 import { hoursText, monthLabel } from '../../lib/timesheet';
+import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { useFileViewer } from '../../ui/FileViewer';
 import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -46,23 +49,47 @@ function Month({ jobs, orgId, month, itemId, isPhone, below, onOpen }: MonthProp
   const hours = useMonthHours(jobs, month);
   const pdf = useTimesheetPdf();
   const toast = useToast();
+  const viewer = useFileViewer();
   const empty = hours.data !== undefined && hours.data.grid.length === 0 && hours.data.budgets.length === 0;
+  // The copy signed a moment ago, for this month and company only.
+  const signed = pdf.data !== undefined && pdf.variables.month === month && pdf.variables.orgId === orgId ? pdf.data : null;
   const actions = (
-    <SignButton
-      label="Sign timesheet"
-      testId="timesheet-sign"
-      pending={pdf.isPending}
-      disabled={hours.data === undefined || empty}
-      sign={() => pdf.mutateAsync({ month, orgId })}
-      onSigned={() => {
-        toast.show({ message: `${monthLabel(month)} timesheet saved.` });
-      }}
-    />
+    <>
+      {signed ? (
+        <Button
+          icon={Eye}
+          data-testid="timesheet-view"
+          onClick={() => {
+            viewer.open([
+              {
+                id: `timesheet:${orgId}:${month}`,
+                name: signed.filename,
+                kind: 'pdf',
+                url: () => Promise.resolve(renderedPdfUrl(signed)),
+                download: () => saveRenderedPdf(signed),
+              },
+            ]);
+          }}
+        >
+          View
+        </Button>
+      ) : null}
+      <SignButton
+        label="Sign timesheet"
+        testId="timesheet-sign"
+        pending={pdf.isPending}
+        disabled={hours.data === undefined || empty}
+        sign={() => pdf.mutateAsync({ month, orgId })}
+        onSigned={() => {
+          toast.show({ message: `${monthLabel(month)} timesheet downloaded.` });
+        }}
+      />
+    </>
   );
   const meta = hours.data ? `${monthLabel(month)} · ${hoursText(hours.data.total)} h` : monthLabel(month);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4" data-testid="timesheets-tool">
+    <div className="flex flex-col gap-4" data-testid="timesheets-tool">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       <Card title="Hours" padded={false} className="overflow-hidden">
         {hours.isPending ? <LoadingState label="Loading hours" /> : null}
@@ -86,7 +113,7 @@ export function TimesheetsTool({ itemId, isPhone }: TimesheetsToolProps) {
 
   if (jobs.isPending || jobs.isError) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           {jobs.isPending ? <LoadingState label="Loading your jobs" /> : <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />}
@@ -98,7 +125,7 @@ export function TimesheetsTool({ itemId, isPhone }: TimesheetsToolProps) {
   const org = companies.find((c) => c.value === nav.org) ?? companies[0];
   if (!org) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           <EmptyState icon={META.icon} title="No jobs with Hours." />

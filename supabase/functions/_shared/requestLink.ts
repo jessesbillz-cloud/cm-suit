@@ -23,6 +23,8 @@ export const RequestLinkBody = z.discriminatedUnion('action', [
   z.object({ action: z.literal('calendar'), ...job, day: day.optional() }).strict(),
   /** A request sent through the link, by its private receipt alone. */
   z.object({ action: z.literal('status'), project_id: uuid, receipt: token }).strict(),
+  /** Its IR PDF once made (0075), by the same receipt: a short-lived download URL and the filename. */
+  z.object({ action: z.literal('ir'), project_id: uuid, receipt: token }).strict(),
 ]);
 export type RequestLinkRequest = z.infer<typeof RequestLinkBody>;
 
@@ -118,9 +120,25 @@ const Facts = z.object({
   gc_step: z.boolean(),
   /** An OFS request the inspector has sent to OFS (0061): the tracker's OFS step. False on every other request. */
   ofs_sent: z.boolean(),
+  /** 0075: while postponed, why, the inspector's note to the requester and the expected day; null otherwise. */
+  postpone_reason: z.string().nullable(),
+  postpone_note: z.string().nullable(),
+  postpone_until: day.nullable(),
+  /** The inspector's attendance call (be_present: be there with the IOR; alone), or null. */
+  attendance: z.string().nullable(),
+  /** The IR PDF is made: "View IR" through the `ir` action. */
+  has_ir: z.boolean(),
 });
 /** ...and, once, the private receipt token for the status link. */
 const Submitted = Facts.extend({ receipt: token });
+
+/** What link_request_ir_file answers the function (never sent as is: the function signs a URL from it). */
+const IrFile = z.object({ storage_path: z.string().min(1), original_name: z.string().min(1), mime: z.string() });
+type IrFileRow = z.infer<typeof IrFile>;
+
+export function irFileOf(raw: unknown): IrFileRow {
+  return IrFile.parse(raw);
+}
 
 /** The files link_request_files registered: where the function stores each one's bytes. */
 const Registered = z.object({ files: z.array(z.object({ id: uuid, storage_path: z.string().min(1) })).min(1).max(3) });

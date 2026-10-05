@@ -1,19 +1,22 @@
 // Coverage board (SPEC §11.6): one row per package with invited / bidding / declined / submitted / late.
-// A row opens that package's invites on the right; "Invite" opens the invite form there.
-import { Send } from 'lucide-react';
+// A row opens that package's invites on the right; "Invite" opens the invite form there. A job with no packages yet
+// offers Add package (the first step) instead.
+import { Plus, Send } from 'lucide-react';
 import { useBidCoverage } from '../../data/bids.queries';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
-import { INVITE_ITEM } from './model';
 import { OPEN_BAR, ROW_HOVER, ROW_OPEN, TH } from './rowStyles';
 
 interface CoverageViewProps {
   projectId: string;
   selectedId: string | null;
   onOpen: (id: string) => void;
+  onInvite: () => void;
+  /** The first step on a new job: no packages yet. */
+  onAddPackage: () => void;
 }
 
 const COLS = ['Invited', 'Bidding', 'Declined', 'Submitted', 'Late'];
@@ -23,14 +26,17 @@ function Count({ n }: { n: number }) {
   return <td className={`px-2 py-3 text-right tabular-nums ${n > 0 ? 'font-medium text-ink' : 'text-ink-3'}`}>{n}</td>;
 }
 
-export function CoverageView({ projectId, selectedId, onOpen }: CoverageViewProps) {
+export function CoverageView({ projectId, selectedId, onOpen, onInvite, onAddPackage }: CoverageViewProps) {
   const coverage = useBidCoverage(projectId);
-  const invite = (
-    <Button size="sm" variant="primary" icon={Send} data-testid="bids-invite" onClick={() => {
-        onOpen(INVITE_ITEM);
-      }}
-    >
+  const none = coverage.data?.length === 0;
+  const invite = none ? undefined : (
+    <Button size="sm" variant="primary" icon={Send} data-testid="bids-invite" onClick={onInvite}>
       Invite
+    </Button>
+  );
+  const addPackage = (
+    <Button variant="primary" icon={Plus} data-testid="coverage-add-package" onClick={onAddPackage}>
+      Add package
     </Button>
   );
 
@@ -38,7 +44,7 @@ export function CoverageView({ projectId, selectedId, onOpen }: CoverageViewProp
     <Card actions={invite} padded={false}>
       {coverage.isPending ? <LoadingState label="Loading coverage" /> : null}
       {coverage.isError ? <ErrorState error={coverage.error} onRetry={() => void coverage.refetch()} /> : null}
-      {coverage.data?.length === 0 ? <EmptyState title="No packages yet." icon={TOOL_META.bids.icon} /> : null}
+      {none ? <EmptyState title="No packages yet." icon={TOOL_META.bids.icon} action={addPackage} /> : null}
       {coverage.data && coverage.data.length > 0 ? (
         // A phone scrolls the board sideways inside the card rather than cutting columns off.
         <div className="overflow-x-auto">

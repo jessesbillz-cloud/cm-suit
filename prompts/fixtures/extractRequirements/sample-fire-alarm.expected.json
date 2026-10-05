@@ -1,0 +1,106 @@
+{
+  "_context": { "source": "pasted text without page lines (synthetic)", "section": "28 46 21.11 Addressable Fire-Alarm Systems" },
+  "requirements": [
+    {
+      "kind": "closeout_doc",
+      "title": "Fire alarm O&M manual",
+      "details": "Bookmarked PDF.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "1.6.A",
+      "responsible": "",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "",
+      "evidence": { "quote": "Operation and Maintenance Data: For the fire-alarm system, in bookmarked PDF.", "page": null }
+    },
+    {
+      "kind": "closeout_doc",
+      "title": "Fire alarm record of completion",
+      "details": "Signed by the installer.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "1.6.B",
+      "responsible": "Installer",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "",
+      "evidence": { "quote": "Record of Completion: Signed by the installer.", "page": null }
+    },
+    {
+      "kind": "mfr_rep",
+      "title": "Fire alarm manufacturer's field inspection",
+      "details": "Written certification of the installation.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "1.7.A",
+      "responsible": "Manufacturer",
+      "required": "yes",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "Acceptance test",
+      "evidence": {
+        "quote": "The manufacturer's authorized representative shall inspect the installation and certify it in writing before the acceptance test.",
+        "page": null
+      }
+    },
+    {
+      "kind": "warranty",
+      "title": "Fire alarm extended warranty (2 years)",
+      "details": "At the Owner's option.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "1.8.A",
+      "responsible": "",
+      "required": "optional",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "",
+      "evidence": { "quote": "Extended warranty may be offered at the Owner's option for an additional two years.", "page": null }
+    },
+    {
+      "kind": "witness",
+      "title": "Fire alarm acceptance test",
+      "details": "Witnessed by the Inspector of Record and the Fire Marshal.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "3.4.A",
+      "responsible": "Contractor",
+      "required": "yes",
+      "notice_days": 10,
+      "lead_days": null,
+      "trigger": "Acceptance test",
+      "evidence": { "quote": "Give the Fire Marshal at least 10 working days' notice before the acceptance test.", "page": null }
+    },
+    {
+      "kind": "training",
+      "title": "Fire alarm owner training (4 hours)",
+      "details": "For the Owner's maintenance personnel.",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "3.6.A",
+      "responsible": "Contractor",
+      "required": "yes",
+      "notice_days": 14,
+      "lead_days": null,
+      "trigger": "Training",
+      "evidence": { "quote": "Schedule training with at least 14 days' notice.", "page": null }
+    },
+    {
+      "kind": "training",
+      "title": "Voice evacuation training (2 more hours)",
+      "details": "",
+      "spec_section": "28 46 21.11",
+      "spec_title": "Addressable Fire-Alarm Systems",
+      "spec_ref": "3.6.B",
+      "responsible": "",
+      "required": "if_applicable",
+      "notice_days": null,
+      "lead_days": null,
+      "trigger": "",
+      "evidence": { "quote": "Where a voice evacuation system is provided, include two additional hours of training.", "page": null }
+    }
+  ]
+}

@@ -7,13 +7,31 @@ export { SETUP_ITEM } from '../../lib/itemIds';
 
 type TodayAction = 'start' | 'continue' | 'edit';
 
+/** MDR's words for today's report, the same in Dailies and on All my jobs. */
 export const TODAY_LABELS: Record<TodayAction, string> = { start: 'Start', continue: 'Continue', edit: 'Edit submitted' };
 
-/** The tool's main button: Start (nothing yet, or untouched), Continue (a draft with work in it), Edit submitted. */
-export function todayAction(report: Pick<DailyReportRow, 'status' | 'version'> | null): TodayAction {
+/** The main button: Start (nothing yet, or untouched), Continue (a draft with work in it), Edit submitted. */
+export function todayAction(report: { status: string; version: number } | null): TodayAction {
   if (report === null) return 'start';
   if (report.status === 'submitted') return 'edit';
   return report.version > 1 ? 'continue' : 'start';
+}
+
+/** Today's chip: Not started (nothing yet, or untouched; yellow, due), Draft, Submitted, or Changed. */
+export function todayChip(report: Pick<DailyReportRow, 'status' | 'version' | 'signed_version'> | null): { status: StatusKey; label: string } {
+  if (todayAction(report) === 'start') return { status: 'pending', label: 'Not started' };
+  return reportChip(report ?? { status: 'draft', version: 1, signed_version: null });
+}
+
+/**
+ * A submitted report's stored PDF, as offered to someone opening it: current, or "changed since signed" (an edit after
+ * the signature not yet resubmitted). The author rebuilds it with Update & resubmit (MDR); a reader gets the signed
+ * copy, labelled as such. Never offered as current when it isn't.
+ */
+export function pdfOffer(r: Pick<DailyReportRow, 'status' | 'version' | 'signed_version' | 'pdf_file_id'>, mine: boolean): 'none' | 'current' | 'signed' | 'resubmit' {
+  if (r.status !== 'submitted' || r.pdf_file_id === null) return 'none';
+  if (r.version === r.signed_version) return 'current';
+  return mine ? 'resubmit' : 'signed';
 }
 
 /** Earlier days' reports that were never submitted, oldest first (the one-line banner). */
@@ -75,11 +93,3 @@ export function parseRecipients(text: string): string[] {
   }
   return [...seen];
 }
-
-export const REMINDER_OPTIONS = [
-  { value: '0', label: 'None' },
-  { value: '15', label: '15 min before' },
-  { value: '30', label: '30 min before' },
-  { value: '60', label: '1 hour before' },
-  { value: '120', label: '2 hours before' },
-] as const;

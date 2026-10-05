@@ -100,7 +100,7 @@ export function CorrectionFields({ value, onChange, autoFocus }: CorrectionField
           }}
         />
         <TextField
-          label="Notice"
+          label="Notice no."
           value={value.noticeRef}
           testId="cn-notice-ref"
           onChange={(noticeRef) => {

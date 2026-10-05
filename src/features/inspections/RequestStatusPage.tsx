@@ -1,12 +1,13 @@
-// /r/<job>/s/<receipt>: a request sent with no login, by its private status link (0055). The tracker and the
-// inspector's result line; on a request with walls, its map (0057): Download map, and Edit map until the inspector
-// records a result. The request itself can't be changed from here (a later version may let the visitor move or
-// withdraw it).
+// /r/<job>/s/<receipt>: a request sent with no login, by its private status link (0055). The tracker, the attendance
+// call, the postponement and the result line, refreshed every 30 s; View IR once it is made (0075); on a request with
+// walls, its map (0057): Download map, and Edit map until the inspector records a result. The request itself can't be
+// changed from here (a later version may let the visitor move or withdraw it).
 import { getRouteApi } from '@tanstack/react-router';
 import { useRequestStatus } from '../../data/requestNoLogin';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { PublicPage } from '../auth/PublicPage';
+import { PublicIr } from './PublicIr';
 import { PublicMap } from './PublicMap';
 import { PublicRequestShell } from './PublicRequestShell';
 import { RequestFactsView } from './RequestFactsView';
@@ -39,6 +40,7 @@ export function RequestStatusPage() {
           <div data-testid="public-status">
             <RequestFactsView facts={status.data} />
           </div>
+          {status.data.has_ir ? <PublicIr projectId={projectId} receipt={receipt} number={status.data.number} /> : null}
           <PublicMap projectId={projectId} receipt={receipt} />
         </div>
       </Card>

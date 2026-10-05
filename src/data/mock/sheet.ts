@@ -109,7 +109,12 @@ function pdf(): string {
   return body;
 }
 
+/** The synthetic sheet's bytes as base64 (a server-rendered PDF's stand-in, e.g. a timesheet). */
+export function sheetBase64(): string {
+  return btoa(pdf());
+}
+
 /** The synthetic sheet as a data: URL (ASCII only, so its length is its byte count). */
 export function sheetUrl(): string {
-  return `data:application/pdf;base64,${btoa(pdf())}`;
+  return `data:application/pdf;base64,${sheetBase64()}`;
 }

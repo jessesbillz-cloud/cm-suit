@@ -2,13 +2,14 @@
 // they write), reports and photos on the sample jobs, kept in sessionStorage (not module state). Numbers are handed out
 // here the way the database does: per author and form, at the first signing, never for a deleted draft.
 import { buildFilename } from '../../lib/buildFilename';
-import { DAILY_REPORT_TYPE, asPdfName, dailyFilenameFields, dailyHeaderSchema, parseDailySettings } from '../../lib/dailies';
+import { DAILY_REPORT_TYPE, PHOTOS_PER_REPORT_MAX, asPdfName, dailyFilenameFields, dailyHeaderSchema, parseDailySettings } from '../../lib/dailies';
 import { todayInZone } from '../../lib/dates';
 import type { Json } from '../database.types';
 import type { DailyPhotoRow, DailyReportRow, DailySetupRow, EmailResult, SubmitResult } from '../dailies.types';
 import { DataError, conflictError } from '../errors';
 import * as api from './api';
 import { SEED_DAILY } from './boardSeeds';
+import { signedOn } from './dailyForms';
 import { dailySetupSeeds } from './dailySetupSeeds';
 import { HOURS_SEED_NEXT, hoursSeedReports } from './hoursSeeds';
 import { mockUser } from './index';
@@ -122,6 +123,7 @@ async function makeReport(projectId: string, reportType: string, date: string): 
     pdf_file_id: null,
     filename: null,
     hours: null,
+    form: null,
   };
   write((m) => ({ ...m, reports: [...m.reports, row] }));
   return id;
@@ -254,17 +256,12 @@ export async function photoFolder(projectId: string): Promise<string> {
 
 export async function addPhoto(reportId: string, fileId: string, rowKey: string | null, takenAt: string): Promise<DailyPhotoRow> {
   await delay();
+  const onReport = read().photos.filter((p) => p.report_id === reportId && p.deleted_at === null && p.file_id !== fileId).length;
+  if (onReport >= PHOTOS_PER_REPORT_MAX) throw new DataError(`A report holds up to ${String(PHOTOS_PER_REPORT_MAX)} photos`, '22023', null);
+  const now = new Date().toISOString();
   const row: DailyPhotoRow = {
-    id: newId('mock-photo'),
-    report_id: reportId,
-    file_id: fileId,
-    row_key: rowKey,
-    caption: '',
-    description: '',
-    taken_at: takenAt,
-    version: 1,
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+    ...{ id: newId('mock-photo'), report_id: reportId, file_id: fileId, row_key: rowKey, caption: '', description: '' },
+    ...{ taken_at: takenAt, version: 1, updated_at: now, deleted_at: null },
   };
   write((m) => ({ ...m, photos: [...m.photos, row] }));
   return row;
@@ -284,9 +281,11 @@ export async function savePhoto(id: string, version: number, caption: string, de
   return updatePhoto(id, version, description === undefined ? { caption } : { caption, description });
 }
 
+/** remove_daily_photo (0079): off the report, and its file out of my Photos folder when no other report shows it. */
 export async function removePhoto(id: string, version: number): Promise<void> {
   await delay();
-  updatePhoto(id, version, { deleted_at: new Date().toISOString() });
+  const p = updatePhoto(id, version, { deleted_at: new Date().toISOString() });
+  if (!read().photos.some((x) => x.file_id === p.file_id && x.id !== p.id && x.deleted_at === null)) api.softDeleteMyFile(p.file_id);
 }
 
 export async function submit(id: string, version: number): Promise<SubmitResult> {
@@ -294,6 +293,7 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
   const r = live(read(), id);
   if (!r) throw gone();
   if (r.version !== version) throw conflictError();
+  const form = await signedOn(r);
   const key = numberKey(r.project_id, r.report_type);
   const number = r.number ?? read().next[key] ?? 1;
   const settings = parseDailySettings(setupOf(read(), r.project_id, r.report_type)?.settings);
@@ -308,7 +308,7 @@ export async function submit(id: string, version: number): Promise<SubmitResult>
     next: r.number === null ? { ...m.next, [key]: number + 1 } : m.next,
     reports: m.reports.map((x) =>
       x.id === id
-        ? { ...x, status: 'submitted', number, filename, pdf_file_id: file.id, version: x.version + 2, signed_version: x.version + 2, signed_at: signedAt, submitted_at: x.submitted_at ?? signedAt }
+        ? { ...x, status: 'submitted', number, filename, pdf_file_id: file.id, version: x.version + 2, signed_version: x.version + 2, signed_at: signedAt, submitted_at: x.submitted_at ?? signedAt, form }
         : x,
     ),
   }));

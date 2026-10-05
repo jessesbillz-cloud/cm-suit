@@ -1,13 +1,13 @@
 // "All my jobs": one link for every job where I take inspection requests (MDR's hub). Anyone who decides inspections
-// has one (0046). Making a new one ends the old one at once; the server keeps only its hash, so it shows on the device
-// that made it (lib/requestLink).
+// has one (0046). Making a new one ends the old one at once, with Undo in the toast (0075, as the job link); the
+// server keeps only its hash, so it shows on the device that made it (lib/requestLink).
 import { useState } from 'react';
 import { Copy, Link2, QrCode, RefreshCw } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useRotateRequestHub } from '../../data/requestLink.mutations';
+import { useRotateRequestHub, useUndoRequestHub } from '../../data/requestLink.mutations';
 import { useRequestHubState } from '../../data/requestLink.queries';
 import type { HubState } from '../../data/requestLink.types';
-import { HUB_LINK_KEY, hubUrl, rememberLink, rememberedLink } from '../../lib/requestLink';
+import { forgetLink, HUB_LINK_KEY, hubUrl, rememberLink, rememberedLink } from '../../lib/requestLink';
 import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
@@ -16,6 +16,7 @@ import { useCopyLink } from './useCopyLink';
 
 function HubBody({ state }: { state: HubState }) {
   const rotate = useRotateRequestHub();
+  const undo = useUndoRequestHub();
   const toast = useToast();
   const copyUrl = useCopyLink();
   const [sheet, setSheet] = useState(false);
@@ -24,10 +25,31 @@ function HubBody({ state }: { state: HubState }) {
   const url = copy?.id ? hubUrl(window.location.origin, __BASE_PATH__, copy.id, copy.token) : null;
 
   function make() {
+    const previous = copy;
     rotate.mutate(undefined, {
       onSuccess: (hub) => {
         rememberLink(HUB_LINK_KEY, { token: hub.token, made_at: hub.made_at, id: hub.hub_id });
-        toast.show({ message: made ? 'New link made. The old one no longer works.' : 'Link made.' });
+        if (!made) {
+          toast.show({ message: 'Link made.' });
+          return;
+        }
+        toast.show({
+          message: 'New link made. The old one no longer works.',
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              undo.mutate(undefined, {
+                onSuccess: () => {
+                  if (previous) rememberLink(HUB_LINK_KEY, previous);
+                  else forgetLink(HUB_LINK_KEY);
+                },
+                onError: (e) => {
+                  toast.show({ tone: 'error', message: `Not undone: ${messageOf(e)}` });
+                },
+              });
+            },
+          },
+        });
       },
       onError: (e) => {
         toast.show({ tone: 'error', message: `No new link: ${messageOf(e)}` });

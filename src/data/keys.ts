@@ -11,7 +11,11 @@ export const qk = {
   layout: ['user_layout'] as const,
   folders: (projectId: string) => ['folders', projectId] as const,
   files: (folderId: string) => ['files', folderId] as const,
+  /** Every folder's file list (a file removed from somewhere other than Files). */
+  filesAll: ['files'] as const,
   file: (fileId: string) => ['file', fileId] as const,
+  /** A file's version, whether I may delete or rename it, and its earlier versions (under qk.file: one refresh). */
+  fileFacts: (fileId: string) => ['file', fileId, 'facts'] as const,
   people: (projectId: string) => ['people', projectId] as const,
   roles: ['roles'] as const,
   profile: ['profile'] as const,
@@ -39,11 +43,17 @@ export const qk = {
   /** Every dailies query of a job sits under this prefix (SPEC §13.1). */
   dailies: (projectId: string) => ['dailies', projectId] as const,
   dailiesPart: (projectId: string, part: string, id = '') => ['dailies', projectId, part, id] as const,
+  /** A company's daily forms (0072) with its row version: under its settings prefix, so a settings refresh reaches it. */
+  companyForms: (orgId: string) => ['org_settings', orgId, 'daily_forms'] as const,
   /** Every inspections query of a job sits under this prefix: one invalidation after any IR write. */
   inspections: (projectId: string) => ['inspections', projectId] as const,
   inspectionsPart: (projectId: string, part: string, id = '') => ['inspections', projectId, part, id] as const,
+  /** Every id of one part (e.g. the calendar's months of a job). */
+  inspectionsPartAll: (projectId: string, part: string) => ['inspections', projectId, part] as const,
   /** The roles holding ir.decide (who can be a co-inspector), read from the capability matrix. */
   decideRoles: ['role_permissions', 'ir.decide'] as const,
+  /** The roles that build the work (corrections.mark_ready): a tailgate's tick-in shows them (Safety). */
+  builderRoles: ['role_permissions', 'corrections.mark_ready'] as const,
   /** Every deliveries query of a job sits under this prefix: one invalidation after any delivery write. */
   deliveries: (projectId: string) => ['deliveries', projectId] as const,
   deliveriesPart: (projectId: string, part: string, id = '') => ['deliveries', projectId, part, id] as const,
@@ -68,11 +78,18 @@ export const qk = {
   viewAs: ['testing_view_as'] as const,
   /** My role's recommended rail on each of my jobs (0040). */
   recommendedTools: ['my_recommended_tools'] as const,
+  /** The tools my role may read on each of my jobs (0081): More and Edit offer only these. */
+  readableTools: ['my_readable_tools'] as const,
   /** What needs me per record type (0040): under the tasks prefix, so every task write refreshes the rail badges. */
   toolCounts: (projectId: string | null) => ['tasks', 'tool_counts', projectId ?? 'all'] as const,
   /** Every hours query (my hours, contract hours, billing, invoices; 0043) sits under this prefix: one refresh after any write. */
   hours: ['hours'] as const,
   hoursPart: (part: string, id = '') => ['hours', part, id] as const,
+  /** A day's weather at the job (0071), per set of condition buttons asked for. Its own prefix: a daily's saves never ask again. */
+  dayWeather: (projectId: string, day: string, options: string) => ['day_weather', projectId, day, options] as const,
+  dayWeatherAll: (projectId: string) => ['day_weather', projectId] as const,
+  /** Where the job is (0071): the looked-up or typed location, in Settings > Job. */
+  jobPlace: (projectId: string) => ['job_place', projectId] as const,
   /** Today's report on each of my jobs (0045): the top of All my jobs. */
   dailyToday: ['daily_today'] as const,
   /** The job's inspection request link (members.manage) and my hub link (0046): on or off and since when, never a token. */
@@ -123,4 +140,7 @@ export const qk = {
   /** Every schedule query of a job (0062: where it stands, the versions, the current activities, a draft) sits under this prefix. */
   schedule: (projectId: string) => ['schedule', projectId] as const,
   schedulePart: (projectId: string, part: string, id = '') => ['schedule', projectId, part, id] as const,
+  /** Every requirements query of a job (0069: the register, the spec book's sections, the folder) sits under this prefix. */
+  requirements: (projectId: string) => ['requirements', projectId] as const,
+  requirementsPart: (projectId: string, part: string) => ['requirements', projectId, part] as const,
 };

@@ -12,9 +12,11 @@ import { WhenFields } from './WhenFields';
 interface MoveFormProps {
   row: IrRequest;
   onDone: () => void;
+  /** The requester moving a request the GC returned: it goes back to the GC (ir_move). */
+  toGc?: boolean | undefined;
 }
 
-export function MoveForm({ row, onDone }: MoveFormProps) {
+export function MoveForm({ row, onDone, toGc = false }: MoveFormProps) {
   const move = useMoveIr();
   const [pick, setPick] = useState<WhenPick>({
     date: row.request_date,
@@ -26,6 +28,11 @@ export function MoveForm({ row, onDone }: MoveFormProps) {
     <div className="flex flex-col gap-3 rounded-lg border border-line bg-card p-3" data-testid="ir-move">
       <WhenFields value={pick} onChange={setPick} testId="ir-move" />
       <ConflictPreview projectId={row.project_id} when={when} ownId={row.id} />
+      {toGc ? (
+        <p className="text-sm text-ink-2" data-testid="ir-move-gc">
+          Goes back to the GC.
+        </p>
+      ) : null}
       {move.isError ? <p className="text-sm text-danger">{messageOf(move.error)}</p> : null}
       <div className="flex justify-end gap-2">
         <Button variant="quiet" onClick={onDone}>

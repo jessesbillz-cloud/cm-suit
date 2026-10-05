@@ -4,7 +4,9 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
+import * as mockAddenda from './mock/addenda';
 import * as mockBids from './mock/bids';
+import * as mockQuestions from './mock/questions';
 import { isMock } from './mock';
 import { useMyProjects } from './queries';
 import {
@@ -50,19 +52,32 @@ export function useBidPackages(projectId: string) {
   });
 }
 
+const inviteRowsSchema = z.array(
+  z.object({
+    id: z.string(),
+    package_id: z.string(),
+    member_id: z.string(),
+    status: z.string(),
+    decline_reason: z.string().nullable(),
+    member: z.object({ invite_email: z.string() }).nullable(),
+  }),
+);
+
 export function useBidInvites(projectId: string) {
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'invites'),
-    queryFn: async (): Promise<InviteRow[]> =>
-      isMock()
-        ? mockBids.invites()
-        : throwIfError(
-            await supabase
-              .from('bid_invites')
-              .select('id, package_id, member_id, status, decline_reason')
-              .eq('project_id', projectId)
-              .is('deleted_at', null),
-          ),
+    queryFn: async (): Promise<InviteRow[]> => {
+      if (isMock()) return mockBids.invites();
+      const raw: unknown = throwIfError(
+        await supabase
+          .from('bid_invites')
+          .select('id, package_id, member_id, status, decline_reason, member:project_members(invite_email)')
+          .eq('project_id', projectId)
+          .is('deleted_at', null),
+      );
+      // The address it went to; null when the membership row isn't readable.
+      return inviteRowsSchema.parse(raw).map(({ member, ...r }) => ({ ...r, email: member?.invite_email ?? null }));
+    },
   });
 }
 
@@ -71,11 +86,11 @@ export function useBidQuestions(projectId: string) {
     queryKey: qk.bidsPart(projectId, 'questions'),
     queryFn: async (): Promise<QuestionRow[]> =>
       isMock()
-        ? mockBids.questions(projectId)
+        ? mockQuestions.list(projectId)
         : throwIfError(
             await supabase
               .from('bid_questions')
-              .select('id, project_id, package_id, number, question, status, created_at, version')
+              .select('id, project_id, package_id, member_id, number, question, status, created_at, version')
               .eq('project_id', projectId)
               .is('deleted_at', null)
               .order('number', { ascending: false }),
@@ -88,7 +103,7 @@ export function useAddenda(projectId: string) {
     queryKey: qk.bidsPart(projectId, 'addenda'),
     queryFn: async (): Promise<AddendumRow[]> =>
       isMock()
-        ? mockBids.addenda(projectId)
+        ? mockAddenda.list(projectId)
         : throwIfError(
             await supabase
               .from('addenda')
@@ -106,7 +121,7 @@ export function useAddendumAcks(projectId: string) {
     queryFn: async (): Promise<AckRow[]> =>
       isMock()
         ? mockBids.acks()
-        : throwIfError(await supabase.from('addendum_acks').select('addendum_id, member_id').eq('project_id', projectId)),
+        : throwIfError(await supabase.from('addendum_acks').select('addendum_id, member_id, acked_at').eq('project_id', projectId)),
   });
 }
 
@@ -259,17 +274,30 @@ export function useBidPricing(projectId: string, extractionId: string | null, al
   });
 }
 
+const ANSWER_COLS = 'id, project_id, number, question_text, answer, published_at';
+
+/** The job's published answers, for the question pane's current answer (by question number). */
+export function usePublishedAnswers(projectId: string) {
+  return useQuery({
+    queryKey: qk.bidsPart(projectId, 'answers'),
+    queryFn: async (): Promise<PublishedAnswerRow[]> =>
+      isMock()
+        ? mockQuestions.answers(projectId)
+        : throwIfError(await supabase.from('published_answers').select(ANSWER_COLS).eq('project_id', projectId).is('deleted_at', null)),
+  });
+}
+
 /** One published answer (a board line points at it). null = gone, or not mine to see. */
 export function usePublishedAnswer(projectId: string, answerId: string) {
   return useQuery({
     queryKey: qk.bidsPart(projectId, 'answer', answerId),
     queryFn: async (): Promise<PublishedAnswerRow | null> =>
       isMock()
-        ? mockBids.publishedAnswer(answerId)
+        ? mockQuestions.answer(answerId)
         : throwIfErrorMaybe(
             await supabase
               .from('published_answers')
-              .select('id, project_id, number, question_text, answer, published_at')
+              .select(ANSWER_COLS)
               .eq('id', answerId)
               .is('deleted_at', null)
               .maybeSingle(),

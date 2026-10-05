@@ -1,20 +1,17 @@
-// "Needs you" (SPEC §7.3): tasks handled in place. Done is one tap, with Undo in the toast (useTaskDone). A task the
-// record itself closes (an RFI: it's done when the RFI moves on) has Open instead of Done. On top, the RFIs someone
-// else is sitting on (late, or not opened for days). One row design for both (NeedsRow).
-import { ArrowRight, Check, CheckCheck, ListTodo } from 'lucide-react';
-import { useOpenTarget } from '../../app/frame/useOpenTarget';
+// "Needs you" (SPEC §7.3): tasks handled in place (TaskEnd: Open for a task its record closes, Acknowledge for an
+// addendum, Done with Undo for the rest). On top, the RFIs someone else is sitting on (late, or not opened for days).
+// One row design for both (NeedsRow).
+import { CheckCheck, ListTodo } from 'lucide-react';
 import { useMyProjects } from '../../data/queries';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
-import { entityTarget } from '../../lib/entityTarget';
-import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
-import { StatusChip } from '../../ui/StatusChip';
 import { KindSquare } from './KindSquare';
 import { kindIcon } from './lineKind';
 import { NeedsRow } from './NeedsRow';
 import { RfiWaitingLine } from './RfiWaiting';
+import { TaskEnd } from './TaskEnd';
 import { useNeedsYou } from './useNeedsYou';
 import { useTaskDone } from './useTaskDone';
 import { useProjectZones } from './zones';
@@ -31,46 +28,8 @@ interface TaskLineProps {
   onDone: (task: TaskRow) => void;
 }
 
-/** Task kinds the record closes by itself when it moves on; pressing Done would only hide it. */
-const CLOSED_BY_RECORD = new Set(['rfi']);
-
 /** Phone: a full-size tap target under the text. */
 const PHONE_TAP = 'max-sm:h-11 max-sm:px-4';
-
-function TaskEnd({ task, busy, onDone }: Omit<TaskLineProps, 'projectName' | 'zone'>) {
-  const openTarget = useOpenTarget();
-  const target = CLOSED_BY_RECORD.has(task.kind) ? entityTarget(task.entity_type, task.entity_id) : null;
-  if (target) {
-    return (
-      <Button
-        size="sm"
-        variant="secondary"
-        icon={ArrowRight}
-        className={PHONE_TAP}
-        onClick={() => {
-          openTarget(task.project_id, target);
-        }}
-      >
-        Open
-      </Button>
-    );
-  }
-  if (task.requires_signature) return <StatusChip status="pending" label="Needs your signature" />;
-  return (
-    <Button
-      size="sm"
-      variant="secondary"
-      icon={Check}
-      loading={busy}
-      className={PHONE_TAP}
-      onClick={() => {
-        onDone(task);
-      }}
-    >
-      Done
-    </Button>
-  );
-}
 
 function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
   const due = task.due_at ? `Due ${formatInZone(task.due_at, zone, 'MMM d')}` : '';
@@ -80,7 +39,7 @@ function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
       icon={kindIcon(task.entity_type, task.entity_id, task.kind, ListTodo)}
       title={task.title}
       meta={[projectName ?? '', due].filter((s) => s !== '').join(' · ')}
-      end={<TaskEnd task={task} busy={busy} onDone={onDone} />}
+      end={<TaskEnd task={task} busy={busy} onDone={onDone} className={PHONE_TAP} />}
     />
   );
 }

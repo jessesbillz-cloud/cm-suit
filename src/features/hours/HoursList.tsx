@@ -1,4 +1,5 @@
-// The job's hours by day (each submitted report, opened to set its hours), by week (Monday first) or by month.
+// The job's hours by day (each submitted report, opened to set its hours), by week (Monday first) or by month (each
+// opened as the list of its days).
 // Desktop: a table with the day, the report and the hours; phone: one stacked line per row with the hours at the right.
 import { ChevronRight } from 'lucide-react';
 import type { HoursDayRow } from '../../data/hours.types';
@@ -6,30 +7,27 @@ import { formatDay } from '../../lib/dates';
 import { addDays, groupHours, hoursText, monthLabel } from '../../lib/timesheet';
 import { Icon } from '../../ui/Icon';
 import { HEAD_ROW, TABLE, TD, TD_NUM, TH, phoneRowClass, rowClass } from '../../ui/Table';
-import { reportName, type HoursView } from './model';
+import { HOURS_MONTH_PREFIX, HOURS_WEEK_PREFIX, reportName, type HoursView } from './model';
 
 interface Row {
   key: string;
   title: string;
   sub: string;
   hours: number | null;
-  /** Days open in the right column; weeks and months are totals. */
-  open: boolean;
 }
 
 function rowsOf(view: HoursView, days: readonly HoursDayRow[]): Row[] {
   if (view === 'days') {
-    return days.map((d) => ({ key: d.id, title: formatDay(d.report_date, 'EEE, MMM d, yyyy'), sub: reportName(d), hours: d.hours, open: true }));
+    return days.map((d) => ({ key: d.id, title: formatDay(d.report_date, 'EEE, MMM d, yyyy'), sub: reportName(d), hours: d.hours }));
   }
   return groupHours(days, view === 'weeks' ? 'week' : 'month').map((g) => ({
-    key: g.key,
+    key: `${view === 'weeks' ? HOURS_WEEK_PREFIX : HOURS_MONTH_PREFIX}${g.key}`,
     title:
       view === 'weeks'
         ? `${formatDay(g.key, 'MMM d')} – ${formatDay(addDays(g.key, 6), 'MMM d, yyyy')}`
         : monthLabel(g.key),
     sub: `${String(g.days)} ${g.days === 1 ? 'day' : 'days'}`,
     hours: g.hours,
-    open: false,
   }));
 }
 
@@ -43,7 +41,8 @@ interface HoursListProps {
   view: HoursView;
   days: readonly HoursDayRow[];
   selectedId: string | null;
-  onOpen: (reportId: string) => void;
+  /** A day (its report id), or a week's or month's item. */
+  onOpen: (itemId: string) => void;
   isPhone: boolean;
 }
 
@@ -70,22 +69,16 @@ export function HoursList({ view, days, selectedId, onOpen, isPhone }: HoursList
           );
           return (
             <li key={r.key}>
-              {r.open ? (
-                <button
-                  type="button"
-                  data-testid="hours-row"
-                  className={`${phoneRowClass(selectedId === r.key)} flex items-center gap-3`}
-                  onClick={() => {
-                    onOpen(r.key);
-                  }}
-                >
-                  {body}
-                </button>
-              ) : (
-                <div data-testid="hours-row" className="flex min-h-[56px] items-center gap-3 px-4 py-3">
-                  {body}
-                </div>
-              )}
+              <button
+                type="button"
+                data-testid="hours-row"
+                className={`${phoneRowClass(selectedId === r.key)} flex items-center gap-3`}
+                onClick={() => {
+                  onOpen(r.key);
+                }}
+              >
+                {body}
+              </button>
             </li>
           );
         })}
@@ -109,30 +102,24 @@ export function HoursList({ view, days, selectedId, onOpen, isPhone }: HoursList
             key={r.key}
             data-testid="hours-row"
             aria-current={selectedId === r.key ? 'true' : undefined}
-            className={r.open ? rowClass(selectedId === r.key) : 'h-[52px] border-b border-line last:border-b-0'}
-            onClick={
-              r.open
-                ? () => {
-                    onOpen(r.key);
-                  }
-                : undefined
-            }
+            className={rowClass(selectedId === r.key)}
+            onClick={() => {
+              onOpen(r.key);
+            }}
           >
             <td className={`${TD} pl-4 font-medium text-ink`}>
               {/* Keyboard reach: Enter on this button clicks through to the row's handler. */}
-              {r.open ? (
-                <button type="button" className="text-left">
-                  {r.title}
-                </button>
-              ) : (
-                r.title
-              )}
+              <button type="button" className="text-left">
+                {r.title}
+              </button>
             </td>
             <td className={`${TD} whitespace-normal break-words text-ink-2`}>{r.sub}</td>
             <td className={`${TD_NUM} text-right text-[15px]`}>
               <HoursCell hours={r.hours} />
             </td>
-            <td className={`${TD} pr-4 text-right`}>{r.open ? <Icon icon={ChevronRight} size={16} className="text-ink-3" /> : null}</td>
+            <td className={`${TD} pr-4 text-right`}>
+              <Icon icon={ChevronRight} size={16} className="text-ink-3" />
+            </td>
           </tr>
         ))}
       </tbody>

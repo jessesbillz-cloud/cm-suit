@@ -1,17 +1,18 @@
 // One published update (beside Updates): which one, current or superseded, its data date, where it came from, how
-// many activities, who published it, and the original file (one click, the one download path).
+// many activities, who published it, and the original file: View (a photo or a PDF, full screen) and Download (one
+// click, the one download path).
 import type { ReactNode } from 'react';
-import { Download } from 'lucide-react';
-import { messageOf } from '../../data/errors';
-import { downloadScheduleFile } from '../../data/schedule.mutations';
+import { Download, Eye } from 'lucide-react';
 import { useScheduleVersion } from '../../data/schedule.queries';
 import { useMyProjects } from '../../data/queries';
 import { formatDay, formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { ErrorState, LoadingState } from '../../ui/States';
-import { useToast } from '../../ui/Toast';
+import { useViewerDownload } from '../../ui/viewer/useViewerDownload';
 import { VersionChip } from './UpdatesView';
 import { sourceLabel, versionName } from './model';
+import { useSourceItem } from './sourceFile';
 
 interface VersionPaneProps {
   projectId: string;
@@ -30,13 +31,14 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 export function VersionPane({ projectId, versionId }: VersionPaneProps) {
   const version = useScheduleVersion(projectId, versionId);
   const jobs = useMyProjects();
-  const toast = useToast();
+  const viewer = useFileViewer();
+  const download = useViewerDownload();
+  const source = useSourceItem(version.data?.file_id ?? null, version.data?.file_name ?? null);
   const zone = jobs.data?.find((p) => p.project_id === projectId)?.timezone;
   if (version.isError) return <ErrorState error={version.error} onRetry={() => void version.refetch()} />;
   if (jobs.isError) return <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />;
   if (!version.data || zone === undefined) return <LoadingState label="Loading the update" />;
   const v = version.data;
-  const fileId = v.file_id;
   return (
     <div className="flex min-h-full flex-col" data-testid="schedule-version">
       <div className="flex flex-1 flex-col gap-5 px-5 py-4">
@@ -59,18 +61,28 @@ export function VersionPane({ projectId, versionId }: VersionPaneProps) {
           ) : null}
         </dl>
       </div>
-      {fileId ? (
-        <div className="border-t border-line px-5 py-3">
+      {source ? (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line px-5 py-3">
+          <span className="min-w-0 flex-1 break-words text-sm text-ink" data-testid="schedule-version-file">
+            {source.name}
+          </span>
+          {source.kind !== 'other' ? (
+            <Button icon={Eye} data-testid="schedule-version-view" onClick={() => {
+                viewer.open([source]);
+              }}
+            >
+              View
+            </Button>
+          ) : null}
           <Button
             icon={Download}
             data-testid="schedule-version-download"
+            loading={download.pendingId === source.id}
             onClick={() => {
-              downloadScheduleFile(fileId).catch((e: unknown) => {
-                toast.show({ message: messageOf(e), tone: 'error' });
-              });
+              download.start(source);
             }}
           >
-            {v.file_name ?? 'Download'}
+            Download
           </Button>
         </div>
       ) : null}

@@ -138,6 +138,7 @@ export function useReportDraft(projectId: string, report: DailyReportRow, saved:
     (change: (c: DailyContent) => DailyContent) => {
       if (stopped.current) return;
       const next = change(latest.current);
+      if (next === latest.current) return; // nothing changed: nothing to save
       latest.current = next;
       edits.current += 1;
       setContent(next);
@@ -147,6 +148,16 @@ export function useReportDraft(projectId: string, report: DailyReportRow, saved:
     },
     [report.id, schedule],
   );
+
+  // The report moved on while nothing here was waiting to save (hours set after submit, a refetch): follow it, so the
+  // next save carries the version the server has. Anything unsaved here keeps its version check and never overwrites.
+  const serverVersion = report.version;
+  useEffect(() => {
+    if (serverVersion <= version.current || busy.current || stopped.current || edits.current !== savedEdits.current) return;
+    version.current = serverVersion;
+    latest.current = saved;
+    setContent(saved);
+  }, [serverVersion, saved]);
 
   useEffect(() => {
     if (start.restored) schedule(0);

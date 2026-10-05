@@ -182,3 +182,12 @@ verify_jwt = true
 # --- Schedule: read an uploaded schedule (XER, Project XML, CSV, PDF or photo) into a draft version (0062) ---
 [functions.schedule-import]
 verify_jwt = true
+
+# --- Requirements: read one spec section with AI into drafts (0069; rate-limited; refuses without the AI key) ---
+[functions.requirements-extract]
+verify_jwt = true
+
+# --- Dailies: the day's weather for the job's location (0071; the US Census geocoder and the National Weather Service,
+# no key; refuses without WEATHER_USER_AGENT) ---
+[functions.job-weather]
+verify_jwt = true

@@ -33,6 +33,7 @@ async function rowFor(job: { project_id: string; name: string; timezone: string 
     status: report ? (report.status === 'submitted' ? 'submitted' : 'draft') : 'none',
     number,
     next_number: number === null ? await dailies.peek(job.project_id, setup.report_type) : null,
+    report_version: report?.version ?? null,
   };
 }
 

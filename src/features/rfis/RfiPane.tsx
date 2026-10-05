@@ -1,20 +1,22 @@
 // One RFI in the right column (full screen on the phone, or alone in its own window): my own draft opens as the form to
 // finish and sign; any other RFI is the reading pane (Jesse, Sep 30): the substance at once, with no extra taps. The
 // header (number, the whole title, three actions), the route strip, the question with its photos and the answer right
-// under it; then impact and, small, the moves I may make. History only in the full view (its own window, or the
-// phone's full screen). Arrow keys walk the log as it is shown.
+// under it; then impact and, small, the moves I may make. History sits behind one link at every width, as in
+// corrections (SPEC §7.4). Arrow keys walk the log as it is shown.
 import { useEffect, useRef, useState } from 'react';
+import { History } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useProject } from '../../data/queries';
-import { useRfiPdf, useRfiPdfView } from '../../data/rfis.mutations';
+import { rfiPdfViewUrl, useRfiPdf } from '../../data/rfis.mutations';
 import { useRfiDetail, useRfiList, useRfiProgress } from '../../data/rfis.queries';
-import type { RfiDetail, RfiEvent } from '../../data/rfis.types';
-import { blankTab } from '../../lib/openTab';
+import type { RfiDetail, RfiEvent, RfiRow } from '../../data/rfis.types';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
+import { Icon } from '../../ui/Icon';
 import { PaneSection } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
-import { neighbors, visibleRows } from './model';
+import { neighbors, rfiLabel, visibleRows } from './model';
 import { stripsByRfi } from './progress';
 import { RfiActions } from './RfiActions';
 import { RfiBody } from './RfiBody';
@@ -39,6 +41,11 @@ function returnedEvent(d: RfiDetail): RfiEvent | null {
   return last?.kind === 'returned' ? last : null;
 }
 
+/** The RFI's PDF in the file viewer (its pages; Download inside is the head's own "PDF"). */
+function rfiPdfItem(rfi: RfiRow, download: () => Promise<void>): ViewerItem {
+  return { id: `rfi-pdf-${rfi.id}`, name: `${rfiLabel(rfi.number)} · ${rfi.title}`, kind: 'pdf', url: () => rfiPdfViewUrl(rfi.id), download };
+}
+
 function isTyping(target: EventTarget): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 }
@@ -51,11 +58,12 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const progress = useRfiProgress(projectId);
   const project = useProject(projectId);
   const pdf = useRfiPdf();
-  const view = useRfiPdfView();
+  const viewer = useFileViewer();
   const toast = useToast();
   const root = useRef<HTMLElement>(null);
   // While editing, the pane keeps the title it opened with: a saved title must not pull focus out of the form.
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Focus the pane when the RFI changes, so the arrow keys work straight away.
   useEffect(() => {
@@ -89,7 +97,6 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const shown = visibleRows(list.data ?? [], { filter: nav.filter, query: nav.query, userId: user.id }, now);
   const { prev, next } = neighbors(shown, d.rfi.id);
   const steps = progress.data ? (stripsByRfi(progress.data).get(d.rfi.id) ?? []) : undefined;
-  const full = nav.standalone || isPhone;
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
   };
@@ -117,14 +124,8 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
         }}
         downloading={pdf.isPending}
         onView={() => {
-          const tab = blankTab();
-          if (tab === null) {
-            toast.show({ tone: 'error', message: 'Allow pop-ups to see it full screen.' });
-            return;
-          }
-          view.mutate({ ref: d.rfi, tab }, { onError: failed });
+          viewer.open([rfiPdfItem(d.rfi, () => pdf.mutateAsync(d.rfi))]);
         }}
-        viewing={view.isPending}
         isPhone={isPhone}
       />
       <div className="flex flex-1 flex-col gap-3 overflow-auto px-5 py-4 text-sm leading-6 text-ink" data-testid="rfi-pane">
@@ -141,8 +142,20 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
           </PaneSection>
         ) : null}
         <RfiImpact detail={d} timeZone={tz} now={now} />
-        {editingTitle === null ? <RfiActions detail={d} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
-        {full ? <RfiHistory events={d.events} timeZone={tz} /> : null}
+        {editingTitle === null ? <RfiActions detail={d} isPhone={isPhone} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
+        <button
+          type="button"
+          aria-expanded={historyOpen}
+          className="inline-flex h-8 items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-accent hover:underline"
+          data-testid="rfi-history-link"
+          onClick={() => {
+            setHistoryOpen((v) => !v);
+          }}
+        >
+          <Icon icon={History} size={14} />
+          History
+        </button>
+        {historyOpen ? <RfiHistory events={d.events} timeZone={tz} /> : null}
       </div>
     </article>
   );

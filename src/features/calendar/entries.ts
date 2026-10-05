@@ -4,12 +4,12 @@
 //
 // MDR's palette, one mapping: a request's state -> lib/status key is inspections/model rowChip (it mirrors the
 // database's ir_status_key): green confirmed / approved, yellow pending, orange postponed (with a pause mark), red not
-// approved, returned or blocked, gray waiting on the GC, blue with a helper. The colors themselves are lib/status.
+// approved, returned or blocked, gray waiting on the GC; one with a helper stays green (0075). The colors themselves are lib/status.
 import type { CalendarInspection, CalendarLine } from '../../data/calendar.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
 import { rowChip } from '../inspections/model';
-import { lineDay, statusKey } from './model';
+import { lineChip, lineDay } from './model';
 
 export type Entry =
   | { type: 'ir'; key: string; day: string; time: string; projectId: string; projectName: string; row: CalendarInspection }
@@ -107,7 +107,7 @@ export function bannerOf(e: Entry): Banner {
     const tone = rowChip(e.row).status;
     return { label: shortType(e.row), tone, paused: tone === 'postponed', kind: null };
   }
-  return { label: e.line.title, tone: statusKey(e.line.status), paused: false, kind: e.line.kind };
+  return { label: e.line.title, tone: lineChip(e.line)?.status ?? null, paused: false, kind: e.line.kind };
 }
 
 type RequestGroup = 'pending' | 'postponed' | 'confirmed' | 'done' | 'blocked';

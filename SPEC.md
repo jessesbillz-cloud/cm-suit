@@ -657,6 +657,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
   - `readSheetNumber`
   - `draftRfi`
   - `buildSubmittalRegister`
+  - `extractRequirements` (one spec section's dated commitments beyond submittals, each with its quoted sentence; the Requirements register's drafts, migration 0069)
   - `describePhoto`
   - `compileNotes`
   - `searchToFilters`
@@ -929,7 +930,7 @@ This phase rebuilds **Jesse's MDR processes** (`mdr-processes-to-carry-over`). K
 
 ### 13.1 Daily reports (anyone who writes them)
 - **Setup** (per member and project, each role with its own template):
-  - the template: learned (§8.3), a company generator (e.g. VIS), or a work-log form;
+  - the template: learned (§8.3), a company generator (e.g. VIS), the built-in superintendent's or foreman's daily (the role's default), or a work-log form;
   - schedule days, "submit by" time and reminder lead time;
   - filename pattern and start number, recipients;
   - digital signature (on by default); AI photo descriptions and proofread (off by default);
@@ -1204,7 +1205,7 @@ OFS flow (the route below), and §15's ordering.
 
 ### 18.2 Where things stand (Oct 4)
 
-- **Live on staging** (migrations 0001–0062, 0065–0067): bids (Phase 1 core), files (failed uploads can be stopped and
+- **Live on staging** (migrations 0001–0062, 0065–0068): bids (Phase 1 core), files (failed uploads can be stopped and
   removed, drop to upload), calendar, dailies (company forms, VIS), inspections (member form, GC step, no-login QR
   requests 0055, Requester role), deliveries, corrections, RFIs (route strip, signed sections), permits + stamping
   (0052–0053, reviews under one permit 0061), comments (0050), the job-only rail (0058), Safety (0060), Schedule (0062)
@@ -1218,10 +1219,16 @@ OFS flow (the route below), and §15's ordering.
   server-made PDF had ever been stored on staging (now written down in 0066 and tested, CLAUDE.md rule 1); the hosted
   runtime writes times with a narrow space the PDF font can't draw, which stopped every signature (`pdfSafe`, the one
   stamp); an upload that never finished was offered as a plan sheet.
-- **Built, not live** — branches `wave2-requirements` (0063) and `wave2-dailies` (0064), on GitHub; they merge into
-  main in 6b (most conflicts are "both sides appended to a list"; migrations that re-create `job_rail_tools()` and
-  other shared functions must end with the union of every tool). Not applied to staging, so their files may still be
-  edited.
+- **6b is built (Oct 4)** and goes live after Brock's look on Oct 5 (migrations 0069–0073, in order):
+  - Requirements (0069) beside Schedule; the reminder's tasks go to everyone who may manage the register; the project
+    admin's rail is full, so Requirements is under More for him.
+  - The superintendent's and the foreman's daily (0070); weather fills itself on every daily from the National Weather
+    Service for the job's address (0071, `job-weather`; typing over it is the correction); each company ticks, renames,
+    reorders and adds fields on those two forms, and a signed report keeps the form it was signed on (0072).
+  - Each sub sees the requirement lines that are their company's, and only those (0073, `requirements.read_own` for the
+    sub's office and the foreman; the foreman does not read the whole register). **Not usable until a membership carries
+    its company:** the invite form does not set one yet (6c).
+  - Before it works on staging: the `WEATHER_USER_AGENT` secret (Jesse sets it) and the AI key for `requirements-extract`.
 - **Build environment notes:** npm is blocked in the cloud container (pdf.js is vendored, `src/vendor/pdfjs`); vitest,
   knip and `vite build` run only in CI; migrations are applied with the Supabase MCP `apply_migration` using the file's
   exact text, then the stored SHA-256 is checked; edge functions are deployed from bundles and read back byte for byte.
@@ -1322,7 +1329,7 @@ schedule, requirements, revs.manage) are Jesse's to confirm.
    are uploaded by hand. The log builds itself; clocks per §18.5.
 
 **P4. The spec book → the requirements register → the schedule.**
-1. **Requirements register** (built, 0063): everything the books commit someone to — submittals (action /
+1. **Requirements register** (built, 0069): everything the books commit someone to — submittals (action /
    informational / closeout / maintenance material), tests and witnessing, manufacturer field reps (flexible: "not every
    manufacturer sends a rep, sometimes they just take pictures"), special warranties, attic stock, training, mockups,
    notices, recurring reports, owner-furnished (OFCI) items — each with the source paragraph, who owns it, its trigger
@@ -1418,7 +1425,7 @@ Each step: CI green, live on staging, Jesse walks it (§0). Matrix changes stay 
   deputy's pass/fail, signature. Rework the OFS route per P1 (sub → GC → inspector → OFS; inspector acknowledgment;
   special-inspection notice) and **remove 0061's readiness checklist**; keep 0061's permit fixes (P8) and the permit
   link; merge and ship.
-- **6b — Ship the rest of wave 2 with tonight's changes.** Merge `wave2-requirements` and `wave2-dailies` into
+- **6b — Ship the rest of wave 2 with tonight's changes. Built Oct 4 (§18.2); live after Oct 5.** Merge `wave2-requirements` and `wave2-dailies` into
   `wave2` (union every shared list; `job_rail_tools()` ends with every tool). Changes: dailies weather from the NWS
   API (typed override) and per-company field ticks / rename / add; super's and foreman's manpower from the crew
   sign-in (6c); requirements visible to each sub for their own lines; Safety as built (QR is meetings only).

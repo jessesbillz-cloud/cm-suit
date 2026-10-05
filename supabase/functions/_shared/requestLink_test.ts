@@ -60,6 +60,7 @@ Deno.test('request: each action is strict and bounded', () => {
   check(RequestLinkBody.safeParse({ action: 'calendar', project_id: PROJECT, token: TOKEN }).success, 'calendar: the job\'s today');
   check(RequestLinkBody.safeParse({ action: 'calendar', project_id: PROJECT, token: TOKEN, day: '2026-10-05' }).success, 'calendar: a day');
   check(RequestLinkBody.safeParse({ action: 'status', project_id: PROJECT, receipt: TOKEN }).success, 'status: by its receipt');
+  check(RequestLinkBody.safeParse({ action: 'ir', project_id: PROJECT, receipt: TOKEN }).success, 'ir: by its receipt (0075)');
   const bad = [
     { action: 'open', project_id: PROJECT, token: 'short' },
     { action: 'open', project_id: 'not-a-uuid', token: TOKEN },
@@ -72,6 +73,9 @@ Deno.test('request: each action is strict and bounded', () => {
     { action: 'rotate', project_id: PROJECT, token: TOKEN },
     { action: 'calendar', project_id: PROJECT, token: TOKEN, day: 'today' },
     { action: 'status', project_id: PROJECT, receipt: 'short' },
+    // The IR only by its receipt, never by a request or file id.
+    { action: 'ir', project_id: PROJECT, receipt: TOKEN, file_id: PROJECT },
+    { action: 'ir', project_id: PROJECT, token: TOKEN },
     // A submit is a multipart form, never JSON.
     { action: 'submit', project_id: PROJECT, token: TOKEN },
   ];
@@ -92,6 +96,11 @@ const FACTS = {
   result_note: null,
   gc_step: false,
   ofs_sent: false,
+  postpone_reason: null,
+  postpone_note: null,
+  postpone_until: null,
+  attendance: null,
+  has_ir: false,
 };
 
 Deno.test('calendar answer: time, length, type and color per row; nothing about anyone', () => {
@@ -112,10 +121,14 @@ Deno.test('calendar answer: time, length, type and color per row; nothing about 
 });
 
 Deno.test('status answer: the tracker facts and the result line only', () => {
-  const out = statusAnswer({ ...FACTS, requester_name: 'Sample Visitor', requester_phone: '555 010 2030', confirm_note: 'Gate code', owner_id: USER });
+  const out = statusAnswer({
+    ...FACTS, requester_name: 'Sample Visitor', requester_phone: '555 010 2030', confirm_note: 'Gate code', owner_id: USER,
+    ir_file_id: PROJECT, helper_note: 'Helper note',
+  });
   check(JSON.stringify(Object.keys(out).sort()) === JSON.stringify(Object.keys(FACTS).sort()), 'keys');
   const text = JSON.stringify(out);
   check(!text.includes('Sample Visitor') && !text.includes('555') && !text.includes('Gate') && !text.includes(USER), 'no contact, notes or people');
+  check(!text.includes(PROJECT) && !text.includes('Helper note'), 'never the IR file id or the helper note');
 });
 
 Deno.test('status answer (0061): whether an OFS request is with OFS, as a yes or no; never when or who sent it', () => {

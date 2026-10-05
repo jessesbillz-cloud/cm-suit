@@ -12,7 +12,7 @@ import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { Board, boardWindow } from './Board';
+import { Board, useBoardWindow } from './Board';
 import { PrintSheet } from './PrintSheet';
 import { PublicPost } from './PublicPost';
 import { PrintedReceipt, ReceiptBody } from './Receipt';
@@ -79,8 +79,12 @@ function PublicBoard({ projectId, token }: LinkProps) {
   const zone = tz ?? deviceZone;
   const today = todayInZone(zone);
   const day = nav.day ?? today;
-  const { from, to } = boardWindow(day);
-  const board = useLinkBoard(projectId, token, from, to);
+  const pickDay = (d: string) => {
+    nav.go({ day: d });
+  };
+  const shown = useBoardWindow(day, pickDay);
+  // A driver keeps this page open: someone else's post shows within 30 seconds, like the TV.
+  const board = useLinkBoard(projectId, token, shown.from, shown.to, TV_REFRESH_MS);
   if (board.data && board.data.timezone !== tz) setTz(board.data.timezone);
 
   if (board.isPending) {
@@ -169,14 +173,14 @@ function PublicBoard({ projectId, token }: LinkProps) {
             <Board
               tz={zone}
               today={today}
+              days={shown.days}
               day={day}
               rows={data.deliveries}
               isPending={false}
               error={board.error}
               onRetry={() => void board.refetch()}
-              onPickDay={(d) => {
-                nav.go({ day: d });
-              }}
+              onPickDay={pickDay}
+              onShift={shown.shift}
             />
           </Card>
         </div>

@@ -63,8 +63,9 @@ async function registerFile(a: UploadArgs): Promise<Registered> {
   if (existing) return existing;
   // TODO(lead): register_file(p_folder_id uuid, p_original_name text, p_mime text, p_size bigint) returns public.files
   // is requested in the Phase 0 report. Until it is in the migrations (and so in database.types.ts), call it loosely.
-  const rpc = supabase.rpc.bind(supabase) as unknown as LooseRpc;
-  const res = await rpc('register_file', {
+  // Through unknown first: binding the typed rpc instantiates it over every function in the types (too deep for tsc).
+  const loose = supabase as unknown as { rpc: LooseRpc };
+  const res = await loose.rpc('register_file', {
     p_folder_id: a.folderId,
     p_original_name: a.file.name,
     p_mime: a.file.type || 'application/octet-stream',
@@ -191,6 +192,17 @@ export async function uploadFile(a: UploadArgs): Promise<{ fileId: string }> {
 
 export function isAbortError(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'AbortError';
+}
+
+/**
+ * Takes back my own finished upload that no record uses yet (a photo taken off a form before it is sent): a soft delete
+ * of my own row (the files update policy: the uploader, deleted_at only). Safe to repeat.
+ */
+export async function removeOwnUpload(fileId: string, userId: string): Promise<void> {
+  if (isMock()) return mock.removeOwnUpload(fileId);
+  throwIfErrorMaybe(
+    await supabase.from('files').update({ deleted_at: new Date().toISOString() }).eq('id', fileId).eq('created_by', userId).is('deleted_at', null),
+  );
 }
 
 /**

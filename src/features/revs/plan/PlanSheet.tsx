@@ -1,12 +1,15 @@
-// A level's plan sheet in the one sheet viewer (map/SheetStage: pinch or wheel to zoom, drag to pan, Fit), its walls
-// drawn over it (PlanWalls). The sheet comes through Revs' own gate (data/sheetUrl usePlanSheetUrl); a plan set kept as
-// one PDF shows the page its walls are on.
+// A level's plan sheet in the one sheet viewer (map/SheetStage: pinch, wheel or + / - to zoom, drag to pan, Fit), its
+// walls drawn over it (PlanWalls). The sheet comes through Revs' own gate (data/sheetUrl usePlanSheetUrl); a plan set
+// kept as one PDF shows the page its walls are on. Full screen puts the same viewer over the window (map/SheetFrame);
+// Download saves the sheet on screen, one tap, through the same gate (PlanDownload).
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { usePlanSheetUrl } from '../../../data/sheetUrl';
 import type { Stroke } from '../../../lib/markup';
 import { ErrorState, LoadingState } from '../../../ui/States';
+import { SheetFrame } from '../map/SheetFrame';
 import { SheetStage, type PagePlace } from '../map/SheetStage';
 import { useSheetPage } from '../map/useSheetPage';
+import { PlanDownload } from './PlanDownload';
 import type { Box, PlanTarget, Pt } from './planGeom';
 
 interface PlanSheetProps {
@@ -21,6 +24,10 @@ interface PlanSheetProps {
   drawing: boolean;
   /** The PDF's page count, once open. */
   onPages: (pages: number) => void;
+  /** Over the whole window, and what sits under its top bar there (drawing). */
+  full: boolean;
+  onFull: (full: boolean) => void;
+  bar?: ReactNode;
 }
 
 /** The plan has no marks of its own: its walls are the overlay. */
@@ -31,7 +38,9 @@ const FRAME = 'relative flex min-h-[340px] flex-col overflow-hidden rounded-lg b
 const FRAME_LOOK = `${FRAME} h-[62dvh] sm:h-[calc(100dvh-280px)]`;
 const FRAME_DRAW = `${FRAME} h-[58dvh] sm:h-[calc(100dvh-350px)]`;
 
-function PlanPage({ url, target, overlay, onTap, focus, aiming, onPages }: Omit<PlanSheetProps, 'projectId' | 'drawing'> & { url: string }) {
+type PageProps = Pick<PlanSheetProps, 'target' | 'overlay' | 'onTap' | 'focus' | 'aiming' | 'onPages'> & { url: string };
+
+function PlanPage({ url, target, overlay, onTap, focus, aiming, onPages }: PageProps) {
   const { sheet, pages, retry } = useSheetPage(url, target.page);
   const [renderError, setRenderError] = useState<Error | null>(null);
   useEffect(() => {
@@ -75,17 +84,27 @@ function PlanPage({ url, target, overlay, onTap, focus, aiming, onPages }: Omit<
   );
 }
 
-export function PlanSheet({ projectId, target, drawing, ...rest }: PlanSheetProps) {
+export function PlanSheet({ projectId, target, drawing, full, onFull, bar, ...rest }: PlanSheetProps) {
   const url = usePlanSheetUrl(projectId, target.fileId);
+  const name = (url.data?.name ?? 'Plan').replace(/\.pdf$/i, '');
   return (
-    <div className={drawing ? FRAME_DRAW : FRAME_LOOK} data-testid="plan-sheet" data-page={target.page}>
+    <SheetFrame
+      full={full}
+      onFull={onFull}
+      title={target.page > 1 ? `${name} · p. ${String(target.page)}` : name}
+      bar={bar}
+      actions={<PlanDownload projectId={projectId} fileId={target.fileId} name={url.data?.name ?? null} testId="plan-download" />}
+      className={drawing ? FRAME_DRAW : FRAME_LOOK}
+      testId="plan-sheet"
+      page={target.page}
+    >
       {url.isError ? (
         <ErrorState error={url.error} title="The plan did not open." onRetry={() => void url.refetch()} />
       ) : url.isPending ? (
         <LoadingState label="Opening the plan" />
       ) : (
-        <PlanPage url={url.data} target={target} {...rest} />
+        <PlanPage url={url.data.url} target={target} {...rest} />
       )}
-    </div>
+    </SheetFrame>
   );
 }

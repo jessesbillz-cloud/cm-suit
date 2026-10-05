@@ -137,5 +137,8 @@ export function itemRef(itemId: string): ScheduleItemRef {
   return { kind: 'activity', id: itemId };
 }
 
-/** The file kinds the one Upload button offers (the server decides what the file is). */
-export const UPLOAD_ACCEPT = '.xer,.xml,.csv,.pdf,.mpp,.xlsx,.xls,application/pdf,text/csv,text/xml,application/xml,image/*';
+/**
+ * The file kinds the one Upload button offers (the server decides what the file is). Only what it reads: an Excel sheet
+ * or a Project .mpp would only be told to come back as CSV or XML (_shared/schedule/detect.ts).
+ */
+export const UPLOAD_ACCEPT = '.xer,.xml,.csv,.pdf,application/pdf,text/csv,text/xml,application/xml,image/*';

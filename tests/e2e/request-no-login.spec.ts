@@ -3,11 +3,22 @@
 // mock hands out a fixed sample request token (src/data/mock/requestLink.ts).
 import { Buffer } from 'node:buffer';
 import process from 'node:process';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 const TOKEN = 'sample-request-token-sample-request-token-1';
 const PHOTO = { name: 'Sample north wall.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...new Array<number>(60).fill(0)]) };
+
+/** Opens a page; the test's first page can reload itself once (a new build taking over) while this navigation starts. */
+async function open(page: Page, path: string): Promise<void> {
+  try {
+    await page.goto(path);
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto(path);
+  }
+}
 
 test.describe('requests with no login (SPEC §6.4 #4)', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
@@ -66,6 +77,59 @@ test.describe('requests with no login (SPEC §6.4 #4)', () => {
     await expect(via).toContainText('Sample Foreman · Sample Framing Co');
     await expect(via.getByRole('link', { name: '555 010 2030' })).toHaveAttribute('href', 'tel:5550102030');
     await expect(page.getByTestId('ir-pane')).toContainText('Sample north wall framing');
+  });
+
+  test('the status link shows a postponement and, once the IR is made, View IR full screen (0075)', async ({ page }) => {
+    await open(page, `/r/job-a?t=${TOKEN}`);
+    await page.getByTestId('public-time').selectOption('10:00');
+    await page.getByTestId('public-items').fill('Sample shear wall nailing, line 3');
+    await page.getByTestId('public-name').fill('Sample Foreman');
+    await page.getByTestId('public-company').fill('Sample Framing Co');
+    await page.getByTestId('public-phone').fill('555 010 2030');
+    await page.getByTestId('public-ack').check();
+    await page.getByTestId('public-submit').click();
+    await expect(page.getByTestId('public-ir-number')).toHaveText(/^IR \d+$/);
+    const number = ((await page.getByTestId('public-ir-number').textContent()) ?? '').replace('IR ', '');
+    await page.getByTestId('public-status-open').click();
+    await expect(page).toHaveURL(/\/r\/job-a\/s\/[A-Za-z0-9_-]{43}$/);
+    const statusUrl = page.url();
+    await expect(page.getByTestId('public-status')).toContainText(`IR ${number}`);
+    await expect(page.getByTestId('public-view-ir')).toHaveCount(0);
+
+    // The inspector postpones it for the weather, with a note for the requester.
+    await page.evaluate(() => {
+      window.localStorage.setItem('e2e-mock-user', 'pm');
+    });
+    await open(page, `/p/job-a/inspections/mock-ir-${number}`);
+    const pane = page.getByTestId('ir-pane');
+    await pane.getByTestId('ir-postpone-open').click();
+    await pane.getByTestId('ir-postpone-reason-weather').click();
+    await pane.getByTestId('ir-postpone').getByLabel('Note').fill('Rain all day');
+    await pane.getByTestId('ir-postpone').getByRole('button', { name: 'Postpone' }).click();
+    await expect(pane.getByTestId('ir-postponed')).toContainText('Weather');
+
+    // The visitor's status link says why, with the note; never the inspector.
+    await open(page, statusUrl);
+    const postponed = page.getByTestId('public-ir-postponed');
+    await expect(postponed).toContainText('Weather');
+    await expect(postponed).toContainText('Rain all day');
+
+    // Confirmed again, approved, the IR made: View IR on the status link.
+    await open(page, `/p/job-a/inspections/mock-ir-${number}`);
+    await pane.getByTestId('ir-confirm').click();
+    await expect(pane.getByTestId('ir-postponed')).toHaveCount(0);
+    await pane.getByTestId('ir-result-approved').click();
+    await expect(pane.getByTestId('ir-outcome')).toContainText('Approved');
+    await pane.getByTestId('ir-generate').click();
+    await expect(pane.getByTestId('ir-view-ir')).toBeVisible();
+    await open(page, statusUrl);
+    await expect(page.getByTestId('public-ir-result')).toContainText('Approved');
+    await expect(page.getByTestId('public-ir-postponed')).toHaveCount(0);
+    // View IR opens its pages full screen (the mock's synthetic set); Escape closes it.
+    await page.getByTestId('public-view-ir').click();
+    await expect(page.getByTestId('file-viewer').getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('file-viewer')).toHaveCount(0);
   });
 
   test('a wrong status link says so', async ({ page }) => {

@@ -1,11 +1,13 @@
 // Inspection writes, on the side of whoever decides the request (ir.decide; ir.ofs_decide on an OFS request sent to
 // OFS, 0061). Each step is its own small RPC; the database checks that I own the request (or am its helper) and the
-// version. The IR PDF and the results email are edge functions (server-made, signed): they are not in the e2e mock.
+// version. The IR PDF and the results email are edge functions (server-made, signed); the e2e mock records Generate IR
+// as the database does (no bytes) and has no email.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { callFunction } from './functions';
 import { qk } from './keys';
 import { isMock } from './mock';
 import { irRpc, useIrMutation, type IrRef } from './inspections.mutations';
+import * as mock from './mock/inspections';
 import { irPdfResultSchema, irSendResultSchema, type IrSendResult } from './inspections.types';
 
 const base = (row: IrRef) => ({ p_request_id: row.id, p_version: row.version });
@@ -80,20 +82,28 @@ export function useHelperReport() {
   );
 }
 
+/** Delete PDF & start over: the daily loses the IR summary too (0029). */
 export function useDeletePdf() {
-  return useIrMutation((row: IrRef) => irRpc('ir_delete_pdf', base(row)));
+  const qc = useQueryClient();
+  return useIrMutation(async (row: IrRef) => {
+    const done = await irRpc('ir_delete_pdf', base(row));
+    await qc.invalidateQueries({ queryKey: qk.dailies(row.project_id) });
+    return done;
+  });
 }
 
 function notInMock(): never {
   throw new Error('The IR PDF and email are not available in the e2e mock.');
 }
 
-/** The IR PDF and the Files folder it lands in refresh after any PDF step. */
+/** The IR PDF, the Files folder it lands in and the inspection day's daily (its IR summary, 0029) refresh after any
+ *  PDF step. */
 function useAfterPdf() {
   const qc = useQueryClient();
   return async (projectId: string) => {
     await qc.invalidateQueries({ queryKey: qk.inspections(projectId) });
     await qc.invalidateQueries({ queryKey: ['files'] });
+    await qc.invalidateQueries({ queryKey: qk.dailies(projectId) });
   };
 }
 
@@ -102,7 +112,7 @@ export function useGenerateIr() {
   const after = useAfterPdf();
   return useMutation({
     mutationFn: async (v: { row: IrRef; filename: string }) => {
-      if (isMock()) notInMock();
+      if (isMock()) return mock.generateIr(v.row.id);
       return callFunction('ir-pdf', { action: 'generate', request_id: v.row.id, filename: v.filename }, irPdfResultSchema);
     },
     onSettled: (_r, _e, v) => after(v.row.project_id),
@@ -121,12 +131,20 @@ export function useRestampIr() {
   });
 }
 
+/** Who the results go to: members picked, the request's own link requester (its row's email, 0055), typed addresses. */
+interface SendTo {
+  row: IrRef;
+  memberIds: string[];
+  requester: boolean;
+  emails: string[];
+}
+
 export function useSendResults() {
   const after = useAfterPdf();
   return useMutation({
-    mutationFn: async (v: { row: IrRef; memberIds: string[] }): Promise<IrSendResult> => {
+    mutationFn: async (v: SendTo): Promise<IrSendResult> => {
       if (isMock()) notInMock();
-      return callFunction('ir-send', { request_id: v.row.id, member_ids: v.memberIds }, irSendResultSchema);
+      return callFunction('ir-send', { request_id: v.row.id, member_ids: v.memberIds, requester: v.requester, emails: v.emails }, irSendResultSchema);
     },
     onSettled: (_r, _e, v) => after(v.row.project_id),
   });

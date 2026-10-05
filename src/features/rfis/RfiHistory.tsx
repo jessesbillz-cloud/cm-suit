@@ -1,5 +1,4 @@
-// An RFI's history, in the full view only (its own window, or the phone's full screen): what happened, who, when, and
-// the note. Oldest first.
+// An RFI's history, behind one link in the pane: what happened, who, when, and the note. Oldest first.
 import type { RfiEvent } from '../../data/rfis.types';
 import { formatInZone } from '../../lib/dates';
 import { EVENT_LABELS } from './model';

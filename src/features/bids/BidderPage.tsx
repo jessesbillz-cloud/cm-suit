@@ -1,6 +1,7 @@
 // The bidder's page (SPEC §11.4): one plain column of cards, phone-friendly. Only what this bidder may see:
 // the job, their packages, addenda, answers, their own questions, and the plans and specs.
 import { useEffect, type ReactNode } from 'react';
+import { messageOf } from '../../data/errors';
 import { markInviteOpened, useBidderPage } from '../../data/bidder';
 import type { BidderPage as Page } from '../../data/bids.types';
 import { useMyProjects } from '../../data/queries';
@@ -9,10 +10,12 @@ import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import { useToast } from '../../ui/Toast';
 import { BidderAddenda } from './BidderAddenda';
 import { BidderDocuments } from './BidderDocuments';
 import { BidderPackageCard } from './BidderPackageCard';
 import { BidderQA } from './BidderQA';
+import { UploadList } from '../files/UploadList';
 import { dueRelative } from './pipeline';
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -67,16 +70,19 @@ export function BidderPage({ projectId }: { projectId: string }) {
   // The company running the job, from my own jobs list (the page itself carries only the job).
   const projects = useMyProjects();
   const gc = projects.data?.find((j) => j.project_id === projectId)?.org_name ?? null;
+  const toast = useToast();
 
+  // Opening the page tells the estimator it was opened. A failure is said, not only logged.
   useEffect(() => {
     markInviteOpened(projectId).catch((e: unknown) => {
       console.error('mark_invite_opened failed', e);
+      toast.show({ tone: 'error', message: `Your visit wasn't recorded: ${messageOf(e)}` });
     });
-  }, [projectId]);
+  }, [projectId, toast]);
 
   if (page.isPending || page.isError) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} />
         <Card padded={false}>
           {page.isError ? <ErrorState error={page.error} onRetry={() => void page.refetch()} /> : <LoadingState label="Loading your bid page" />}
@@ -87,10 +93,16 @@ export function BidderPage({ projectId }: { projectId: string }) {
 
   const p = page.data;
   return (
-    <div className="mx-auto max-w-2xl" data-testid="bidder-page">
+    <div data-testid="bidder-page">
       <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} meta={metaLine(p)} />
       <div className="flex flex-col gap-4">
         <ProjectCard project={p.project} gc={gc} packages={p.packages.length} />
+        {p.upload_folder_id !== null ? (
+          // The bid going up (one queue for the page): progress, Stop, Retry; then its receipt number.
+          <div className="overflow-hidden rounded-card bg-card shadow-card empty:hidden">
+            <UploadList folderId={p.upload_folder_id} />
+          </div>
+        ) : null}
         {p.packages.map((pkg) => (
           <BidderPackageCard key={pkg.id} projectId={projectId} pkg={pkg} folderId={p.upload_folder_id} tz={p.project.timezone} />
         ))}

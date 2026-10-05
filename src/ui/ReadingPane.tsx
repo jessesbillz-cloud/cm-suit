@@ -1,17 +1,23 @@
-// The reading pane (SPEC §7.4): one flat view. Header, body, attachments with one-click downloads, and a footer
+// The reading pane (SPEC §7.4): one flat view. Header, body, attachments (a thumbnail for a photo, a tap opens the file
+// viewer over the list, one-click Download), and a footer
 // with "Open in new window", the item's own actions and "Download". History sits behind one link. Arrow keys move to
 // the next/previous item. PaneSection is the one look for a titled block inside a pane (tracker, question, answer).
 import { useEffect, useRef, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp, Download, ExternalLink, History } from 'lucide-react';
+import { usePreviewFetch, type PreviewVia } from '../data/preview';
+import { fileKind } from '../lib/fileKind';
 import { formatBytes } from '../lib/format';
 import { Button } from './Button';
+import { useFileViewer, type ViewerItem } from './FileViewer';
 import { fileIcon } from './fileIcon';
 import { Icon } from './Icon';
+import { Thumb } from './Thumb';
 
 interface Attachment {
   id: string;
   name: string;
   size?: number | undefined;
+  mime?: string | undefined;
 }
 
 interface ReadingPaneProps {
@@ -24,11 +30,15 @@ interface ReadingPaneProps {
   children?: ReactNode | undefined;
   attachments?: readonly Attachment[] | undefined;
   onDownloadAttachment?: ((id: string) => void) | undefined;
+  /** The gate the attachments are shown through (an RFI's or a request's own); left out, each file's folder. */
+  attachmentVia?: PreviewVia | undefined;
   /** Which attachment is downloading right now (shows a spinner on that one button). */
   downloadingId?: string | null | undefined;
   onOpenWindow?: (() => void) | undefined;
   onDownload?: (() => void) | undefined;
   downloading?: boolean | undefined;
+  /** Download shows but can't be used yet (someone else's file still being scanned). */
+  downloadDisabled?: boolean | undefined;
   /** The footer's Download label when it says what downloads (e.g. "Download IR"). */
   downloadLabel?: string | undefined;
   /** More footer buttons, before Download (e.g. "Open in Files"). "Open in new window" then shows as an icon. */
@@ -84,6 +94,21 @@ function Stepper({ onPrev, onNext }: StepperProps) {
 export function ReadingPane(props: ReadingPaneProps) {
   const { eyebrow, number, title, meta, children, attachments = [], actions, onPrev, onNext, onHistory } = props;
   const root = useRef<HTMLElement>(null);
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
+  const via = props.attachmentVia;
+  const items: ViewerItem[] = attachments.map((a) => ({
+    id: a.id,
+    name: a.name,
+    kind: fileKind(a.name, a.mime),
+    url: () => preview(a.id, via),
+    // The place's own download (its toast reports a failure).
+    download: () => {
+      if (!props.onDownloadAttachment) return Promise.reject(new Error('This file has no download here.'));
+      props.onDownloadAttachment(a.id);
+      return Promise.resolve();
+    },
+  }));
   const hasBody = (children !== undefined && children !== null && children !== false) || attachments.length > 0 || onHistory !== undefined;
 
   // Focus the pane when the item changes, so the arrow keys work straight away.
@@ -124,12 +149,25 @@ export function ReadingPane(props: ReadingPaneProps) {
         {children}
         {attachments.length > 0 ? (
           <ul className="mt-4 flex flex-col gap-2" aria-label="Attachments">
-            {attachments.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
-                  <Icon icon={fileIcon(a.name)} size={16} />
-                </span>
-                <span className="min-w-0 flex-1 break-words">{a.name}</span>
+            {attachments.map((a, i) => (
+              <li key={a.id} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2" data-testid="attachment">
+                <button
+                  type="button"
+                  data-testid="attachment-view"
+                  className="flex min-h-10 min-w-0 flex-1 items-center gap-3 text-left hover:text-accent"
+                  onClick={() => {
+                    viewer.open(items, i);
+                  }}
+                >
+                  {items[i]?.kind === 'image' ? (
+                    <Thumb fileId={a.id} via={via} alt={a.name} className="h-10 w-10 shrink-0" iconSize={16} />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
+                      <Icon icon={fileIcon(a.name, a.mime)} size={16} />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 break-words">{a.name}</span>
+                </button>
                 {a.size !== undefined ? <span className="shrink-0 text-xs tabular-nums text-ink-3">{formatBytes(a.size)}</span> : null}
                 {props.onDownloadAttachment ? (
                   <Button
@@ -179,7 +217,7 @@ export function ReadingPane(props: ReadingPaneProps) {
           ) : null}
           {actions}
           {props.onDownload ? (
-            <Button variant="primary" icon={Download} loading={props.downloading} onClick={props.onDownload}>
+            <Button variant="primary" icon={Download} loading={props.downloading} disabled={props.downloadDisabled} onClick={props.onDownload}>
               {props.downloadLabel ?? 'Download'}
             </Button>
           ) : null}

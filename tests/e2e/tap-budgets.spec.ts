@@ -90,6 +90,23 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     expect(name, 'download keeps the original filename, not a storage id').not.toMatch(/^[0-9a-f-]{36}$/i);
   });
 
+  // SPEC §7.9 "Download any file you can see: 1": a plan sheet in Revs, through the gate that shows it.
+  test('download the plan sheet on screen = 1 click', async ({ page }) => {
+    await page.goto('/p/job-s/revs?view=plan'); // setup: the plan itself
+    const download = page.getByTestId('plan-sheet').getByTestId('plan-download');
+    await expect(download).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    const saved = page.waitForEvent('download', { timeout: 10_000 });
+    await tap(download, counter);
+    const file = await saved;
+
+    expect(counter.n).toBe(1);
+    expect(await taps(page)).toBe(1);
+    expect(file.suggestedFilename()).toBe('Sample A-101 Floor Plan.pdf');
+  });
+
   // The job's Board and Dailies sit under More for the PM: switching jobs keeps them all the same.
   for (const tool of ['files', 'board', 'dailies'] as const) {
     test(`switch job, same tool = 2 clicks (${tool})`, async ({ page }) => {
@@ -116,6 +133,32 @@ test.describe('tap budgets (SPEC §7.9)', () => {
       expect(await taps(page)).toBe(2);
     });
   }
+});
+
+test.describe("tap budgets, today's daily (SPEC §7.9)", () => {
+  test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
+    await installTapCounter(page, 'pm');
+  });
+
+  // From the report screen: Submit, then the signature confirm when the server asks for one (the mock session is fresh,
+  // so it signs straight away). Typing the report is not counted.
+  test("submit today's daily = at most 3 clicks + signature confirm", async ({ page }) => {
+    await page.goto('/p/job-a/dailies'); // setup: the report screen
+    await page.getByTestId('daily-today').click();
+    const editor = page.getByTestId('daily-editor');
+    await editor.getByTestId('note-general').fill('Sample note for the day.');
+    await expect(editor.getByText('Saved', { exact: true })).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(editor.getByTestId('daily-submit'), counter);
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+    expect(counter.n).toBeLessThanOrEqual(3);
+    expect(await taps(page)).toBe(counter.n);
+  });
 });
 
 test.describe('tap budgets, bidder (SPEC §7.9)', () => {

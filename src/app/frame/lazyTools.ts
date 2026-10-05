@@ -37,6 +37,9 @@ export const SafetyTool = lazyRouteComponent(() => import('../../features/safety
 export const ScheduleTool = lazyRouteComponent(() =>
   import('../../features/schedule/ScheduleTool').then((m) => ({ default: m.ScheduleTool })),
 );
+export const RequirementsTool = lazyRouteComponent(() =>
+  import('../../features/requirements/RequirementsTool').then((m) => ({ default: m.RequirementsTool })),
+);
 export const HoursTool = lazyRouteComponent(() => import('../../features/hours/HoursTool').then((m) => ({ default: m.HoursTool })));
 export const TimesheetsTool = lazyRouteComponent(() =>
   import('../../features/timesheets/TimesheetsTool').then((m) => ({ default: m.TimesheetsTool })),
@@ -65,6 +68,9 @@ export const PermitItem = lazyRouteComponent(() => import('../../features/permit
 export const SafetyItem = lazyRouteComponent(() => import('../../features/safety/SafetyItem').then((m) => ({ default: m.SafetyItem })));
 export const ScheduleItem = lazyRouteComponent(() =>
   import('../../features/schedule/ScheduleItem').then((m) => ({ default: m.ScheduleItem })),
+);
+export const RequirementsItem = lazyRouteComponent(() =>
+  import('../../features/requirements/RequirementsItem').then((m) => ({ default: m.RequirementsItem })),
 );
 export const HoursItem = lazyRouteComponent(() => import('../../features/hours/HoursItem').then((m) => ({ default: m.HoursItem })));
 export const TimesheetsItem = lazyRouteComponent(() =>
@@ -115,6 +121,8 @@ function partsOf(tool: Tool, onJob: boolean): readonly Part[] {
       return [SafetyTool, SafetyItem];
     case 'schedule':
       return [ScheduleTool, ScheduleItem];
+    case 'requirements':
+      return [RequirementsTool, RequirementsItem];
     case 'hours':
       return [HoursTool, HoursItem];
     case 'timesheets':

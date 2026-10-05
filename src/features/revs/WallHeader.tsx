@@ -1,12 +1,16 @@
 // The wall's callout at the top of its page: the name big ("Electrical 0242 / IDF 0240"), the grid or room in brackets
-// beside it, the level, the list and its phase small with the plan sheet (a tap opens it in Files), and the tally; on
-// a desktop, where the wall is on the plan beside it (`side`).
-import type { ReactNode } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+// beside it, the level, the list and its phase small with the plan sheet (a tap opens the plan at this wall, the one
+// place a sheet opens; Download beside it saves the sheet, through the same gate), and the tally; on a desktop, where
+// the wall is on the plan beside it (`side`). A manager's Rename / Remove sit with the name (`manage`). Its details
+// (0082) in one short line under the name (tag · rating · UL · fire area · sheet), and a neutral Check chip that shows
+// what still needs checking against the plans when tapped.
+import { useState, type ReactNode } from 'react';
 import { FileText } from 'lucide-react';
-import { useFile } from '../../data/queries';
 import type { RevArea, RevList } from '../../data/revs.types';
+import { usePlanSheetUrl } from '../../data/sheetUrl';
 import { Icon } from '../../ui/Icon';
+import { PlanDownload } from './plan/PlanDownload';
+import { detailsLine } from './model';
 import { calloutOf, type WallCount } from './wallPage';
 import { WallProgress } from './WallProgress';
 
@@ -19,30 +23,68 @@ interface WallHeaderProps {
   action?: ReactNode;
   /** Right of the whole callout: the wall on the plan (desktop). */
   side?: ReactNode;
+  /** The plan at this wall. */
+  onShowSheet: () => void;
+  /** A manager's Rename / Remove. */
+  manage?: ReactNode;
 }
 
-function SheetLink({ projectId, fileId }: { projectId: string; fileId: string }) {
-  const navigate = useNavigate();
-  const file = useFile(fileId);
-  if (!file.data) return null;
+interface SheetLinkProps {
+  projectId: string;
+  fileId: string;
+  onShow: () => void;
+}
+
+/** The sheet's name (through Revs' gate: a reader who can't open Files still sees it) and its Download. */
+function SheetLink({ projectId, fileId, onShow }: SheetLinkProps) {
+  const url = usePlanSheetUrl(projectId, fileId);
+  const name = url.data ? (url.data.name ?? 'Plan sheet') : url.isError ? 'Plan sheet' : null;
+  if (name === null) return null;
   return (
-    <button
-      type="button"
-      className="inline-flex min-w-0 items-start gap-1 text-left text-accent hover:underline"
-      data-testid="rev-wall-sheet"
-      onClick={() => {
-        void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool: 'files', itemId: fileId } });
-      }}
-    >
-      <Icon icon={FileText} size={14} className="mt-[3px] shrink-0" />
-      <span className="break-words">{file.data.original_name}</span>
-    </button>
+    <span className="flex min-w-0 items-center gap-1">
+      <button
+        type="button"
+        className="inline-flex min-w-0 items-start gap-1 text-left text-accent hover:underline"
+        data-testid="rev-wall-sheet"
+        onClick={onShow}
+      >
+        <Icon icon={FileText} size={14} className="mt-[3px] shrink-0" />
+        <span className="break-words">{name}</span>
+      </button>
+      <PlanDownload projectId={projectId} fileId={fileId} name={name} testId="rev-wall-sheet-download" />
+    </span>
   );
 }
 
-export function WallHeader({ projectId, area, list, count, action, side }: WallHeaderProps) {
+/** What still needs checking: a neutral chip; a tap shows the note beside it. */
+function CheckNote({ note }: { note: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-expanded={open}
+        className="inline-flex h-6 shrink-0 items-center rounded-full border border-line-strong bg-card px-2.5 text-[12px] font-medium text-ink-2 hover:bg-page"
+        data-testid="rev-wall-check"
+        onClick={() => {
+          setOpen(!open);
+        }}
+      >
+        Check
+      </button>
+      {open ? (
+        <span className="min-w-0 basis-full break-words text-ink" data-testid="rev-wall-check-note">
+          {note}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+export function WallHeader({ projectId, area, list, count, action, side, onShowSheet, manage }: WallHeaderProps) {
   const { title, sub } = calloutOf(area.name);
   const meta = [area.level.trim(), list?.name, list?.phase].filter((x): x is string => Boolean(x));
+  const details = detailsLine(area);
   return (
     <header className="flex items-start gap-5">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -51,7 +93,7 @@ export function WallHeader({ projectId, area, list, count, action, side }: WallH
           {area.sheet_file_id ? (
             <span className="flex min-w-0 items-start gap-2">
               <span className="hidden text-ink-3 sm:inline">·</span>
-              <SheetLink projectId={projectId} fileId={area.sheet_file_id} />
+              <SheetLink projectId={projectId} fileId={area.sheet_file_id} onShow={onShowSheet} />
             </span>
           ) : null}
         </div>
@@ -65,8 +107,15 @@ export function WallHeader({ projectId, area, list, count, action, side }: WallH
               </>
             ) : null}
           </h1>
+          {manage}
           {action}
         </div>
+        {details !== null || area.check_note ? (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] leading-5 text-ink-2">
+            {details !== null ? <span data-testid="rev-wall-details">{details}</span> : null}
+            {area.check_note ? <CheckNote key={area.check_note} note={area.check_note} /> : null}
+          </div>
+        ) : null}
         <WallProgress count={count} withLine testId="rev-wall-progress" />
       </div>
       {side}

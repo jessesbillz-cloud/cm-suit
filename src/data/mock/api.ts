@@ -23,6 +23,8 @@ import {
   mockProfile,
   toBoardLine,
 } from './fixtures';
+import { ADDENDUM_FILES } from './addenda';
+import { fileReadable, folderReadable } from './fileAccess';
 import { MOCK_FOLDERS } from './folders';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
@@ -52,9 +54,21 @@ export async function markRead(projectIds: string[], at: string): Promise<void> 
 
 export async function tasks(projectId: string | null): Promise<TaskRow[]> {
   await delay();
-  const state = readMock().tasks;
-  return MOCK_TASKS.filter((t) => state[t.id]?.done !== true && (projectId === null || t.project_id === projectId)).map((t) => ({
-    ...t,
+  const { tasks: state, bidder } = readMock();
+  const me = mockUser().id;
+  // An acknowledged addendum's task is done (acknowledge_addendum closes it).
+  const closed = (t: TaskRow) => state[t.id]?.done === true || (t.kind === 'addendum_ack' && t.entity_id !== null && t.entity_id in bidder.acks);
+  return MOCK_TASKS.filter(
+    (t) => (t.assignee === undefined || t.assignee === me) && !closed(t) && (projectId === null || t.project_id === projectId),
+  ).map((t): TaskRow => ({
+    id: t.id,
+    project_id: t.project_id,
+    kind: t.kind,
+    title: t.title,
+    entity_type: t.entity_type,
+    entity_id: t.entity_id,
+    due_at: t.due_at,
+    requires_signature: t.requires_signature,
     version: state[t.id]?.version ?? t.version,
   }));
 }
@@ -93,8 +107,9 @@ function allFolders(): FolderRow[] {
 export async function folders(projectId: string): Promise<FolderRow[]> {
   await delay();
   const files = allFiles();
-  return allFolders()
-    .filter((f) => f.project_id === projectId)
+  const all = allFolders();
+  return all
+    .filter((f) => f.project_id === projectId && folderReadable(f, all))
     .map((f) => ({ ...f, file_count: f.kind === 'inbound' ? files.filter((x) => x.folder_id === f.id).length : null }))
     .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
 }
@@ -119,19 +134,34 @@ export async function createFolder(projectId: string, parentId: string | null, n
   return row;
 }
 
-export async function setFolderAiReads(folderId: string, aiReads: boolean, version: number): Promise<number> {
+async function changeFolder(folderId: string, version: number, patch: Partial<FolderRow>): Promise<FolderRow> {
   await delay();
   const current = allFolders().find((f) => f.id === folderId);
   if (!current || current.version !== version) throw conflictError();
-  const next: FolderRow = { ...current, ai_reads: aiReads, version: version + 1 };
+  const next: FolderRow = { ...current, ...patch, version: version + 1 };
   writeMock((m) => ({ ...m, folders: [...m.folders.filter((f) => f.id !== folderId), next] }));
-  return next.version;
+  return next;
 }
 
-/** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test, less the removed uploads. */
+export async function setFolderAiReads(folderId: string, aiReads: boolean, version: number): Promise<number> {
+  return (await changeFolder(folderId, version, { ai_reads: aiReads })).version;
+}
+
+/** A folder renamed in Files (the database also refuses the system's reserved names; the mock takes any). */
+export function renameFolder(folderId: string, version: number, name: string): Promise<FolderRow> {
+  return changeFolder(folderId, version, { name });
+}
+
+/**
+ * Fixture files (a saved copy of one wins: moved or renamed by a mock write) plus the ones added in this test, less the
+ * removed uploads and the deleted files, as the signed-in mock user may read them (the bidder: mock/fileAccess).
+ */
 function allFiles(): FileRow[] {
-  const { files: saved, removedUploads } = readMock();
-  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter((f) => !removedUploads.includes(f.id));
+  const { files: saved, removedUploads, removedFiles } = readMock();
+  const folderRows = allFolders();
+  return [...[...MOCK_FILES, ...ADDENDUM_FILES].filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter(
+    (f) => !removedUploads.includes(f.id) && !removedFiles.includes(f.id) && fileReadable(f, folderRows),
+  );
 }
 
 export async function files(folderId: string): Promise<FileRow[]> {
@@ -207,10 +237,25 @@ export async function removeUnfinishedUpload(fileId: string): Promise<void> {
   writeMock((m) => ({ ...m, removedUploads: [...m.removedUploads, fileId] }));
 }
 
+/** My own finished upload taken back before any record uses it (a soft delete): hidden from every read. */
+export async function removeOwnUpload(fileId: string): Promise<void> {
+  await delay();
+  const row = readMock().files.find((f) => f.id === fileId);
+  if (row && row.created_by !== mockUser().id) throw toDataError({ message: 'not_found', code: 'P0002' });
+  writeMock((m) => ({ ...m, removedUploads: m.removedUploads.includes(fileId) ? m.removedUploads : [...m.removedUploads, fileId] }));
+}
+
+/** The server soft-deletes a file (deleted_at): my own upload only; gone from every read. */
+export function softDeleteMyFile(fileId: string): void {
+  const row = readMock().files.find((f) => f.id === fileId);
+  if (!row || row.created_by !== mockUser().id) return;
+  writeMock((m) => ({ ...m, removedFiles: m.removedFiles.includes(fileId) ? m.removedFiles : [...m.removedFiles, fileId] }));
+}
+
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {
   await delay();
   const f = allFiles().find((x) => x.id === fileId);
-  if (!f) throw new Error('That file no longer exists.');
+  if (!f) throw new Error("You don't have access to this file.");
   return { blob: new Blob([`Synthetic e2e file: ${f.original_name}\n`], { type: 'application/pdf' }), filename: f.original_name };
 }
 

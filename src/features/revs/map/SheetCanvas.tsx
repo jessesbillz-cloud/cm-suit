@@ -3,7 +3,7 @@
 //   - detail: once the view settles past what the base shows sharply, only the part in view, at screen sharpness.
 import { useEffect, useRef, useState } from 'react';
 import { LoadingState } from '../../../ui/States';
-import { renderRegion, type PDFPageProxy, type Region } from './pdfjs';
+import { renderRegion, type PDFPageProxy, type Region } from '../../../lib/pdf/pdfjs';
 import { cappedDensity, visibleRegion, type Size, type View } from './viewport';
 
 /** About 24 MB of pixels for the whole page. */

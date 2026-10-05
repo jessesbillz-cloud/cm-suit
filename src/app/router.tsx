@@ -51,6 +51,8 @@ interface ToolSearch {
   place?: string;
   /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
   range?: string;
+  /** Requirements (0069, 0073): All's grouping (section or company; absent = by kind). */
+  by?: 'section' | 'company';
 }
 
 function str(v: unknown): string | undefined {
@@ -78,6 +80,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const wall = idList(s['wall']);
   const place = idList(s['place']);
   const range = str(s['range']);
+  const by = s['by'];
   return {
     ...(folder ? { folder } : {}),
     ...(view ? { view } : {}),
@@ -92,6 +95,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
     ...(range === '2m' ? { range } : {}),
+    ...(by === 'section' || by === 'company' ? { by } : {}),
   };
 }
 
@@ -205,7 +209,10 @@ const allBidsRoute = createRoute({
   validateSearch: parsePipelineSearch,
   component: AllBidsRoute,
 });
+const allBidsItemRoute = createRoute({ getParentRoute: () => allBidsRoute, path: '$itemId' });
 const allSettingsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/all/settings', component: AllSettingsRoute });
+/** A board line opened from the docked board beside the pipeline or Settings (lib/itemIds boardLineItem). */
+const allSettingsItemRoute = createRoute({ getParentRoute: () => allSettingsRoute, path: '$itemId' });
 
 /** Timesheets (all my jobs): the month (?day=yyyy-MM-01), the company (?org=) and "open in new window". */
 function parseTimesheetsSearch(s: Record<string, unknown>): { day?: string; org?: string; window?: '1' } {
@@ -247,8 +254,8 @@ const routeTree = rootRoute.addChildren([
   deliveryLinkRoute,
   requestLinkRoute,
   hubRoute,
-  allBidsRoute,
-  allSettingsRoute,
+  allBidsRoute.addChildren([allBidsItemRoute]),
+  allSettingsRoute.addChildren([allSettingsItemRoute]),
   allTimesheetsRoute.addChildren([allTimesheetsItemRoute]),
   allPermitsRoute.addChildren([allPermitsItemRoute]),
   requestStatusRoute,

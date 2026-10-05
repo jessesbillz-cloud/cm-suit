@@ -1,5 +1,6 @@
 // Corrections log / punchlist (SPEC §13.4, §7.4). The log in the main area; a row, New and Progress open in the right
-// column (full screen on the phone). On the phone, New goes straight to the camera, then the form.
+// column (full screen on the phone). On the phone, New goes straight to the camera, then the form; "No photo" opens the
+// form at once (some phones never say the camera was cancelled).
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Camera, ChartColumn, Plus } from 'lucide-react';
 import { useCorrections } from '../../data/corrections.queries';
@@ -33,14 +34,17 @@ interface FrameProps {
 
 function Frame({ meta, actions, below, children }: FrameProps) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col">
+    <div className="flex flex-col">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>
   );
 }
 
-/** Phone: New opens the camera at once. Cancelling the camera still opens the form (a photo-less item). */
+/**
+ * Phone: New opens the camera at once; cancelling it still opens the form where the browser says so. "No photo" is
+ * the plain way to a photo-less item on every phone.
+ */
 function PhoneNew({ onPicked }: { onPicked: (files: File[]) => void }) {
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -57,6 +61,16 @@ function PhoneNew({ onPicked }: { onPicked: (files: File[]) => void }) {
 
   return (
     <>
+      <Button
+        variant="quiet"
+        icon={Plus}
+        data-testid="cn-new-plain"
+        onClick={() => {
+          onPicked([]);
+        }}
+      >
+        No photo
+      </Button>
       <Button
         variant="primary"
         icon={Camera}

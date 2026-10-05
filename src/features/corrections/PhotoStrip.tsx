@@ -1,11 +1,15 @@
-// Saved photos on an item or a step: one tile each showing the picture (ui/Thumb) and the time it was added; one click
-// downloads the original (lib/saveFile via useDownload).
+// Saved photos on an item or a step: one tile each showing the picture (ui/Thumb) and the time it was added. A tap opens
+// the file viewer over the strip (arrows between them, Download inside); the corner downloads the original in one click.
 import { LoaderCircle } from 'lucide-react';
 import { usePhotoFiles } from '../../data/corrections.queries';
+import { usePreviewFetch } from '../../data/preview';
 import { formatInZone } from '../../lib/dates';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
+import { PhotoTile } from '../../ui/PhotoTile';
 import { ErrorState } from '../../ui/States';
-import { PHOTO_GRID, PHOTO_TILE, PHOTO_TILE_LABEL, Thumb } from '../../ui/Thumb';
+import { PHOTO_GRID } from '../../ui/Thumb';
+import { fileViewerItem } from '../files/viewerItems';
 import { useDownload } from '../files/useDownload';
 
 interface PhotoStripProps {
@@ -17,6 +21,8 @@ interface PhotoStripProps {
 export function PhotoStrip({ projectId, ids, timeZone }: PhotoStripProps) {
   const files = usePhotoFiles(projectId, ids);
   const download = useDownload();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
 
   if (ids.length === 0) return null;
   if (files.isPending) {
@@ -30,31 +36,29 @@ export function PhotoStrip({ projectId, ids, timeZone }: PhotoStripProps) {
   if (files.isError) return <ErrorState error={files.error} onRetry={() => void files.refetch()} title="Photos did not load." />;
   if (files.data.length === 0) return <p className="text-sm text-ink-2">Photos removed.</p>;
 
+  const items = files.data.map((f) => fileViewerItem(f, preview));
   return (
     <ul className={PHOTO_GRID} aria-label="Photos">
-      {files.data.map((f) => (
-        <li key={f.id}>
-          <button
-            type="button"
-            title={f.original_name}
-            aria-label={`Download ${f.original_name}`}
-            className={PHOTO_TILE}
-            onClick={() => {
-              download.start(f.id, f.size);
-            }}
-          >
-            <Thumb fileId={f.id} alt={f.original_name} fill />
-            <span className={PHOTO_TILE_LABEL}>
+      {files.data.map((f, i) => (
+        <PhotoTile
+          key={f.id}
+          fileId={f.id}
+          name={f.original_name}
+          testId="cn-photo"
+          downloading={download.pendingId === f.id}
+          onOpen={() => {
+            viewer.open(items, i);
+          }}
+          onDownload={() => {
+            download.start(f.id, f.size);
+          }}
+          label={
+            <>
               <span className="block">{formatInZone(f.created_at, timeZone, 'MMM d')}</span>
               <span className="block">{formatInZone(f.created_at, timeZone, 'h:mm a')}</span>
-            </span>
-            {download.pendingId === f.id ? (
-              <span className="absolute inset-0 flex items-center justify-center bg-card/60">
-                <Icon icon={LoaderCircle} size={20} className="animate-spin text-ink-2" label="Downloading" />
-              </span>
-            ) : null}
-          </button>
-        </li>
+            </>
+          }
+        />
       ))}
     </ul>
   );

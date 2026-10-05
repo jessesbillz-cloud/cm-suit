@@ -1,11 +1,14 @@
 // TV mode (SPEC §13.3): full screen, live clock, the screen kept awake, refreshed every 30 seconds by its caller.
-// Big type, readable from across a trailer: today on the left, the next six days on the right.
+// Big type, readable from across a trailer: today on the left, the next six days on the right. A list longer than the
+// screen pages through by itself (and scrolls by hand), with "More" at its foot, so nothing is silently cut off.
+import { ChevronsDown } from 'lucide-react';
 import { formatDay, formatInZone, todayInZone } from '../../lib/dates';
 import { byTime, shiftDay } from '../../lib/deliveries';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { DeliveryCard, StandbyChip, timeRange, type CardDelivery } from './DeliveryCard';
-import { useNow, useWakeLock } from './useTvScreen';
+import { useNow, useTvPaging, useWakeLock } from './useTvScreen';
 
 /** How far the TV looks ahead (today + 6 days). */
 export const TV_DAYS = 7;
@@ -19,8 +22,20 @@ interface TvViewProps {
   onExit: () => void;
 }
 
+function MoreBelow({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <p className="flex shrink-0 items-center gap-2 text-xl font-medium text-ink-2" data-testid="delivery-tv-more">
+      <Icon icon={ChevronsDown} size={22} />
+      More
+    </p>
+  );
+}
+
 export function TvView({ title, tz, rows, error, onExit }: TvViewProps) {
   useWakeLock();
+  const todayList = useTvPaging<HTMLUListElement>();
+  const nextList = useTvPaging<HTMLDivElement>();
   const now = useNow();
   const today = todayInZone(tz, now);
   const all = [...(rows ?? [])].sort((a, b) => a.delivery_date.localeCompare(b.delivery_date) || byTime(a, b));
@@ -47,32 +62,36 @@ export function TvView({ title, tz, rows, error, onExit }: TvViewProps) {
         <section className="flex min-h-0 flex-col gap-3" aria-label="Today">
           <h2 className="text-3xl font-semibold text-ink">Today</h2>
           {rows !== undefined && todays.length === 0 ? <p className="text-2xl text-ink-2">No deliveries today.</p> : null}
-          <ul className="flex flex-col gap-3 overflow-hidden">
+          <ul ref={todayList.ref} className="flex min-h-0 flex-col gap-3 overflow-y-auto" data-testid="delivery-tv-today">
             {todays.map((r) => (
               <DeliveryCard key={r.number} delivery={r} tz={tz} size="tv" />
             ))}
           </ul>
+          <MoreBelow show={todayList.more} />
         </section>
-        <section className="flex min-h-0 flex-col gap-3 overflow-hidden" aria-label="Next days">
+        <section className="flex min-h-0 flex-col gap-3" aria-label="Next days">
           <h2 className="text-3xl font-semibold text-ink">Coming up</h2>
-          {next.map((d) => {
-            const list = all.filter((r) => r.delivery_date === d);
-            if (list.length === 0) return null;
-            return (
-              <div key={d}>
-                <p className="text-xl font-semibold text-ink-2">{formatDay(d, 'EEEE, MMM d')}</p>
-                <ul className="flex flex-col gap-1">
-                  {list.map((r) => (
-                    <li key={r.number} className="flex flex-wrap items-center gap-x-3 text-xl text-ink">
-                      <span className="tabular-nums text-ink-2">{timeRange(r, tz)}</span>
-                      <span className="font-semibold">{r.company}</span>
-                      {r.standby ? <StandbyChip /> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          <div ref={nextList.ref} className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+            {next.map((d) => {
+              const list = all.filter((r) => r.delivery_date === d);
+              if (list.length === 0) return null;
+              return (
+                <div key={d}>
+                  <p className="text-xl font-semibold text-ink-2">{formatDay(d, 'EEEE, MMM d')}</p>
+                  <ul className="flex flex-col gap-1">
+                    {list.map((r) => (
+                      <li key={r.number} className="flex flex-wrap items-center gap-x-3 text-xl text-ink">
+                        <span className="tabular-nums text-ink-2">{timeRange(r, tz)}</span>
+                        <span className="font-semibold">{r.company}</span>
+                        {r.standby ? <StandbyChip /> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+          <MoreBelow show={nextList.more} />
         </section>
       </div>
       <div className="absolute bottom-4 right-4">

@@ -4,7 +4,7 @@
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY. Exits non-zero on any failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
-import { BUCKETS, LINK_REVS_RPCS, OFS_PERMITS_RPCS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, REQUEST_NO_LOGIN_RPCS, REVS_RPCS, Report, SAFETY_RPCS, SCHEDULE_RPCS, ZERO_UUID, errText, makeClient, probeMeetingSignin, requestNoLoginCases, requireEnv, rowsOf } from './_lib';
+import { BUCKETS, DAILY_FORMS_RPCS, FILE_VIEWER_RPCS, LINK_REVS_RPCS, OFS_PERMITS_RPCS, PERMIT_STAMP_RPCS, PUBLIC_TABLES, REQUEST_NO_LOGIN_RPCS, REQUIREMENTS_RPCS, REVS_RPCS, Report, SAFETY_RPCS, SCHEDULE_RPCS, WEATHER_RPCS, ZERO_UUID, errText, makeClient, probeMeetingSignin, requestNoLoginCases, requireEnv, rowsOf } from './_lib';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -297,14 +297,14 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['permit_number_free', { p_project_id: U, p_number: '00-0000', p_except: U }],
   ['permit_officials', { p_project_id: U, p_assigned_to: U }],
   ['permit_tell', { p_permit: {}, p_kind: 'probe', p_summary: 'probe', p_people: [] }],
-  // Permit stamp (0053): listed in _lib.ts, this file being at its line limit.
-  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS, ...REQUEST_NO_LOGIN_RPCS, ...REVS_RPCS, ...LINK_REVS_RPCS, ...SAFETY_RPCS, ...OFS_PERMITS_RPCS, ...SCHEDULE_RPCS,
+  // Permit stamp (0053) and later: listed in _lib.ts, this file being at its line limit.
+  ['permit_cycle', { p_permit_id: U }], ...PERMIT_STAMP_RPCS, ...REQUEST_NO_LOGIN_RPCS, ...REVS_RPCS, ...LINK_REVS_RPCS, ...SAFETY_RPCS, ...OFS_PERMITS_RPCS, ...SCHEDULE_RPCS, ...REQUIREMENTS_RPCS, ...DAILY_FORMS_RPCS, ...WEATHER_RPCS, ...FILE_VIEWER_RPCS,
 ];
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
   'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health', 'invite-bidders', 'issue-addendum', 'extract-bid',
-  'import-subs', 'submit-daily', 'email-daily', 'ir-pdf', 'ir-send', 'rfis', 'timesheets', 'permit-stamp', 'safety-meeting', 'schedule-import',
+  'import-subs', 'submit-daily', 'email-daily', 'ir-pdf', 'ir-send', 'rfis', 'timesheets', 'permit-stamp', 'safety-meeting', 'schedule-import', 'requirements-extract', 'job-weather',
 ];
 /** SPEC §6.4 public endpoints: an empty body is refused (never 200). calendar-feed is GET-only, so a POST is a 400. */
 const PUBLIC_FUNCTIONS = ['access', 'share', 'inbound-email', 'email-events', 'calendar-feed', 'delivery-board', 'key-login', 'request-link', 'meeting-signin'];

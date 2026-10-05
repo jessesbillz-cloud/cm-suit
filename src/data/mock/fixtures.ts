@@ -15,7 +15,7 @@ export const MOCK_ORGS: MyOrg[] = [{ org_id: 'org-sample', name: 'Sample Builder
 export const MOCK_DEFAULT_MODULES = ['bids', 'files', 'calendar'];
 
 /** The sample jobs are being built, so they have the field tools too (0021 tg_project_field_modules). */
-const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections', 'rfis', 'safety', 'schedule'];
+const MOCK_JOB_MODULES = [...MOCK_DEFAULT_MODULES, 'dailies', 'inspections', 'deliveries', 'corrections', 'rfis', 'safety', 'schedule', 'requirements'];
 
 export const MOCK_PROJECTS: MyProject[] = [
   {
@@ -121,7 +121,8 @@ export function toBoardLine(a: ActivityRow, unread: boolean): BoardLine {
   };
 }
 
-export const MOCK_TASKS: TaskRow[] = [
+/** The mock's tasks; `assignee` (a mock user id) keeps a task to that user, the rest are everyone's. */
+export const MOCK_TASKS: (TaskRow & { assignee?: string })[] = [
   {
     id: 'task-1',
     project_id: 'job-a',
@@ -133,6 +134,32 @@ export const MOCK_TASKS: TaskRow[] = [
     requires_signature: false,
     version: 1,
   },
+  // The bidder's addendum (bids 0011): acknowledged in place, which closes it.
+  {
+    id: 'task-ack-1',
+    project_id: 'job-a',
+    kind: 'addendum_ack',
+    title: 'Acknowledge addendum 1',
+    entity_type: 'addendum',
+    entity_id: 'add-1',
+    due_at: null,
+    requires_signature: false,
+    version: 1,
+    assignee: 'mock-user-bidder',
+  },
+  // The inspector's re-inspection (corrections 0026): closed by the correction, so it opens the correction.
+  {
+    id: 'task-reinspect-1',
+    project_id: 'job-b',
+    kind: 'correction.reinspect',
+    title: 'Re-inspect CN-004: Sample missing firestop at corridor penetrations',
+    entity_type: 'correction',
+    entity_id: SEED_CN_ID,
+    due_at: null,
+    requires_signature: false,
+    version: 1,
+    assignee: 'mock-user-inspector',
+  },
 ];
 
 export const MOCK_PEOPLE: Person[] = [
@@ -140,12 +167,18 @@ export const MOCK_PEOPLE: Person[] = [
   { user_id: 'mock-someone', member_id: 'member-2', full_name: 'Sample Reviewer', company: 'Sample Design', role: 'architect', status: 'active', access_ends_at: null },
   { user_id: 'mock-user-inspector', member_id: 'member-3', full_name: 'Sample Inspector', company: 'Sample Inspection', role: 'inspector', status: 'active', access_ends_at: null },
   { user_id: 'mock-user-sub', member_id: 'member-4', full_name: 'Sample Sub', company: 'Sample Drywall', role: 'sub', status: 'active', access_ends_at: null },
+  // Invited, not signed in yet: no user, the name is the email's first part (people_display).
+  { user_id: null, member_id: 'member-5', full_name: 'sample.invitee', company: '', role: 'viewer', status: 'invited', access_ends_at: null },
 ];
 
 export const MOCK_ROLES: RoleRow[] = [
-  { name: 'pm', description: 'Project manager' },
-  { name: 'architect', description: 'Architect / engineer of record' },
-  { name: 'viewer', description: 'Read-only' },
+  { name: 'architect', description: 'Architect / engineer of record', invitable: true },
+  { name: 'bidder', description: 'Invited to bid', invitable: false },
+  { name: 'inspector', description: 'Inspector of record', invitable: true },
+  { name: 'pm', description: 'Project manager', invitable: true },
+  { name: 'viewer', description: 'Read-only', invitable: true },
+  { name: 'requester', description: 'Requester', invitable: false },
+  { name: 'sub', description: 'Subcontractor on the job', invitable: true },
 ];
 
 export function mockProfile(userId: string, email: string): ProfileRow {

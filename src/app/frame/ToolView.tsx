@@ -4,6 +4,8 @@
 // Each tool's code loads on first use (lazyTools); until it has, the main area shows the usual loading line.
 import { Suspense } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useCapability } from '../../data/queries';
+import { boardLineOf } from '../../lib/itemIds';
 import { toolIsOn } from '../../lib/jobs';
 import type { Tool } from '../../lib/layout';
 import { Card } from '../../ui/Card';
@@ -23,6 +25,7 @@ import {
   PeopleTool,
   PermitsTool,
   RevsTool,
+  RequirementsTool,
   RfisTool,
   SafetyTool,
   ScheduleTool,
@@ -46,19 +49,23 @@ function NeedsJob({ what }: { what: string }) {
   );
 }
 
-function ToolOff({ tool }: { tool: Tool }) {
+function ToolOff({ tool, projectId }: { tool: Tool; projectId: string }) {
+  // Only someone who runs the job can turn a tool on (Settings > Job); nobody else is sent there.
+  const manage = useCapability(projectId, 'project.manage');
   return (
     <Card>
-      <EmptyState title={`${TOOL_META[tool].label} is off for this job.`} hint="Turn it on in Settings." />
+      <EmptyState title={`${TOOL_META[tool].label} is off for this job.`} hint={manage.data === true ? 'Turn it on in Settings.' : undefined} />
     </Card>
   );
 }
 
 function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
   const navigate = useNavigate();
-  const { projectId, itemId } = model.loc;
+  const { projectId } = model.loc;
+  // A board line opened from the docked board is the frame's, not this tool's.
+  const itemId = boardLineOf(model.loc.itemId) === null ? model.loc.itemId : null;
   const job = model.projects.find((p) => p.project_id === projectId);
-  if (job && !toolIsOn(tool, job.modules)) return <ToolOff tool={tool} />;
+  if (job && !toolIsOn(tool, job.modules)) return <ToolOff tool={tool} projectId={job.project_id} />;
 
   switch (tool) {
     case 'board':
@@ -130,6 +137,9 @@ function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
     case 'schedule':
       if (projectId === null) return <NeedsJob what="the schedule" />;
       return <ScheduleTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+    case 'requirements':
+      if (projectId === null) return <NeedsJob what="requirements" />;
+      return <RequirementsTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;
     case 'hours':
       if (projectId === null) return <NeedsJob what="hours" />;
       return <HoursTool projectId={projectId} itemId={itemId} isPhone={isPhone} />;

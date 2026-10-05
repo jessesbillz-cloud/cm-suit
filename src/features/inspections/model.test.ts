@@ -28,7 +28,7 @@ describe('chips', () => {
       ['returned', null, null, 'blocked', 'Returned'],
       ['pending', null, null, 'pending', 'Pending'],
       ['confirmed', null, null, 'confirmed', 'Confirmed'],
-      ['confirmed', null, 'u2', 'assigned', 'Helper'],
+      ['confirmed', null, 'u2', 'confirmed', 'Helper'],
       ['postponed', null, null, 'postponed', 'Postponed'],
       ['complete', 'approved', null, 'approved', 'Approved'],
       ['confirmed', 'not_approved', null, 'not_approved', 'Not approved'],

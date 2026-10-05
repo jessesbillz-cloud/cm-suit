@@ -1,15 +1,20 @@
 // /s/<share-link-id>: a permanent share link (SPEC §6.4 #2). Access is checked on every click: the recipient names
-// their address and signs in as it with an email code. Then the file downloads, or the folder lists its files.
+// their address and signs in as it with an email code. Then the file downloads (and can be viewed), or the folder lists
+// its files; a tap on one opens it in the file viewer. Every look goes through the share endpoint and is logged as a
+// download there. A view-only folder lists names only: the endpoint hands out no URL for it (its page images are
+// server-rendered, not built yet).
 import { useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
-import { Download } from 'lucide-react';
+import { Download, Eye } from 'lucide-react';
 import { sendCode, useSession } from '../../data/auth';
 import { saveSignedUrl } from '../../data/download';
 import { messageOf } from '../../data/errors';
 import { openShare, type ShareFolder } from '../../data/links';
+import { fileKind } from '../../lib/fileKind';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { fileIcon } from '../../ui/fileIcon';
 import { CodeForm, INPUT } from './CodeForm';
@@ -24,21 +29,34 @@ interface FolderListProps {
   folder: ShareFolder;
   busyId: string | null;
   onDownload: (fileId: string) => void;
+  /** The viewer's items, one per file (left out for a view-only folder). */
+  items: readonly ViewerItem[] | null;
 }
 
-function FolderList({ folder, busyId, onDownload }: FolderListProps) {
+function FolderList({ folder, busyId, onDownload, items }: FolderListProps) {
+  const viewer = useFileViewer();
   if (folder.files.length === 0) return <p className="text-sm text-ink-2">This folder is empty.</p>;
   return (
     <ul className="-mx-2 flex flex-col divide-y divide-line border-t border-line">
-      {folder.files.map((f) => (
+      {folder.files.map((f, i) => (
         <li key={f.id} className="flex min-h-[52px] items-center gap-3 px-2 py-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
-            <Icon icon={fileIcon(f.original_name)} size={16} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block break-words text-sm font-medium text-ink">{f.original_name}</span>
-            <span className="block text-xs tabular-nums text-ink-2">{formatBytes(f.size)}</span>
-          </span>
+          <button
+            type="button"
+            data-testid="share-file-open"
+            disabled={items === null}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:text-accent"
+            onClick={() => {
+              if (items) viewer.open(items, i);
+            }}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
+              <Icon icon={fileIcon(f.original_name)} size={16} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block break-words text-sm font-medium">{f.original_name}</span>
+              <span className="block text-xs tabular-nums text-ink-2">{formatBytes(f.size)}</span>
+            </span>
+          </button>
           {folder.view_only ? null : (
             <Button size="sm" icon={Download} loading={busyId === f.id} onClick={() => {
                 onDownload(f.id);
@@ -60,6 +78,7 @@ export function ShareLink() {
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const viewer = useFileViewer();
 
   async function open(address: string, fileId?: string): Promise<void> {
     const res = await openShare(shareLinkId, address, fileId);
@@ -87,6 +106,26 @@ export function ShareLink() {
   }
 
   const address = email.trim().toLowerCase();
+
+  /** A fresh signed URL through the share endpoint (its own gate, logged there). */
+  async function fileUrl(fileId?: string): Promise<{ url: string; filename: string }> {
+    const res = await openShare(shareLinkId, address, fileId);
+    if (res.kind !== 'file') throw new Error('Sign in again to open this file.');
+    return res;
+  }
+
+  function shareItem(id: string | undefined, name: string): ViewerItem {
+    return {
+      id: id ?? shareLinkId,
+      name,
+      kind: fileKind(name),
+      url: async () => (await fileUrl(id)).url,
+      download: async () => {
+        const res = await fileUrl(id);
+        await saveSignedUrl(res.url, res.filename);
+      },
+    };
+  }
   const error = problem ? (
     <p role="alert" className="text-sm text-danger">
       {problem}
@@ -111,6 +150,14 @@ export function ShareLink() {
             <span className="min-w-0 break-words">{step.filename}</span>
           </p>
           {error}
+          {fileKind(step.filename) === 'other' ? null : (
+            <Button icon={Eye} className="h-11" data-testid="share-view" onClick={() => {
+                viewer.open([shareItem(undefined, step.filename)]);
+              }}
+            >
+              View
+            </Button>
+          )}
           <Button variant="primary" icon={Download} loading={busy} className="h-11" onClick={() => {
               run(() => open(address));
             }}
@@ -128,6 +175,7 @@ export function ShareLink() {
         {error}
         <FolderList
           folder={step.folder}
+          items={step.folder.view_only ? null : step.folder.files.map((f) => shareItem(f.id, f.original_name))}
           busyId={busyId}
           onDownload={(fileId) => {
             setBusyId(fileId);
@@ -175,7 +223,7 @@ export function ShareLink() {
             }}
           />
         </div>
-        <p className="text-xs text-ink-2">Use the address this link was sent to. We email a code to confirm it is you.</p>
+        <p className="text-xs text-ink-2">The address this link was sent to.</p>
         {error}
         <Button type="submit" variant="primary" loading={busy} className="h-11">
           Continue

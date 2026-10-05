@@ -1,4 +1,5 @@
-// Attendance, shown on the GC's calendar: "Be present" (with the inspector) or "I've got this". Tap again to clear.
+// Attendance, shown on the GC's calendar: "Be present with the IOR" or "I've got this alone" (MDR's words). Tap again
+// to clear.
 import { messageOf } from '../../data/errors';
 import { useSetAttendance } from '../../data/inspections.decide';
 import type { IrRequest } from '../../data/inspections.types';

@@ -4,23 +4,29 @@
 // _shared/inspections.ts, the database's ir_decide_cap; ir_recipients applies the same rule to the picker).
 //
 // requireUser → load the request AS THE CALLER → requireCapability(decideCapability(row)) → the caller owns it → a
-// current, signed PDF (complete, not stale) → the recipients' addresses read AS THE CALLER from project_members (ids
-// from the picker, never addresses from the body) → create_transmittal() and the share links as the caller (every send
+// current, signed PDF (complete, not stale) → the recipients: members' addresses read AS THE CALLER from project_members
+// (ids from the picker), the link requester's address read from the request row (0055; the body only says "include
+// them"), and up to 10 addresses the sender typed in the picker (MDR's add-an-address). Nothing is sent to anyone the
+// sender did not see checked when they pressed Send → create_transmittal() and the share links as the caller (every send
 // is a transmittal; the IR goes as a permanent share link) → the emails (service client: email_outbound is not
 // user-writable) → the transmittal's delivery fields (service client: no user update policy) → ir_mark_sent() (service
 // role only, so "results sent" always means an email went: send time, audit with the content hash, board lines).
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient } from '../_shared/db.ts';
 import { requireCapability, requireUser } from '../_shared/auth.ts';
-import { parseJson, uuid, z } from '../_shared/validate.ts';
+import { email, parseJson, uuid, z } from '../_shared/validate.ts';
 import { irResultsEmail, sendEach, sendEmail, type SendStatus } from '../_shared/email.ts';
 import { BRAND_NAME, appUrl } from '../_shared/env.ts';
 import { dayLabel, decideCapability, loadRequest, resultLabel, typeLabel } from '../_shared/inspections.ts';
 
 const Body = z.object({
   request_id: uuid,
-  member_ids: z.array(uuid).min(1).max(50),
-}).strict();
+  member_ids: z.array(uuid).max(50),
+  /** The request's own link requester (its row's email), checked in the picker. */
+  requester: z.boolean().default(false),
+  /** Addresses the sender typed. */
+  emails: z.array(email).max(10).default([]),
+}).strict().refine((b) => b.member_ids.length > 0 || b.requester || b.emails.length > 0, { message: 'Pick at least one recipient' });
 
 interface Member {
   id: string;
@@ -39,7 +45,18 @@ function mailto(to: string[], subject: string, body: string): string {
   return `mailto:${addr}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+/** The link requester's address, from the row as the caller reads it (0055); refused when the request has none. */
+async function requesterEmail(client: Db, requestId: string): Promise<string> {
+  const row = must(
+    await client.from('inspection_requests').select('requester_email').eq('id', requestId).single(),
+    'requester lookup',
+  ) as { requester_email: string | null };
+  if (!row.requester_email) throw new HttpError(400, 'This request has no requester email');
+  return row.requester_email;
+}
+
 async function membersOf(client: Db, projectId: string, ids: string[]): Promise<Member[]> {
+  if (ids.length === 0) return [];
   const rows = must(
     await client.from('project_members').select('id, user_id, invite_email')
       .eq('project_id', projectId).in('id', ids).eq('status', 'active'),
@@ -62,7 +79,10 @@ Deno.serve(handle(async (req) => {
   const fileId = row.ir_file_id;
 
   const members = await membersOf(client, row.project_id, body.member_ids);
-  const emails = [...new Set(members.map((m) => m.invite_email))];
+  const outside = [...(body.requester ? [await requesterEmail(client, row.id)] : []), ...body.emails];
+  const emails = [...new Set([...members.map((m) => m.invite_email), ...outside])];
+  // A typed or requester address that is a member's goes as the member (their own share link, revoked with them).
+  const memberOf = (to: string) => members.find((m) => m.invite_email === to);
   const t = await rpc<{ id: string; org_id: string; number: number }>(client, 'create_transmittal', {
     p_project_id: row.project_id,
     p_to_emails: emails,
@@ -72,9 +92,9 @@ Deno.serve(handle(async (req) => {
     p_message: '',
   });
   const links = must(
-    await client.from('share_links').insert(members.map((m) => ({
+    await client.from('share_links').insert(emails.map((to) => ({
       created_by: user.id, org_id: t.org_id, project_id: row.project_id, target_type: 'file', target_id: fileId,
-      recipient_email: m.invite_email, member_id: m.id,
+      recipient_email: to, member_id: memberOf(to)?.id ?? null,
     }))).select('id, recipient_email'),
     'share_links insert',
   ) as { id: string; recipient_email: string }[];

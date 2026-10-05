@@ -1,15 +1,15 @@
-// My profile. Only I can read it (SPEC §5.1); others see name and company through people_display.
+// My profile. Only I can read it (SPEC §5.1); others see name and company through people_display. Saves as I go, as
+// Job and Company do (a field when I leave it, the time zone when I pick it), each save version-checked.
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
 import { useSaveProfile } from '../../data/mutations';
 import { useProfile } from '../../data/queries';
 import { messageOf } from '../../data/errors';
-import type { ProfileRow } from '../../data/types';
-import { Button } from '../../ui/Button';
+import type { ProfilePatch, ProfileRow } from '../../data/types';
 import { Card } from '../../ui/Card';
 import { SelectField, TextField } from '../../ui/Fields';
+import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
-import { useToast } from '../../ui/Toast';
 import { CalendarFeedRow } from './CalendarFeedRow';
 import { FIELD_ROW, SettingRow } from './SettingRow';
 
@@ -30,58 +30,46 @@ const FIELDS: { key: FieldKey; label: string; type: string; autoComplete: string
   { key: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel' },
 ];
 
-function ProfileFields({ profile }: { profile: ProfileRow }) {
-  const save = useSaveProfile();
-  const toast = useToast();
+type Form = Record<FieldKey, string> & { timezone: string };
+
+interface ProfileFieldsProps {
+  profile: ProfileRow;
+  onSave: (patch: ProfilePatch) => void;
+  onInvalid: (message: string) => void;
+}
+
+function ProfileFields({ profile, onSave, onInvalid }: ProfileFieldsProps) {
   const zones = useMemo(() => Intl.supportedValuesOf('timeZone').map((z) => ({ value: z, label: z })), []);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<Form>({
     full_name: profile.full_name,
     title: profile.title ?? '',
     company: profile.company ?? '',
     phone: profile.phone ?? '',
     timezone: profile.timezone,
   });
-  const [problem, setProblem] = useState<string | null>(null);
 
-  function submit() {
-    const parsed = profileSchema.safeParse(form);
+  /** Saves what changed, as Job and Company do: a field when I leave it, the time zone when I pick it. */
+  function commit(next: Form) {
+    const parsed = profileSchema.safeParse(next);
     if (!parsed.success) {
-      setProblem(parsed.error.issues[0]?.message ?? 'Check the form.');
+      onInvalid(parsed.error.issues[0]?.message ?? 'Check the form.');
       return;
     }
-    setProblem(null);
     const v = parsed.data;
-    save.mutate(
-      {
-        patch: {
-          full_name: v.full_name,
-          title: v.title || null,
-          company: v.company || null,
-          phone: v.phone || null,
-          timezone: v.timezone,
-          timezone_set_by_user: v.timezone !== profile.timezone || profile.timezone_set_by_user,
-        },
-        version: profile.version,
-      },
-      {
-        onSuccess: () => {
-          toast.show({ message: 'Profile saved.' });
-        },
-        onError: (e) => {
-          setProblem(messageOf(e));
-        },
-      },
-    );
+    const patch: ProfilePatch = {};
+    if (v.full_name !== profile.full_name) patch.full_name = v.full_name;
+    if ((v.title || null) !== profile.title) patch.title = v.title || null;
+    if ((v.company || null) !== profile.company) patch.company = v.company || null;
+    if ((v.phone || null) !== profile.phone) patch.phone = v.phone || null;
+    if (v.timezone !== profile.timezone) {
+      patch.timezone = v.timezone;
+      patch.timezone_set_by_user = true;
+    }
+    if (Object.keys(patch).length > 0) onSave(patch);
   }
 
   return (
-    <form
-      className="flex flex-col"
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-    >
+    <div className="flex flex-col">
       {FIELDS.map((f) => (
         <TextField
           key={f.key}
@@ -92,6 +80,9 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
           className={FIELD_ROW}
           onChange={(v) => {
             setForm({ ...form, [f.key]: v });
+          }}
+          onBlur={() => {
+            commit(form);
           }}
         />
       ))}
@@ -104,31 +95,34 @@ function ProfileFields({ profile }: { profile: ProfileRow }) {
         options={zones}
         className={FIELD_ROW}
         onChange={(timezone) => {
-          setForm({ ...form, timezone });
+          const next = { ...form, timezone };
+          setForm(next);
+          commit(next);
         }}
       />
-      <div className="flex flex-wrap items-center gap-3 pt-3 sm:pl-48">
-        <Button type="submit" variant="primary" loading={save.isPending}>
-          Save profile
-        </Button>
-        {problem ? (
-          <p role="alert" className="text-sm text-danger">
-            {problem}
-          </p>
-        ) : null}
-      </div>
-    </form>
+    </div>
   );
 }
 
 export function ProfileForm() {
   const profile = useProfile();
+  const save = useSaveProfile();
+  const [problem, setProblem] = useState<string | null>(null);
+
+  function onSave(patch: ProfilePatch) {
+    setProblem(null);
+    save.mutate(patch, {
+      onError: (e) => {
+        setProblem(messageOf(e));
+      },
+    });
+  }
+
   return (
-    <Card title="Profile">
+    <Card title="Profile" actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />}>
       {profile.isPending ? <LoadingState label="Loading your profile" /> : null}
       {profile.isError ? <ErrorState error={profile.error} onRetry={() => void profile.refetch()} /> : null}
-      {/* Re-keyed on version: after a save the form starts from what the database now holds. */}
-      {profile.data ? <ProfileFields key={profile.data.version} profile={profile.data} /> : null}
+      {profile.data ? <ProfileFields key={profile.data.user_id} profile={profile.data} onSave={onSave} onInvalid={setProblem} /> : null}
       <CalendarFeedRow />
     </Card>
   );

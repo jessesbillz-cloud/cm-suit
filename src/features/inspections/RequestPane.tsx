@@ -14,6 +14,7 @@ import { useIrRevItems } from '../../data/revs.queries';
 import type { IrRevItem } from '../../data/revs.types';
 import { formatDay } from '../../lib/dates';
 import { ofsIrLabel } from '../../lib/markup';
+import { useFileViewer } from '../../ui/FileViewer';
 import { PaneSection, ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -22,6 +23,7 @@ import { TOOL_META } from '../../ui/tools';
 import { GcActions } from './GcActions';
 import { History } from './History';
 import { InspectorPanel } from './InspectorPanel';
+import { irPdfItem } from './irItems';
 import { IrMap } from './IrMap';
 import { decidesRequest, ownsSteps, requestChip, routesOnly, trackerSteps, typeLabel } from './model';
 import { OfsRoute } from './OfsRoute';
@@ -66,6 +68,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const user = useUser();
   const toast = useToast();
   const download = useDownloadIrFile();
+  const viewer = useFileViewer();
   const names = useIrFileNames(row.project_id, row.attachment_ids);
   const [history, setHistory] = useState(false);
   const chip = requestChip(row, can.ofsDecide);
@@ -77,7 +80,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   // The deputy records each wall in his Result step; everyone else sees the walls with their results here.
   const deciding = decides && !routesOnly(row) && ownsSteps(row, user.id) && row.status !== 'postponed';
 
-  function view(fileId?: string) {
+  function save(fileId?: string) {
     download.mutate(
       { requestId: row.id, fileId },
       {
@@ -100,8 +103,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
       }
       attachments={row.attachment_ids.map((id, i) => ({ id, name: names.data?.[id] ?? `Attachment ${String(i + 1)}` }))}
       onDownloadAttachment={(id) => {
-        view(id);
+        save(id);
       }}
+      attachmentVia={{ requestId: row.id }}
       downloadingId={download.isPending ? download.variables.fileId : null}
       onHistory={() => {
         setHistory(!history);
@@ -115,11 +119,14 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         <RequestDetails
           row={row}
           tz={job.tz}
-          viewing={download.isPending && download.variables.fileId === undefined}
+          downloading={download.isPending && download.variables.fileId === undefined}
           viewIsMain={!decides}
           walls={revs !== null}
           onViewIr={() => {
-            view();
+            viewer.open([irPdfItem(row.id, row.number)]);
+          }}
+          onDownloadIr={() => {
+            save();
           }}
         />
         {cells.isError ? <ErrorState error={cells.error} onRetry={() => void cells.refetch()} className="m-0" /> : null}

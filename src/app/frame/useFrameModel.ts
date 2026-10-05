@@ -7,13 +7,14 @@ import { useSaveLayout } from '../../data/mutations';
 import { messageOf } from '../../data/errors';
 import { jobRailChoices, useJobRails } from '../../data/jobRail.queries';
 import { useSaveJobRail } from '../../data/jobRail.mutations';
-import { useRecommendedTools, useToolCounts } from '../../data/rail.queries';
+import { useReadableTools, useRecommendedTools, useToolCounts } from '../../data/rail.queries';
 import { allJobsTool, jobTool, railModel } from '../../lib/jobs';
 import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { countsByTool } from '../../lib/toolCounts';
 import type { RailJobPart } from '../../ui/Rail';
 import { useToast } from '../../ui/Toast';
 import { inAppPath } from '../../lib/basePath';
+import { boardLineItem } from '../../lib/itemIds';
 
 export interface FrameLocation {
   /** null = "All my jobs": the tools that work across jobs (lib/jobs ALL_JOBS_TOOLS) and Settings. */
@@ -42,6 +43,7 @@ export function useFrameModel(loc: FrameLocation) {
   const layoutQuery = useUserLayout();
   const projectsQuery = useMyProjects();
   const recommendedQuery = useRecommendedTools();
+  const readableQuery = useReadableTools();
   const jobRailsQuery = useJobRails();
   const countsQuery = useToolCounts(loc.projectId);
   const saveLayout = useSaveLayout();
@@ -54,7 +56,9 @@ export function useFrameModel(loc: FrameLocation) {
   const projects = projectsQuery.data ?? [];
   const current = projects.find((p) => p.project_id === loc.projectId);
   /** The rail (lib/jobs railModel): on All my jobs the cross-job tools; on a job only its tools in my order, and More. */
-  const rail = railModel(loc.projectId, projects, recommendedQuery.data ?? {}, jobRailChoices(jobRailsQuery.data));
+  const rail = railModel(loc.projectId, projects, recommendedQuery.data ?? {}, jobRailChoices(jobRailsQuery.data), readableQuery.data ?? {});
+  /** What "All my jobs" holds for me (its rail), named in the job picker. */
+  const allJobsTools = loc.projectId === null ? rail.general : railModel(null, projects, recommendedQuery.data ?? {}, {}).general;
   /** What needs me, per tool on this rail (the rest counts on the Board). */
   const counts = countsByTool(countsQuery.data ?? [], [...rail.general, ...rail.job, ...rail.more]);
 
@@ -134,11 +138,24 @@ export function useFrameModel(loc: FrameLocation) {
     void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool, itemId } });
   }
 
-  /** Closing keeps the tool's search (e.g. the Files folder or the Bids sub-view), so the main area stays put. */
+  /**
+   * A line of the board docked beside another tool opens in the right column as that tool's item (lib/itemIds
+   * boardLineItem): the main area stays put, and Close brings the docked board back (SPEC §7.2).
+   */
+  function openBoardLine(activityId: string) {
+    const itemId = boardLineItem(activityId);
+    if (loc.projectId === null) {
+      void navigate({ to: `/all/${allJobsTool(loc.tool)}/$itemId`, params: { itemId }, search: true });
+      return;
+    }
+    void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId: loc.projectId, tool: loc.tool, itemId }, search: true });
+  }
+
+  /** Closing keeps the tool and its search (e.g. the Files folder or the Bids sub-view), so the main area stays put. */
   function closeItem() {
     setRightFull(false);
     if (loc.projectId === null) {
-      void navigate({ to: `/all/${allItemTool(loc.tool)}`, search: true });
+      void navigate({ to: ALL_JOBS_PATH[allJobsTool(loc.tool)], search: true });
       return;
     }
     void navigate({ to: '/p/$projectId/$tool', params: { projectId: loc.projectId, tool: loc.tool }, search: true });
@@ -154,10 +171,12 @@ export function useFrameModel(loc: FrameLocation) {
     layoutQuery,
     projectsQuery,
     recommendedQuery,
+    readableQuery,
     jobRailsQuery,
     choices,
     projects,
     rail,
+    allJobsTools,
     jobPart,
     counts,
     rightFull,
@@ -167,6 +186,7 @@ export function useFrameModel(loc: FrameLocation) {
     newJob,
     selectTool,
     openItem,
+    openBoardLine,
     closeItem,
     itemWindowHref,
   };

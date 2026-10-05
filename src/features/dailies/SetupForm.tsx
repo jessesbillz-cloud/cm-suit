@@ -1,7 +1,9 @@
-// Dailies setup for me on this job (SPEC §13.1, §8.3): the form I write (the work log or a company form), the schedule,
-// the report's name, filename and next number, a company form's job values (typed once, printed on every report) and
-// the standing note; everything prefilled. Saved as I leave each box (version-checked). The next number is kept by the
-// database, so an earlier numbering carries on.
+// Dailies setup for me on this job (SPEC §13.1, §8.3): the form I write (the work log, the superintendent's or the
+// foreman's daily, or a company form; my role's form until I pick one), the schedule,
+// the report's name, filename and next number, a company form's job values (typed once, printed on every report),
+// the standing note and who it is emailed to (a new setup starts with the job's team: daily_team_emails); everything
+// prefilled. No Reminder control: nothing sends the "report due" push yet (the calendar shows the due time). Saved as I leave each box (version-checked). The next number is kept by the
+// database, so an earlier numbering carries on. A company's admin also sets up the form's fields here (FormFieldsSetup).
 import { useRef, useState } from 'react';
 import { useChooseDailyForm, useSaveDailySetup, useSetDailyStartNumber } from '../../data/dailies.mutations';
 import { useNextDailyNumber } from '../../data/dailies.queries';
@@ -20,10 +22,13 @@ import {
   type ReportForm,
 } from '../../lib/dailies';
 import { todayInZone } from '../../lib/dates';
+import { Button } from '../../ui/Button';
+import { ChipPick } from '../../ui/ChipPick';
 import { CheckField, SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
-import { REMINDER_OPTIONS, parseRecipients } from './model';
+import { FormFieldsSetup } from './FormFieldsSetup';
+import { parseRecipients } from './model';
 import { Section } from './Section';
 import { DaysField, JobFields } from './SetupParts';
 import { INPUT, LABEL } from './styles';
@@ -35,8 +40,10 @@ interface FormProps {
   reportType: string;
   form: ReportForm | null;
   row: DailySetupRow | null;
-  /** A new setup's settings for any form (the one set of defaults, the job's values prefilled). */
+  /** A new setup's settings for any form (the one set of defaults, the job's values and team prefilled). */
   settingsFor: (reportType: string) => DailySettings;
+  /** The job's team who read its dailies. */
+  team: readonly string[];
 }
 
 function filenamePreview(draft: DailySettings, project: ProjectRow, profile: ProfileRow, next: number | undefined): string {
@@ -61,7 +68,7 @@ function filenamePreview(draft: DailySettings, project: ProjectRow, profile: Pro
   }
 }
 
-function Form({ project, profile, reportType, form, row, settingsFor }: FormProps) {
+function Form({ project, profile, reportType, form, row, settingsFor, team }: FormProps) {
   const save = useSaveDailySetup(project.id);
   const start = useSetDailyStartNumber(project.id);
   const choose = useChooseDailyForm(project.id);
@@ -134,15 +141,20 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
       <div className="flex flex-col gap-3 p-3">
         <Section title="Report">
           <div className="flex flex-col gap-3">
-            <SelectField
-              label="Form"
-              value={reportType}
-              options={FORM_CHOICES}
-              testId="daily-form"
-              onChange={(v) => {
-                choose.mutate({ reportType: v, settingsIfNew: settingsFor(v) }, { onError: (e) => { setProblem(messageOf(e)); } });
-              }}
-            />
+            <div className={LABEL}>
+              Form
+              <ChipPick
+                label="Form"
+                chips={FORM_CHOICES}
+                picked={[reportType]}
+                testId="daily-form"
+                onChange={(picked) => {
+                  const v = picked[0];
+                  if (v === undefined || v === reportType) return;
+                  choose.mutate({ reportType: v, settingsIfNew: settingsFor(v) }, { onError: (e) => { setProblem(messageOf(e)); } });
+                }}
+              />
+            </div>
             <TextField label="Name" value={draft.label} onChange={(label) => { change({ label }, false); }} onBlur={commit} />
             <div className="flex flex-col gap-1">
               <TextField
@@ -195,7 +207,7 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
             </label>
           </div>
         </Section>
-        {form ? (
+        {form && form.locked.length > 0 ? (
           <Section title="Job info">
             <JobFields
               fields={form.locked}
@@ -205,26 +217,18 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
             />
           </Section>
         ) : null}
+        {form?.companyFields ? <FormFieldsSetup orgId={project.org_id} formId={reportType} form={form} /> : null}
         <Section title="Schedule">
           <div className="flex flex-col gap-3">
             <DaysField days={draft.schedule_days} onChange={(schedule_days) => { change({ schedule_days }, true); }} />
-            <div className="flex gap-3">
-              <TextField
-                label="Submit by"
-                type="time"
-                className="w-32"
-                value={draft.submit_by}
-                onChange={(submit_by) => { change({ submit_by }, false); }}
-                onBlur={commit}
-              />
-              <SelectField
-                label="Reminder"
-                className="min-w-0 flex-1"
-                value={String(draft.reminder_minutes)}
-                options={REMINDER_OPTIONS}
-                onChange={(v) => { change({ reminder_minutes: Number(v) }, true); }}
-              />
-            </div>
+            <TextField
+              label="Submit by"
+              type="time"
+              className="w-32"
+              value={draft.submit_by}
+              onChange={(submit_by) => { change({ submit_by }, false); }}
+              onBlur={commit}
+            />
           </div>
         </Section>
         <Section title="Send to">
@@ -232,6 +236,7 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
             Recipients
             <textarea
               rows={3}
+              data-testid="daily-recipients"
               className={`py-2 ${INPUT}`}
               value={recipients}
               onChange={(e) => {
@@ -241,6 +246,19 @@ function Form({ project, profile, reportType, form, row, settingsFor }: FormProp
               onBlur={commit}
             />
           </label>
+          {draft.recipients.length === 0 && team.length > 0 ? (
+            <Button
+              size="sm"
+              className="mt-2"
+              data-testid="daily-recipients-team"
+              onClick={() => {
+                setRecipients(team.join('\n'));
+                change({ recipients: [...team] }, true);
+              }}
+            >
+              Add job team
+            </Button>
+          ) : null}
         </Section>
       </div>
     </div>
@@ -263,6 +281,7 @@ function SetupBody({ project }: { project: ProjectRow }) {
       form={f.form}
       row={f.setup}
       settingsFor={f.settingsFor}
+      team={f.team}
     />
   );
 }

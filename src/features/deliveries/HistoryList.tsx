@@ -10,6 +10,8 @@ const ACTIONS: Record<string, string> = {
   'delivery.delete': 'Deleted',
   'delivery.restore': 'Restored',
   'delivery.attach': 'Photo added',
+  'delivery.detach': 'Photo removed',
+  'delivery.reattach': 'Photo put back',
 };
 
 const FIELDS: Record<string, string> = {

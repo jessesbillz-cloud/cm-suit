@@ -7,9 +7,12 @@
 // seeds requests on every weekday around today on both jobs; the calendar mock has "Sample OAC meeting" on job-a on
 // this week's Wednesday (meetings show by default). Days are the job's (America/Los_Angeles). The fire marshal's
 // deputy ('ahj', on Sample Science Building) holds only the OFS pair: his calendar is the OFS requests sent to OFS
-// (0061; the mock seeds IR 3 six days out, sent, and IR 4 eight days out, still with the inspector). Test ids:
-// calendar, cal-day-<day>, cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request,
-// cal-others, cal-type-<kind>, cal-view-week, cal-subscribe, cal-subscribe-panel, cal-block-time, ir-pane.
+// (0061; the mock seeds IR 3 six days out, sent, and IR 4 eight days out, still with the inspector). Deliveries: a
+// Standby "Sample rebar delivery" on job-a this Tuesday, an ordinary "Sample drywall delivery" three days before this
+// Monday, and the deliveries mock's own (mirrored as the database does): a Time TBD Sample Lumber one today. Job-a has
+// blocked time today (weekly, noon to one). A bidder manages no job's calendar. Test ids: calendar, cal-day-<day>,
+// cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request, cal-others, cal-kind-<kind>,
+// cal-line, cal-block, cal-type-<kind>, cal-view-week, cal-subscribe, cal-subscribe-panel, cal-block-time, ir-pane.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -139,5 +142,48 @@ test.describe('calendar (SPEC §7.6)', () => {
     await expect(page.getByTestId(`cal-day-${wed}`)).toContainText('Sample OAC meeting');
     await page.getByTestId('cal-subscribe').click();
     await expect(page.getByTestId('cal-subscribe-panel')).toBeVisible();
+  });
+
+  test('deliveries read Standby or nothing, and Time TBD instead of All day', async ({ page }) => {
+    const detail = page.getByTestId('cal-day-detail');
+    await page.goto(`/p/job-a/calendar?day=${thisWeek(1)}`);
+    await expect(detail.getByTestId('cal-line').filter({ hasText: 'Sample rebar delivery' })).toContainText('Standby');
+    await page.goto(`/p/job-a/calendar?day=${thisWeek(-3)}`);
+    const ordinary = detail.getByTestId('cal-line').filter({ hasText: 'Sample drywall delivery' });
+    await expect(ordinary).toBeVisible();
+    await expect(ordinary).not.toContainText('Confirmed');
+    await page.goto('/p/job-a/calendar');
+    const tbd = detail.getByTestId('cal-line').filter({ hasText: 'Sample Lumber' });
+    await expect(tbd).toContainText('Time TBD');
+    await expect(tbd).not.toContainText('All day');
+  });
+
+  test('the day lists its other lines under their kind, not "Other"', async ({ page }) => {
+    await page.goto(`/p/job-a/calendar?day=${thisWeek(2)}`);
+    const detail = page.getByTestId('cal-day-detail');
+    await expect(detail.getByTestId('cal-kind-meetings')).toContainText('Meetings');
+    await expect(detail.getByTestId('cal-kind-meetings')).toContainText('Sample OAC meeting');
+    await expect(detail.getByRole('heading', { name: /^Other/ })).toHaveCount(0);
+  });
+
+  test('All my jobs: Add only for someone who may add lines on some job', async ({ page }) => {
+    await page.goto('/all/calendar');
+    await expect(page.locator('[data-testid^="cal-add-"]')).toBeVisible();
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'bidder');
+    });
+    await page.goto('/all/calendar');
+    await expect(page.getByTestId('cal-day-title')).toBeVisible();
+    await expect(page.locator('[data-testid^="cal-add-"]')).toHaveCount(0);
+  });
+
+  test('removed blocked time leaves at once; Undo brings it back', async ({ page }) => {
+    await page.goto('/p/job-a/calendar');
+    const block = page.getByTestId('cal-day-detail').getByTestId('cal-block');
+    await expect(block).toHaveCount(1);
+    await block.getByRole('button', { name: 'Remove blocked time' }).click();
+    await expect(page.getByTestId('cal-day-detail').getByTestId('cal-block')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('cal-day-detail').getByTestId('cal-block')).toHaveCount(1);
   });
 });

@@ -1,9 +1,10 @@
 // The one plan-sheet picker, from the job's PDFs (data/revSheets): a wall's sheet in Revs setup, the sheet an OFS
 // request's map starts on (the request form), and the sheet the map is drawn on. The picked one shows by name with
-// Change; picking is a search over names and folders, the picked one on top, the first matches listed and the search
-// finding the rest. Where no sheet is a choice (a wall's), tapping the picked one again clears it.
+// Change; picking is a search over names and folders, the picked one on top, the first matches listed and "N more"
+// showing the rest. A stamped sheet of an earlier set says Superseded. Where no sheet is a choice (a wall's), "No
+// sheet" clears it. No PDFs yet: Upload (into Plans) or Files.
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { useFile } from '../../data/queries';
 import { useRevSheets, type RevSheet } from '../../data/revSheets.queries';
 import { formatBytes } from '../../lib/format';
@@ -12,6 +13,8 @@ import { FIELD_LABEL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { SearchBox } from '../../ui/SearchBox';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
+import { SheetUpload } from './SheetUpload';
 
 const SHOWN = 8;
 
@@ -30,21 +33,31 @@ function matches(s: RevSheet, q: string): boolean {
 }
 
 interface SheetListProps {
+  projectId: string;
   sheets: readonly RevSheet[];
   value: string | null;
   onTap: (sheet: RevSheet) => void;
 }
 
-function SheetList({ sheets, value, onTap }: SheetListProps) {
+function SheetList({ projectId, sheets, value, onTap }: SheetListProps) {
   const [q, setQ] = useState('');
+  const [shown, setShown] = useState(SHOWN);
   const picked = sheets.find((s) => s.id === value);
   const found = sheets.filter((s) => s.id !== value && matches(s, q));
-  const rows = [...(picked ? [picked] : []), ...found.slice(0, SHOWN)];
-  const more = found.length - SHOWN;
+  const rows = [...(picked ? [picked] : []), ...found.slice(0, shown)];
+  const more = found.length - shown;
+  if (sheets.length === 0) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-ink-2">No PDFs on this job yet.</p>
+        <SheetUpload projectId={projectId} />
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-1.5">
       <SearchBox label="Search the job's PDFs" placeholder="Search PDFs" onChange={setQ} testId="rev-sheet-search" />
-      {rows.length === 0 ? <p className="text-sm text-ink-2">{q ? 'No PDF matches.' : 'No PDFs on this job yet.'}</p> : null}
+      {rows.length === 0 ? <p className="text-sm text-ink-2">No PDF matches.</p> : null}
       {rows.length > 0 ? (
         <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-card" data-testid="rev-sheets">
           {rows.map((s) => {
@@ -72,13 +85,22 @@ function SheetList({ sheets, value, onTap }: SheetListProps) {
                       {s.folder} · {formatBytes(s.size)}
                     </span>
                   </span>
+                  {s.superseded ? (
+                    <span className="shrink-0" data-testid="rev-sheet-superseded">
+                      <StatusChip status="cancelled" label="Superseded" />
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );
           })}
         </ul>
       ) : null}
-      {more > 0 ? <span className="text-[12px] text-ink-3">{`${String(more)} more`}</span> : null}
+      {more > 0 ? (
+        <Button size="sm" variant="quiet" className="self-start" data-testid="rev-sheet-more" onClick={() => { setShown((n) => n + SHOWN * 3); }}>
+          {`${String(more)} more`}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -96,6 +118,21 @@ export function SheetPicker({ projectId, value, onChange, clearable = false }: S
     <div className="flex flex-col gap-1.5" role="group" aria-label="Sheet" data-testid="sheet-field">
       <div className="flex min-h-8 items-center justify-between gap-2">
         <span className={FIELD_LABEL}>Sheet</span>
+        {value !== null && clearable ? (
+          <Button
+            size="sm"
+            variant="quiet"
+            icon={X}
+            className="ml-auto"
+            data-testid="sheet-clear"
+            onClick={() => {
+              setChanging(false);
+              onChange(null);
+            }}
+          >
+            No sheet
+          </Button>
+        ) : null}
         {value !== null ? (
           <Button
             size="sm"
@@ -121,17 +158,12 @@ export function SheetPicker({ projectId, value, onChange, clearable = false }: S
       {picking && sheets.isError ? <ErrorState className="m-0" error={sheets.error} onRetry={() => void sheets.refetch()} /> : null}
       {picking && sheets.isSuccess ? (
         <SheetList
+          projectId={projectId}
           sheets={sheets.data}
           value={value}
           onTap={(s) => {
-            if (s.id !== value) {
-              setChanging(false);
-              onChange(s.id);
-            } else if (clearable) {
-              onChange(null);
-            } else {
-              setChanging(false);
-            }
+            setChanging(false);
+            if (s.id !== value) onChange(s.id);
           }}
         />
       ) : null}

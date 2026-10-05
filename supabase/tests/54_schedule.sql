@@ -84,10 +84,10 @@ select set_eq($$ select role from public.role_permissions where capability = 'sc
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'schedule.manage'),
   '{inspector_admin,pe,pm,project_admin,superintendent}'::text[], 'matrix: who uploads and publishes (provisional)');
 select results_eq($$ select name, recommended_tools from public.roles where name in ('pe', 'pm', 'project_admin', 'superintendent') order by name $$,
-  $$ values ('pe'::text, '{board,calendar,schedule,rfis,inspections,files}'::text[]),
-            ('pm', '{board,calendar,schedule,rfis,inspections,files}'),
+  $$ values ('pe'::text, '{board,calendar,schedule,rfis,inspections,requirements,files}'::text[]),
+            ('pm', '{board,calendar,schedule,rfis,inspections,requirements,files}'),
             ('project_admin', '{board,calendar,schedule,bids,rfis,inspections,files,hours}'),
-            ('superintendent', '{board,calendar,schedule,dailies,safety,inspections,deliveries}') $$,
+            ('superintendent', '{board,calendar,schedule,dailies,safety,inspections,deliveries,requirements}') $$,
   'rail: Schedule right after Calendar for the superintendent, pm, pe and project admin');
 select ok(not exists (select 1 from public.roles where name in ('inspector', 'inspector_admin') and 'schedule' = any (recommended_tools)),
   'rail: not on the inspector''s (or its twin''s) full rail');

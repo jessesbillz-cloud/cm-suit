@@ -1,4 +1,4 @@
-// Addenda for a bidder: each one with its files and a one-click Acknowledge that turns into the acknowledged date.
+// Addenda for a bidder: each one with its files (View, Download) and a one-click Acknowledge that turns into the acknowledged date.
 import { Check } from 'lucide-react';
 import { useAcknowledgeAddendum } from '../../data/bidder';
 import type { BidderPage } from '../../data/bids.types';
@@ -8,7 +8,7 @@ import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
-import { FileLine } from './FileLine';
+import { FileLines } from './FileLine';
 
 interface BidderAddendaProps {
   projectId: string;
@@ -36,13 +36,7 @@ export function BidderAddenda({ projectId, addenda, tz }: BidderAddendaProps) {
               </div>
             </div>
             {a.body !== '' ? <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink">{a.body}</p> : null}
-            {a.file_ids.length > 0 ? (
-              <ul className="flex flex-col gap-2">
-                {a.file_ids.map((id) => (
-                  <FileLine key={id} fileId={id} />
-                ))}
-              </ul>
-            ) : null}
+            <FileLines ids={a.file_ids} />
             {a.acked_at !== null ? (
               <p className="flex items-center gap-1.5 text-sm text-ink-2" data-testid={`addendum-acked-${String(a.number)}`}>
                 <Icon icon={Check} size={16} className="text-ink-2" />

@@ -143,10 +143,16 @@ export const PUBLIC_TABLES = [
   'ir_link_receipts',
   // Revs (0056)
   'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
+  // Signed off before the app (0082)
+  'rev_signoffs',
   // Safety (0060)
   'safety_topics', 'safety_meetings', 'safety_signins',
   // Schedule (0062)
   'schedule_versions', 'schedule_activities',
+  // Requirements (0069)
+  'requirements', 'requirement_reminders',
+  // Weather on dailies (0071): where the job is, and each day's weather
+  'project_places', 'project_weather',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -159,6 +165,8 @@ export { probeMeetingSignin, SAFETY_RPCS } from './_safety';
 export { OFS_PERMITS_RPCS } from './_ofsPermits';
 // Schedule (0062): its RPC list, for the anon probe.
 export { SCHEDULE_RPCS } from './_schedule';
+// Requirements (0069): its RPC list, for the anon probe.
+export { REQUIREMENTS_RPCS } from './_requirements';
 
 /** The permit stamp RPCs (0053) for the anon probe (kept here: anon-probe.ts is at its line limit). */
 export const PERMIT_STAMP_RPCS: [string, Record<string, unknown>][] = [
@@ -192,6 +200,9 @@ export const REQUEST_NO_LOGIN_RPCS: [string, Record<string, unknown>][] = [
     p_email: null, p_request_date: '2030-01-01', p_kind: 'ior', p_items: 'probe', p_notice_ack: true,
   }],
   ['link_request_status', { p_project_id: ZERO_UUID, p_receipt_hash: 'x' }],
+  // 0075: the IR by the receipt (service role only) and the hub link's undo (its owner).
+  ['link_request_ir_file', { p_project_id: ZERO_UUID, p_receipt_hash: 'x', p_ip: null }],
+  ['undo_request_hub_rotation', {}],
   ['link_request_answer', { p_request_id: ZERO_UUID }],
   ['ir_folder_make', { p_project_id: ZERO_UUID, p_which: 'attachments' }],
   ['ir_calendar_rows', { p_project_id: ZERO_UUID, p_from: '2030-01-01', p_to: '2030-01-01', p_viewer: null, p_team: true, p_decide: true }],
@@ -288,4 +299,46 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_geom_ok', { p_geom: [[0, 0], [1, 1]] }],
   ['rev_geom_check', { p_project_id: ZERO_UUID, p_sheet_file_id: ZERO_UUID, p_page: 1, p_geom: [[0, 0], [1, 1]], p_was: null }],
   ['rev_wall_sheet', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  // A wall's details and the walls signed off before the app (0082), and their internal helpers.
+  ['rev_area_details_save', {
+    p_id: ZERO_UUID, p_version: 1, p_wall_tag: null, p_rating: null, p_ul_design: null, p_fire_area: null, p_sheet_ref: null, p_check_note: null,
+  }],
+  ['rev_signoff_set', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID], p_ofs_number: null, p_signed_on: null, p_note: null }],
+  ['rev_signoff_clear', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID] }],
+  ['rev_text_or_null', { p_text: 'probe', p_max: 1, p_what: 'probe' }],
+  ['rev_signoff_live', { p_area_id: ZERO_UUID, p_item_id: ZERO_UUID }],
+  ['rev_signoff_wall', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID] }],
+];
+
+/** A valid setup of a daily form (0072), for the probes. */
+const FORM_SETUP = { seq: 0, fields: [{ key: 'notes', on: true, label: null, long: true }], tables: [] };
+
+/** Dailies for any company and trade (0070) for the anon probe: the role's form and the day's facts. And each company's
+ *  setup of its daily form (0072): the two save functions, their helpers, and the retired finish_daily_submit. */
+export const DAILY_FORMS_RPCS: [string, Record<string, unknown>][] = [
+  ['my_daily_form', { p_project_id: ZERO_UUID }],
+  ['daily_day_facts', { p_project_id: ZERO_UUID, p_day: '2026-01-05' }],
+  ['save_daily_form', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1 }],
+  ['add_daily_form_field', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1, p_label: 'probe' }],
+  ['daily_form_store', { p_org_id: ZERO_UUID, p_form: 'gc_daily', p_setup: FORM_SETUP, p_version: 1, p_add: null }],
+  ['daily_form_setup_problem', { p_setup: FORM_SETUP }],
+  ['finish_daily_submit_0023', { p_report_id: ZERO_UUID, p_version: 1, p_content_hash: '0'.repeat(64), p_file_id: ZERO_UUID, p_filename: 'x.pdf' }],
+];
+
+/** Weather on dailies (0071) for the anon probe: the typed location and the server's two stores. */
+export const WEATHER_RPCS: [string, Record<string, unknown>][] = [
+  ['project_place_set', { p_project_id: ZERO_UUID, p_lat: 1, p_lon: 1 }],
+  ['project_place_store', { p_project_id: ZERO_UUID, p_lat: 1, p_lon: 1, p_matched: 'probe', p_address: 'probe', p_replace_typed: true }],
+  ['project_weather_store', {
+    p_project_id: ZERO_UUID, p_day: '2026-01-05', p_high_f: 70, p_low_f: 60, p_conditions: 'probe', p_source: 'nws_observed', p_lat: 1, p_lon: 1,
+  }],
+];
+
+/** Files' Delete, Undo and Rename and the viewer's keep rule (0074). */
+export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
+  ['file_remove', { p_file_id: ZERO_UUID, p_version: 1 }],
+  ['file_restore', { p_file_id: ZERO_UUID }],
+  ['file_rename', { p_file_id: ZERO_UUID, p_version: 1, p_name: 'probe.pdf' }],
+  ['file_can_change', { p_file_id: ZERO_UUID }],
+  ['file_kept', { p_file_id: ZERO_UUID }],
 ];

@@ -1,15 +1,19 @@
 // One package on the bidder's page: scope, intent (Bidding / Not bidding, with an optional one-line reason),
-// and Submit bid = one file in any format. The receipt is all that comes back: number and server time.
+// and Submit bid = one file in any format, through the one upload queue (progress, Stop). The receipt comes back:
+// number and server time. Every version they sent opens with one click (Download); none can be deleted (a new
+// version supersedes the old).
 import { useState } from 'react';
-import { Check, Upload } from 'lucide-react';
-import { useSetBidIntent, useSubmitBid } from '../../data/bidder';
+import { Check, Download, Upload } from 'lucide-react';
+import { useQueueBid, useSetBidIntent } from '../../data/bidder';
 import type { BidderPackage, BidderSubmission } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
+import { useUploadQueue } from '../../data/UploadQueue';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
+import { useDownload } from '../files/useDownload';
 import { inviteChip } from './model';
 
 interface BidderPackageCardProps {
@@ -21,14 +25,34 @@ interface BidderPackageCardProps {
 
 const TIME = 'MMM d, yyyy h:mm a';
 
+/** The file they sent with this receipt, one click. */
+function DownloadOwn({ s }: { s: BidderSubmission }) {
+  const download = useDownload();
+  return (
+    <Button
+      size="sm"
+      variant="quiet"
+      icon={Download}
+      aria-label={`Download version ${String(s.version_no)}`}
+      data-testid={`bid-download-${String(s.version_no)}`}
+      loading={download.pendingId === s.file_id}
+      onClick={() => {
+        download.start(s.file_id);
+      }}
+    />
+  );
+}
+
 function Receipt({ s, tz }: { s: BidderSubmission; tz: string }) {
   return (
-    <p className="flex flex-wrap items-center gap-2 rounded-lg bg-page px-3 py-2.5 text-sm text-ink" data-testid="bid-receipt">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-sm text-ink" data-testid="bid-receipt">
       <Icon icon={Check} size={16} className="shrink-0 text-ink-2" />
       <span className="font-medium">Receipt #{s.receipt_number}</span>
       <span className="tabular-nums text-ink-2">{formatInZone(s.received_at, tz, TIME)}</span>
       {s.is_late ? <StatusChip status="postponed" label="Late" /> : null}
-    </p>
+      <span className="flex-1" />
+      <DownloadOwn s={s} />
+    </div>
   );
 }
 
@@ -79,11 +103,13 @@ function SubmitFile({ code, label, busy, onFile }: SubmitFileProps) {
 
 export function BidderPackageCard({ projectId, pkg, folderId, tz }: BidderPackageCardProps) {
   const intent = useSetBidIntent();
-  const submit = useSubmitBid();
+  const queueBid = useQueueBid();
+  const queue = useUploadQueue();
   const [askReason, setAskReason] = useState(false);
   const [reason, setReason] = useState('');
-  const [progress, setProgress] = useState<number | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  // One bid at a time per page: Submit waits while one of mine is going up.
+  const busy = folderId !== null && queue.items.some((i) => i.folderId === folderId && (i.status === 'queued' || i.status === 'uploading'));
 
   const status = pkg.invite?.status ?? null;
   const submitted = status === 'submitted' || status === 'late';
@@ -101,24 +127,7 @@ export function BidderPackageCard({ projectId, pkg, folderId, tz }: BidderPackag
   function send(file: File) {
     if (folderId === null) return;
     setProblem(null);
-    setProgress(0);
-    submit.mutate(
-      {
-        projectId,
-        packageId: pkg.id,
-        folderId,
-        file,
-        onProgress: (loaded, total) => {
-          setProgress(total > 0 ? Math.round((loaded / total) * 100) : 0);
-        },
-      },
-      {
-        onError,
-        onSettled: () => {
-          setProgress(null);
-        },
-      },
-    );
+    queueBid({ projectId, packageId: pkg.id, folderId, file });
   }
 
   return (
@@ -147,12 +156,7 @@ export function BidderPackageCard({ projectId, pkg, folderId, tz }: BidderPackag
           ) : null}
           <span className="hidden flex-1 sm:block" />
           {folderId !== null ? (
-            <SubmitFile
-              code={pkg.code}
-              label={progress !== null ? `Uploading ${String(progress)}%` : current ? 'Submit new version' : 'Submit bid'}
-              busy={progress !== null}
-              onFile={send}
-            />
+            <SubmitFile code={pkg.code} label={current ? 'Submit new version' : 'Submit bid'} busy={busy} onFile={send} />
           ) : (
             <p className="text-sm text-danger">Submitting is not set up on this job.</p>
           )}
@@ -183,11 +187,14 @@ export function BidderPackageCard({ projectId, pkg, folderId, tz }: BidderPackag
         ) : null}
         {problem ? <p className="text-sm text-danger">{problem}</p> : null}
         {older.length > 0 ? (
-          <ul className="flex flex-col gap-0.5 border-t border-line pt-3 text-xs tabular-nums text-ink-2">
+          <ul className="flex flex-col gap-0.5 border-t border-line pt-2 text-xs tabular-nums text-ink-2">
             {older.map((s) => (
-              <li key={s.id}>
-                v{s.version_no} · Receipt #{s.receipt_number} · {formatInZone(s.received_at, tz, TIME)}
-                {s.is_late ? ' · Late' : ''}
+              <li key={s.id} className="flex items-center gap-2">
+                <span className="flex-1">
+                  v{s.version_no} · Receipt #{s.receipt_number} · {formatInZone(s.received_at, tz, TIME)}
+                  {s.is_late ? ' · Late' : ''}
+                </span>
+                <DownloadOwn s={s} />
               </li>
             ))}
           </ul>

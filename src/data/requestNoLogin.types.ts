@@ -3,7 +3,7 @@
 // request (status only), the revs request itself, and the request's map by its receipt.
 import { z } from 'zod';
 import type { CalendarRow, DurationKind, IrKind } from './inspections.types';
-import { irStrokesSchema, type RevSetup, type RevStatusRow } from './revs.types';
+import { irStrokesSchema, NO_WALL_DETAILS, type RevSetup, type RevStatusRow } from './revs.types';
 
 /** One line of the job's day as an outsider sees it: time, length, type and color. */
 const dayRowSchema = z.object({
@@ -51,8 +51,20 @@ export const requestFactsSchema = z.object({
   gc_step: z.boolean(),
   /** An OFS request the inspector has sent to OFS (0061): the tracker's OFS step. */
   ofs_sent: z.boolean(),
+  /** 0075: while postponed, why, the inspector's note to the requester and the expected day; null otherwise. */
+  postpone_reason: z.string().nullable(),
+  postpone_note: z.string().nullable(),
+  postpone_until: z.string().nullable(),
+  /** The inspector's attendance call (be_present / alone), or null. */
+  attendance: z.string().nullable(),
+  /** The IR PDF is made: View IR through the receipt. */
+  has_ir: z.boolean(),
 });
 export type RequestFacts = z.infer<typeof requestFactsSchema>;
+
+/** The request's IR PDF by its receipt (0075): a short-lived URL (downloads with this filename). */
+export const publicIrSchema = z.object({ url: z.string().url(), filename: z.string().min(1) });
+export type PublicIr = z.infer<typeof publicIrSchema>;
 
 /** ...plus, once, the private token of its status link. */
 export const submittedSchema = requestFactsSchema.extend({ receipt: z.string().regex(/^[A-Za-z0-9_-]{43}$/) });
@@ -114,7 +126,7 @@ export function asPublicRevs(projectId: string, raw: PublicRevsAnswer): PublicRe
       revs: raw.revs.map((r) => ({ ...row, ...r })),
       items: raw.items.map((i) => ({ ...row, ...i })),
       // The link's walls carry no line on the plan (0059: the visitor's picker doesn't use the plan yet).
-      areas: raw.areas.map((a) => ({ ...row, ...a, sheet_page: 1, geom: null })),
+      areas: raw.areas.map((a) => ({ ...row, ...a, ...NO_WALL_DETAILS, sheet_page: 1, geom: null })),
       marks: raw.status
         .filter((s) => s.status === 'na')
         .map((s) => ({ ...row, id: `na:${s.area_id}:${s.item_id}`, area_id: s.area_id, item_id: s.item_id, kind: 'na' })),

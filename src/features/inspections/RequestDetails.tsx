@@ -1,10 +1,10 @@
 // A request's body: who asked through the public link (if they did), what to inspect, an OFS request's answer to
 // "Special inspection required?" (with the notice on Yes), then only the notes that exist (the inspector's note for the
 // GC, a GC return reason, the postponement, the result, the helper's report) in one card, and "View IR" once there is
-// one. An OFS request with walls shows its walls, items and why each failed below (RevCells), so they aren't repeated
-// here.
+// one (it opens the IR full screen in the file viewer; Download beside it saves it in one click). An OFS request with
+// walls shows its walls, items and why each failed below (RevCells), so they aren't repeated here.
 import type { ReactNode } from 'react';
-import { FileText } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import type { IrRequest } from '../../data/inspections.types';
 import { formatDay, formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
@@ -13,8 +13,9 @@ import { SPECIAL_NOTICE, attendanceLabel, postponeLabel, resultLabel } from './m
 interface RequestDetailsProps {
   row: IrRequest;
   tz: string;
-  viewing: boolean;
   onViewIr: () => void;
+  onDownloadIr: () => void;
+  downloading: boolean;
   /** View IR is the pane's main button unless the inspector's steps have their own. */
   viewIsMain: boolean;
   /** Its walls and items show on their own (an OFS request with walls). */
@@ -54,7 +55,7 @@ function ViaLink({ row }: { row: IrRequest }) {
   );
 }
 
-export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain, walls }: RequestDetailsProps) {
+export function RequestDetails({ row, tz, onViewIr, onDownloadIr, downloading, viewIsMain, walls }: RequestDetailsProps) {
   const result = resultLabel(row.result);
   const attendance = attendanceLabel(row.attendance);
   const special = row.kind === 'ofs' ? row.special_required : null;
@@ -106,8 +107,11 @@ export function RequestDetails({ row, tz, viewing, onViewIr, viewIsMain, walls }
       ) : null}
       {row.ir_file_id ? (
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant={viewIsMain ? 'primary' : 'secondary'} icon={FileText} loading={viewing} onClick={onViewIr} data-testid="ir-view-ir">
+          <Button variant={viewIsMain ? 'primary' : 'secondary'} icon={FileText} onClick={onViewIr} data-testid="ir-view-ir">
             View IR
+          </Button>
+          <Button icon={Download} loading={downloading} onClick={onDownloadIr} data-testid="ir-download-ir">
+            Download
           </Button>
           {row.results_sent_at ? (
             <span className="text-sm text-ink-2">Results sent {formatInZone(row.results_sent_at, tz, 'MMM d, h:mm a')}</span>

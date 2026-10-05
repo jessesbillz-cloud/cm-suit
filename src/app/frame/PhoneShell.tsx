@@ -58,6 +58,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
               currentId={loc.projectId}
               onPick={model.pickJob}
               onNewJob={model.newJob}
+              allJobsTools={model.allJobsTools}
             />
           </div>
           <ViewAs />

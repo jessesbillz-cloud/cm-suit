@@ -9,6 +9,7 @@ import { useOpenReview } from '../../data/permits.mutations';
 import type { PermitDetail } from '../../data/permits.types';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
+import { DropMenu } from './DropMenu';
 import { backcheckOffered, newReviewKinds } from './model';
 import { ReviewCard } from './ReviewCard';
 
@@ -64,8 +65,7 @@ export function PermitReviews({ detail }: PermitReviewsProps) {
             New review
           </Button>
         ) : null}
-        {menu ? (
-          <div role="menu" className="absolute right-0 top-full z-20 mt-1 flex min-w-[12rem] flex-col rounded-lg border border-line bg-card py-1 shadow-pop">
+        <DropMenu open={menu} align="right" onClose={() => { setMenu(false); }}>
             {kinds.map((k) => (
               <button
                 key={k.value}
@@ -80,8 +80,7 @@ export function PermitReviews({ detail }: PermitReviewsProps) {
                 {k.label}
               </button>
             ))}
-          </div>
-        ) : null}
+        </DropMenu>
       </div>
       {detail.reviews.map((r) => (
         <ReviewCard

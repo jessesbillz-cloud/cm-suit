@@ -1,5 +1,6 @@
 // Tool names and icons: one table for the rail, the phone bar and the settings screen.
 import {
+  BookCheck,
   BrickWall,
   CalendarDays,
   ChartGantt,
@@ -35,6 +36,7 @@ export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   corrections: { label: 'Corrections', icon: ListChecks },
   safety: { label: 'Safety', icon: HardHat },
   schedule: { label: 'Schedule', icon: ChartGantt },
+  requirements: { label: 'Requirements', icon: BookCheck },
   people: { label: 'People', icon: Users },
   settings: { label: 'Settings', icon: Settings },
   hours: { label: 'Hours', icon: Clock },

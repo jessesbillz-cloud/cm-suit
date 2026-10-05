@@ -40,7 +40,7 @@ interface FrameProps {
 /** The page: header (count line, New prospect, the funnel), then the list's card. */
 function PipelineFrame({ meta, actions, below, children }: FrameProps) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col" data-testid="bid-pipeline">
+    <div className="flex flex-col" data-testid="bid-pipeline">
       <PageHeader title={TOOL_META.bids.label} icon={TOOL_META.bids.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>

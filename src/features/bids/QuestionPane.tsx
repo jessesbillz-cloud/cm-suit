@@ -1,126 +1,89 @@
-// One pre-bid question (SPEC §11.5): the full question, then Answer (reworded question + answer, published
-// anonymized), Make addendum, or Dismiss (with Undo, no "are you sure?").
+// One pre-bid question (SPEC §11.5): who asked and for which package (managers only), the current published answer,
+// then Answer (reworded question + answer, published anonymized), Make addendum (from the reworded question, never the
+// asker's own words), or Dismiss (with Undo). An answered question shows its answer; "Answer again" opens the form
+// with it, and publishing replaces it. A dismissed one can be reopened.
 import { useState } from 'react';
-import { FilePlus2, Send, X } from 'lucide-react';
-import { useAddendumFromQuestion, useAnswerQuestion, useSetQuestionStatus } from '../../data/bids.mutations';
-import { useBidQuestions } from '../../data/bids.queries';
-import type { QuestionRow } from '../../data/bids.types';
+import { Pencil, RotateCcw } from 'lucide-react';
+import { useSetQuestionStatus } from '../../data/bids.mutations';
+import { useBidPackages, useBidQuestions, usePublishedAnswers } from '../../data/bids.queries';
+import type { PublishedAnswerRow, QuestionRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
+import { usePeopleDisplay } from '../../data/queries';
 import { Button } from '../../ui/Button';
-import { ReadingPane } from '../../ui/ReadingPane';
+import { PaneSection, ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
-import { questionChip } from './model';
-import { useBidsNav } from './useBidsNav';
+import { bidderName, questionChip } from './model';
+import { QuestionAnswerForm } from './QuestionAnswerForm';
 
-const INPUT = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
+interface QuestionBodyProps {
+  projectId: string;
+  q: QuestionRow;
+  answer: PublishedAnswerRow | undefined;
+}
 
-function QuestionBody({ projectId, q }: { projectId: string; q: QuestionRow }) {
-  const answer = useAnswerQuestion();
-  const toAddendum = useAddendumFromQuestion();
+function QuestionBody({ projectId, q, answer }: QuestionBodyProps) {
   const setStatus = useSetQuestionStatus();
-  const nav = useBidsNav(projectId);
+  const packages = useBidPackages(projectId);
+  const people = usePeopleDisplay(projectId);
   const toast = useToast();
-  const [questionText, setQuestionText] = useState(q.question);
-  const [answerText, setAnswerText] = useState('');
-  const [packageOnly, setPackageOnly] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [again, setAgain] = useState(false);
   const chip = questionChip(q.status);
+  const pkg = packages.data?.find((p) => p.id === q.package_id);
+  const asker = q.member_id === null ? 'By email' : bidderName(people.data?.find((p) => p.member_id === q.member_id));
+  const meta = (
+    <span className="flex flex-wrap items-center gap-2">
+      <StatusChip status={chip.status} label={chip.label} />
+      <span>{[asker, pkg ? `${pkg.code} ${pkg.name}` : null].filter((x) => x !== null).join(' · ')}</span>
+    </span>
+  );
 
-  function publish() {
-    if (questionText.trim() === '' || answerText.trim() === '') {
-      setProblem('Question and answer are both needed.');
-      return;
-    }
-    setProblem(null);
-    answer.mutate(
-      { question: q, questionText: questionText.trim(), answer: answerText.trim(), packageOnly },
-      {
-        onSuccess: () => {
-          toast.show({ message: `Answer ${String(q.number)} published.` });
-        },
-        onError: (e) => {
-          setProblem(messageOf(e));
-        },
-      },
-    );
-  }
-
-  function dismiss() {
-    toast.show({
-      message: `Dismissing question ${String(q.number)}.`,
-      action: { label: 'Undo', onClick: () => undefined },
-      onCommit: () => {
-        setStatus.mutate(
-          { question: q, status: 'dismissed' },
-          {
-            onError: (e) => {
-              toast.show({ tone: 'error', message: `Not dismissed: ${messageOf(e)}` });
-            },
-          },
-        );
-      },
+  function reopen() {
+    // Promise-based: the reopened question has a new version, which remounts this pane.
+    setStatus.mutateAsync({ question: q, status: 'open' }).catch((e: unknown) => {
+      toast.show({ tone: 'error', message: `Not reopened: ${messageOf(e)}` });
     });
   }
 
-  function makeAddendum() {
-    toAddendum.mutate(q, {
-      onSuccess: (a) => {
-        nav.open(a.id, 'addenda');
-      },
-      onError: (e) => {
-        setProblem(messageOf(e));
-      },
-    });
-  }
-
+  const showForm = q.status === 'open' || again;
   return (
-    <ReadingPane number={String(q.number)} title={q.question} meta={<StatusChip status={chip.status} label={chip.label} />}>
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          publish();
-        }}
-      >
-        <label className={LABEL}>
-          Question as published
-          <textarea rows={3} className={INPUT} value={questionText} onChange={(e) => {
-              setQuestionText(e.target.value);
-            }}
-          />
-        </label>
-        <label className={LABEL}>
-          Answer
-          <textarea rows={5} className={INPUT} value={answerText} onChange={(e) => {
-              setAnswerText(e.target.value);
-            }}
-          />
-        </label>
-        {q.package_id !== null ? (
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" checked={packageOnly} onChange={(e) => {
-                setPackageOnly(e.target.checked);
-              }}
-            />
-            Only this package
-          </label>
+    <ReadingPane number={String(q.number)} title={q.question} meta={meta}>
+      <div className="flex flex-col gap-3">
+        {answer ? (
+          <PaneSection title="Published" tone="tint" testId="question-answer">
+            <p className="whitespace-pre-wrap break-words font-medium">{answer.question_text}</p>
+            <p className="whitespace-pre-wrap break-words">{answer.answer}</p>
+          </PaneSection>
         ) : null}
-        {problem ? <p className="text-sm text-danger">{problem}</p> : null}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" variant="primary" icon={Send} loading={answer.isPending}>
-            Answer
+        {showForm ? (
+          <QuestionAnswerForm
+            projectId={projectId}
+            q={q}
+            current={answer}
+            onDone={() => {
+              setAgain(false);
+            }}
+          />
+        ) : null}
+        {q.status === 'answered' && !again ? (
+          <Button
+            className="w-fit"
+            icon={Pencil}
+            data-testid="question-answer-again"
+            onClick={() => {
+              setAgain(true);
+            }}
+          >
+            Answer again
           </Button>
-          <Button icon={FilePlus2} loading={toAddendum.isPending} onClick={makeAddendum}>
-            Make addendum
+        ) : null}
+        {q.status === 'dismissed' ? (
+          <Button className="w-fit" icon={RotateCcw} loading={setStatus.isPending} data-testid="question-reopen" onClick={reopen}>
+            Reopen
           </Button>
-          <Button variant="quiet" icon={X} disabled={q.status === 'dismissed'} onClick={dismiss}>
-            Dismiss
-          </Button>
-        </div>
-      </form>
+        ) : null}
+      </div>
     </ReadingPane>
   );
 }
@@ -132,9 +95,11 @@ interface QuestionPaneProps {
 
 export function QuestionPane({ projectId, questionId }: QuestionPaneProps) {
   const questions = useBidQuestions(projectId);
-  if (questions.isPending) return <LoadingState label="Loading question" />;
+  const answers = usePublishedAnswers(projectId);
+  if (questions.isPending || answers.isPending) return <LoadingState label="Loading question" />;
   if (questions.isError) return <ErrorState error={questions.error} onRetry={() => void questions.refetch()} />;
+  if (answers.isError) return <ErrorState error={answers.error} onRetry={() => void answers.refetch()} />;
   const q = questions.data.find((x) => x.id === questionId);
   if (!q) return <EmptyState title="That question is gone." />;
-  return <QuestionBody projectId={projectId} q={q} />;
+  return <QuestionBody key={`${q.id}-${String(q.version)}`} projectId={projectId} q={q} answer={answers.data.find((a) => a.number === q.number)} />;
 }

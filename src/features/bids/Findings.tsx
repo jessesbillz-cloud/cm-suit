@@ -1,6 +1,7 @@
 // Extraction findings as one flat list (SPEC §11.6). No money here: that is PricingLines, for pricing roles only.
 import type { ReactNode } from 'react';
 import type { ExtractionRow } from '../../data/bids.types';
+import { formatDay } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
@@ -23,18 +24,26 @@ function List({ items }: { items: readonly string[] }) {
   );
 }
 
-export function Findings({ x }: { x: ExtractionRow }) {
+interface FindingsProps {
+  x: ExtractionRow;
+  /** A draft being corrected: bidder, date, PW and valid days are in the form instead (the PW evidence stays here). */
+  editing?: boolean | undefined;
+}
+
+export function Findings({ x, editing = false }: FindingsProps) {
   const dash = '-';
   return (
     <dl className="divide-y divide-line text-sm" data-testid="bid-findings">
-      <Line label="Bidder">{x.bidder_name ?? dash}</Line>
-      <Line label="Date">{x.bid_date ?? dash}</Line>
+      {editing ? null : <Line label="Bidder">{x.bidder_name ?? dash}</Line>}
+      {editing ? null : <Line label="Date">{x.bid_date !== null ? formatDay(x.bid_date, 'M/d/yy') : dash}</Line>}
       <Line label="Kind">{x.document_kind ?? dash}</Line>
-      <Line label="PW">
-        {x.prevailing_wage ? humanize(x.prevailing_wage) : dash}
-        {x.prevailing_wage_evidence ? <q className="block text-xs text-ink-2">{x.prevailing_wage_evidence}</q> : null}
-      </Line>
-      <Line label="Valid">{x.validity_days !== null ? `${String(x.validity_days)} days` : dash}</Line>
+      {editing && !x.prevailing_wage_evidence ? null : (
+        <Line label="PW">
+          {editing ? null : x.prevailing_wage ? humanize(x.prevailing_wage) : dash}
+          {x.prevailing_wage_evidence ? <q className="block text-xs text-ink-2">{x.prevailing_wage_evidence}</q> : null}
+        </Line>
+      )}
+      {editing ? null : <Line label="Valid">{x.validity_days !== null ? `${String(x.validity_days)} days` : dash}</Line>}
       <Line label="Scope">{x.scope_summary ?? dash}</Line>
       <Line label="Includes">
         <List items={x.inclusions} />

@@ -1,12 +1,12 @@
 // One list in Setup: its name, phase and permit (edited in place, or the list removed with Undo), its revs with their
-// items, and its walls by level.
+// items and "Add rev" (one OSFM adds later, its number prefilled), and its walls by level.
 import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import type { RevList, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { RevBlock } from './RevBlock';
-import { ListForm, PermitNumber } from './SetupForms';
+import { ListForm, PermitNumber, RevForm } from './SetupForms';
 import type { useSetupActions } from './useSetupActions';
 import { WallsSetup } from './WallsSetup';
 
@@ -26,7 +26,9 @@ function SectionHead({ children }: { children: string }) {
 
 export function ListCard({ projectId, list, setup, actions, isPhone }: ListCardProps) {
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
   const revs = setup.revs.filter((r) => r.list_id === list.id);
+  const nextNumber = Math.max(-1, ...revs.map((r) => r.number)) + 1;
   const size = isPhone ? 'md' : 'sm';
   return (
     <Card
@@ -50,7 +52,7 @@ export function ListCard({ projectId, list, setup, actions, isPhone }: ListCardP
             aria-label={`Remove ${list.name}`}
             title="Remove"
             disabled={actions.busy}
-            onClick={() => { actions.remove('list', list, list.name); }}
+            onClick={() => { void actions.remove('list', list, list.name); }}
           />
         </>
       }
@@ -62,6 +64,13 @@ export function ListCard({ projectId, list, setup, actions, isPhone }: ListCardP
           {revs.map((r) => (
             <RevBlock key={r.id} rev={r} items={setup.items.filter((i) => i.rev_id === r.id)} actions={actions} isPhone={isPhone} />
           ))}
+          {adding ? (
+            <RevForm rev={null} nextNumber={nextNumber} onSave={(n, name) => actions.addRev(list.id, n, name)} onCancel={() => { setAdding(false); }} />
+          ) : (
+            <Button size="sm" variant="quiet" icon={Plus} className="-ml-2 self-start" data-testid="rev-add-rev" onClick={() => { setAdding(true); }}>
+              Add rev
+            </Button>
+          )}
         </div>
         <div className="flex flex-col">
           <SectionHead>Walls</SectionHead>

@@ -46,10 +46,12 @@ interface RailProps {
 interface JobEditProps {
   label: string;
   choice: JobToolsChoice;
+  /** The collapsed rail: the pencil alone. */
+  compact: boolean;
 }
 
 /** Edit, at the end of the job's part: which of the job's tools sit under its name, in a small panel beside the rail. */
-function JobEdit({ label, choice }: JobEditProps) {
+function JobEdit({ label, choice, compact }: JobEditProps) {
   const [open, setOpen] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   useFitInWindow(panel, open);
@@ -68,6 +70,7 @@ function JobEdit({ label, choice }: JobEditProps) {
         aria-label={`Edit ${label} tools`}
         aria-haspopup="dialog"
         aria-expanded={open}
+        title={compact ? `Edit ${label} tools` : undefined}
         className={`flex h-7 items-center gap-1 rounded-md px-2.5 text-[12px] font-medium transition-colors ${
           open ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'
         }`}
@@ -76,7 +79,7 @@ function JobEdit({ label, choice }: JobEditProps) {
         }}
       >
         <Icon icon={Pencil} size={12} />
-        Edit
+        {compact ? null : 'Edit'}
       </button>
       {open ? (
         <>
@@ -195,7 +198,7 @@ export function Rail({ general, job, counts, current, collapsed, onSelect, onPre
           <RailMore tools={job.more} {...items} />
         </div>
       ) : null}
-      {job && !compact ? <JobEdit label={job.label} choice={job.edit} /> : null}
+      {job ? <JobEdit label={job.label} choice={job.edit} compact={compact} /> : null}
       <div className="flex-1" />
       <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-1 border-t border-rail-line pt-2">
         <RailItem

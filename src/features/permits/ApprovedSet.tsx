@@ -1,18 +1,18 @@
 // The permit's approved set, for everyone who reads permits (migration 0053): the current stamped sheets, each one
-// click to open in the browser's own viewer and one to download (lib/saveFile, the original filename), and the
-// superseded sets under them, greyed. For the official, "Stamp and issue" (or, once issued, the quieter "Stamp
+// click to View in the file viewer (its pages, arrows through the set, Download there too) and one to download
+// (lib/saveFile, the original filename), and the superseded sets under them, greyed. For the official, "Stamp and issue" (or, once issued, the quieter "Stamp
 // revision") opens the stamp flow; the database says which (permit_approved.stamp).
-import { Download, FileText, LoaderCircle, Maximize2, Stamp } from 'lucide-react';
-import { messageOf } from '../../data/errors';
-import { useApprovedView } from '../../data/permitStamp.mutations';
+import { Download, Eye, FileText, Stamp } from 'lucide-react';
+import { downloadFile } from '../../data/download';
+import { useApprovedViewUrl } from '../../data/permitStamp.mutations';
 import { usePermitApproved } from '../../data/permitStamp.queries';
 import type { ApprovedSet as ApprovedSetRow, StampMode } from '../../data/permitStamp.types';
 import { formatBytes } from '../../lib/format';
 import { formatInZone } from '../../lib/dates';
-import { blankTab } from '../../lib/openTab';
 import { Button } from '../../ui/Button';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
-import { useToast } from '../../ui/Toast';
+import { LoadingState } from '../../ui/States';
 import { useDownload } from '../files/useDownload';
 import { stampLabel } from './stamp';
 
@@ -27,8 +27,16 @@ interface SetCardProps {
 
 function SetCard({ permitId, set, timeZone, isPhone }: SetCardProps) {
   const download = useDownload();
-  const view = useApprovedView();
-  const toast = useToast();
+  const viewUrl = useApprovedViewUrl();
+  const viewer = useFileViewer();
+  // A stamped sheet is a PDF the server made; the viewer walks this set's sheets.
+  const items: ViewerItem[] = set.files.map((f) => ({
+    id: f.file_id,
+    name: f.name,
+    kind: 'pdf',
+    url: () => viewUrl(permitId, f.file_id),
+    download: () => downloadFile(f.file_id, f.size),
+  }));
   const old = set.superseded_at !== null;
   const size = isPhone ? 'md' : 'sm';
   const when = formatInZone(old && set.superseded_at ? set.superseded_at : set.stamped_at, timeZone, 'MMM d, yyyy');
@@ -42,7 +50,7 @@ function SetCard({ permitId, set, timeZone, isPhone }: SetCardProps) {
         {set.note ? ` · ${set.note}` : ''}
       </p>
       <ul className="flex flex-col divide-y divide-line">
-        {set.files.map((f) => (
+        {set.files.map((f, i) => (
           <li key={f.file_id} className="flex items-center gap-2 px-3 py-1.5" data-testid="permit-approved-file">
             <Icon icon={FileText} size={16} className={old ? 'shrink-0' : 'shrink-0 text-accent'} />
             <span className={`min-w-0 flex-1 break-words text-[13.5px] leading-5 ${old ? '' : 'text-ink'}`}>{f.name}</span>
@@ -50,18 +58,12 @@ function SetCard({ permitId, set, timeZone, isPhone }: SetCardProps) {
             <Button
               size={size}
               variant="quiet"
-              icon={Maximize2}
-              aria-label={`Open ${f.name}`}
-              title="Open"
-              data-testid="permit-approved-open"
-              loading={view.isPending && view.variables.fileId === f.file_id}
+              icon={Eye}
+              aria-label={`View ${f.name}`}
+              title="View"
+              data-testid="permit-approved-view"
               onClick={() => {
-                const tab = blankTab();
-                if (tab === null) {
-                  toast.show({ tone: 'error', message: 'Allow pop-ups to open it.' });
-                  return;
-                }
-                view.mutate({ permitId, fileId: f.file_id, tab }, { onError: (e) => { toast.show({ tone: 'error', message: messageOf(e) }); } });
+                viewer.open(items, i);
               }}
             />
             <Button
@@ -96,10 +98,7 @@ export function ApprovedSet({ permitId, timeZone, isPhone, onStamp }: ApprovedSe
     return (
       <section className="flex flex-col gap-1.5" data-testid="permit-approved" aria-busy>
         <h2 className={HEADING}>Approved set</h2>
-        <p role="status" className="flex items-center gap-2 text-[13px] text-ink-3">
-          <Icon icon={LoaderCircle} size={14} className="animate-spin" />
-          Loading...
-        </p>
+        <LoadingState label="Loading the approved set" />
       </section>
     );
   }

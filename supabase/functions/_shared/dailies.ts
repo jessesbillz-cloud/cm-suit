@@ -23,7 +23,8 @@ export const DAILY_SETTINGS_DEFAULTS = {
   schedule_days: [1, 2, 3, 4, 5] as number[],
   /** "Submit by" in the job's time zone, HH:mm. */
   submit_by: '17:00',
-  /** Reminder lead time before submit-by, in minutes (the push itself comes later; the calendar shows the due time). */
+  /** Reminder lead time before submit-by, in minutes. Not on the Setup screen until the push exists (the calendar shows
+   *  the due time). */
   reminder_minutes: 60,
   filename_pattern: 'Daily Report {#} {Project} {MM-DD-YYYY}',
   /** Who "Email to team" sends to. Stored here, so the server reads recipients from the database. */
@@ -120,6 +121,27 @@ const workRowSchema = z.object({
 });
 export type WorkRow = z.output<typeof workRowSchema>;
 
+/** At most this many tables on a report, and cells in a row. */
+const TABLES_MAX = 20;
+const CELLS_MAX = 12;
+/** A filled-in row's source ("delivery:<id>", "ir:<id>", "crew:<company>|<trade>"), and a safety line's. */
+const ref = z.string().min(1).max(200);
+
+/** A row of a form's table (reportForms.ts FormTable): its cells by column key, all text (numbers too, as typed). */
+const tableRowSchema = z.object({
+  /** The row's key inside its table. Unique per table; not a database id. */
+  key: z.string().min(1).max(64),
+  /** Where a filled-in row came from; null when typed. */
+  ref: ref.nullable().default(null),
+  /** Comes back on the next report, its numbers cleared (the form's carry tables set it). */
+  carry: z.boolean().default(false),
+  cells: z
+    .record(formKey, z.string().max(4000))
+    .refine((o) => Object.keys(o).length <= CELLS_MAX, 'Too many cells')
+    .default({}),
+});
+export type TableRow = z.output<typeof tableRowSchema>;
+
 export const dailyContentSchema = z
   .object({
     weather: z.string().max(300).default(''),
@@ -144,6 +166,13 @@ export const dailyContentSchema = z
       .record(formKey, z.string().max(20000))
       .refine((o) => Object.keys(o).length <= FORM_KEYS_MAX, 'Too many fields')
       .default({}),
+    /** A form's tables (reportForms.ts), by table key: manpower, deliveries, crew... The work log leaves it empty. */
+    tables: z
+      .record(formKey, z.array(tableRowSchema).max(200))
+      .refine((o) => Object.keys(o).length <= TABLES_MAX, 'Too many tables')
+      .default({}),
+    /** Sources already filled in on this report (rows and safety lines): one taken off stays off. Never carried. */
+    pulled: z.array(ref).max(1000).default([]),
   })
   .superRefine((c, ctx) => {
     const seen = new Set<string>();
@@ -151,6 +180,13 @@ export const dailyContentSchema = z
       if (seen.has(row.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['work', i, 'key'], message: 'Duplicate row key' });
       seen.add(row.key);
     });
+    for (const [table, rows] of Object.entries(c.tables)) {
+      const keys = new Set<string>();
+      rows.forEach((row, i) => {
+        if (keys.has(row.key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['tables', table, i, 'key'], message: 'Duplicate row key' });
+        keys.add(row.key);
+      });
+    }
   });
 export type DailyContent = z.output<typeof dailyContentSchema>;
 
@@ -175,6 +211,9 @@ export function needsResubmit(r: ResubmitCheck, photos: readonly { updated_at: s
   const signed = Date.parse(r.signed_at);
   return photos.some((p) => Date.parse(p.updated_at) > signed);
 }
+
+/** A report holds at most this many photos (add_daily_photo refuses the next one). */
+export const PHOTOS_PER_REPORT_MAX = 40;
 
 /** The named values a daily report filename pattern can use ({Project}, {Job}, {Author}, {Company}, {Label}). */
 export function dailyFilenameFields(h: DailyHeader): Record<string, string> {

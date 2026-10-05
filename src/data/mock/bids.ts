@@ -1,34 +1,37 @@
-// Tiny synthetic bid fixtures for the e2e mock: one issued addendum, one answer (packages: mock/packages).
+// Tiny synthetic bid fixtures for the e2e mock (packages: mock/packages; addenda: mock/addenda; questions and answers:
+// mock/questions).
 // The mock bidder is localStorage['e2e-mock-user'] = 'bidder'; every other mock user manages bids.
 import { DataError } from '../errors';
 import type {
   AckRow,
-  AddendumRow,
   BidderPage,
   CoverageRow,
   ExtractionRow,
   ExtractionSummary,
+  InviteBiddersInput,
+  InviteBiddersResult,
   InviteRow,
   PackageRow,
   PricingAccess,
-  PublishedAnswerRow,
-  QuestionRow,
   ReadBidResult,
   ReceivedFile,
   SubmissionRow,
   SubName,
 } from '../bids.types';
 import { mockUser } from './index';
+import * as mockAddenda from './addenda';
 import * as mockCorrections from './corrections';
 import * as mockIr from './inspections';
 import * as mockLeveling from './leveling';
 import * as mockMfa from './mfa';
 import * as mockPackages from './packages';
 import * as mockPermits from './permits';
+import * as mockQuestions from './questions';
 import * as mockRevs from './revs';
 import * as mockRfis from './rfis';
 import * as mockSafety from './safety';
 import * as mockSchedule from './schedule';
+import * as mockRequirements from './requirements';
 import { delay, readMock, writeMock } from './store';
 import * as api from './api';
 
@@ -48,6 +51,7 @@ export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('revs.')) return mockRevs.capability(cap);
   if (cap.startsWith('safety.')) return mockSafety.capability(cap);
   if (cap.startsWith('schedule.')) return mockSchedule.capability(cap);
+  if (cap.startsWith('requirements.')) return mockRequirements.capability(cap);
   await delay();
   return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
 }
@@ -81,32 +85,24 @@ export async function coverage(projectId: string): Promise<CoverageRow[]> {
 
 export async function invites(): Promise<InviteRow[]> {
   await delay();
-  return [{ id: 'inv-1', package_id: 'pkg-1', member_id: 'member-2', status: 'intends', decline_reason: null }];
-}
-
-export async function questions(projectId: string): Promise<QuestionRow[]> {
-  await delay();
-  if (projectId !== 'job-a') return [];
   return [
-    {
-      id: 'q-1',
-      project_id: 'job-a',
-      package_id: 'pkg-1',
-      number: 1,
-      question: 'Is the sample slab thickness 4 or 6 inches?',
-      status: 'open',
-      created_at: '2026-09-22T17:00:00Z',
-      version: 1,
-    },
+    { id: 'inv-1', package_id: 'pkg-1', member_id: 'member-2', status: 'intends', decline_reason: null, email: 'reviewer@example.test' },
+    { id: 'inv-2', package_id: 'pkg-1', member_id: 'member-4', status: 'opened', decline_reason: null, email: 'sub@example.test' },
   ];
 }
 
-export async function addenda(projectId: string): Promise<AddendumRow[]> {
+/** invite-bidders in the mock: every address is "sent" (test mode) with a fresh permanent link. */
+export async function inviteBidders(input: InviteBiddersInput): Promise<InviteBiddersResult> {
   await delay();
-  if (projectId !== 'job-a') return [];
-  return [
-    { id: 'add-1', project_id: 'job-a', number: 1, title: 'Sample schedule change', body: 'Bid date moves one week.', file_ids: [], issued_at: '2026-09-23T17:00:00Z', version: 2 },
-  ];
+  return {
+    invited: input.recipients.map((r, i) => ({
+      email: r.email,
+      member_id: `mock-bidder-${String(i + 1)}`,
+      link_url: `${window.location.origin}/a/mock-link-${String(i + 1)}?t=mock`,
+      email_status: 'test_mode',
+    })),
+    skipped: [],
+  };
 }
 
 export async function acks(): Promise<AckRow[]> {
@@ -121,7 +117,7 @@ export async function bidderPage(projectId: string): Promise<BidderPage> {
   const pkgs = mockPackages.list(projectId);
   return {
     project: { id: projectId, name: 'Sample Job A', number: 'S-100', address: '100 Sample Way', timezone: TZ, bid_due_at: '2026-10-15T21:00:00Z', prevailing_wage: true },
-    upload_folder_id: `${projectId}-plans`,
+    upload_folder_id: `${projectId}-bids`,
     packages: pkgs.map((p) => ({
       id: p.id,
       code: p.code,
@@ -130,7 +126,7 @@ export async function bidderPage(projectId: string): Promise<BidderPage> {
       invite: { id: `inv-${p.id}`, status: s.intents[`inv-${p.id}`] ?? 'opened' },
       submissions: s.submissions.filter((x) => x.package_id === p.id).sort((a, b) => b.version_no - a.version_no),
     })),
-    addenda: (await addenda(projectId)).map((a) => ({
+    addenda: [...mockAddenda.list(projectId)].filter((a) => a.issued_at !== null).reverse().map((a) => ({
       id: a.id,
       number: a.number,
       title: a.title,
@@ -139,7 +135,12 @@ export async function bidderPage(projectId: string): Promise<BidderPage> {
       issued_at: a.issued_at ?? '',
       acked_at: s.acks[a.id] ?? null,
     })),
-    answers: [{ number: 2, question_text: 'Is there a sample walk?', answer: 'Yes, see addendum 1.', published_at: '2026-09-23T18:00:00Z' }],
+    answers: (await mockQuestions.answers(projectId)).map((a) => ({
+      number: a.number,
+      question_text: a.question_text,
+      answer: a.answer,
+      published_at: a.published_at,
+    })),
     my_questions: s.questions,
   };
 }
@@ -154,9 +155,10 @@ export async function setIntent(inviteId: string, intent: string): Promise<void>
   writeMock((m) => ({ ...m, bidder: { ...m.bidder, intents: { ...m.bidder.intents, [inviteId]: intent } } }));
 }
 
-export async function submit(packageId: string, fileId: string): Promise<void> {
+/** submit_bid: the next receipt; the package's earlier version is superseded. Returns the receipt number. */
+export async function submit(packageId: string, fileId: string): Promise<number> {
   await delay();
-  writeMock((m) => {
+  const next = writeMock((m) => {
     const mine = m.bidder.submissions.filter((x) => x.package_id === packageId);
     const row = {
       id: `sub-${String(m.bidder.submissions.length + 1)}`,
@@ -171,6 +173,7 @@ export async function submit(packageId: string, fileId: string): Promise<void> {
     const older = m.bidder.submissions.map((x) => (x.package_id === packageId ? { ...x, superseded: true } : x));
     return { ...m, bidder: { ...m.bidder, submissions: [...older, row] } };
   });
+  return next.bidder.submissions.length;
 }
 
 export async function ask(question: string): Promise<void> {
@@ -296,18 +299,4 @@ export async function extract(submissionId: string): Promise<ReadBidResult> {
 /** Manager writes are not simulated: the mock covers the screens and the tap budgets, not every edit. */
 export function notInMock(): never {
   throw new Error('Not available in the e2e mock.');
-}
-
-/** The job's one published answer (the bidder page shows the same one). */
-export async function publishedAnswer(id: string): Promise<PublishedAnswerRow | null> {
-  await delay();
-  if (id !== 'answer-2') return null;
-  return {
-    id,
-    project_id: 'job-a',
-    number: 2,
-    question_text: 'Is there a sample walk?',
-    answer: 'Yes, see addendum 1.',
-    published_at: '2026-09-23T18:00:00Z',
-  };
 }

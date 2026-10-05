@@ -85,7 +85,7 @@ function listRow(s: PermitMockState, p: StoredPermit): PermitListRow {
     agency_numbers: p.agency_numbers, title: p.title, kind: p.kind, stage: p.stage, stage_since: p.stage_since,
     assigned_to: p.assigned_to, assigned_name: nameOf(p.assigned_to), issued_on: p.issued_on, expires_on: p.expires_on,
     extensions: p.extensions, open_comments: s.comments.filter((c) => c.permit_id === p.id && c.status === 'open').length,
-    review_cycle: Math.max(0, ...s.reviews.filter((r) => r.permit_id === p.id).map((r) => r.cycle)), version: p.version,
+    review_cycle: Math.max(0, ...s.reviews.filter((r) => r.permit_id === p.id && !r.withdrawn_at).map((r) => r.cycle)), version: p.version,
   };
 }
 
@@ -139,7 +139,7 @@ export async function detail(id: string): Promise<PermitDetail> {
     steps: permitSteps(p, s.events, permitJobZone(p.project_id), new Date()),
     // Open cycles first, then newest first.
     reviews: s.reviews
-      .filter((r) => r.permit_id === p.id)
+      .filter((r) => r.permit_id === p.id && !r.withdrawn_at)
       .sort((a, b) => Number(b.outcome === null) - Number(a.outcome === null) || b.cycle - a.cycle)
       .map((r) => ({
         id: r.id, permit_id: r.permit_id, cycle: r.cycle, review_no: r.review_no, backcheck: r.backcheck, kind: r.kind,

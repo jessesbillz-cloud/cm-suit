@@ -19,7 +19,10 @@ export const SEED_DAILY_ID = 'mock-daily-job-b-7';
 export const SEED_RFI_ID = 'mock-rfi-job-a-2';
 
 const PHOTO_ID = 'job-b-photo-1';
-const DAILY_PDF_ID = 'job-b-daily-7';
+/** The submitted daily's PDF: a signed record (mock/files keeps it). */
+export const SEED_DAILY_PDF_ID = 'job-b-daily-7';
+/** IR 12's signed PDF (mock/files keeps it too). */
+export const SEED_IR_PDF_ID = 'job-b-ir-12';
 
 function file(id: string, folder: string, name: string, mime: string, size: number, at: string): FileRow {
   return {
@@ -38,7 +41,8 @@ function file(id: string, folder: string, name: string, mime: string, size: numb
 
 export const SEED_FILES: FileRow[] = [
   file(PHOTO_ID, 'photos', 'Sample corridor photo.jpg', 'image/jpeg', 812_400, '2026-09-25T17:20:00Z'),
-  file(DAILY_PDF_ID, 'reports', 'Sample Daily Report 7.pdf', 'application/pdf', 96_512, '2026-09-25T23:30:00Z'),
+  file(SEED_DAILY_PDF_ID, 'reports', 'Sample Daily Report 7.pdf', 'application/pdf', 96_512, '2026-09-25T23:30:00Z'),
+  file(SEED_IR_PDF_ID, 'reports', 'Sample IR 12.pdf', 'application/pdf', 64_200, '2026-09-25T19:00:00Z'),
 ];
 
 /** IR 12: a special concrete inspection, approved; the next request on the job is 13. */
@@ -51,7 +55,7 @@ export const SEED_IR: IrRowRaw = {
   helper_id: null, confirm_note: null, attendance: null, result: 'approved', result_note: 'Sample placement observed.',
   result_photo_ids: [], result_at: '2026-09-25T18:30:00Z', result_by: INSPECTOR, helper_report: null, helper_note: null,
   helper_at: null, postpone_reason: null, postpone_note: null, postpone_until: null, postponed_at: null, postpone_count: 0,
-  ir_file_id: 'job-b-ir-12', content_hash: null, signed_at: '2026-09-25T19:00:00Z', signed_by: INSPECTOR, pdf_stale: false,
+  ir_file_id: SEED_IR_PDF_ID, content_hash: null, signed_at: '2026-09-25T19:00:00Z', signed_by: INSPECTOR, pdf_stale: false,
   pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
   requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
   ofs_sent_at: null, ofs_sent_by: null, special_required: null,
@@ -102,6 +106,7 @@ export const SEED_DAILY: DailyReportRow = {
   signed_version: 3,
   hours: null,
   submitted_at: '2026-09-25T23:30:00Z',
-  pdf_file_id: DAILY_PDF_ID,
+  pdf_file_id: SEED_DAILY_PDF_ID,
   filename: 'Sample Daily Report 7.pdf',
+  form: null,
 };

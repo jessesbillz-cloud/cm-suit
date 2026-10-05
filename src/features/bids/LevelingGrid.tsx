@@ -71,7 +71,10 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
             >
               <td className={`whitespace-normal break-words py-2.5 pl-4 pr-2 ${r.submission_id === selectedId ? OPEN_BAR : ''}`}>
                 <span className="flex flex-wrap items-center gap-1.5">
-                  <span>{r.bidder}</span>
+                  {/* The row opens on click; this button lets the keyboard open it too. */}
+                  <button type="button" className="text-left">
+                    {r.bidder}
+                  </button>
                   {r.submission_id === lowId ? <StatusChip status="confirmed" label="Low" /> : null}
                   {r.state === 'not_comparable' ? <StatusChip status="cancelled" label={stateLabel(r.state)} /> : null}
                   {r.is_late ? <StatusChip status="postponed" label="Late" /> : null}
@@ -100,7 +103,10 @@ export function LevelingGrid({ rows, byRow, money, lowId, selectedId, onOpen }: 
               >
                 <td className={`whitespace-normal break-words py-2.5 pl-4 pr-2 ${r.submission_id === selectedId ? OPEN_BAR : ''}`}>
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span>{r.bidder}</span>
+                    {/* The row opens on click; this button lets the keyboard open it too. */}
+                  <button type="button" className="text-left">
+                    {r.bidder}
+                  </button>
                     <StatusChip status="cancelled" label={stateLabel(r.state)} />
                   </span>
                 </td>

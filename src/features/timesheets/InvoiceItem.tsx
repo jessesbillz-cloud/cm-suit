@@ -1,14 +1,23 @@
 // One invoice (right column; full screen on the phone): its lines as saved (job, hours, rate, amount), the total, the
-// PDF in one click, Draft / Sent / Paid set by hand, and Update to price a draft again from today's hours.
-import { Download, RefreshCw } from 'lucide-react';
+// PDF in one click (and View, full screen), Draft / Sent / Paid set by hand, Update to price a draft again from today's hours, and Delete for a
+// draft (with Undo; the number is kept for it).
+import { Download, Eye, RefreshCw, Trash2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useInvoicePdf, useRefreshInvoice, useSetInvoiceStatus } from '../../data/hours.mutations';
+import {
+  invoicePdfUrl,
+  useDeleteInvoice,
+  useInvoicePdf,
+  useRefreshInvoice,
+  useRestoreInvoice,
+  useSetInvoiceStatus,
+} from '../../data/hours.mutations';
 import { useInvoices } from '../../data/hours.queries';
 import type { InvoiceRow } from '../../data/hours.types';
 import { formatDay } from '../../lib/dates';
 import { formatMoney } from '../../lib/format';
 import { hoursText, monthLabel } from '../../lib/timesheet';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -16,6 +25,7 @@ import { HEAD_ROW, TABLE, TD, TD_NUM, TH } from '../../ui/Table';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
 import { INVOICE_STATUSES, invoiceChip, invoiceTitle } from './model';
+import { useTimesheetsNav } from './useTimesheetsNav';
 
 function Lines({ inv }: { inv: InvoiceRow }) {
   return (
@@ -54,7 +64,11 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
   const pdf = useInvoicePdf();
   const refresh = useRefreshInvoice();
   const status = useSetInvoiceStatus();
+  const remove = useDeleteInvoice();
+  const restore = useRestoreInvoice();
+  const nav = useTimesheetsNav();
   const toast = useToast();
+  const viewer = useFileViewer();
   const chip = invoiceChip(inv.status);
   const fail = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
@@ -81,7 +95,25 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
             pdf.mutate(inv.id, { onError: fail });
           }}
         >
-          PDF
+          Download
+        </Button>
+        <Button
+          icon={Eye}
+          data-testid="invoice-view"
+          onClick={() => {
+            viewer.open([
+              {
+                // A new version after Update shows the new rendering.
+                id: `invoice:${inv.id}:${String(inv.version)}`,
+                name: `${invoiceTitle(inv)}.pdf`,
+                kind: 'pdf',
+                url: () => invoicePdfUrl(inv.id),
+                download: () => pdf.mutateAsync(inv.id),
+              },
+            ]);
+          }}
+        >
+          View
         </Button>
         {inv.status === 'draft' ? (
           <Button
@@ -101,6 +133,31 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
             }}
           >
             Update
+          </Button>
+        ) : null}
+        {inv.status === 'draft' ? (
+          <Button
+            variant="danger"
+            icon={Trash2}
+            loading={remove.isPending}
+            data-testid="invoice-delete"
+            onClick={() => {
+              // The promise, not per-call callbacks: the list drops this invoice (and this pane) before they would run.
+              remove.mutateAsync({ id: inv.id, version: inv.version }).then(() => {
+                nav.close();
+                toast.show({
+                  message: `${invoiceTitle(inv)} deleted.`,
+                  action: {
+                    label: 'Undo',
+                    onClick: () => {
+                      restore.mutateAsync(inv.id).catch(fail);
+                    },
+                  },
+                });
+              }, fail);
+            }}
+          >
+            Delete
           </Button>
         ) : null}
       </div>

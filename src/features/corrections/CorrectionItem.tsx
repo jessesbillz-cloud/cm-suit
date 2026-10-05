@@ -1,4 +1,5 @@
 // The right column (full screen on the phone) for the corrections tool: a row, the new-item form, or the progress page.
+// A phone has no windows: no "Open in new window" there.
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { CorrectionPane } from './CorrectionPane';
@@ -44,7 +45,8 @@ function NewItem({ projectId, isPhone }: { projectId: string; isPhone: boolean }
   );
 }
 
-export function CorrectionItem({ projectId, itemId, isPhone, standalone, onOpenWindow }: CorrectionItemProps) {
+export function CorrectionItem({ projectId, itemId, isPhone, standalone, onOpenWindow: openWindow }: CorrectionItemProps) {
+  const onOpenWindow = isPhone ? undefined : openWindow;
   if (itemId === NEW_ITEM) return <NewItem projectId={projectId} isPhone={isPhone} />;
   if (itemId === PROGRESS_ITEM) return <ProgressView projectId={projectId} standalone={standalone} onOpenWindow={onOpenWindow} />;
   return <CorrectionPane key={itemId} projectId={projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={onOpenWindow} />;

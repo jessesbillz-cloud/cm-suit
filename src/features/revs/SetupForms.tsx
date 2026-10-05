@@ -68,17 +68,19 @@ export function ItemForm({ name: n0 = '', company: c0, saveLabel, onSave, onCanc
 }
 
 interface RevFormProps {
-  rev: Rev;
+  /** Null: a new rev, its number prefilled with the next one. */
+  rev: Rev | null;
+  nextNumber?: number | undefined;
   onSave: (number: number, name: string) => Promise<boolean>;
   onCancel: () => void;
 }
 
-export function RevForm({ rev, onSave, onCancel }: RevFormProps) {
-  const [number, setNumber] = useState(String(rev.number));
-  const [name, setName] = useState(rev.name);
+export function RevForm({ rev, nextNumber = 0, onSave, onCancel }: RevFormProps) {
+  const [number, setNumber] = useState(String(rev?.number ?? nextNumber));
+  const [name, setName] = useState(rev?.name ?? '');
   const ok = /^\d{1,6}$/.test(number.trim()) && name.trim() !== '';
   return (
-    <EditForm ready={ok} testId="rev-rev-form" onSave={() => onSave(Number(number.trim()), name)} onCancel={onCancel}>
+    <EditForm ready={ok} saveLabel={rev ? undefined : 'Add'} testId="rev-rev-form" onSave={() => onSave(Number(number.trim()), name)} onCancel={onCancel}>
       <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3">
         <TextField label="Rev" value={number} onChange={setNumber} type="text" maxLength={6} testId="rev-rev-number" />
         <TextField label="Name" value={name} onChange={setName} autoFocus maxLength={80} testId="rev-rev-name" />

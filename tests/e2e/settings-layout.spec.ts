@@ -1,4 +1,5 @@
-// Settings > Layout, Calendar subscriptions and Notify me about (SPEC §7.2, §7.6, §7.8) against the e2e mock data layer.
+// Settings > Layout and Calendar subscriptions (SPEC §7.2, §7.6) against the e2e mock data layer; Notify me about is
+// hidden until push ships (§7.8, §8.6).
 // Runs on desktop and phone. Contract with the mock: 'pm' starts from the layout defaults (opens on Board, right column
 // Board, the quiet notification set) with no tools of their own on any job, so the rail on job-a is only the job's: the
 // PM's recommendation without the Board, then Files: Calendar, RFIs, Inspections, Files (0040, 0051, 0058); on All my
@@ -6,8 +7,7 @@
 // under its name), never in Settings (0051).
 // Test ids: layout-preview-rail and layout-preview-phone (children carry data-tool, in order), layout-preview-main
 // (data-tool), layout-preview-right (data-panel), layout-main-default, layout-docked-<panel>, cal-sub-<kind>,
-// notify-parent-<area>, notify-<event>; layout-card, cal-subs and notify-tree carry data-version (the saved row's
-// version); the frame's job-rail-edit, job-rail-editor, job-tool-show-<tool>.
+// notify-tree (absent); layout-card and cal-subs carry data-version (the saved row's version); the frame's job-rail-edit, job-rail-editor, job-tool-show-<tool>.
 import process from 'node:process';
 import { expect, test, type Locator } from '@playwright/test';
 
@@ -22,10 +22,6 @@ async function clickAndSave(target: Locator, card: Locator): Promise<void> {
   const before = (await card.getAttribute('data-version')) ?? '';
   await target.click();
   await expect(card).not.toHaveAttribute('data-version', before);
-}
-
-function isIndeterminate(box: Locator): Promise<boolean> {
-  return box.evaluate((el) => (el as HTMLInputElement).indeterminate);
 }
 
 test.describe('settings layout (SPEC §7.2)', () => {
@@ -72,30 +68,10 @@ test.describe('settings layout (SPEC §7.2)', () => {
     await expect.poll(() => toolsIn(rail)).toEqual(['board', 'calendar', 'bids', 'settings']);
   });
 
-  test('a notification parent sets all of its events and shows a dash when some are on', async ({ page }) => {
+  test('Notify me about is hidden until push ships', async ({ page }) => {
     await page.goto('/p/job-a/settings');
-    const tree = page.getByTestId('notify-tree');
-    const parent = page.getByTestId('notify-parent-inspections');
-    const confirmed = page.getByTestId('notify-ir_confirmed');
-    const results = page.getByTestId('notify-ir_results');
-    const events = [confirmed, page.getByTestId('notify-ir_moved'), results];
-
-    // The quiet default: only "Results in".
-    await expect(results).toBeChecked();
-    await expect(confirmed).not.toBeChecked();
-    await expect.poll(() => isIndeterminate(parent)).toBe(true);
-
-    await clickAndSave(parent, tree);
-    for (const e of events) await expect(e).toBeChecked();
-    await expect.poll(() => isIndeterminate(parent)).toBe(false);
-
-    await clickAndSave(parent, tree);
-    for (const e of events) await expect(e).not.toBeChecked();
-    await expect(parent).not.toBeChecked();
-
-    await page.reload();
-    await expect(results).not.toBeChecked();
-    await expect(page.getByTestId('notify-task_assigned')).toBeChecked();
+    await expect(page.getByTestId('settings')).toBeVisible();
+    await expect(page.getByTestId('notify-tree')).toHaveCount(0);
   });
 
   test('calendar subscriptions drive what the calendar shows', async ({ page }) => {

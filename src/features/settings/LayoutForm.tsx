@@ -10,7 +10,6 @@ import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { LayoutPreview, pointAt, type Spot } from './LayoutPreview';
-import { LayoutTips } from './LayoutTips';
 import { FIELD_ROW, SettingRow } from './SettingRow';
 import { useLayoutEditor } from './useLayoutEditor';
 import { usePreviewRail } from './usePreviewRail';
@@ -115,7 +114,6 @@ export function LayoutForm({ projectId }: { projectId: string | null }) {
     <Card title="Layout" actions={<SaveState pending={save.isPending} saved={save.isSuccess} problem={null} />}>
       {/* data-version: the saved row's version, so a test can wait for a save to land. */}
       <div data-testid="layout-card" data-version={layout.data?.version ?? 'none'} className="flex flex-col gap-5">
-        <LayoutTips />
         {layout.isPending || rail.isPending ? <LoadingState label="Loading your layout" /> : null}
         {layout.isError ? <ErrorState error={layout.error} onRetry={() => void layout.refetch()} /> : null}
         {rail.error ? <ErrorState error={rail.error} onRetry={rail.refetch} /> : null}

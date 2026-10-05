@@ -50,11 +50,21 @@ describe("a link request's facts (0061)", () => {
   const facts = {
     project_name: 'Sample Science Building', number: 12, request_date: '2026-10-05', start_time: null, duration_kind: 'periodic',
     duration_min: null, kind: 'ofs', special_kind: null, status: 'pending', result: null, result_note: null, gc_step: true, ofs_sent: true,
+    postpone_reason: null, postpone_note: null, postpone_until: null, attendance: null, has_ir: false,
   };
 
   it('carry whether the request is with OFS (the tracker\'s OFS step); the receipt adds its token', () => {
     expect(requestFactsSchema.parse(facts).ofs_sent).toBe(true);
     expect(submittedSchema.parse({ ...facts, ofs_sent: false, receipt: 'A'.repeat(43) }).ofs_sent).toBe(false);
+  });
+
+  it('carry the postponement, the attendance call and whether the IR is made (0075)', () => {
+    const postponed = { ...facts, status: 'postponed', postpone_reason: 'weather', postpone_note: 'Rain', postpone_until: '2026-10-07' };
+    expect(requestFactsSchema.parse({ ...postponed, attendance: 'be_present', has_ir: true })).toMatchObject({
+      postpone_reason: 'weather', postpone_until: '2026-10-07', attendance: 'be_present', has_ir: true,
+    });
+    const before = Object.fromEntries(Object.entries(facts).filter(([k]) => k !== 'has_ir'));
+    expect(requestFactsSchema.safeParse(before).success).toBe(false);
   });
 
   it('fail loudly when the answer leaves it out', () => {

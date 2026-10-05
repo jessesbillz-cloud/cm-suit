@@ -5,12 +5,18 @@
 // ('dailies.write') → the version the person saw → signing re-confirmation (signedInRecently, else 403
 // reauth_required) → content hash → begin_daily_submit AS THE CALLER (numbers the report on its first signing, records
 // the hash; refuses if the content or photos moved) → the PDF from the saved content (the work log's
-// pdf/dailyReport.ts, or the report's company form, e.g. pdf/vis.ts, SPEC §8.3; then the ONE stamp) → storeGeneratedPdf
+// pdf/dailyReport.ts, the superintendent's or foreman's daily pdf/gcDaily.ts, or a company form, e.g. pdf/vis.ts,
+// SPEC §8.3; then the ONE stamp) → storeGeneratedPdf
 // into Reports/<author> → finish_daily_submit (service role) marks it submitted. Nothing before the finish marks the
 // report submitted; if storing or finishing fails, the new file is taken back out and the call fails loudly.
 //
 // A company form's report prints the setup's job values and the company's logo (orgs.logo_path of the job's company);
 // the job values are part of the signed hash, and so are photo descriptions.
+//
+// The superintendent's and the foreman's daily print the company's version of the form (reportForms companyForm: the
+// company's settings read as the caller). The form a report is signed on is part of the hash and is saved with the
+// report by finish_daily_submit; a submitted report is rendered again from that saved form, so a later change to the
+// company's form never changes what it prints.
 //
 // Service client (listed in admin_service_key_allowlist.txt): reading photo and logo bytes from private storage,
 // storing the PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not
@@ -33,8 +39,12 @@ import {
   type DailySettings,
   parseDailySettings,
 } from '../_shared/dailies.ts';
-import { dailyValues, formIdOf, lockedValues, REPORT_FORMS, type ReportFormId } from '../_shared/reportForms.ts';
-import { buildDailyReportPdf, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
+import {
+  companyForms, dailyValues, formIdOf, formOf, formSnapshot, lockedValues, REPORT_FORMS, type ReportForm, reportForm,
+  type ReportFormId, type SavedForm,
+} from '../_shared/reportForms.ts';
+import { buildDailyReportPdf, type DailyPdfPhoto, dayLabel, instantLabel, PhotoReadError } from '../_shared/pdf/dailyReport.ts';
+import { buildFormDailyPdf } from '../_shared/pdf/gcDaily.ts';
 import { buildVisPdf, FormFitError, VIS_SIGNATURE_AT, visDate, visPhotoTime } from '../_shared/pdf/vis.ts';
 import { stampSignature, type StampSpot } from '../_shared/pdf/stamp.ts';
 
@@ -59,10 +69,12 @@ type Report = {
   signed_at: string | null;
   signed_version: number | null;
   submitted_at: string | null;
+  /** The form a submitted report was signed on (reportForms SavedForm), or null. */
+  form: unknown;
 };
 
 const REPORT_COLS = 'id, org_id, project_id, author_id, report_type, report_date, status, number, header, content, version, ' +
-  'filename, pdf_file_id, sign_pending_at, signed_at, signed_version, submitted_at';
+  'filename, pdf_file_id, sign_pending_at, signed_at, signed_version, submitted_at, form';
 
 type Photo = {
   id: string;
@@ -86,8 +98,9 @@ function photosStamp(photos: readonly Photo[]): string {
   return [...photos].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).map((p) => `${p.id}:${p.version}`).join(',');
 }
 
-/** The content hash (SPEC §6.9): the saved record exactly as stored, its photos, and a company form's job values. */
-function hashOf(r: Report, photos: readonly Photo[], jobValues: Record<string, string> | null): Promise<string> {
+/** The content hash (SPEC §6.9): the saved record exactly as stored, its photos, a company form's job values, and the
+ *  form it is signed on where each company sets up its own. */
+function hashOf(r: Report, photos: readonly Photo[], jobValues: Record<string, string> | null, signedOn: SavedForm | null): Promise<string> {
   return contentHash({
     report_type: r.report_type,
     report_date: r.report_date,
@@ -97,7 +110,24 @@ function hashOf(r: Report, photos: readonly Photo[], jobValues: Record<string, s
     photos: photos.map((p) => ({ file_id: p.file_id, caption: p.caption, description: p.description, taken_at: p.taken_at, row_key: p.row_key }))
       .sort((a, b) => (a.file_id < b.file_id ? -1 : 1)),
     ...(jobValues === null ? {} : { job: jobValues }),
+    ...(signedOn === null ? {} : { form: signedOn }),
   });
+}
+
+/** The form the report prints on (reportForms reportForm): the company's version of the built-in form for a draft, the
+ *  form it was signed on for a submitted report. The company's settings are read as the caller (the job's members read
+ *  their job's company). */
+async function printedForm(client: Db, report: Report, form: ReportForm): Promise<ReportForm> {
+  let forms: ReturnType<typeof companyForms> = {};
+  if (form.companyFields && report.status !== 'submitted') {
+    const org = must(await client.from('orgs').select('settings').eq('id', report.org_id).maybeSingle(), 'company lookup') as
+      { settings: unknown } | null;
+    if (!org) throw new HttpError(500, `report ${report.id}: its company can't be read`);
+    forms = companyForms(org.settings);
+  }
+  const printed = reportForm(form, report, forms[report.report_type] ?? null);
+  if (printed === null) throw new HttpError(500, `report ${report.id}: the form it was signed on can't be read`);
+  return printed;
 }
 
 function filenameFor(pattern: string, number: number, r: Report, header: DailyHeader): string {
@@ -157,24 +187,44 @@ interface RenderInput {
   settings: DailySettings;
   photos: PhotoBytes[];
   inspector: string;
+  /** The form as it prints (printedForm), or null for the work log. */
+  printed: ReportForm | null;
 }
 
-/** The PDF (before the signature) and where its signature goes: the work log's corner, or a company form's line. */
+/** The photos as the work log and the built-in forms print them: caption, the job and the time taken, the row. */
+function stampedPhotos(i: RenderInput, rowLabel: (key: string) => string | null): DailyPdfPhoto[] {
+  const { header } = i;
+  return i.photos.map(({ photo: p, bytes, mime }) => ({
+    bytes, mime, caption: p.caption,
+    stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
+    rowLabel: p.row_key ? rowLabel(p.row_key) : null,
+  }));
+}
+
+/** The PDF (before the signature) and where its signature goes: the last page's corner, or a company form's line. */
 async function render(form: ReportFormId | null, i: RenderInput): Promise<{ bytes: Uint8Array; at: StampSpot | undefined }> {
   const { header, content, settings } = i;
   if (form === null) {
     const rows = new Map(content.work.map((w) => [w.key, w.company.trim()]));
     const bytes = await buildDailyReportPdf({
       header, number: i.number, dateLabel: dayLabel(i.report.report_date), content, photosPerPage: settings.photos_per_page,
-      photos: i.photos.map(({ photo: p, bytes, mime }) => ({
-        bytes, mime, caption: p.caption,
-        stamp: `${header.project_name} · ${instantLabel(p.taken_at ?? new Date().toISOString(), header.timezone)}`,
-        rowLabel: p.row_key ? rows.get(p.row_key) || null : null,
-      })),
+      photos: stampedPhotos(i, (key) => rows.get(key) || null),
     });
     return { bytes, at: undefined };
   }
   switch (form) {
+    // The forms made of fields and tables (the superintendent's and the foreman's daily): the corner, like the work log.
+    case 'gc_daily':
+    case 'foreman_daily': {
+      const f: ReportForm = i.printed ?? REPORT_FORMS[form];
+      const bytes = await buildFormDailyPdf({
+        form: f, header, number: i.number, dateLabel: dayLabel(i.report.report_date),
+        day: dailyValues(f, content.fields, content.standing_note), tables: content.tables,
+        inspections: content.inspections.map((e) => e.text), photosPerPage: settings.photos_per_page,
+        photos: stampedPhotos(i, () => null),
+      });
+      return { bytes, at: undefined };
+    }
     case 'vis_daily': {
       const f = REPORT_FORMS[form];
       const bytes = await buildVisPdf({
@@ -247,6 +297,8 @@ Deno.serve(handle(async (req) => {
   ) as { settings: unknown } | null;
   const settings = parseDailySettings(setup?.settings);
   const jobValues = form === null ? null : lockedValues(REPORT_FORMS[form], settings.locked);
+  const printed = form === null ? null : await printedForm(client, report, REPORT_FORMS[form]);
+  const signedOn = printed?.companyFields ? formSnapshot(printed) : null;
   // A broken filename pattern is refused before a number is used.
   filenameFor(settings.filename_pattern, report.number ?? 1, report, header);
 
@@ -265,11 +317,13 @@ Deno.serve(handle(async (req) => {
   const signature = settings.signature ? await signatureImage(client, profile.signature_path) : null;
 
   const signer = profile.full_name.trim() || header.author_name;
-  const renderInput = { client, service, report, header, content, settings, photos: photoBytes, inspector: signer };
-  // A company form doesn't print the number: it is rendered (and any problem refused) before a number is used.
-  const early = form === null ? null : await renderOr400(form, { ...renderInput, number: report.number ?? 0 });
+  const renderInput = { client, service, report, header, content, settings, photos: photoBytes, inspector: signer, printed };
+  // A form that doesn't print the number (VIS) is rendered, and any problem refused, before a number is used.
+  const early = form === null || formOf(report.report_type)?.numbered
+    ? null
+    : await renderOr400(form, { ...renderInput, number: report.number ?? 0 });
 
-  const hash = await hashOf(report, photos, jobValues);
+  const hash = await hashOf(report, photos, jobValues, signedOn);
   const begun = await rpc<Report>(client, 'begin_daily_submit', {
     p_report_id: report.id,
     p_version: report.version,
@@ -302,6 +356,7 @@ Deno.serve(handle(async (req) => {
       p_content_hash: hash,
       p_file_id: stored.id,
       p_filename: filename,
+      p_form: signedOn,
     });
   } catch (e) {
     await takeBack(service, stored.id, report.pdf_file_id);

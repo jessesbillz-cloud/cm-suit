@@ -1,12 +1,13 @@
 // pdf.js, vendored in src/vendor/pdfjs (docs/decisions.md, Oct 2). Loaded only here and only by dynamic import, so it
-// is its own chunk that the sheet viewer alone downloads; the worker is a separate file the bundler copies as is.
+// is its own chunk that only a sheet or file viewer downloads; the worker is a separate file the bundler copies as is.
+// Shared by the Revs sheet viewer (features/revs/map) and the file viewer (ui/FileViewer).
 import type {
   PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask,
-} from '../../../vendor/pdfjs/pdf.min.mjs';
+} from '../../vendor/pdfjs/pdf.min.mjs';
 
 export type { PDFDocumentProxy, PDFPageProxy };
 
-const WORKER_URL = new URL('../../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
+const WORKER_URL = new URL('../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
 /** pdf.js fetches its image decoders from here by name, so they keep fixed names under public/. */
 const WASM_URL = `${import.meta.env.BASE_URL}vendor/pdfjs-wasm/`;
@@ -18,7 +19,7 @@ const CONTENT_ONLY = 0;
 const ERRORS_ONLY = 0;
 
 async function pdfjs() {
-  const lib = await import('../../../vendor/pdfjs/pdf.min.mjs');
+  const lib = await import('../../vendor/pdfjs/pdf.min.mjs');
   lib.GlobalWorkerOptions.workerSrc = WORKER_URL;
   return lib;
 }

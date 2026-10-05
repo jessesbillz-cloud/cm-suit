@@ -1,17 +1,18 @@
-// One-click download with the original filename (SPEC §6.5, §8.1), and photo previews. Signed-in members only.
+// One-click download with the original filename (SPEC §6.5, §8.1), and previews for the file viewer. Signed-in members
+// only.
 //
 // Download: authorize_download(), called with the USER client so it sees auth.uid(), checks folder access, view-only
 // and the scan status, then writes the downloads row and the audit event.
 // Preview (action 'preview'): authorize_preview() as the user asks the same gate (the file's folder, or the RFI or
 // inspection request it is opened through), is not a download (no download line; it writes a 'file.preview' audit
-// line, 0054), and answers only for images. The image is checked again here before signing, and the URL lives
-// PREVIEW_TTL_SECONDS (10 minutes, like a download's).
+// line, 0054), and answers only for images and PDFs (0074). The type is checked again here before signing, and the URL
+// lives PREVIEW_TTL_SECONDS (10 minutes, like a download's). The app shows the image, or reads the PDF with pdf.js.
 // The service client is used for one thing only: signing the URL, because users have no storage SELECT policy
 // (every URL goes through these gates). Listed in admin_service_key_allowlist.txt for that reason.
 import { handle, HttpError, ok } from '../_shared/http.ts';
 import { rpc, serviceClient, signedDownloadUrl, signedPreviewUrl } from '../_shared/db.ts';
 import { requireUser } from '../_shared/auth.ts';
-import { isPreviewImage, PREVIEW_TTL_SECONDS } from '../_shared/images.ts';
+import { isPreviewable, PREVIEW_TTL_SECONDS } from '../_shared/images.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 
 const Download = z.object({
@@ -48,7 +49,7 @@ Deno.serve(handle(async (req) => {
     });
     const f = rows?.[0];
     if (!f) throw new HttpError(404, 'File not found');
-    if (!isPreviewImage(f.mime, f.original_name)) throw new HttpError(403, 'not_image');
+    if (!isPreviewable(f.mime, f.original_name)) throw new HttpError(403, 'not_image');
     const url = await signedPreviewUrl(serviceClient(), 'files', f.storage_path, PREVIEW_TTL_SECONDS);
     return ok(req, { url });
   }
