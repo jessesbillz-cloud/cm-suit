@@ -2,19 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { TODAY_ACTIONS, TODAY_CHIPS, scheduleLabel, todayMeta, todayState } from './dailyToday';
 
 describe('todayState', () => {
-  it("follows today's report, then the schedule", () => {
-    expect(todayState({ status: 'submitted', scheduled_today: false })).toBe('submitted');
-    expect(todayState({ status: 'draft', scheduled_today: true })).toBe('draft');
-    expect(todayState({ status: 'none', scheduled_today: true })).toBe('due');
-    expect(todayState({ status: 'none', scheduled_today: false })).toBe('off');
+  it("follows today's report (untouched counts as not started), then the schedule", () => {
+    expect(todayState({ status: 'submitted', scheduled_today: false, report_version: 6 })).toBe('submitted');
+    expect(todayState({ status: 'draft', scheduled_today: true, report_version: 3 })).toBe('draft');
+    expect(todayState({ status: 'draft', scheduled_today: true, report_version: 1 })).toBe('due');
+    expect(todayState({ status: 'none', scheduled_today: true, report_version: null })).toBe('due');
+    expect(todayState({ status: 'none', scheduled_today: false, report_version: null })).toBe('off');
   });
 
-  it('wears the status colors and one button per state', () => {
+  it('wears the status colors and the Dailies button\'s words', () => {
     expect(TODAY_CHIPS.submitted).toEqual({ status: 'confirmed', label: 'Submitted' });
     expect(TODAY_CHIPS.draft).toEqual({ status: 'pending', label: 'Draft' });
-    expect(TODAY_CHIPS.due.label).toBe('Not started');
+    expect(TODAY_CHIPS.due).toEqual({ status: 'pending', label: 'Not started' });
     expect(TODAY_CHIPS.off.label).toBe('Off today');
-    expect([TODAY_ACTIONS.due, TODAY_ACTIONS.off, TODAY_ACTIONS.draft, TODAY_ACTIONS.submitted]).toEqual(['Start', 'Start', 'Continue', 'View']);
+    expect([TODAY_ACTIONS.due, TODAY_ACTIONS.off, TODAY_ACTIONS.draft, TODAY_ACTIONS.submitted]).toEqual([
+      'Start',
+      'Start',
+      'Continue',
+      'Edit submitted',
+    ]);
   });
 });
 
