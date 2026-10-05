@@ -118,7 +118,7 @@ test.describe('the file viewer in each place', () => {
 
     // The calendar card: View IR and the files open the viewer.
     await openAs(page, 'pm', `/p/job-a/calendar?day=${today()}`);
-    const card = page.getByTestId('cal-day-detail').getByTestId('cal-request').filter({ hasText: new RegExp(`IR ${n}\\b`) });
+    const card = page.getByTestId('cal-day-detail').getByTestId('cal-request').filter({ has: page.getByText(`IR ${n}`, { exact: true }) });
     await card.getByTestId('cal-view-ir').click();
     await seesPdfThenEscape(page);
     await expect(card.getByTestId('cal-file').last()).toContainText('sample-site.jpg');
