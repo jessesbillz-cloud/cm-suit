@@ -69,5 +69,5 @@ export function usePreviewUrl(fileId: string, via?: PreviewVia) {
  */
 export function usePreviewFetch(): (fileId: string, via?: PreviewVia) => Promise<string> {
   const qc = useQueryClient();
-  return useCallback((fileId: string, via?: PreviewVia) => qc.fetchQuery(previewQuery(fileId, via)), [qc]);
+  return useCallback((fileId: string, via?: PreviewVia) => qc.query(previewQuery(fileId, via)), [qc]);
 }
