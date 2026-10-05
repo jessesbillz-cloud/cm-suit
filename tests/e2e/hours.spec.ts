@@ -71,6 +71,13 @@ test.describe('hours, timesheets and invoices (SPEC §15)', () => {
     const timesheet = page.waitForEvent('download');
     await page.getByTestId('timesheet-sign').click();
     expect((await timesheet).suggestedFilename()).toMatch(/TIMESHEET/);
+    // View: the signed copy full screen, without signing again.
+    await page.getByTestId('timesheet-view').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText(/TIMESHEET/);
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
 
     // No billing yet: set it up (the rate is mine only), then the month's invoice, numbered by the database.
     await page.getByTestId('timesheets-billing').click();
@@ -89,6 +96,11 @@ test.describe('hours, timesheets and invoices (SPEC §15)', () => {
     const pdf = page.waitForEvent('download');
     await invoice.getByTestId('invoice-pdf').click();
     expect((await pdf).suggestedFilename()).toMatch(/\.pdf$/);
+    await invoice.getByTestId('invoice-view').click();
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Invoice #1.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
 
     await invoice.getByTestId('invoice-status-paid').click();
     await expect(page.getByTestId('invoice-row-1')).toContainText('Paid');

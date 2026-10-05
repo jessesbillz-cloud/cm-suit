@@ -1,11 +1,14 @@
 // The report lists: mine (drafts and submitted, newest day first) and, for dailies.read_all, the team's submitted
-// reports with the signed PDF one click away. One row per report: number, day, (author), status, open.
-import { ChevronRight, Download } from 'lucide-react';
+// reports with the signed PDF one click away (View full screen, Download). One row per report: number, day, (author),
+// status, open.
+import { ChevronRight, Download, Eye } from 'lucide-react';
 import { useMyDailies, useTeamDailies } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
+import { usePreviewFetch } from '../../data/preview';
 import { dailyHeaderSchema } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Card } from '../../ui/Card';
+import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -13,6 +16,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
 import { useDownload } from '../files/useDownload';
 import { pdfOffer, reportChip } from './model';
+import { dailyPdfItem } from './pdfItem';
 import { useDailiesNav, type DailiesView } from './useDailiesNav';
 
 const ROW = 'group flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left text-sm';
@@ -20,6 +24,8 @@ const HOVER = 'cursor-pointer hover:bg-page/60';
 /** The row open in the right column: a soft accent fill and a 3px accent edge on the left. */
 const SELECTED = 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
 const NUMBER = 'w-10 shrink-0 font-medium tabular-nums text-ink';
+const ROW_ICON =
+  'flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-accent disabled:text-ink-3';
 
 type DownloadState = ReturnType<typeof useDownload>;
 
@@ -71,9 +77,11 @@ interface TeamRowProps {
   selected: boolean;
   onOpen: (id: string) => void;
   download: DownloadState;
+  /** The PDF full screen (only with a PDF). */
+  onView: () => void;
 }
 
-function TeamRow({ row, selected, onOpen, download }: TeamRowProps) {
+function TeamRow({ row, selected, onOpen, download, onView }: TeamRowProps) {
   const header = dailyHeaderSchema.safeParse(row.header);
   const author = header.success ? header.data.author_name : '';
   const chip = reportChip(row);
@@ -99,19 +107,31 @@ function TeamRow({ row, selected, onOpen, download }: TeamRowProps) {
         <StatusChip status={chip.status} label={chip.label} />
       </button>
       {fileId === null ? null : (
-        <button
-          type="button"
-          aria-label={`${signedOnly ? 'Download signed copy' : 'Download'} ${row.filename ?? 'report'}`}
-          title={signedOnly ? 'Changed since signed. Download the signed copy.' : 'Download'}
-          disabled={download.pendingId === fileId}
-          data-testid="daily-team-download"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-accent disabled:text-ink-3"
-          onClick={() => {
-            download.start(fileId);
-          }}
-        >
-          <Icon icon={Download} size={18} />
-        </button>
+        <>
+          <button
+            type="button"
+            aria-label={`${signedOnly ? 'View signed copy' : 'View'} ${row.filename ?? 'report'}`}
+            title={signedOnly ? 'Changed since signed. View the signed copy.' : 'View'}
+            data-testid="daily-team-view"
+            className={ROW_ICON}
+            onClick={onView}
+          >
+            <Icon icon={Eye} size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label={`${signedOnly ? 'Download signed copy' : 'Download'} ${row.filename ?? 'report'}`}
+            title={signedOnly ? 'Changed since signed. Download the signed copy.' : 'Download'}
+            disabled={download.pendingId === fileId}
+            data-testid="daily-team-download"
+            className={ROW_ICON}
+            onClick={() => {
+              download.start(fileId);
+            }}
+          >
+            <Icon icon={Download} size={18} />
+          </button>
+        </>
       )}
       <span className="pr-4">
         <Chevron />
@@ -123,13 +143,29 @@ function TeamRow({ row, selected, onOpen, download }: TeamRowProps) {
 function TeamList({ projectId, selectedId, onOpen }: ListProps) {
   const team = useTeamDailies(projectId, true);
   const download = useDownload();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   if (team.isPending) return <LoadingState label="Loading reports" />;
   if (team.isError) return <ErrorState error={team.error} onRetry={() => void team.refetch()} />;
   if (team.data.length === 0) return <EmptyState icon={TOOL_META.dailies.icon} title="No submitted reports yet." />;
+  // The viewer walks the listed PDFs, as the rows show them.
+  const items: ViewerItem[] = team.data.flatMap((r) => (r.pdf_file_id === null ? [] : [dailyPdfItem(r, r.pdf_file_id, preview)]));
   return (
     <ul className="divide-y divide-line">
       {team.data.map((r) => (
-        <TeamRow key={r.id} row={r} selected={r.id === selectedId} onOpen={onOpen} download={download} />
+        <TeamRow
+          key={r.id}
+          row={r}
+          selected={r.id === selectedId}
+          onOpen={onOpen}
+          download={download}
+          onView={() => {
+            viewer.open(
+              items,
+              items.findIndex((i) => i.id === r.pdf_file_id),
+            );
+          }}
+        />
       ))}
     </ul>
   );

@@ -19,6 +19,7 @@ import type {
 } from '../hours.types';
 import * as dailies from './dailies';
 import * as jobsMock from './jobs';
+import { sheetBase64 } from './sheet';
 import { delay } from './store';
 
 interface MockHours {
@@ -304,7 +305,8 @@ export async function pdf(body: object): Promise<{ filename: string; pdf: string
   if (b.action === 'invoice') {
     const inv = read().invoices.find((i) => i.id === b.invoice_id);
     if (!inv) throw new DataError('Invoice not found', 'P0002', null);
-    return { filename: `Sample Invoice ${String(inv.number)}.pdf`, pdf: btoa(`%PDF-1.4\n% Synthetic e2e invoice ${String(inv.number)}\n`) };
+    return { filename: `Sample Invoice ${String(inv.number)}.pdf`, pdf: sheetBase64() };
   }
-  return { filename: `(${b.month ?? ''}) TIMESHEET_SAMPLE USER.pdf`, pdf: btoa(`%PDF-1.4\n% Synthetic e2e timesheet ${b.month ?? ''}\n`) };
+  // The synthetic plan set stands in for the rendered PDF, so the viewer has real pages to draw.
+  return { filename: `(${b.month ?? ''}) TIMESHEET_SAMPLE USER.pdf`, pdf: sheetBase64() };
 }

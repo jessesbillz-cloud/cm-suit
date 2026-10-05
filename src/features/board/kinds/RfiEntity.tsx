@@ -1,10 +1,11 @@
 // A board line about an RFI: its number and title, where it is (status, who has it and how long, not opened, due),
-// who asked, the question, an impact claim when there is one, the PDF, and Open in RFIs. Reading it here as the
-// holder counts as opening it.
+// who asked, the question, an impact claim when there is one, the PDF (View full screen, through the rfis function's
+// own gate, and one-click download), and Open in RFIs. Reading it here as the holder counts as opening it.
 import { TriangleAlert } from 'lucide-react';
 import { DataError, messageOf } from '../../../data/errors';
-import { useRfiPdf } from '../../../data/rfis.mutations';
+import { rfiPdfViewUrl, useRfiPdf } from '../../../data/rfis.mutations';
 import { useRfiDetail } from '../../../data/rfis.queries';
+import { useFileViewer } from '../../../ui/FileViewer';
 import { Icon } from '../../../ui/Icon';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { StatusChip } from '../../../ui/StatusChip';
@@ -20,6 +21,7 @@ export function RfiEntity({ frame, id }: KindProps) {
   const q = useRfiDetail(frame.projectId, id);
   const pdf = useRfiPdf();
   const toast = useToast();
+  const viewer = useFileViewer();
 
   if (q.isPending) return <LoadingState label="Loading the RFI" />;
   if (q.isError && gone(q.error)) return <EntityPane frame={{ ...frame, open: null }} label="RFI" title="This RFI isn't here." />;
@@ -36,6 +38,17 @@ export function RfiEntity({ frame, id }: KindProps) {
       frame={frame}
       label={rfiLabel(r.number)}
       title={r.title}
+      view={() => {
+        viewer.open([
+          {
+            id: `rfi-pdf:${r.id}`,
+            name: `${rfiLabel(r.number)}.pdf`,
+            kind: 'pdf',
+            url: () => rfiPdfViewUrl(r),
+            download: () => pdf.mutateAsync(r),
+          },
+        ]);
+      }}
       download={{
         label: 'PDF',
         loading: pdf.isPending,

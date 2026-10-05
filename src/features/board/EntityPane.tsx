@@ -1,9 +1,9 @@
 // The frame every opened board line shares: what the record is (its tool's icon, type and number), its name, the job
 // and when the line happened, my tasks about it (TaskEnd: Done, Acknowledge or Open), then the record's facts and its
-// actions: open it where it lives, and download it when there is something to download. In its full view the record's
-// comments sit under it, as they do where it lives.
+// actions: View (the file viewer, full screen) when there is something to look at, open it where it lives, and download
+// it when there is something to download. In its full view the record's comments sit under it, as they do where it lives.
 import type { ReactNode } from 'react';
-import { ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Eye, type LucideIcon } from 'lucide-react';
 import type { OpenExtra } from '../../app/frame/useOpenTarget';
 import type { CommentTarget } from '../../data/comments.types';
 import type { TaskRow } from '../../data/types';
@@ -79,13 +79,35 @@ interface EntityPaneProps {
   /** Its own name: the file name, the company, the title. */
   title: string;
   download?: { label: string; loading: boolean; onClick: () => void } | undefined;
+  /** Opens the record's file (or photos) in the file viewer. */
+  view?: (() => void) | undefined;
   openExtra?: OpenExtra | undefined;
   children?: ReactNode | undefined;
 }
 
-export function EntityPane({ frame, label, title, download, openExtra, children }: EntityPaneProps) {
+export function EntityPane({ frame, label, title, download, view, openExtra, children }: EntityPaneProps) {
   const { done, busyId } = useTaskDone();
   const { open } = frame;
+  const actions =
+    view !== undefined || open !== null ? (
+      <>
+        {view ? (
+          <Button icon={Eye} data-testid="board-item-view" onClick={view}>
+            View
+          </Button>
+        ) : null}
+        {open ? (
+          <Button
+            icon={ArrowUpRight}
+            onClick={() => {
+              open.go(openExtra);
+            }}
+          >
+            {open.label}
+          </Button>
+        ) : null}
+      </>
+    ) : undefined;
   return (
     <ReadingPane
       eyebrow={
@@ -99,18 +121,7 @@ export function EntityPane({ frame, label, title, download, openExtra, children 
       onPrev={frame.onPrev}
       onNext={frame.onNext}
       onOpenWindow={frame.onOpenWindow}
-      actions={
-        open ? (
-          <Button
-            icon={ArrowUpRight}
-            onClick={() => {
-              open.go(openExtra);
-            }}
-          >
-            {open.label}
-          </Button>
-        ) : undefined
-      }
+      actions={actions}
       onDownload={download?.onClick}
       downloading={download?.loading}
       downloadLabel={download?.label}
