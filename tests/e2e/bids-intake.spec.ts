@@ -51,5 +51,15 @@ test.describe('office bid intake (SPEC §11.6)', () => {
     await expect(drywall).toContainText('Sample Drywall Co');
     await expect(drywall.getByText('Read', { exact: true })).toBeVisible();
     await expect(page.getByTestId('bids-read-all')).toBeDisabled();
+
+    // The bid itself opens in the viewer from its pane; Download stays beside View.
+    await drywall.click();
+    const line = page.getByTestId('file-line').filter({ hasText: '09_21050_RSA_Sample Drywall_2026_09_01.pdf' });
+    await expect(line.getByRole('button', { name: /^Download / })).toBeVisible();
+    await line.getByTestId('file-line-view').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
   });
 });

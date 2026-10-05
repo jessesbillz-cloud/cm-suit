@@ -1,4 +1,4 @@
-// One bid form on the right: To do / Done / N/A, the attached file (attach, download, take off), the due day and a
+// One bid form on the right: To do / Done / N/A, the attached file (attach, view, download, take off), the due day and a
 // note. Every change saves at once with a version check; taking a file off and removing the form have Undo.
 import { useState } from 'react';
 import { Paperclip, Trash2 } from 'lucide-react';
@@ -11,7 +11,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { SaveState } from '../../ui/SaveState';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
-import { FileLine } from './FileLine';
+import { FileLines } from './FileLine';
 import { STATUS_LABELS } from './forms';
 import { useBidsNav } from './useBidsNav';
 
@@ -106,12 +106,12 @@ function FormBody({ row, folderId, onClosed }: FormBodyProps) {
 
         <div className="flex flex-col gap-2">
           {row.file_id !== null ? (
-            <ul>
-              <FileLine fileId={row.file_id} onRemove={() => {
-                  patchWithUndo({ file_id: null }, { file_id: row.file_id }, 'File taken off.');
-                }}
-              />
-            </ul>
+            <FileLines
+              ids={[row.file_id]}
+              onRemove={() => {
+                patchWithUndo({ file_id: null }, { file_id: row.file_id }, 'File taken off.');
+              }}
+            />
           ) : null}
           <label className="inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-card px-2.5 text-sm font-medium text-ink shadow-control hover:bg-page">
             <Icon icon={Paperclip} size={16} />

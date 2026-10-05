@@ -1,4 +1,4 @@
-// One received bid: receipt, the file (one click), Read -> findings to confirm, and money for pricing roles.
+// One received bid: receipt, the file (View, one-click Download), Read -> findings to confirm, and money for pricing roles.
 // The AI only drafts; a person confirms (CLAUDE.md rule 12). Reading an office-recorded bid also links its sub.
 import type { ReactNode } from 'react';
 import { ScanText } from 'lucide-react';
@@ -23,7 +23,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { StepUp } from '../auth/StepUp';
-import { FileLine } from './FileLine';
+import { FileLines } from './FileLine';
 import { Findings } from './Findings';
 import { FindingsEdit } from './FindingsEdit';
 import { bidderName } from './model';
@@ -140,9 +140,7 @@ export function SubmissionPane({ projectId, submissionId, bidder, actions }: Sub
         'Received bid');
   return (
     <ReadingPane number={code} title={bidder ?? title} meta={meta(s, project.data.timezone)}>
-      <ul className="mb-4">
-        <FileLine fileId={s.file_id} />
-      </ul>
+      <FileLines ids={[s.file_id]} className="mb-4" />
       {actions ? <div className="mb-4">{actions}</div> : null}
       <Extraction projectId={projectId} orgId={project.data.org_id} submission={s} />
     </ReadingPane>

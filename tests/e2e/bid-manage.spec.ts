@@ -83,6 +83,17 @@ test.describe('bids: questions, addenda, invites, removals', () => {
     await expect(acks).toContainText('Sample Design');
   });
 
+  test("an issued addendum's file opens in the viewer", async ({ page }) => {
+    await page.goto('/p/job-a/bids?view=addenda');
+    await page.getByTestId('addendum-row-1').click();
+    await page.getByTestId('right-column').getByTestId('file-line-view').click();
+    const viewer = page.getByTestId('file-viewer');
+    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample SK-1 revised schedule.pdf');
+    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toHaveCount(0);
+  });
+
   test('Invite from a package has it picked and offers its subs from the directory', async ({ page }) => {
     await page.goto('/p/job-a/bids?view=coverage');
     await page.getByTestId('coverage-row-03A').click();
