@@ -92,7 +92,7 @@ test.describe('safety meetings', () => {
     await expect(page.getByTestId('signin-ended')).toBeVisible();
   });
 
-  test('close refreshes the badge at once, Undo stays on the meeting, the next one starts where the last was', async ({ page }) => {
+  test('close refreshes the badge at once, Undo stays on the meeting, the next one starts where the last was', async ({ page, isMobile }) => {
     /** The PM's Safety sits under More: its badge counts the open meeting I lead. */
     const more = async () => {
       const b = page.getByTestId('tool-badge-more');
@@ -108,12 +108,12 @@ test.describe('safety meetings', () => {
     await page.getByTestId('safety-location').fill('South gate');
     await page.getByTestId('safety-start').click();
     await expect(page.getByTestId('safety-meeting-label')).toHaveText(/Tailgate \d+/);
-    // The open meeting I lead counts on the rail; closing it takes the count off without a reload.
-    await expect.poll(more).toBeGreaterThan(0);
-    const open = await more();
+    // The open meeting I lead counts on the rail; closing it takes the count off without a reload. (The phone shows
+    // the meeting full screen, without its tab bar.)
+    const open = isMobile ? 0 : await expect.poll(more).toBeGreaterThan(0).then(more);
     await page.getByTestId('safety-close').click();
     await expect(page.getByTestId('safety-meeting')).toHaveAttribute('data-status', 'closed');
-    await expect.poll(more, { timeout: 5000 }).toBe(open - 1);
+    if (!isMobile) await expect.poll(more, { timeout: 5000 }).toBe(open - 1);
 
     // Once the toast is gone, Undo is still on the meeting, and it opens it again.
     await page.getByRole('status').filter({ hasText: 'closed.' }).getByRole('button', { name: 'Dismiss' }).click();

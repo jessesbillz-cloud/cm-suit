@@ -15,12 +15,19 @@ const PHOTO = {
 };
 const NOTICE = { name: 'Sample notice 12.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n% sample notice\n%%EOF\n') };
 
-/** Switches the mock user and opens the log. The mock's data stays in this tab's sessionStorage. */
+/** Switches the mock user and opens the log. The mock's data stays in this tab's sessionStorage. If the page reloads
+ * itself just then (the dev server's first-load dependency pass), the open is tried once more after it. */
 async function openLogAs(page: Page, who: string): Promise<void> {
   await page.evaluate((w: string) => {
     window.localStorage.setItem('e2e-mock-user', w);
   }, who);
-  await page.goto('/p/job-a/corrections');
+  try {
+    await page.goto('/p/job-a/corrections');
+  } catch (e) {
+    if (!String(e).includes('interrupted by another navigation')) throw e;
+    await page.waitForLoadState();
+    await page.goto('/p/job-a/corrections');
+  }
 }
 
 test.describe('corrections log (SPEC §13.4)', () => {
