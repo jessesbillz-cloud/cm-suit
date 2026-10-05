@@ -132,20 +132,28 @@ export function useDailyReport(projectId: string, reportId: string) {
 }
 
 /** A report's photos, oldest first. Removed ones come too (a removal after submit means it needs resubmitting). */
+export async function fetchDailyPhotos(reportId: string): Promise<DailyPhotoRow[]> {
+  if (isMock()) return mockDailies.photos(reportId);
+  return throwIfError(
+    await supabase
+      .from('daily_report_photos')
+      .select(PHOTO_COLS)
+      .eq('report_id', reportId)
+      .order('taken_at', { ascending: true })
+      .order('id', { ascending: true }),
+  );
+}
+
 export function useDailyPhotos(projectId: string, reportId: string) {
+  return useQuery({ queryKey: qk.dailiesPart(projectId, 'photos', reportId), queryFn: () => fetchDailyPhotos(reportId) });
+}
+
+/** The job's team a new setup sends to (0079 daily_team_emails): members whose role reads the job's dailies, not me. */
+export function useDailyTeamEmails(projectId: string) {
   return useQuery({
-    queryKey: qk.dailiesPart(projectId, 'photos', reportId),
-    queryFn: async (): Promise<DailyPhotoRow[]> =>
-      isMock()
-        ? mockDailies.photos(reportId)
-        : throwIfError(
-            await supabase
-              .from('daily_report_photos')
-              .select(PHOTO_COLS)
-              .eq('report_id', reportId)
-              .order('taken_at', { ascending: true })
-              .order('id', { ascending: true }),
-          ),
+    queryKey: qk.dailiesPart(projectId, 'team-emails'),
+    queryFn: async (): Promise<string[]> =>
+      isMock() ? mockDailyFacts.teamEmails() : throwIfError(await supabase.rpc('daily_team_emails', { p_project_id: projectId })),
   });
 }
 

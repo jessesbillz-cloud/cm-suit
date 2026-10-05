@@ -5,18 +5,24 @@ import type { ReactNode } from 'react';
 interface SectionProps {
   title: string;
   count?: number | undefined;
+  /** The most it holds: the count reads "12 / 40". */
+  limit?: number | undefined;
   actions?: ReactNode | undefined;
   children?: ReactNode | undefined;
   testId?: string | undefined;
 }
 
-export function Section({ title, count, actions, children, testId }: SectionProps) {
+export function Section({ title, count, limit, actions, children, testId }: SectionProps) {
   return (
     <section className="rounded-card bg-card shadow-card" data-testid={testId}>
       <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2.5">
         <h3 className="text-[15px] font-semibold leading-6 text-ink">
           {title}
-          {count !== undefined && count > 0 ? <span className="ml-2 font-medium tabular-nums text-ink-3">{count}</span> : null}
+          {count !== undefined && count > 0 ? (
+            <span className="ml-2 font-medium tabular-nums text-ink-3" data-testid="section-count">
+              {limit === undefined ? count : `${String(count)} / ${String(limit)}`}
+            </span>
+          ) : null}
         </h3>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </header>

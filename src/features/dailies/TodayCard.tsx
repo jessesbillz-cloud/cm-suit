@@ -1,10 +1,11 @@
 // Today's report on the job, on the form I write here (work log or a company form): the day, the number and state, the
 // main button (Start / Continue / Edit submitted), the phone's one-tap Camera that puts photos straight on today's
-// report, the earlier drafts not yet submitted, and "Past date".
+// report (a failed upload says so here, with Retry; a photo added to a submitted report says it needs resubmitting),
+// the earlier drafts not yet submitted, and "Past date".
 import { useState } from 'react';
-import { PenLine } from 'lucide-react';
+import { PenLine, RotateCw } from 'lucide-react';
 import type { Json } from '../../data/database.types';
-import { useAddDailyPhotos, useCreateDailyReport, type PhotoPick } from '../../data/dailies.mutations';
+import { useAddDailyPhotos, useCreateDailyReport, useDailyPhotoUploads, type PhotoPick } from '../../data/dailies.mutations';
 import { useMyDailies, useNextDailyNumber, useTodaysDraft } from '../../data/dailies.queries';
 import { messageOf } from '../../data/errors';
 import type { ProjectRow } from '../../data/types';
@@ -14,7 +15,7 @@ import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
-import { TODAY_LABELS, earlierDrafts, numberLabel, reportChip, todayAction } from './model';
+import { TODAY_LABELS, earlierDrafts, numberLabel, todayAction, todayChip } from './model';
 import { PhotoButtons } from './PhotoButtons';
 import { useDailyForm } from './useDailyForm';
 
@@ -49,8 +50,11 @@ function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayPro
   const next = useNextDailyNumber(projectId, reportType, true);
   const create = useCreateDailyReport(projectId);
   const addPhotos = useAddDailyPhotos(projectId);
+  const uploads = useDailyPhotoUploads(projectId);
   const toast = useToast();
   const [pastDate, setPastDate] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  const [onSubmitted, setOnSubmitted] = useState<string | null>(null);
 
   if (ensured.isPending || mine.isPending) return <Loading />;
   if (ensured.isError) return <ErrorState error={ensured.error} onRetry={() => void ensured.refetch()} />;
@@ -66,11 +70,29 @@ function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayPro
   const todaysId = (): Promise<string> => (todays ? Promise.resolve(todays.id) : open(today));
 
   function photos(picks: PhotoPick[]) {
-    todaysId().then((reportId) => {
-      addPhotos.mutate({ picks, target: { reportId, rowKey: null } }, { onError: fail });
-      toast.show({ message: `Uploading ${String(picks.length)} to today's report.` });
-    }, fail);
+    setProblem(null);
+    todaysId().then(
+      (reportId) => {
+        addPhotos.mutate(
+          { picks, target: { reportId, rowKey: null } },
+          {
+            onSuccess: () => {
+              // A submitted report with a new photo needs resubmitting: say so here, with the way there.
+              setOnSubmitted(todays?.status === 'submitted' ? reportId : null);
+              toast.show({ message: `Uploading ${String(picks.length)} to today's report.` });
+            },
+            onError: (e) => {
+              setProblem(`Photo not added: ${messageOf(e)}`);
+            },
+          },
+        );
+      },
+      (e: unknown) => {
+        setProblem(`Photo not added: ${messageOf(e)}`);
+      },
+    );
   }
+  const failed = uploads.items.filter((i) => i.status === 'failed');
 
   return (
     <Card>
@@ -81,7 +103,9 @@ function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayPro
             <p className="text-[26px] font-semibold leading-8 tracking-[-0.015em] text-ink">{formatDay(today, 'EEEE, MMM d')}</p>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               <span className="font-medium tabular-nums text-ink-2">{numberLabel(todays?.number ?? null, next.data)}</span>
-              {todays ? <StatusChip {...reportChip(todays)} /> : null}
+              <span data-testid="daily-today-chip">
+                <StatusChip {...todayChip(todays)} />
+              </span>
             </p>
           </div>
           <div className="flex gap-2">
@@ -100,6 +124,41 @@ function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayPro
             {isPhone ? <PhotoButtons variant="hero" projectName={project.name} tz={tz} onPicked={photos} testId="daily-quick-camera" /> : null}
           </div>
         </div>
+
+        {problem !== null ? (
+          <p role="alert" className="text-sm text-danger" data-testid="daily-today-problem">
+            {problem}
+          </p>
+        ) : null}
+        {failed.map((f) => (
+          <p key={f.key} role="alert" className="flex items-center gap-2 text-sm text-danger" data-testid="daily-today-failed">
+            <span className="min-w-0 flex-1 break-words">
+              {f.name}: {f.error ?? 'Upload failed'}
+            </span>
+            <Button
+              size="sm"
+              icon={RotateCw}
+              onClick={() => {
+                uploads.retry(f.key);
+              }}
+            >
+              Retry
+            </Button>
+          </p>
+        ))}
+        {onSubmitted !== null ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-ink-2" data-testid="daily-today-resubmit">
+            Added to a submitted report.
+            <Button
+              size="sm"
+              onClick={() => {
+                onOpen(onSubmitted);
+              }}
+            >
+              Update & resubmit
+            </Button>
+          </p>
+        ) : null}
 
         {earlier.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="daily-earlier">

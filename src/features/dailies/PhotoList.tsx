@@ -1,13 +1,14 @@
 // The report's photos as a grid: each tile shows its place on the report, the time taken, the row it belongs to and a
 // caption (saved on leaving the box), and on a company form an optional description (its "Photo Analysis" pages); remove
-// with Undo. Upload progress and failed uploads (with Retry) come from the one upload queue. The Camera and Upload
-// buttons sit in the header, or above the grid in Field Mode.
+// with Undo (usePhotoRemovals, owned by the editor so Submit can flush it). Upload progress and failed uploads (with
+// Retry) come from the one upload queue. The count shows against the 40 a report holds. The Camera and Upload buttons
+// sit in the header, or above the grid in Field Mode.
 import { useState, type ReactNode } from 'react';
 import { LoaderCircle, RotateCw, X } from 'lucide-react';
-import { useDailyPhotoUploads, useRemoveDailyPhoto, useSaveDailyPhoto } from '../../data/dailies.mutations';
+import { useDailyPhotoUploads, useSaveDailyPhoto } from '../../data/dailies.mutations';
 import type { DailyPhotoRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
-import type { WorkRow } from '../../lib/dailies';
+import { PHOTOS_PER_REPORT_MAX, type WorkRow } from '../../lib/dailies';
 import { formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
@@ -115,44 +116,30 @@ interface PhotoListProps {
   field: boolean;
   /** A company form: each photo takes an optional description. */
   describe: boolean;
+  /** Photos removed a moment ago (their Undo still open): not shown. */
+  hidden: readonly string[];
+  onRemove: (photo: DailyPhotoRow) => void;
 }
 
-export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field, describe }: PhotoListProps) {
-  const remove = useRemoveDailyPhoto(projectId);
+export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field, describe, hidden, onRemove }: PhotoListProps) {
   const uploads = useDailyPhotoUploads(projectId);
-  const toast = useToast();
-  const [hidden, setHidden] = useState<string[]>([]);
   const live = photos.filter((p) => p.deleted_at === null && !hidden.includes(p.id));
   const rowName = new Map(rows.map((r) => [r.key, r.company.trim()]));
   const sending = uploads.items.filter((i) => i.status === 'queued' || i.status === 'uploading').length;
   const failed = uploads.items.filter((i) => i.status === 'failed');
-
-  function removeLater(photo: DailyPhotoRow) {
-    setHidden((h) => [...h, photo.id]);
-    toast.show({
-      message: 'Photo removed.',
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          setHidden((h) => h.filter((id) => id !== photo.id));
-        },
-      },
-      // Runs when the toast closes, maybe after this screen is gone: the promise reports a failure.
-      onCommit: () => {
-        remove.mutateAsync(photo).catch((e: unknown) => {
-          setHidden((h) => h.filter((id) => id !== photo.id));
-          toast.show({ tone: 'error', message: `Photo not removed: ${messageOf(e)}` });
-        });
-      },
-    });
-  }
+  const full = live.length >= PHOTOS_PER_REPORT_MAX;
 
   const empty = live.length === 0 && sending === 0 && failed.length === 0;
   return (
-    <Section title="Photos" count={live.length} actions={field ? undefined : buttons}>
+    <Section title="Photos" count={live.length} limit={PHOTOS_PER_REPORT_MAX} actions={field ? undefined : buttons} testId="daily-photos">
       {field || !empty ? (
         <div className="flex flex-col gap-3">
           {field ? buttons : null}
+          {full && !locked ? (
+            <p className="text-sm text-ink-2" data-testid="photos-full">
+              {PHOTOS_PER_REPORT_MAX} photos, the most a report holds.
+            </p>
+          ) : null}
           {sending > 0 ? (
             <p className="flex items-center gap-2 text-sm text-ink-2" data-testid="photos-uploading">
               <Icon icon={LoaderCircle} size={16} className="animate-spin text-accent" />
@@ -188,7 +175,7 @@ export function PhotoList({ projectId, photos, rows, tz, locked, buttons, field,
                   locked={locked}
                   describe={describe}
                   onRemove={() => {
-                    removeLater(p);
+                    onRemove(p);
                   }}
                 />
               ))}

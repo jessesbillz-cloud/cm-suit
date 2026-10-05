@@ -4,7 +4,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { saveFile } from '../lib/saveFile';
 import { supabase } from './client';
-import { throwIfError } from './errors';
+import { throwIfError, throwIfErrorMaybe } from './errors';
 import { callFunction } from './functions';
 import { pdfAnswerSchema, type BillingSave, type InvoiceStatus } from './hours.types';
 import { qk } from './keys';
@@ -22,7 +22,8 @@ interface HoursSave {
   hours: number;
 }
 
-/** A submitted report's hours (the author only). The report's version moves, so the job's dailies are read again. */
+/** A submitted report's hours (the author only). The report's version moves, so the job's dailies are read again (after a
+ *  conflict too, so the next tap carries the version the server has). */
 export function useSetDailyHours(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -30,7 +31,7 @@ export function useSetDailyHours(projectId: string) {
       isMock()
         ? mockHours.setHours(reportId, version, hours)
         : throwIfError(await supabase.rpc('set_daily_hours', { p_report_id: reportId, p_version: version, p_hours: hours })),
-    onSuccess: () =>
+    onSettled: () =>
       Promise.all([qc.invalidateQueries({ queryKey: qk.hours }), qc.invalidateQueries({ queryKey: qk.dailies(projectId) })]),
   });
 }
@@ -119,6 +120,27 @@ export function useSetInvoiceStatus() {
       isMock()
         ? mockHours.setInvoiceStatus(id, version, status)
         : throwIfError(await supabase.rpc('set_invoice_status', { p_invoice_id: id, p_version: version, p_status: status })),
+    onSuccess: refresh,
+  });
+}
+
+/** A draft invoice deleted (Undo is restore). Its number is never reused: asking for the month again brings it back. */
+export function useDeleteInvoice() {
+  const refresh = useRefreshHours();
+  return useMutation({
+    mutationFn: async ({ id, version }: { id: string; version: number }): Promise<void> => {
+      if (isMock()) return mockHours.deleteInvoice(id, version);
+      throwIfErrorMaybe(await supabase.rpc('delete_invoice', { p_invoice_id: id, p_version: version }));
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useRestoreInvoice() {
+  const refresh = useRefreshHours();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      isMock() ? mockHours.restoreInvoice(id) : throwIfError(await supabase.rpc('restore_invoice', { p_invoice_id: id })),
     onSuccess: refresh,
   });
 }

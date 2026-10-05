@@ -7,6 +7,8 @@ import process from 'node:process';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
+// A tiny real image (the photo compressor decodes it), synthetic.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAD0lEQVR4nGNowAEYhpYEAILzYAGc7g8kAAAAAElFTkSuQmCC', 'base64');
 
 function card(page: Page, projectId: string): Locator {
   return page.locator(`[data-testid="today-report"][data-project="${projectId}"]`);
@@ -21,11 +23,14 @@ test.describe("today's reports on All my jobs", () => {
     });
   });
 
-  test("Not started, Start opens today's report, then Submitted", async ({ page }, testInfo) => {
+  test("Not started (yellow), Start opens today's report, then Submitted and Edit submitted", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
     await page.goto('/all/board');
     const a = card(page, 'job-a');
     await expect(a.getByTestId('today-report-status')).toHaveText('Not started');
+    // Due is yellow (lib/status pending, SPEC §18.1 #9), never the postponed orange.
+    await expect(a).toHaveAttribute('data-state', 'due');
+    await expect(a.locator('span[aria-hidden]').first()).toHaveAttribute('style', /--status-pending-dot/);
     await expect(a.getByTestId('today-report-meta')).toHaveText('#1 · Every day');
     const action = a.getByTestId('today-report-action');
     await expect(action).toHaveText('Start');
@@ -47,25 +52,59 @@ test.describe("today's reports on All my jobs", () => {
     await page.goto('/all/board');
     await expect(a.getByTestId('today-report-status')).toHaveText('Submitted');
     await expect(a.getByTestId('today-report-meta')).toHaveText('#1 · Every day');
-    await expect(action).toHaveText('View');
+    await expect(action).toHaveText('Edit submitted');
     await action.click();
     await expect(page).toHaveURL(/\/p\/job-a\/dailies\/[^/?]+$/);
     await expect(page.getByTestId('daily-submitted')).toBeVisible();
   });
 
-  test('a draft reads Continue and opens the same report', async ({ page }, testInfo) => {
+  test('the same words as Dailies: an untouched report is Start, one written in is Continue', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The report opens in the right column of the desktop frame.');
     await page.goto('/all/board');
     await card(page, 'job-a').getByTestId('today-report-action').click();
     await expect(page).toHaveURL(/\/p\/job-a\/dailies\/[^/?]+$/);
     const reportUrl = page.url();
+    await expect(page.getByTestId('daily-today')).toHaveText('Start');
 
+    // Opened but untouched: still Not started and Start, here and in Dailies.
     await page.goto('/all/board');
     const a = card(page, 'job-a');
+    await expect(a.getByTestId('today-report-status')).toHaveText('Not started');
+    await expect(a.getByTestId('today-report-action')).toHaveText('Start');
+    await a.getByTestId('today-report-action').click();
+    await expect(page).toHaveURL(reportUrl);
+
+    await page.getByTestId('daily-editor').getByTestId('note-general').fill('Sample note for the day.');
+    await expect(page.getByTestId('daily-editor').getByText('Saved', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('daily-today')).toHaveText('Continue');
+    await expect(page.getByTestId('daily-today-chip')).toHaveText('Draft');
+    await page.goto('/all/board');
     await expect(a.getByTestId('today-report-status')).toHaveText('Draft');
     await expect(a.getByTestId('today-report-action')).toHaveText('Continue');
     await a.getByTestId('today-report-action').click();
     await expect(page).toHaveURL(reportUrl);
+  });
+
+  test("phone width: the Today card's camera says when a photo lands on a submitted report", async ({ page }, testInfo) => {
+    // The phone layout at phone width in Chromium (the photo compressor runs in the page).
+    test.skip(testInfo.project.name !== 'desktop', 'Chromium at phone width.');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/p/job-a/dailies');
+    await page.getByTestId('daily-today').click();
+    const editor = page.getByTestId('daily-editor');
+    // Field mode on the phone: the notes are there.
+    await editor.getByTestId('note-general').fill('Sample note for the day.');
+    await expect(editor.getByText('Saved', { exact: true })).toBeVisible();
+    await editor.getByTestId('daily-submit').click();
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+
+    await page.goto('/p/job-a/dailies');
+    await expect(page.getByTestId('daily-today')).toHaveText('Edit submitted');
+    await page.getByTestId('daily-quick-camera-camera-input').setInputFiles({ name: 'Sample photo.png', mimeType: 'image/png', buffer: PNG });
+    const note = page.getByTestId('daily-today-resubmit');
+    await expect(note).toContainText('Added to a submitted report.');
+    await note.getByRole('button', { name: 'Update & resubmit' }).click();
+    await expect(page.getByTestId('daily-submit')).toHaveText('Update & resubmit');
   });
 
   test('phone: the cards stack one to a row; the calendar button opens that job\'s calendar', async ({ page, isMobile }) => {

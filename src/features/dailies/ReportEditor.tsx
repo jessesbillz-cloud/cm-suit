@@ -1,15 +1,17 @@
 // One report being written. Work log: weather, work log, notes, photos. A form (SPEC §8.3): its day's values and tables
 // (FormFields) and photos; a draft fills in what the job knows that day (useDayPrefill) and the day's weather
 // (useWeatherFill). Field Mode (the phone's default, except for a form with tables, which opens whole): a big Camera
-// button and the notes. Autosaves (useReportDraft); a submitted report opens read-only until Edit. The bottom bar holds
-// Submit (or Download / Send once submitted) and the autosave line.
+// button and the notes. Autosaves (useReportDraft); a submitted report opens read-only until Edit, and Edit can be
+// cancelled until the first change (then it reads "Changed since signed" with Update & resubmit). While it is being
+// written the bottom bar holds the autosave line and Submit; once submitted and current, the report opens on
+// SubmittedPanel (Download, Email to project team, hours) instead.
 import { useState } from 'react';
-import { Pencil, RotateCw, Smartphone, Trash2 } from 'lucide-react';
+import { Pencil, RotateCw, Smartphone, Trash2, X } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAddDailyPhotos, useCreateDailyReport, useDailyPhotoUploads, useDeleteDailyDraft, type PhotoPick } from '../../data/dailies.mutations';
 import type { DailyPhotoRow, DailyReportRow } from '../../data/dailies.types';
 import { messageOf } from '../../data/errors';
-import { needsResubmit, tablesOf, type DailyContent, type DailyHeader, type ReportForm } from '../../lib/dailies';
+import { PHOTOS_PER_REPORT_MAX, needsResubmit, tablesOf, type DailyContent, type DailyHeader, type ReportForm } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
@@ -22,6 +24,8 @@ import { numberLabel, reportChip } from './model';
 import { PhotoButtons } from './PhotoButtons';
 import { PhotoList } from './PhotoList';
 import { SubmitArea } from './SubmitArea';
+import { SubmittedPanel } from './SubmittedPanel';
+import { usePhotoRemovals } from './usePhotoRemovals';
 import { useDayPrefill } from './useDayPrefill';
 import { useReportDraft } from './useReportDraft';
 import { useWeatherFill } from './useWeatherFill';
@@ -34,9 +38,11 @@ interface EditorHeaderProps {
   field: boolean;
   onField: () => void;
   onEdit: (() => void) | null;
+  /** Back to the signed copy, before anything was changed. */
+  onCancel: (() => void) | null;
 }
 
-function EditorHeader({ report, header, nextNumber, field, onField, onEdit }: EditorHeaderProps) {
+function EditorHeader({ report, header, nextNumber, field, onField, onEdit, onCancel }: EditorHeaderProps) {
   const chip = reportChip(report);
   return (
     <header className="flex items-start gap-3 border-b border-line bg-card px-4 py-3">
@@ -50,8 +56,13 @@ function EditorHeader({ report, header, nextNumber, field, onField, onEdit }: Ed
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {onEdit ? (
-          <Button size="sm" icon={Pencil} onClick={onEdit}>
+          <Button size="sm" icon={Pencil} data-testid="daily-edit" onClick={onEdit}>
             Edit
+          </Button>
+        ) : null}
+        {onCancel ? (
+          <Button size="sm" icon={X} data-testid="daily-edit-cancel" onClick={onCancel}>
+            Cancel
           </Button>
         ) : null}
         <button
@@ -95,14 +106,19 @@ export function ReportEditor(props: ReportEditorProps) {
   const restore = useCreateDailyReport(projectId);
   const toast = useToast();
   const navigate = useNavigate();
+  const removals = usePhotoRemovals(projectId);
   const [field, setField] = useState(isPhone && (form === null || tablesOf(form).length === 0));
   const [editing, setEditing] = useState(false);
   const c = draft.content;
   const prefill = useDayPrefill({ projectId, report, form, tz: header.timezone, content: c, edit: draft.edit });
   useWeatherFill({ projectId, report, form, content: c, edit: draft.edit });
-  const stale = needsResubmit(report, photos) || (report.status === 'submitted' && draft.status !== 'saved');
+  // Changed since signed: saved changes, typing not saved yet, or a photo removed a moment ago.
+  const stale =
+    needsResubmit(report, photos) || (report.status === 'submitted' && (draft.status !== 'saved' || removals.hidden.length > 0));
   const locked = report.status === 'submitted' && !editing && !stale;
+  const current = report.status === 'submitted' && !stale;
   const uploading = uploads.items.some((i) => i.status === 'queued' || i.status === 'uploading');
+  const full = photos.filter((p) => p.deleted_at === null && !removals.hidden.includes(p.id)).length >= PHOTOS_PER_REPORT_MAX;
 
   function onPhotos(picks: PhotoPick[], rowKey: string | null) {
     addPhotos.mutate(
@@ -155,12 +171,14 @@ export function ReportEditor(props: ReportEditorProps) {
       locked={locked}
       field={field}
       describe={form?.describePhotos === true}
+      hidden={removals.hidden}
+      onRemove={removals.remove}
       buttons={
         <PhotoButtons
           projectName={header.project_name}
           tz={header.timezone}
           variant={field ? 'field' : 'plain'}
-          disabled={locked}
+          disabled={locked || full}
           testId="daily-camera"
           onPicked={(picks) => {
             onPhotos(picks, null);
@@ -187,9 +205,18 @@ export function ReportEditor(props: ReportEditorProps) {
               }
             : null
         }
+        onCancel={
+          // Before the first change only: after that it is Update & resubmit.
+          editing && current
+            ? () => {
+                setEditing(false);
+              }
+            : null
+        }
       />
 
       <div className="flex flex-1 flex-col gap-3 p-3">
+        {current && !editing ? <SubmittedPanel projectId={projectId} report={report} recipients={recipients} /> : null}
         {prefill.error ? (
           <p className="flex flex-wrap items-center gap-2 text-sm text-danger" role="alert" data-testid="daily-prefill-error">
             Sign-ins and deliveries didn't load.
@@ -235,27 +262,29 @@ export function ReportEditor(props: ReportEditorProps) {
         ) : null}
       </div>
 
-      <footer className="sticky bottom-0 z-10 border-t border-line bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_16px_-12px_rgba(16,24,40,.25)]">
-        <SubmitArea
-          projectId={projectId}
-          report={report}
-          stale={stale}
-          ready={draft.settled && !uploading}
-          recipients={recipients}
-          savedVersion={draft.savedVersion}
-          onSigned={onSigned}
-          aside={
-            <div className="flex flex-wrap items-center gap-2">
-              <SaveState pending={draft.status === 'saving' || draft.status === 'dirty'} saved={draft.justSaved} problem={draft.problem} />
-              {draft.status === 'conflict' ? (
-                <Button size="sm" icon={RotateCw} onClick={onReload}>
-                  Reload
-                </Button>
-              ) : null}
-            </div>
-          }
-        />
-      </footer>
+      {current ? null : (
+        <footer className="sticky bottom-0 z-10 border-t border-line bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_16px_-12px_rgba(16,24,40,.25)]">
+          <SubmitArea
+            projectId={projectId}
+            report={report}
+            stale={stale}
+            ready={draft.settled && !uploading}
+            settle={removals.flush}
+            savedVersion={draft.savedVersion}
+            onSigned={onSigned}
+            aside={
+              <div className="flex flex-wrap items-center gap-2">
+                <SaveState pending={draft.status === 'saving' || draft.status === 'dirty'} saved={draft.justSaved} problem={draft.problem} />
+                {draft.status === 'conflict' ? (
+                  <Button size="sm" icon={RotateCw} onClick={onReload}>
+                    Reload
+                  </Button>
+                ) : null}
+              </div>
+            }
+          />
+        </footer>
+      )}
     </div>
   );
 }

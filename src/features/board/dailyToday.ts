@@ -2,26 +2,34 @@
 // its one button, and the "#233 · Daily M-F" line. Pure, so it is unit-tested.
 import type { DailyTodayRow } from '../../data/dailyToday.types';
 import type { StatusKey } from '../../lib/status';
+import { TODAY_LABELS, todayAction } from '../dailies/model';
 
 type TodayState = 'submitted' | 'draft' | 'due' | 'off';
 
-/** Submitted or draft by today's report; with none yet, due on a schedule day and off on any other. */
-export function todayState(row: Pick<DailyTodayRow, 'status' | 'scheduled_today'>): TodayState {
-  if (row.status === 'submitted') return 'submitted';
-  if (row.status === 'draft') return 'draft';
-  return row.scheduled_today ? 'due' : 'off';
+/** Submitted, or a draft with work in it; with none yet (or an untouched one), due on a schedule day and off on any other. */
+export function todayState(row: Pick<DailyTodayRow, 'status' | 'scheduled_today' | 'report_version'>): TodayState {
+  const action = todayAction(row.status === 'none' ? null : { status: row.status, version: row.report_version ?? 1 });
+  if (action === 'edit') return 'submitted';
+  if (action === 'continue') return 'draft';
+  // An untouched report made today is due today, scheduled or not.
+  return row.scheduled_today || row.status === 'draft' ? 'due' : 'off';
 }
 
-/** The chip and the card's left edge (lib/status colors only). */
+/** The chip and the card's left edge (lib/status colors only; due is yellow, SPEC §18.1 #9). */
 export const TODAY_CHIPS: Record<TodayState, { status: StatusKey; label: string }> = {
   submitted: { status: 'confirmed', label: 'Submitted' },
   draft: { status: 'pending', label: 'Draft' },
-  due: { status: 'postponed', label: 'Not started' },
+  due: { status: 'pending', label: 'Not started' },
   off: { status: 'cancelled', label: 'Off today' },
 };
 
-/** The card's one button. */
-export const TODAY_ACTIONS: Record<TodayState, string> = { submitted: 'View', draft: 'Continue', due: 'Start', off: 'Start' };
+/** The card's one button: the same words as the Dailies button (MDR's Start / Continue / Edit submitted). */
+export const TODAY_ACTIONS: Record<TodayState, string> = {
+  submitted: TODAY_LABELS.edit,
+  draft: TODAY_LABELS.continue,
+  due: TODAY_LABELS.start,
+  off: TODAY_LABELS.start,
+};
 
 /** Day letters for a run ("Daily M-F") and names for a list ("Mon, Wed, Fri"), Sunday first (0 = Sunday). */
 const LETTERS = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'] as const;

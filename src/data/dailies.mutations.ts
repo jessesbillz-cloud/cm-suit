@@ -3,7 +3,7 @@
 // Setups, today's copy, numbers and past dates are per form (report type): the one the person writes on the job.
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
-import type { FormSetup } from '../lib/dailies';
+import { PHOTOS_PER_REPORT_MAX, type FormSetup } from '../lib/dailies';
 import type { Json } from './database.types';
 import {
   companyFormSavedSchema,
@@ -15,7 +15,8 @@ import {
   type DailyReportRow,
   type DailySetupRow,
 } from './dailies.types';
-import { throwIfError, throwIfErrorMaybe } from './errors';
+import { fetchDailyPhotos } from './dailies.queries';
+import { DataError, throwIfError, throwIfErrorMaybe } from './errors';
 import { callFunction } from './functions';
 import { qk } from './keys';
 import * as mockDailies from './mock/dailies';
@@ -222,6 +223,16 @@ export function useAddDailyPhotos(projectId: string) {
   const queue = useUploadQueue();
   return useMutation({
     mutationFn: async ({ picks, target }: { picks: PhotoPick[]; target: PhotoTarget }): Promise<void> => {
+      // The 40-photo limit before anything uploads (add_daily_photo refuses the 41st, which would leave its file behind).
+      const onReport = (await fetchDailyPhotos(target.reportId)).filter((p) => p.deleted_at === null).length;
+      const room = Math.max(0, PHOTOS_PER_REPORT_MAX - onReport);
+      if (picks.length > room) {
+        throw new DataError(
+          room === 0 ? `This report has ${String(PHOTOS_PER_REPORT_MAX)} photos, the most it holds.` : `Only ${String(room)} more fit (${String(PHOTOS_PER_REPORT_MAX)} a report).`,
+          '22023',
+          null,
+        );
+      }
       const folderId = await qc.query({ queryKey: photoFolderKey(projectId), queryFn: () => photoFolder(projectId), staleTime: 'static' });
       for (const pick of picks) {
         queue.enqueue([pick.file], projectId, folderId, async (fileId) => {
@@ -268,7 +279,12 @@ export function useRemoveDailyPhoto(projectId: string) {
       if (isMock()) return mockDailies.removePhoto(photo.id, photo.version);
       throwIfErrorMaybe(await supabase.rpc('remove_daily_photo', { p_photo_id: photo.id, p_version: photo.version }));
     },
-    onSettled: (_data, _err, photo) => qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'photos', photo.report_id) }),
+    // Its file leaves Photos/<me> too (0079), so that folder's list is read again.
+    onSettled: (_data, _err, photo) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: qk.dailiesPart(projectId, 'photos', photo.report_id) }),
+        qc.invalidateQueries({ queryKey: ['files'] }),
+      ]),
   });
 }
 
@@ -290,7 +306,7 @@ export function useSubmitDaily(projectId: string) {
   });
 }
 
-/** "Email to team": the author presses Send; recipients come from the setup, on the server. */
+/** "Email to project team": the author presses it; recipients come from the setup, on the server. */
 export function useEmailDaily() {
   return useMutation({
     mutationFn: (reportId: string) =>

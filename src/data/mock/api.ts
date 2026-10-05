@@ -245,6 +245,13 @@ export async function removeOwnUpload(fileId: string): Promise<void> {
   writeMock((m) => ({ ...m, removedUploads: m.removedUploads.includes(fileId) ? m.removedUploads : [...m.removedUploads, fileId] }));
 }
 
+/** The server soft-deletes a file (deleted_at): my own upload only; gone from every read. */
+export function softDeleteMyFile(fileId: string): void {
+  const row = readMock().files.find((f) => f.id === fileId);
+  if (!row || row.created_by !== mockUser().id) return;
+  writeMock((m) => ({ ...m, removedFiles: m.removedFiles.includes(fileId) ? m.removedFiles : [...m.removedFiles, fileId] }));
+}
+
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {
   await delay();
   const f = allFiles().find((x) => x.id === fileId);

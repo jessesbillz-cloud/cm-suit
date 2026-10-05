@@ -20,6 +20,8 @@ export const dailyTodaySchema = z.object({
   number: z.number().int().nullable(),
   /** The number the next report on the form gets, while today's has none. */
   next_number: z.number().int().nullable(),
+  /** Today's report's version (1 = untouched), or null with none: Start / Continue like the Dailies button. */
+  report_version: z.number().int().nullable(),
 });
 
 export type DailyTodayRow = z.infer<typeof dailyTodaySchema>;

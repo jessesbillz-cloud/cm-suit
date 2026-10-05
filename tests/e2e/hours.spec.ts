@@ -95,4 +95,57 @@ test.describe('hours, timesheets and invoices (SPEC §15)', () => {
     await invoice.getByTestId('invoice-status-draft').click();
     await expect(page.getByTestId('invoice-row-1')).toContainText('Draft');
   });
+
+  test('quick taps on the hours chips: no conflict, and the report screen stays as it was', async ({ page }) => {
+    await submitTodayWithHours(page);
+    const editor = page.getByTestId('daily-editor');
+    // Field mode switched by hand: a remount would put it back.
+    const fieldMode = editor.getByRole('button', { name: 'Field mode' });
+    const before = await fieldMode.getAttribute('aria-pressed');
+    await fieldMode.click();
+    const prompt = page.getByTestId('hours-prompt');
+    await prompt.getByTestId('hours-chip-6').click();
+    await prompt.getByTestId('hours-chip-4').click();
+    await expect(prompt.getByTestId('hours-chip-4')).toHaveAttribute('aria-pressed', 'true');
+    await expect(prompt.getByTestId('hours-saved')).toBeVisible();
+    await expect(prompt.getByRole('alert')).toHaveCount(0);
+    await expect(fieldMode).toHaveAttribute('aria-pressed', before === 'true' ? 'false' : 'true');
+    await expect(page.getByTestId('daily-submitted')).toBeVisible();
+  });
+
+  test('a week opens its days; a day opens to set its hours', async ({ page }) => {
+    await page.goto('/p/job-v/hours?view=weeks');
+    await page.getByTestId('hours-row').first().click();
+    const period = page.getByTestId('hours-period');
+    await expect(period).toBeVisible();
+    await period.getByTestId('hours-period-day').first().click();
+    await expect(page.getByTestId('hours-day')).toBeVisible();
+  });
+
+  test('a draft invoice is deleted with Undo; Download reads Download; the timesheet says downloaded', async ({ page }) => {
+    await submitTodayWithHours(page);
+    await page.goto('/all/timesheets');
+    const timesheet = page.waitForEvent('download');
+    await page.getByTestId('timesheet-sign').click();
+    await timesheet;
+    await expect(page.getByText(/timesheet downloaded\./)).toBeVisible();
+
+    await page.getByTestId('timesheets-billing').click();
+    await page.getByTestId('billing-name').fill('Sample Inspection Services');
+    await page.getByTestId('billing-rate').fill('90');
+    await page.getByTestId('billing-save').click();
+    await page.getByTestId('invoice-new').click();
+    const invoice = page.getByTestId('invoice-item');
+    await expect(invoice.getByTestId('invoice-pdf')).toHaveText('Download');
+
+    await invoice.getByTestId('invoice-delete').click();
+    await expect(page.getByTestId('invoice-row-1')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('invoice-row-1')).toBeVisible();
+
+    // A sent invoice has no Delete.
+    await page.getByTestId('invoice-row-1').click();
+    await page.getByTestId('invoice-item').getByTestId('invoice-status-sent').click();
+    await expect(page.getByTestId('invoice-item').getByTestId('invoice-delete')).toHaveCount(0);
+  });
 });

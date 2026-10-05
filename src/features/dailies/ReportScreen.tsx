@@ -7,7 +7,6 @@ import { Download, FileText } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useCompanyForms, useDailyPhotos, useDailyReport, useDailySetups, useNextDailyNumber } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
-import { downloadErrorMessage, downloadFile } from '../../data/download';
 import { useProject } from '../../data/queries';
 import {
   DAILY_REPORT_TYPE,
@@ -23,9 +22,9 @@ import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
-import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
-import { reportChip } from './model';
+import { useDownload } from '../files/useDownload';
+import { pdfOffer, reportChip } from './model';
 import { ReportEditor } from './ReportEditor';
 
 interface SignedCopyProps {
@@ -33,12 +32,12 @@ interface SignedCopyProps {
   header: DailyHeader;
 }
 
-/** Someone else's submitted report: who, when, and the signed PDF in one click. */
+/** Someone else's submitted report: who, when, and the signed PDF in one click (labelled when changed since signing). */
 function SignedCopy({ report, header }: SignedCopyProps) {
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
+  const download = useDownload();
   const fileId = report.pdf_file_id;
   const chip = reportChip(report);
+  const offer = pdfOffer(report, false);
   return (
     <div className="flex flex-col gap-4 p-4">
       <header>
@@ -58,23 +57,24 @@ function SignedCopy({ report, header }: SignedCopyProps) {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
             <Icon icon={FileText} size={20} />
           </span>
-          <p className="min-w-0 flex-1 break-all text-sm font-medium text-ink">{report.filename}</p>
+          <div className="min-w-0 flex-1">
+            <p className="break-all text-sm font-medium text-ink">{report.filename}</p>
+            {offer === 'signed' ? (
+              <p className="text-xs text-ink-2" data-testid="daily-signed-note">
+                Changed since signed
+              </p>
+            ) : null}
+          </div>
           <Button
             variant="primary"
             icon={Download}
-            loading={busy}
+            loading={download.pendingId === fileId}
+            data-testid="daily-signed-download"
             onClick={() => {
-              setBusy(true);
-              downloadFile(fileId)
-                .catch((e: unknown) => {
-                  toast.show({ tone: 'error', message: downloadErrorMessage(e) });
-                })
-                .finally(() => {
-                  setBusy(false);
-                });
+              download.start(fileId);
             }}
           >
-            Download
+            {offer === 'signed' ? 'Download signed copy' : 'Download'}
           </Button>
         </div>
       )}
@@ -124,8 +124,9 @@ export function ReportScreen({ projectId, reportId, isPhone }: ReportScreenProps
 
   return (
     <ReportEditor
-      // A new signature starts the editor over from the signed version.
-      key={`${report.data.id}:${String(report.data.signed_version ?? 0)}:${String(generation)}`}
+      // A new signature (its time) starts the editor over from the signed copy. Hours don't: setting them moves the
+      // version and signed_version but signs nothing, so the screen (Edit, Field mode, the sent lines) stays.
+      key={`${report.data.id}:${report.data.signed_at ?? ''}:${String(generation)}`}
       projectId={projectId}
       report={report.data}
       header={header.data}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { earlierDrafts, numberLabel, parseRecipients, reportChip, todayAction, todayMeta } from './model';
+import { earlierDrafts, numberLabel, parseRecipients, pdfOffer, reportChip, todayAction, todayChip, todayMeta } from './model';
 
 describe('todayMeta', () => {
   it('says the number and due time, or that today is in', () => {
@@ -50,6 +50,26 @@ describe('reportChip', () => {
     expect(reportChip({ status: 'draft', version: 2, signed_version: null }).label).toBe('Draft');
     expect(reportChip({ status: 'submitted', version: 4, signed_version: 4 }).label).toBe('Submitted');
     expect(reportChip({ status: 'submitted', version: 5, signed_version: 4 }).label).toBe('Changed');
+  });
+});
+
+describe('todayChip', () => {
+  it('Not started (yellow) until there is work in it, then the report chip', () => {
+    expect(todayChip(null)).toEqual({ status: 'pending', label: 'Not started' });
+    expect(todayChip({ status: 'draft', version: 1, signed_version: null })).toEqual({ status: 'pending', label: 'Not started' });
+    expect(todayChip({ status: 'draft', version: 2, signed_version: null }).label).toBe('Draft');
+    expect(todayChip({ status: 'submitted', version: 5, signed_version: 4 }).label).toBe('Changed');
+  });
+});
+
+describe('pdfOffer', () => {
+  it('never offers a changed report\'s PDF as current', () => {
+    const r = { status: 'submitted', version: 4, signed_version: 4, pdf_file_id: 'f' };
+    expect(pdfOffer(r, true)).toBe('current');
+    expect(pdfOffer({ ...r, version: 5 }, true)).toBe('resubmit');
+    expect(pdfOffer({ ...r, version: 5 }, false)).toBe('signed');
+    expect(pdfOffer({ ...r, pdf_file_id: null }, false)).toBe('none');
+    expect(pdfOffer({ ...r, status: 'draft' }, true)).toBe('none');
   });
 });
 

@@ -26,6 +26,8 @@ interface MockHours {
   billing: BillingProfileRow | null;
   rates: JobRateRow[];
   invoices: InvoiceRow[];
+  /** Deleted draft invoices (the server-side flag): hidden, never renumbered. */
+  deletedInvoices?: string[];
   seq: number;
 }
 
@@ -165,9 +167,14 @@ export async function setRate(projectId: string, rate: number | null, version: n
   return row;
 }
 
+function gone(m: MockHours, id: string): boolean {
+  return (m.deletedInvoices ?? []).includes(id);
+}
+
 export async function invoices(): Promise<InvoiceRow[]> {
   await delay();
-  return [...read().invoices].sort((a, b) => b.period.localeCompare(a.period));
+  const m = read();
+  return m.invoices.filter((i) => !gone(m, i.id)).sort((a, b) => b.period.localeCompare(a.period));
 }
 
 /** invoice_snapshot: the month's lines at my rates, or a plain refusal. */
@@ -205,7 +212,21 @@ export async function createInvoice(month: string): Promise<string> {
   const m = read();
   if (!m.billing) throw bad('Set up billing first.');
   const existing = m.invoices.find((i) => i.period === `${month}-01`);
-  if (existing) return existing.id;
+  if (existing && !gone(m, existing.id)) return existing.id;
+  if (existing) {
+    // A deleted draft comes back with its number, priced from today's hours.
+    const again = await snapshot(month);
+    write((s) => ({
+      ...s,
+      deletedInvoices: (s.deletedInvoices ?? []).filter((d) => d !== existing.id),
+      invoices: s.invoices.map((i): InvoiceRow =>
+        i.id === existing.id
+          ? { ...i, lines: again, ...totals(again), status: 'draft', sent_at: null, paid_at: null, issued_on: today(), version: i.version + 1 }
+          : i,
+      ),
+    }));
+    return existing.id;
+  }
   const lines = await snapshot(month);
   const row: InvoiceRow = {
     id: newId('mock-invoice'),
@@ -229,7 +250,8 @@ export async function createInvoice(month: string): Promise<string> {
 }
 
 function updateInvoice(id: string, version: number, patch: (r: InvoiceRow) => Partial<InvoiceRow>): InvoiceRow {
-  const r = read().invoices.find((i) => i.id === id);
+  const m = read();
+  const r = m.invoices.find((i) => i.id === id && !gone(m, i.id));
   if (!r) throw new DataError('That item no longer exists.', 'P0002', null);
   if (r.version !== version) throw conflictError();
   const next = { ...r, ...patch(r), version: r.version + 1 };
@@ -253,6 +275,26 @@ export async function setInvoiceStatus(id: string, version: number, status: Invo
     sent_at: status === 'draft' ? null : (r.sent_at ?? now),
     paid_at: status === 'paid' ? (r.paid_at ?? now) : null,
   }));
+}
+
+/** delete_invoice: my draft, version-checked; a sent or paid one is refused. */
+export async function deleteInvoice(id: string, version: number): Promise<void> {
+  await delay();
+  const m = read();
+  const r = m.invoices.find((i) => i.id === id && !gone(m, i.id));
+  if (!r) throw new DataError('That item no longer exists.', 'P0002', null);
+  if (r.version !== version) throw conflictError();
+  if (r.status !== 'draft') throw bad('Only a draft can be deleted.');
+  write((s) => ({ ...s, deletedInvoices: [...(s.deletedInvoices ?? []), id] }));
+}
+
+/** restore_invoice (Undo): back as it was; safe to repeat. */
+export async function restoreInvoice(id: string): Promise<InvoiceRow> {
+  await delay();
+  const r = read().invoices.find((i) => i.id === id);
+  if (!r) throw new DataError('That item no longer exists.', 'P0002', null);
+  write((s) => ({ ...s, deletedInvoices: (s.deletedInvoices ?? []).filter((d) => d !== id) }));
+  return r;
 }
 
 /** What the timesheets function answers: a stand-in PDF and its filename. */
