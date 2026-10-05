@@ -48,7 +48,7 @@ export function TickIn({ projectId, meetingId, kind, lines }: TickInProps) {
       />
     );
   }
-  if (people.isPending || builders.isPending) return <LoadingState label="Loading the crew" />;
+  if (!people.data || !builders.data) return <LoadingState label="Loading the crew" />;
 
   const onSheet = lines.flatMap((l) => (l.person_id ? [l.person_id] : []));
   const crew = crewOf(people.data, builders.data, kind, onSheet);
