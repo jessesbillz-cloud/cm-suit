@@ -256,20 +256,12 @@ export async function photoFolder(projectId: string): Promise<string> {
 
 export async function addPhoto(reportId: string, fileId: string, rowKey: string | null, takenAt: string): Promise<DailyPhotoRow> {
   await delay();
-  if (read().photos.filter((p) => p.report_id === reportId && p.deleted_at === null && p.file_id !== fileId).length >= PHOTOS_PER_REPORT_MAX) {
-    throw new DataError(`A report holds up to ${String(PHOTOS_PER_REPORT_MAX)} photos`, '22023', null);
-  }
+  const onReport = read().photos.filter((p) => p.report_id === reportId && p.deleted_at === null && p.file_id !== fileId).length;
+  if (onReport >= PHOTOS_PER_REPORT_MAX) throw new DataError(`A report holds up to ${String(PHOTOS_PER_REPORT_MAX)} photos`, '22023', null);
+  const now = new Date().toISOString();
   const row: DailyPhotoRow = {
-    id: newId('mock-photo'),
-    report_id: reportId,
-    file_id: fileId,
-    row_key: rowKey,
-    caption: '',
-    description: '',
-    taken_at: takenAt,
-    version: 1,
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+    ...{ id: newId('mock-photo'), report_id: reportId, file_id: fileId, row_key: rowKey, caption: '', description: '' },
+    ...{ taken_at: takenAt, version: 1, updated_at: now, deleted_at: null },
   };
   write((m) => ({ ...m, photos: [...m.photos, row] }));
   return row;
@@ -334,13 +326,6 @@ export async function email(id: string): Promise<EmailResult> {
     recipients,
     deliveries: recipients.map((to) => ({ email: to, status: 'test_mode', error: null, mailto: `mailto:${to}` })),
   };
-}
-
-/** daily_team_emails in the mock: the sample team that reads dailies (synthetic addresses), never the mock user. */
-export async function teamEmails(): Promise<string[]> {
-  await delay();
-  const me = mockUser().email;
-  return ['inspector@example.test', 'pm@example.test', 'super@example.test'].filter((e) => e !== me);
 }
 
 /** The mock user's submitted reports on every job (the hours mock reads them). */

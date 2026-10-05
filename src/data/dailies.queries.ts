@@ -153,7 +153,7 @@ export function useDailyTeamEmails(projectId: string) {
   return useQuery({
     queryKey: qk.dailiesPart(projectId, 'team-emails'),
     queryFn: async (): Promise<string[]> =>
-      isMock() ? mockDailies.teamEmails() : throwIfError(await supabase.rpc('daily_team_emails', { p_project_id: projectId })),
+      isMock() ? mockDailyFacts.teamEmails() : throwIfError(await supabase.rpc('daily_team_emails', { p_project_id: projectId })),
   });
 }
 

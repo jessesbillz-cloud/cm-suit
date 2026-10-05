@@ -6,6 +6,7 @@ import * as mockDeliveries from './deliveries';
 import { gcJobForm } from './gcJobs';
 import * as mockInspections from './inspections';
 import * as mockSafety from './safety';
+import { mockUser } from './index';
 import { delay } from './store';
 
 export async function myDailyForm(projectId: string): Promise<string | null> {
@@ -52,4 +53,11 @@ export async function dayFacts(projectId: string, day: string): Promise<DayFacts
         start_time: r.start_time === null ? null : r.start_time.slice(0, 5), status: r.status, result: r.result, helper_id: r.helper_id,
       })),
   };
+}
+
+/** daily_team_emails in the mock: the sample team that reads dailies (synthetic addresses), never the mock user. */
+export async function teamEmails(): Promise<string[]> {
+  await delay();
+  const me = mockUser().email;
+  return ['inspector@example.test', 'pm@example.test', 'super@example.test'].filter((e) => e !== me);
 }
