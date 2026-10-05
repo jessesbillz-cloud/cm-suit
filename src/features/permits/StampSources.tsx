@@ -1,20 +1,24 @@
 // The stamp flow's list: the job's PDFs the official may stamp (plan folders first, then their own uploads in "To
 // stamp"), a search over names and folders, and Upload (the shared upload queue into "To stamp": each line shows its
 // progress, Stop while it runs, Remove once stopped or failed; a stored upload is picked at once, and untaps like any
-// other). While stamping, each picked file shows how it went.
+// other). Each PDF has View (the file viewer, its pages, before it is picked). While stamping, each picked file shows
+// how it went.
 import { useRef, useState } from 'react';
-import { Check, CircleAlert, FileText, LoaderCircle, Upload } from 'lucide-react';
+import { Check, CircleAlert, Eye, FileText, LoaderCircle, Upload } from 'lucide-react';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { messageOf } from '../../data/errors';
 import type { useStampUploads } from '../../data/permitStamp.mutations';
 import type { StampSource } from '../../data/permitStamp.types';
+import { usePreviewFetch } from '../../data/preview';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { SearchBox } from '../../ui/SearchBox';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { UploadLines } from '../files/UploadList';
+import { fileViewerItem } from '../files/viewerItems';
 import { matchesSource, stateWord, type FileState } from './stamp';
 
 type Uploads = ReturnType<typeof useStampUploads>;
@@ -75,7 +79,11 @@ function UploadPdf({ uploads, disabled }: { uploads: Uploads; disabled: boolean 
 
 export function StampSources({ uploads, sources, picked, states, errors, locked, onToggle }: StampSourcesProps) {
   const [q, setQ] = useState('');
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   const rows = (sources.data ?? []).filter((s) => picked.includes(s.id) || matchesSource(s, q));
+  // View walks the PDFs as listed (the search applied).
+  const items = rows.map((s) => fileViewerItem({ id: s.id, original_name: s.name, size: s.size }, preview));
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
@@ -94,13 +102,13 @@ export function StampSources({ uploads, sources, picked, states, errors, locked,
       ) : null}
       {rows.length > 0 ? (
         <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-card" data-testid="stamp-sources">
-          {rows.map((s) => {
+          {rows.map((s, i) => {
             const on = picked.includes(s.id);
             const state = states[s.id];
             return (
-              <li key={s.id}>
+              <li key={s.id} className="flex items-start">
                 <label
-                  className={`flex items-start gap-2.5 px-3 py-2 ${locked ? '' : 'cursor-pointer hover:bg-page'}`}
+                  className={`flex min-w-0 flex-1 items-start gap-2.5 py-2 pl-3 ${locked ? '' : 'cursor-pointer hover:bg-page'}`}
                   data-testid="stamp-source"
                   data-picked={on}
                 >
@@ -122,6 +130,18 @@ export function StampSources({ uploads, sources, picked, states, errors, locked,
                   </span>
                   {state ? <StateMark state={state} /> : null}
                 </label>
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  icon={Eye}
+                  className="m-1.5"
+                  aria-label={`View ${s.name}`}
+                  title="View"
+                  data-testid="stamp-source-view"
+                  onClick={() => {
+                    viewer.open(items, i);
+                  }}
+                />
               </li>
             );
           })}
