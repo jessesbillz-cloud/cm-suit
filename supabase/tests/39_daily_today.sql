@@ -108,7 +108,7 @@ select is(pg_temp.today_of('c0000000-0000-0000-0000-000000000392')->>'scheduled_
   'scheduled: the same schedule days are not today in West''s zone');
 select is(pg_temp.today_of('c0000000-0000-0000-0000-000000000391') - 'project_id' - 'project_name' - 'report_type' - 'label'
             - 'schedule_days' - 'today' - 'scheduled_today',
-  '{"report_id": null, "status": "none", "number": null, "next_number": 1}'::jsonb,
+  '{"report_id": null, "status": "none", "number": null, "next_number": 1, "report_version": null}'::jsonb,
   'status: none before today''s report is made; it will be #1');
 
 -- Today's working copy on East: a draft.

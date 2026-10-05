@@ -2863,6 +2863,7 @@ export type Database = {
           bill_to: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           from_address: string
           from_name: string
           id: string
@@ -2884,6 +2885,7 @@ export type Database = {
           bill_to: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           from_address: string
           from_name: string
           id?: string
@@ -2905,6 +2907,7 @@ export type Database = {
           bill_to?: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           from_address?: string
           from_name?: string
           id?: string
@@ -7060,6 +7063,7 @@ export type Database = {
           bill_to: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           from_address: string
           from_name: string
           id: string
@@ -7240,12 +7244,17 @@ export type Database = {
       daily_photo_folder: { Args: { p_project_id: string }; Returns: string }
       daily_reports_folder: { Args: { p_project_id: string }; Returns: string }
       daily_settings_ok: { Args: { p_settings: Json }; Returns: boolean }
+      daily_team_emails: { Args: { p_project_id: string }; Returns: string[] }
       delete_daily_draft: {
         Args: { p_report_id: string; p_version: number }
         Returns: undefined
       }
       delete_delivery: {
         Args: { p_id: string; p_name: string; p_version: number }
+        Returns: undefined
+      }
+      delete_invoice: {
+        Args: { p_invoice_id: string; p_version: number }
         Returns: undefined
       }
       delivery_board_fields: {
@@ -10061,6 +10070,23 @@ export type Database = {
           project_name: string
           report_id: string
           report_type: string
+          report_version: number
+          schedule_days: number[]
+          scheduled_today: boolean
+          status: string
+          today: string
+        }[]
+      }
+      my_daily_today_retired_0079: {
+        Args: never
+        Returns: {
+          label: string
+          next_number: number
+          number: number
+          project_id: string
+          project_name: string
+          report_id: string
+          report_type: string
           schedule_days: number[]
           scheduled_today: boolean
           status: string
@@ -10859,6 +10885,7 @@ export type Database = {
           bill_to: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           from_address: string
           from_name: string
           id: string
@@ -11331,6 +11358,37 @@ export type Database = {
         }[]
       }
       restore_delivery: { Args: { p_id: string }; Returns: undefined }
+      restore_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          bill_to: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          from_address: string
+          from_name: string
+          id: string
+          issued_on: string
+          lines: Json
+          number: number
+          paid_at: string | null
+          period: string
+          sent_at: string | null
+          status: string
+          terms: string
+          total_amount: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       rev_area_check: {
         Args: { p_level: string; p_name: string }
         Returns: undefined
@@ -13432,6 +13490,7 @@ export type Database = {
           bill_to: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           from_address: string
           from_name: string
           id: string
