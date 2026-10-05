@@ -12,11 +12,16 @@ export function useRefreshBids() {
 
 type ListPart = 'packages' | 'addenda';
 
+interface Listed {
+  id: string;
+  project_id: string;
+}
+
 /** Adds a new row to its cached list, or replaces the row with the same id (a save). */
 export function usePutInList() {
   const qc = useQueryClient();
-  return <T extends { id: string; project_id: string }>(part: ListPart, row: T) => {
-    qc.setQueryData<T[]>(qk.bidsPart(row.project_id, part), (old) =>
+  return (part: ListPart, row: Listed) => {
+    qc.setQueryData<Listed[]>(qk.bidsPart(row.project_id, part), (old) =>
       old ? (old.some((x) => x.id === row.id) ? old.map((x) => (x.id === row.id ? row : x)) : [...old, row]) : old,
     );
   };

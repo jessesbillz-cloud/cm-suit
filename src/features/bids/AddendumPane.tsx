@@ -118,26 +118,37 @@ function DraftAddendum({ row }: { row: AddendumRow }) {
       </ul>
       {folder.data !== undefined ? <UploadList folderId={folder.data} /> : null}
       {folder.isError ? <p className="text-sm text-danger">{messageOf(folder.error)}</p> : null}
-      {folder.data !== undefined ? (
-        <label className="inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-sm font-medium text-ink hover:bg-page">
-          <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
-          Attach
-          <input
-            type="file"
-            multiple
-            className="sr-only"
-            data-testid="addendum-attach-input"
-            onChange={(e) => {
-              const files = [...(e.target.files ?? [])];
-              e.target.value = '';
-              if (files.length > 0 && folder.data !== undefined) attach(row, folder.data, files);
-            }}
-          />
-        </label>
-      ) : null}
+      {folder.data !== undefined ? <AttachFiles row={row} folderId={folder.data} onFiles={attach} /> : null}
       <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
       <IssueButton row={row} disabled={save.isPending} />
     </div>
+  );
+}
+
+interface AttachFilesProps {
+  row: AddendumRow;
+  folderId: string;
+  onFiles: (row: AddendumRow, folderId: string, files: File[]) => void;
+}
+
+/** Attach: the button is the file picker itself, so one click opens it. */
+function AttachFiles({ row, folderId, onFiles }: AttachFilesProps) {
+  return (
+    <label className="inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-sm font-medium text-ink hover:bg-page">
+      <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
+      Attach
+      <input
+        type="file"
+        multiple
+        className="sr-only"
+        data-testid="addendum-attach-input"
+        onChange={(e) => {
+          const files = [...(e.target.files ?? [])];
+          e.target.value = '';
+          if (files.length > 0) onFiles(row, folderId, files);
+        }}
+      />
+    </label>
   );
 }
 
