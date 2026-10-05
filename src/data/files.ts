@@ -21,6 +21,7 @@ const earlierSchema = z.object({
   version_no: z.number(),
 });
 export type EarlierVersion = z.infer<typeof earlierSchema>;
+const rowSchema = z.object({ version: z.number(), version_group_id: z.string() });
 
 export interface FileFacts {
   /** The row's version: what Delete and Rename check. */
@@ -33,7 +34,8 @@ export interface FileFacts {
 
 async function fetchFacts(fileId: string): Promise<FileFacts> {
   if (isMock()) return mock.facts(fileId);
-  const row = throwIfError(await supabase.from('files').select('version, version_group_id').eq('id', fileId).single());
+  const raw: unknown = throwIfError(await supabase.from('files').select('version, version_group_id').eq('id', fileId).single());
+  const row = rowSchema.parse(raw);
   const [can, older] = await Promise.all([
     supabase.rpc('file_can_change', { p_file_id: fileId }),
     supabase
