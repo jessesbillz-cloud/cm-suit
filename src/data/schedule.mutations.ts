@@ -17,6 +17,7 @@ import { callFunction } from './functions';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mock from './mock/schedule';
+import * as mockRows from './mock/scheduleRows';
 import { importedSchema, publishedSchema, type ActivityInput, type Imported, type Published } from './schedule.types';
 import { uploadFile } from './upload';
 
@@ -122,7 +123,7 @@ export function useAddActivity(projectId: string, versionId: string) {
   const refresh = useRefresh(projectId);
   return useMutation({
     mutationFn: async (a: ActivityInput): Promise<string> => {
-      if (isMock()) return mock.addActivity(versionId, a);
+      if (isMock()) return mockRows.addActivity(versionId, a);
       return z.string().parse(
         throwIfError(
           await supabase.rpc('schedule_activity_add', {

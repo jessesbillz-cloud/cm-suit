@@ -29,7 +29,7 @@ function read(): ScheduleMock {
   return { ...seedSchedules(today(), Date.now()), seq: 100 };
 }
 
-function write(update: (s: ScheduleMock) => ScheduleMock): ScheduleMock {
+export function write(update: (s: ScheduleMock) => ScheduleMock): ScheduleMock {
   const next = update(read());
   window.sessionStorage.setItem(KEY, JSON.stringify(next));
   return next;
@@ -65,7 +65,7 @@ function versionOf(s: ScheduleMock, id: string): StoredVersion {
   return v;
 }
 
-function draftOf(s: ScheduleMock, id: string): StoredVersion {
+export function draftOf(s: ScheduleMock, id: string): StoredVersion {
   need('schedule.manage');
   const v = versionOf(s, id);
   if (v.status !== 'draft') throw new DataError('This schedule is published.', '22023', null);
@@ -73,7 +73,7 @@ function draftOf(s: ScheduleMock, id: string): StoredVersion {
   return v;
 }
 
-function live(s: ScheduleMock, versionId: string): StoredActivity[] {
+export function live(s: ScheduleMock, versionId: string): StoredActivity[] {
   return s.activities.filter((a) => a.version_id === versionId && !a.deleted);
 }
 
@@ -261,34 +261,6 @@ export async function saveActivity(id: string, expected: number, input: Activity
     return { ...s, activities: s.activities.map((x) => (x.id === id ? patched : x)) };
   });
   return next;
-}
-
-/** schedule_activity_add (0081): last on the draft, checked; the same row again is the same row. */
-export async function addActivity(versionId: string, input: ActivityInput): Promise<string> {
-  await delay();
-  let made = '';
-  write((s) => {
-    const v = draftOf(s, versionId);
-    if (input.name.trim() === '') throw new DataError('Add a name.', '23514', null);
-    const blank = (x: string) => (x.trim() === '' ? null : x.trim());
-    const same = live(s, v.id).find(
-      (a) => a.name === input.name.trim() && a.activity_code === blank(input.code) && a.start_date === input.start && a.finish_date === input.finish,
-    );
-    if (same) {
-      made = same.id;
-      return s;
-    }
-    made = `${v.id}-x${String(s.seq)}`;
-    const sort = Math.max(0, ...s.activities.filter((a) => a.version_id === v.id).map((a) => a.sort)) + 1;
-    const row: StoredActivity = {
-      id: made, version_id: v.id, project_id: v.project_id, activity_code: blank(input.code), name: input.name.trim(), wbs: blank(input.wbs),
-      area: blank(input.area), trade: blank(input.trade), start_date: input.start, finish_date: input.finish, actual_start: null,
-      actual_finish: null, percent: null, is_milestone: input.isMilestone, csi_division: null, sort, unsure: false, source_ref: null, version: 1,
-      deleted: false,
-    };
-    return { ...s, activities: [...s.activities, row], seq: s.seq + 1 };
-  });
-  return made;
 }
 
 export async function removeActivity(id: string, removed: boolean): Promise<void> {
