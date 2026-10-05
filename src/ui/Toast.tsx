@@ -18,7 +18,10 @@ interface ToastEntry extends ToastInput {
 }
 
 interface ToastValue {
-  show: (t: ToastInput) => void;
+  /** Shows a toast; answers its id. */
+  show: (t: ToastInput) => number;
+  /** Closes a toast now without running its onCommit (the caller has committed, e.g. before a submit). */
+  dismiss: (id: number) => void;
 }
 
 const ToastContext = createContext<ToastValue | null>(null);
@@ -90,6 +93,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     nextId.current += 1;
     if (t.onCommit) commits.current.set(id, t.onCommit);
     setToasts((list) => [...list, { ...t, id }]);
+    return id;
   }, []);
 
   const dismiss = useCallback((id: number, commit: boolean) => {
@@ -99,7 +103,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     if (commit && onCommit) onCommit();
   }, []);
 
-  const value = useMemo(() => ({ show }), [show]);
+  const close = useCallback((id: number) => {
+    dismiss(id, false);
+  }, [dismiss]);
+
+  const value = useMemo(() => ({ show, dismiss: close }), [show, close]);
   return (
     <ToastContext.Provider value={value}>
       {children}

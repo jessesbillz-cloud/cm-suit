@@ -130,8 +130,10 @@ export async function setFolderAiReads(folderId: string, aiReads: boolean, versi
 
 /** Fixture files (a saved copy of one wins: moved by a mock write) plus the ones added in this test, less the removed uploads. */
 function allFiles(): FileRow[] {
-  const { files: saved, removedUploads } = readMock();
-  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter((f) => !removedUploads.includes(f.id));
+  const { files: saved, removedUploads, deletedFiles = [] } = readMock();
+  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter(
+    (f) => !removedUploads.includes(f.id) && !deletedFiles.includes(f.id),
+  );
 }
 
 export async function files(folderId: string): Promise<FileRow[]> {
@@ -205,6 +207,13 @@ export async function removeUnfinishedUpload(fileId: string): Promise<void> {
   if (!row || row.created_by !== mockUser().id) throw toDataError({ message: 'not_found', code: 'P0002' });
   if (row.upload_complete) throw toDataError({ message: 'That file finished uploading.', code: '42501' });
   writeMock((m) => ({ ...m, removedUploads: [...m.removedUploads, fileId] }));
+}
+
+/** The server soft-deletes a file (deleted_at): my own upload only; gone from every read. */
+export function softDeleteMyFile(fileId: string): void {
+  const row = readMock().files.find((f) => f.id === fileId);
+  if (!row || row.created_by !== mockUser().id) return;
+  writeMock((m) => ({ ...m, deletedFiles: [...(m.deletedFiles ?? []), fileId] }));
 }
 
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {

@@ -1,15 +1,20 @@
-// A board line about a daily report: its name and number, date, author, with Download PDF (the signed copy) and Open.
+// A board line about a daily report: its name and number, date, author, with Download PDF and Open. A report changed
+// since it was signed offers its signed copy, labelled as such; its author is sent to Update & resubmit instead (MDR:
+// an out-of-date report never goes out).
+import { useUser } from '../../../data/auth';
 import { useDailyReport } from '../../../data/dailies.queries';
 import { dailyHeaderSchema } from '../../../lib/dailies';
 import { formatDay } from '../../../lib/dates';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { StatusChip } from '../../../ui/StatusChip';
+import { pdfOffer, reportChip } from '../../dailies/model';
 import { useDownload } from '../../files/useDownload';
 import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
 export function DailyEntity({ frame, id }: KindProps) {
   const q = useDailyReport(frame.projectId, id);
   const download = useDownload();
+  const user = useUser();
 
   if (q.isPending) return <LoadingState label="Loading the report" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
@@ -19,17 +24,18 @@ export function DailyEntity({ frame, id }: KindProps) {
   const name = header.success ? header.data.label : 'Daily report';
   const author = header.success ? [header.data.author_name, header.data.author_company].filter((s) => s !== '').join(', ') : '';
   const fileId = r.pdf_file_id;
-  const submitted = r.status === 'submitted';
+  const chip = reportChip(r);
+  const offer = pdfOffer(r, r.author_id === user.id);
   return (
     <EntityPane
       frame={frame}
       label={r.number === null ? name : `${name} #${String(r.number)}`}
       title={formatDay(r.report_date, 'EEEE, MMM d, yyyy')}
       download={
-        fileId === null
+        fileId === null || offer === 'resubmit'
           ? undefined
           : {
-              label: 'Download PDF',
+              label: offer === 'signed' ? 'Download signed copy' : 'Download PDF',
               loading: download.pendingId === fileId,
               onClick: () => {
                 download.start(fileId);
@@ -43,10 +49,11 @@ export function DailyEntity({ frame, id }: KindProps) {
           [
             'Status',
             <span key="status" className="flex flex-wrap gap-2">
-              <StatusChip status={submitted ? 'confirmed' : 'pending'} label={submitted ? 'Submitted' : 'Draft'} />
-              {submitted && r.version !== r.signed_version ? <StatusChip status="postponed" label="Changed" /> : null}
+              <StatusChip status={chip.status} label={chip.label} />
             </span>,
           ],
+          offer === 'signed' ? ['PDF', 'Changed since signed'] : null,
+          offer === 'resubmit' ? ['PDF', 'Changed since signed: open it, then Update & resubmit'] : null,
         ]}
       />
     </EntityPane>

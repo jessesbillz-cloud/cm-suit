@@ -10,6 +10,7 @@ export {
   DAILY_REPORT_TYPE,
   DAILY_SETTINGS_DEFAULTS,
   NOTE_SECTIONS,
+  PHOTOS_PER_REPORT_MAX,
   asPdfName,
   dailyContentSchema,
   dailyFilenameFields,

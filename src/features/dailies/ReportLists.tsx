@@ -1,10 +1,8 @@
 // The report lists: mine (drafts and submitted, newest day first) and, for dailies.read_all, the team's submitted
 // reports with the signed PDF one click away. One row per report: number, day, (author), status, open.
-import { useState } from 'react';
 import { ChevronRight, Download } from 'lucide-react';
 import { useMyDailies, useTeamDailies } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
-import { downloadErrorMessage, downloadFile } from '../../data/download';
 import { dailyHeaderSchema } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
 import { Card } from '../../ui/Card';
@@ -12,9 +10,9 @@ import { Icon } from '../../ui/Icon';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
-import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
-import { reportChip } from './model';
+import { useDownload } from '../files/useDownload';
+import { pdfOffer, reportChip } from './model';
 import { useDailiesNav, type DailiesView } from './useDailiesNav';
 
 const ROW = 'group flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left text-sm';
@@ -22,6 +20,8 @@ const HOVER = 'cursor-pointer hover:bg-page/60';
 /** The row open in the right column: a soft accent fill and a 3px accent edge on the left. */
 const SELECTED = 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
 const NUMBER = 'w-10 shrink-0 font-medium tabular-nums text-ink';
+
+type DownloadState = ReturnType<typeof useDownload>;
 
 function Chevron() {
   return <Icon icon={ChevronRight} size={16} className="shrink-0 text-ink-3 group-hover:text-ink-2" />;
@@ -66,13 +66,20 @@ function MyList({ projectId, selectedId, onOpen }: ListProps) {
   );
 }
 
-function TeamRow({ row, selected, onOpen }: { row: DailyReportRow; selected: boolean; onOpen: (id: string) => void }) {
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
+interface TeamRowProps {
+  row: DailyReportRow;
+  selected: boolean;
+  onOpen: (id: string) => void;
+  download: DownloadState;
+}
+
+function TeamRow({ row, selected, onOpen, download }: TeamRowProps) {
   const header = dailyHeaderSchema.safeParse(row.header);
   const author = header.success ? header.data.author_name : '';
   const chip = reportChip(row);
   const fileId = row.pdf_file_id;
+  // A changed report's stored PDF is the signed copy, never offered as current: it says so.
+  const signedOnly = pdfOffer(row, false) === 'signed';
   return (
     <li className={`flex items-center ${selected ? SELECTED : 'hover:bg-page/60'}`}>
       <button
@@ -94,19 +101,13 @@ function TeamRow({ row, selected, onOpen }: { row: DailyReportRow; selected: boo
       {fileId === null ? null : (
         <button
           type="button"
-          aria-label={`Download ${row.filename ?? 'report'}`}
-          title="Download"
-          disabled={busy}
+          aria-label={`${signedOnly ? 'Download signed copy' : 'Download'} ${row.filename ?? 'report'}`}
+          title={signedOnly ? 'Changed since signed. Download the signed copy.' : 'Download'}
+          disabled={download.pendingId === fileId}
+          data-testid="daily-team-download"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-accent disabled:text-ink-3"
           onClick={() => {
-            setBusy(true);
-            downloadFile(fileId)
-              .catch((e: unknown) => {
-                toast.show({ tone: 'error', message: downloadErrorMessage(e) });
-              })
-              .finally(() => {
-                setBusy(false);
-              });
+            download.start(fileId);
           }}
         >
           <Icon icon={Download} size={18} />
@@ -121,13 +122,14 @@ function TeamRow({ row, selected, onOpen }: { row: DailyReportRow; selected: boo
 
 function TeamList({ projectId, selectedId, onOpen }: ListProps) {
   const team = useTeamDailies(projectId, true);
+  const download = useDownload();
   if (team.isPending) return <LoadingState label="Loading reports" />;
   if (team.isError) return <ErrorState error={team.error} onRetry={() => void team.refetch()} />;
   if (team.data.length === 0) return <EmptyState icon={TOOL_META.dailies.icon} title="No submitted reports yet." />;
   return (
     <ul className="divide-y divide-line">
       {team.data.map((r) => (
-        <TeamRow key={r.id} row={r} selected={r.id === selectedId} onOpen={onOpen} />
+        <TeamRow key={r.id} row={r} selected={r.id === selectedId} onOpen={onOpen} download={download} />
       ))}
     </ul>
   );

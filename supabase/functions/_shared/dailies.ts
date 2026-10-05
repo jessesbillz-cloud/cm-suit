@@ -23,7 +23,8 @@ export const DAILY_SETTINGS_DEFAULTS = {
   schedule_days: [1, 2, 3, 4, 5] as number[],
   /** "Submit by" in the job's time zone, HH:mm. */
   submit_by: '17:00',
-  /** Reminder lead time before submit-by, in minutes (the push itself comes later; the calendar shows the due time). */
+  /** Reminder lead time before submit-by, in minutes. Not on the Setup screen until the push exists (the calendar shows
+   *  the due time). */
   reminder_minutes: 60,
   filename_pattern: 'Daily Report {#} {Project} {MM-DD-YYYY}',
   /** Who "Email to team" sends to. Stored here, so the server reads recipients from the database. */
@@ -210,6 +211,9 @@ export function needsResubmit(r: ResubmitCheck, photos: readonly { updated_at: s
   const signed = Date.parse(r.signed_at);
   return photos.some((p) => Date.parse(p.updated_at) > signed);
 }
+
+/** A report holds at most this many photos (add_daily_photo refuses the next one). */
+export const PHOTOS_PER_REPORT_MAX = 40;
 
 /** The named values a daily report filename pattern can use ({Project}, {Job}, {Author}, {Company}, {Label}). */
 export function dailyFilenameFields(h: DailyHeader): Record<string, string> {

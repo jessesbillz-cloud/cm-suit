@@ -35,6 +35,8 @@ interface MockState {
   files: FileRow[];
   /** Ids of unfinished uploads their uploader removed (remove_unfinished_upload): the rows stay, hidden from every read. */
   removedUploads: string[];
+  /** Ids of files soft-deleted on the server's side (e.g. a daily photo removed from its report, 0079). */
+  deletedFiles?: string[];
   profile: ProfileRow | null;
   revoked: string[];
   bidder: MockBidderState;
