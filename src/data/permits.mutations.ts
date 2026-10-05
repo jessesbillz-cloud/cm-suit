@@ -155,6 +155,19 @@ export function useBackcheckReview() {
   });
 }
 
+/** The Undo of a Backcheck (0080): the open cycle is taken back; the next Backcheck opens it again. */
+export function useWithdrawBackcheck() {
+  const refresh = useRefresh();
+  return useMutation({
+    mutationFn: async (v: { projectId: string; review: Pick<PermitReview, 'id' | 'version'> }): Promise<PermitReview> => {
+      if (isMock()) return mockReviews.reviewWithdraw(v.review.id, v.review.version);
+      const data = throwIfError(await supabase.rpc('permit_review_withdraw', { p_review_id: v.review.id, p_version: v.review.version }));
+      return permitReviewSchema.parse(one(data));
+    },
+    onSettled: (_r, _e, v) => refresh(v.projectId),
+  });
+}
+
 /** Closes a review with its outcome; null opens it again (the Undo). */
 export function useCloseReview() {
   const refresh = useRefresh();

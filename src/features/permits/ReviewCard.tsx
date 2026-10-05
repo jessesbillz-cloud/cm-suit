@@ -1,11 +1,12 @@
 // One cycle of a review: "Review 2 BC 1 · Fire sprinkler (deferred)" (the review's number on the permit, its backcheck,
 // its kind), received and returned, its outcome, and its comments as a tight list. While it is open the official adds
 // comments (sheet, detail, code reference, comment) and closes it with the outcome, with Undo (which opens it again).
-// Once it came back to be resubmitted, "Backcheck" opens the review's next cycle.
+// Once it came back to be resubmitted, "Backcheck" opens the review's next cycle, with Undo (0080: taken back while it
+// has no comments; the next Backcheck opens it again, same number).
 import { useState } from 'react';
 import { Lock, Plus } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { useAddComment, useBackcheckReview, useCloseReview } from '../../data/permits.mutations';
+import { useAddComment, useBackcheckReview, useCloseReview, useWithdrawBackcheck } from '../../data/permits.mutations';
 import type { PermitReviewWithComments } from '../../data/permits.types';
 import { formatDay } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -123,7 +124,11 @@ function CloseReview({ projectId, review }: { projectId: string; review: PermitR
 
 function Backcheck({ projectId, reviewId }: { projectId: string; reviewId: string }) {
   const backcheck = useBackcheckReview();
+  const withdraw = useWithdrawBackcheck();
   const toast = useToast();
+  const failed = (e: unknown) => {
+    toast.show({ tone: 'error', message: messageOf(e) });
+  };
   // The button's key: a repeat of the same tap returns the same cycle.
   const [key] = useState(() => crypto.randomUUID());
   return (
@@ -135,7 +140,18 @@ function Backcheck({ projectId, reviewId }: { projectId: string; reviewId: strin
         loading={backcheck.isPending}
         data-testid="permit-review-backcheck"
         onClick={() => {
-          backcheck.mutate({ projectId, reviewId, key }, { onError: (e) => { toast.show({ tone: 'error', message: messageOf(e) }); } });
+          backcheck.mutate(
+            { projectId, reviewId, key },
+            {
+              onSuccess: (row) => {
+                toast.show({
+                  message: `${reviewTitle(row.review_no, row.backcheck)} opened.`,
+                  action: { label: 'Undo', onClick: () => { withdraw.mutate({ projectId, review: row }, { onError: failed }); } },
+                });
+              },
+              onError: failed,
+            },
+          );
         }}
       >
         Backcheck

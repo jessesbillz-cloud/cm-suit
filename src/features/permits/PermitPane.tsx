@@ -1,8 +1,9 @@
 // One permit in the right column (full screen on the phone, or alone in its own window), the substance at once with no
 // extra taps (Jesse, Sep 30): the number and the whole title, its facts, the approved set (the stamped sheets, and the
 // official's "Stamp and issue", which opens the stamp flow in place of the page), the tracker with the days at each
-// stage and the official's moves, its review cycles with their comments and answers, and the inspections for it. The
-// stage history shows in the full view (its own window, or the phone).
+// stage and the official's moves, its review cycles with their comments and answers, the inspections for it and its
+// rev lists (how many walls are done, a tap opens Revs). The stage history shows in the full view (its own window, the
+// right column at full width, or the phone).
 import { useState } from 'react';
 import { usePermitDetail } from '../../data/permits.queries';
 import type { StampMode } from '../../data/permitStamp.types';
@@ -15,6 +16,7 @@ import { PermitFacts, PermitHead } from './PermitHead';
 import { PermitInspections } from './PermitInspections';
 import { PermitMoves } from './PermitMoves';
 import { PermitReviews } from './PermitReviews';
+import { PermitRevs } from './PermitRevs';
 import { PermitSteps } from './PermitSteps';
 import { StampFlow } from './StampFlow';
 
@@ -22,7 +24,7 @@ interface PermitPaneProps {
   itemId: string;
   /** Opened from the caseload (All my jobs): name the job. */
   showJob: boolean;
-  /** The full view: its own window, or the phone. */
+  /** The full view: its own window, the right column at full width, or the phone. */
   full: boolean;
   isPhone: boolean;
   onOpenWindow?: (() => void) | undefined;
@@ -83,6 +85,7 @@ export function PermitPane({ itemId, showJob, full, isPhone, onOpenWindow }: Per
             </PaneSection>
             <PermitReviews detail={d} />
             <PermitInspections detail={d} />
+            <PermitRevs projectId={d.permit.project_id} permitId={d.permit.id} />
             {full ? <PermitHistory events={d.events} timeZone={d.timezone} /> : null}
           </>
         )}

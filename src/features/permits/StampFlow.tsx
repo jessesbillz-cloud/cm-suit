@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { CircleCheck, X } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { FunctionError } from '../../data/functions';
-import { useRecordSet, useStampFile } from '../../data/permitStamp.mutations';
+import { useRecordSet, useStampFile, useStampUploads } from '../../data/permitStamp.mutations';
 import { useStampSources } from '../../data/permitStamp.queries';
 import type { PermitDetail, PermitRef } from '../../data/permits.types';
 import type { RecordResult, StampMode, StampedFile } from '../../data/permitStamp.types';
@@ -72,6 +72,10 @@ export function StampFlow({ detail, mode, isPhone, onClose }: StampFlowProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RecordResult | null>(null);
+  // A stored upload is picked at once; Sign waits for every upload to finish (a late one would be left out).
+  const uploads = useStampUploads(permit, (id) => {
+    setPicked((p) => (p.includes(id) ? p : [...p, id]));
+  });
 
   async function stampAll(): Promise<void> {
     setRunning(true);
@@ -116,7 +120,7 @@ export function StampFlow({ detail, mode, isPhone, onClose }: StampFlowProps) {
       ) : (
         <>
           <StampSources
-            permit={permit}
+            uploads={uploads}
             sources={sources}
             picked={picked}
             states={states}
@@ -124,9 +128,6 @@ export function StampFlow({ detail, mode, isPhone, onClose }: StampFlowProps) {
             locked={running}
             onToggle={(id) => {
               setPicked((p) => togglePick(p, id));
-            }}
-            onUploaded={(id) => {
-              setPicked((p) => (p.includes(id) ? p : [...p, id]));
             }}
           />
           <div className="sticky bottom-0 -mx-1 bg-card/95 px-1 py-2">
@@ -137,7 +138,7 @@ export function StampFlow({ detail, mode, isPhone, onClose }: StampFlowProps) {
               sign={stampAll}
               onSigned={() => undefined}
               pending={running}
-              disabled={picked.length === 0}
+              disabled={picked.length === 0 || uploads.busy}
             />
           </div>
         </>

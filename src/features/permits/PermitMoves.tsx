@@ -10,6 +10,7 @@ import { useMovePermit, useUndoMove } from '../../data/permits.mutations';
 import type { PermitDetail } from '../../data/permits.types';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
+import { DropMenu } from './DropMenu';
 import { inspectedHold, moveLabel, movedLabel } from './model';
 
 interface PermitMovesProps {
@@ -82,8 +83,7 @@ export function PermitMoves({ detail }: PermitMovesProps) {
           {hold}
         </span>
       ) : null}
-      {menu ? (
-        <div role="menu" className="absolute left-0 top-full z-20 mt-1 flex min-w-[12rem] flex-col rounded-lg border border-line bg-card py-1 shadow-pop">
+      <DropMenu open={menu} align="left" onClose={() => { setMenu(false); }}>
           {others.map((stage) => (
             <button
               key={stage}
@@ -98,8 +98,7 @@ export function PermitMoves({ detail }: PermitMovesProps) {
               {moveLabel(stage)}
             </button>
           ))}
-        </div>
-      ) : null}
+      </DropMenu>
     </div>
   );
 }

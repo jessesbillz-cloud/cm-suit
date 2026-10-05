@@ -65,6 +65,8 @@ export interface StoredReview {
   version: number;
   created_by: string;
   request_key: string | null;
+  /** A backcheck taken back (0080): kept, hidden, opened again by the next Backcheck. */
+  withdrawn_at?: string | null | undefined;
 }
 
 export interface StoredComment {
