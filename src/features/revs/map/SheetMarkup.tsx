@@ -1,6 +1,7 @@
 // An OSFM inspection map: a plan sheet with the inspected walls highlighted, one color per item (three at most, the
 // legend is `items`). Phone first: two fingers pan and zoom; one finger draws with the picked color, or pans with Move
-// on. Undo, and Clear (which Undo brings back). Read-only shows the sheet, the marks and the legend.
+// on. Undo, and Clear (which Undo brings back). Read-only shows the sheet, the marks and the legend. Full screen puts
+// the same sheet, bar and legend over the window (map/SheetFrame); Escape or Exit comes back.
 //
 // No data fetching here: the caller passes a fresh signed URL of the sheet (src/data/sheetUrl.ts useSheetUrl) and saves
 // what onChange hands back (the whole list of strokes after every change). `onPages` hears the PDF's page count once it
@@ -13,6 +14,7 @@ import {
   HIGHLIGHT_WIDTH, STROKE_LIMITS, finishStroke, rememberBefore, undoStep, type MarkupColor, type Stroke,
 } from '../../../lib/markup';
 import { MarkupBar, MarkupLegend, type MarkupItem } from './MarkupBar';
+import { SheetFrame } from './SheetFrame';
 import { SheetStage } from './SheetStage';
 import { useSheetPage } from './useSheetPage';
 
@@ -38,6 +40,7 @@ export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange
   const [past, setPast] = useState<Stroke[][]>([]);
   const [pastOf, setPastOf] = useState(`${sheetUrl}#${String(page)}`);
   const [renderError, setRenderError] = useState<Error | null>(null);
+  const [full, setFull] = useState(false);
 
   // Undo steps back through the marks of this page only.
   const shown = `${sheetUrl}#${String(page)}`;
@@ -96,44 +99,46 @@ export function SheetMarkup({ sheetUrl, page, strokes, items, readOnly, onChange
 
   const error = sheet.status === 'error' ? sheet.error : renderError;
 
+  const bar = readOnly ? (
+    <MarkupLegend items={items} />
+  ) : (
+    <MarkupBar
+      items={items}
+      pen={pen}
+      moving={moving}
+      canUndo={past.length > 0}
+      canClear={strokes.length > 0}
+      onPick={(c) => {
+        setPicked(c);
+        setMoving(false);
+      }}
+      onMove={() => {
+        setMoving((m) => !m);
+      }}
+      onUndo={undo}
+      onClear={clear}
+    />
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-page" onKeyDown={onKeyDown} data-testid="sheet-markup">
-      <div className="order-last sm:order-first">
-        {readOnly ? (
-          <MarkupLegend items={items} />
-        ) : (
-          <MarkupBar
-            items={items}
-            pen={pen}
-            moving={moving}
-            canUndo={past.length > 0}
-            canClear={strokes.length > 0}
-            onPick={(c) => {
-              setPicked(c);
-              setMoving(false);
+      {full ? null : <div className="order-last sm:order-first">{bar}</div>}
+      <SheetFrame full={full} onFull={setFull} title="Map" bar={bar} className="relative flex min-h-0 flex-1 flex-col" page={page}>
+        {error ? (
+          <ErrorState
+            error={error}
+            title="The sheet did not open."
+            onRetry={() => {
+              setRenderError(null);
+              retry();
             }}
-            onMove={() => {
-              setMoving((m) => !m);
-            }}
-            onUndo={undo}
-            onClear={clear}
           />
-        )}
-      </div>
-      {error ? (
-        <ErrorState
-          error={error}
-          title="The sheet did not open."
-          onRetry={() => {
-            setRenderError(null);
-            retry();
-          }}
-        />
-      ) : sheet.status === 'loading' ? (
-        <LoadingState label="Opening sheet" />
-      ) : sheet.status === 'ready' ? (
-        <SheetStage page={sheet.page} aspect={sheet.aspect} strokes={strokes} pen={pen} onStroke={onStroke} onError={onRenderError} />
-      ) : null}
+        ) : sheet.status === 'loading' ? (
+          <LoadingState label="Opening sheet" />
+        ) : sheet.status === 'ready' ? (
+          <SheetStage page={sheet.page} aspect={sheet.aspect} strokes={strokes} pen={pen} onStroke={onStroke} onError={onRenderError} />
+        ) : null}
+      </SheetFrame>
     </div>
   );
 }

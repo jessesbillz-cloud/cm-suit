@@ -9,7 +9,6 @@ import {
   levelsOf,
   metaLine,
   naToggle,
-  neighbor,
   openRollup,
   parseView,
   requestSearch,
@@ -117,12 +116,7 @@ describe('revs model', () => {
     expect(wallsByList({ ...SETUP, lists: [list, { ...list, id: 'l2', name: 'Other' }] }).map((g) => g.list.id)).toEqual(['l1']);
   });
 
-  it('moves, views and the request prefill', () => {
-    const rows = [{ id: 'x' }, { id: 'y' }, { id: 'z' }];
-    expect(neighbor(rows, 'y', -1)?.id).toBe('x');
-    expect(neighbor(rows, 'y', 1)?.id).toBe('z');
-    expect(neighbor(rows, 'x', -1)).toBeNull();
-    expect(neighbor(rows, 'q', 1)).toBeNull();
+  it('views and the request prefill', () => {
     expect(parseView('open', false)).toBe('open');
     expect(parseView('setup', false)).toBe('walls');
     expect(parseView('setup', true)).toBe('setup');

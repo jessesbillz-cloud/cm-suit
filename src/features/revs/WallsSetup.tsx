@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { useRevSheets } from '../../data/revSheets.queries';
+import { ErrorState } from '../../ui/States';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
@@ -21,7 +22,8 @@ interface WallFormProps {
   onCancel: () => void;
 }
 
-function WallForm({ area, levels, onSave, onCancel }: WallFormProps) {
+/** A wall's name, level and sheet (Setup, and the wall's own page). */
+export function WallForm({ area, levels, onSave, onCancel }: WallFormProps) {
   const [v, setV] = useState<WallValues>({ level: area.level, name: area.name, sheetFileId: area.sheet_file_id });
   return (
     <EditForm ready={v.name.trim() !== '' && v.level.trim() !== ''} testId="rev-wall-form" onSave={() => onSave(v)} onCancel={onCancel}>
@@ -49,6 +51,7 @@ export function WallsSetup({ projectId, setup, listId, actions, isPhone }: Walls
   if (groups.length === 0) return <p className="py-2 text-[13px] text-ink-3">No walls yet.</p>;
   return (
     <div className="flex flex-col gap-2">
+      {sheets.isError ? <ErrorState className="m-0" error={sheets.error} title="The sheet names did not load." onRetry={() => void sheets.refetch()} /> : null}
       {groups.map((g) => (
         <section key={g.level} className="flex flex-col">
           <h4 className="pt-1 text-[12px] font-semibold leading-5 text-ink-2">{g.level}</h4>
@@ -62,10 +65,10 @@ export function WallsSetup({ projectId, setup, listId, actions, isPhone }: Walls
                     name={a.name}
                     isPhone={isPhone}
                     disabled={actions.busy}
-                    onUp={i > 0 ? () => { actions.moveWall(g.areas, a, -1); } : undefined}
-                    onDown={i < g.areas.length - 1 ? () => { actions.moveWall(g.areas, a, 1); } : undefined}
+                    onUp={i > 0 ? () => { actions.move('area', a, a.name, -1); } : undefined}
+                    onDown={i < g.areas.length - 1 ? () => { actions.move('area', a, a.name, 1); } : undefined}
                     onEdit={() => { setEditing(a.id); }}
-                    onRemove={() => { actions.remove('area', a, a.name); }}
+                    onRemove={() => { void actions.remove('area', a, a.name); }}
                   >
                     <span className="block">{a.name}</span>
                     {sheetName(a.sheet_file_id) ? (

@@ -1,9 +1,9 @@
 // Synthetic revs for the e2e mock and the preview (CLAUDE.md rule 8: obviously fake) on Sample Science Building (the
-// permit jobs' OFS job): one list with the eight revs of a fire marshal job (synthetic trades), six walls on Level 01
-// and Level 02 (all but one drawn on the synthetic plan set), two N/A marks, and three OFS requests around today: TOW
-// passed and signed and HOW cavity with one wall failed (both sent to OFS by the inspector and decided by the deputy,
-// 0061), and CJ requested with a map the requester drew, through the GC and still with the inspector. Placed relative
-// to today like the other inspection seeds.
+// permit jobs' OFS job): one list (on permit 24-0001) with the eight revs of a fire marshal job (synthetic trades), six
+// walls on Level 01 and Level 02 (all but one drawn on the synthetic plan set), two N/A marks, and three OFS requests
+// around today: TOW passed and signed and HOW cavity with one wall failed (both sent to OFS by the inspector and
+// decided by the deputy, 0061), and CJ requested with a map the requester drew, through the GC and still with the
+// inspector. Placed relative to today like the other inspection seeds.
 import { addDays, format, parseISO } from 'date-fns';
 import type { Tables } from '../database.types';
 import type { IrRowRaw } from '../inspections.types';
@@ -63,7 +63,7 @@ const itemId = (rev: number, k: number) => `mock-rev-item-${String(rev)}-${Strin
 const areaId = (n: number) => `mock-rev-area-${String(n)}`;
 
 export function seedSetup() {
-  const lists: Tables<'rev_lists'>[] = [{ ...base, id: LIST_ID, name: 'Sample Rated Walls', phase: 'PH III', permit_id: null, position: 1 }];
+  const lists: Tables<'rev_lists'>[] = [{ ...base, id: LIST_ID, name: 'Sample Rated Walls', phase: 'PH III', permit_id: 'mock-permit-s1', position: 1 }];
   const revs: Tables<'revs'>[] = LEGEND.map(([n, name]) => ({ ...base, id: `mock-rev-${String(n)}`, list_id: LIST_ID, number: n, name }));
   const items: Tables<'rev_items'>[] = LEGEND.flatMap(([n, , list]) =>
     list.map(([name, company], k) => ({ ...base, id: itemId(n, k + 1), rev_id: `mock-rev-${String(n)}`, name, company, position: k + 1 })),

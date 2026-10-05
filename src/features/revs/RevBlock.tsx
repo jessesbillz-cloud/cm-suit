@@ -37,7 +37,7 @@ export function RevBlock({ rev, items, actions, isPhone }: RevBlockProps) {
           isPhone={isPhone}
           disabled={actions.busy}
           onEdit={() => { setEditing({ kind: 'rev' }); }}
-          onRemove={() => { actions.remove('rev', rev, `Rev ${String(rev.number)}`); }}
+          onRemove={() => { void actions.remove('rev', rev, `Rev ${String(rev.number)}`); }}
         >
           {title}
         </SetupRow>
@@ -52,10 +52,10 @@ export function RevBlock({ rev, items, actions, isPhone }: RevBlockProps) {
                 name={it.name}
                 isPhone={isPhone}
                 disabled={actions.busy}
-                onUp={i > 0 ? () => { actions.moveItem(items, it, -1); } : undefined}
-                onDown={i < items.length - 1 ? () => { actions.moveItem(items, it, 1); } : undefined}
+                onUp={i > 0 ? () => { actions.move('item', it, it.name, -1); } : undefined}
+                onDown={i < items.length - 1 ? () => { actions.move('item', it, it.name, 1); } : undefined}
                 onEdit={() => { setEditing({ kind: 'item', id: it.id }); }}
-                onRemove={() => { actions.remove('item', it, it.name); }}
+                onRemove={() => { void actions.remove('item', it, it.name); }}
               >
                 {it.name}
                 {it.company ? <span className="ml-1.5 inline-block text-[13px] text-ink-3">{it.company}</span> : null}
