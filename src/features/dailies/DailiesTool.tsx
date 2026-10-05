@@ -34,7 +34,7 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
   if (project.isError) return <ErrorState error={project.error} onRetry={() => void project.refetch()} />;
   if (!write.data && !readAll.data) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           <EmptyState icon={META.icon} title="No dailies for you on this job." />
@@ -44,7 +44,7 @@ export function DailiesTool({ projectId, itemId, isPhone }: DailiesToolProps) {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4" data-testid="dailies-tool">
+    <div className="flex flex-col gap-4" data-testid="dailies-tool">
       <PageHeader
         title={META.label}
         icon={META.icon}

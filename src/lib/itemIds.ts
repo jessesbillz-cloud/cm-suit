@@ -23,8 +23,27 @@ export const TOPIC_ITEM_PREFIX = 'topic-';
 /** Schedule: a draft's review opens as `draft-<id>` (a page of its own), a published version as `v-<id>` (an activity by its own id). */
 export const DRAFT_ITEM_PREFIX = 'draft-';
 export const VERSION_ITEM_PREFIX = 'v-';
+/** Calendar: my calendar feed link (the calendar's model re-exports it). */
+export const SUBSCRIBE_ITEM = 'subscribe';
+/** Bids: inviting bidders (the bids model re-exports it). */
+export const INVITE_ITEM = 'invite';
 /** Requirements: read a spec section with AI. */
 export const READ_ITEM = 'read';
+
+/**
+ * A board line opened from the docked board beside another tool: `line-<activity id>`, an item of the tool I'm in, so
+ * the main area stays put and Close brings the docked board back (SPEC §7.2).
+ */
+const BOARD_LINE_PREFIX = 'line-';
+
+export function boardLineItem(activityId: string): string {
+  return `${BOARD_LINE_PREFIX}${activityId}`;
+}
+
+/** The activity id of a docked board line, or null when the item is the tool's own. */
+export function boardLineOf(itemId: string | null): string | null {
+  return itemId !== null && itemId.startsWith(BOARD_LINE_PREFIX) ? itemId.slice(BOARD_LINE_PREFIX.length) : null;
+}
 
 /**
  * Items that are pages of their own: on a desktop they fill the main area instead of the right column (the right column
@@ -32,6 +51,7 @@ export const READ_ITEM = 'read';
  * schedule draft's review (its rows want the width).
  */
 export function opensInMain(tool: string, itemId: string): boolean {
+  if (boardLineOf(itemId) !== null) return false;
   if (tool === 'schedule') return itemId.startsWith(DRAFT_ITEM_PREFIX);
   return tool === 'revs' && itemId !== NEW_ITEM && itemId !== WALLS_ITEM;
 }

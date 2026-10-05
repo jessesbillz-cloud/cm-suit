@@ -62,7 +62,7 @@ function Month({ jobs, orgId, month, itemId, isPhone, below, onOpen }: MonthProp
   const meta = hours.data ? `${monthLabel(month)} · ${hoursText(hours.data.total)} h` : monthLabel(month);
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4" data-testid="timesheets-tool">
+    <div className="flex flex-col gap-4" data-testid="timesheets-tool">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       <Card title="Hours" padded={false} className="overflow-hidden">
         {hours.isPending ? <LoadingState label="Loading hours" /> : null}
@@ -86,7 +86,7 @@ export function TimesheetsTool({ itemId, isPhone }: TimesheetsToolProps) {
 
   if (jobs.isPending || jobs.isError) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           {jobs.isPending ? <LoadingState label="Loading your jobs" /> : <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />}
@@ -98,7 +98,7 @@ export function TimesheetsTool({ itemId, isPhone }: TimesheetsToolProps) {
   const org = companies.find((c) => c.value === nav.org) ?? companies[0];
   if (!org) {
     return (
-      <div className="mx-auto max-w-5xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           <EmptyState icon={META.icon} title="No jobs with Hours." />

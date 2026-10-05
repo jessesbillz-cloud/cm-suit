@@ -1,20 +1,21 @@
-// People on the job (names and companies from people_display only). Managers invite and remove access.
-// Removing access waits for the toast to close so Undo works (no "are you sure?").
+// People on the job (names, companies and Invited / Active from people_display only; role names in the words of
+// roles.description). Managers invite and remove access. Removing access waits for the toast to close so Undo works
+// (no "are you sure?").
 import { useState, type ReactNode } from 'react';
 import { UserMinus, UserPlus } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useRevokeMember } from '../../data/mutations';
-import { useCapability, usePeopleDisplay, useProject } from '../../data/queries';
+import { useCapability, usePeopleDisplay, useProject, useRoles } from '../../data/queries';
 import { messageOf } from '../../data/errors';
 import type { Person } from '../../data/types';
-import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
-import { InviteForm } from './InviteForm';
+import { InviteForm, roleLabel } from './InviteForm';
 
 const META = TOOL_META.people;
 
@@ -49,12 +50,14 @@ function RoleChip({ children }: { children: ReactNode }) {
 
 interface PersonLineProps {
   person: Person;
+  /** The role in words (roles.description). */
+  role: string;
   isMe: boolean;
   canManage: boolean;
   onRemove: (p: Person) => void;
 }
 
-function PersonLine({ person, isMe, canManage, onRemove }: PersonLineProps) {
+function PersonLine({ person, role, isMe, canManage, onRemove }: PersonLineProps) {
   return (
     <li className="flex min-h-[60px] items-center gap-3 px-4 py-2.5" data-testid="person">
       <Avatar name={person.full_name} me={isMe} />
@@ -65,8 +68,10 @@ function PersonLine({ person, isMe, canManage, onRemove }: PersonLineProps) {
         </p>
         {person.company ? <p className="break-words text-[13px] text-ink-2">{person.company}</p> : null}
       </div>
-      <span className="flex shrink-0 justify-end sm:w-40 sm:justify-start">
-        <RoleChip>{humanize(person.role)}</RoleChip>
+      <span className="flex shrink-0 flex-wrap justify-end gap-1.5 sm:w-56 sm:justify-start">
+        <RoleChip>{role}</RoleChip>
+        {/* Invited: the link is out, not opened yet. Active needs no chip. */}
+        {person.status === 'invited' ? <StatusChip status="pending" label="Invited" /> : null}
       </span>
       {canManage ? (
         <span className="flex w-10 shrink-0 justify-end">
@@ -91,6 +96,7 @@ export function PeopleTool({ projectId }: { projectId: string }) {
   const people = usePeopleDisplay(projectId);
   const manage = useCapability(projectId, 'members.manage');
   const project = useProject(projectId);
+  const roles = useRoles();
   const revoke = useRevokeMember();
   const user = useUser();
   const toast = useToast();
@@ -134,6 +140,8 @@ export function PeopleTool({ projectId }: { projectId: string }) {
   }
 
   const canManage = manage.data === true;
+  // Who may invite and the job's name come first: a failure there shows, never a silently missing Invite.
+  const failed = manage.isError ? manage : project.isError ? project : null;
   const projectName = project.data?.name ?? 'this job';
   const visible = (people.data ?? []).filter((p) => !pending.has(p.member_id));
   const count = people.isSuccess ? `${String(visible.length)} ${visible.length === 1 ? 'person' : 'people'}` : undefined;
@@ -151,7 +159,7 @@ export function PeopleTool({ projectId }: { projectId: string }) {
     ) : undefined;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col">
+    <div className="flex flex-col">
       <PageHeader title={META.label} icon={META.icon} meta={count} actions={inviteButton} />
       <div className="flex flex-col gap-4">
         {canManage && project.data && inviting ? (
@@ -164,6 +172,7 @@ export function PeopleTool({ projectId }: { projectId: string }) {
             }}
           />
         ) : null}
+        {failed ? <ErrorState error={failed.error} onRetry={() => void failed.refetch()} /> : null}
         <Card padded={false} className="overflow-hidden">
           {people.isPending ? <LoadingState label="Loading people" /> : null}
           {people.isError ? <ErrorState error={people.error} onRetry={() => void people.refetch()} /> : null}
@@ -171,7 +180,14 @@ export function PeopleTool({ projectId }: { projectId: string }) {
           {visible.length > 0 ? (
             <ul className="divide-y divide-line">
               {visible.map((p) => (
-                <PersonLine key={p.member_id} person={p} isMe={p.user_id === user.id} canManage={canManage} onRemove={remove} />
+                <PersonLine
+                  key={p.member_id}
+                  person={p}
+                  role={roleLabel(p.role, roles.data)}
+                  isMe={p.user_id === user.id}
+                  canManage={canManage}
+                  onRemove={remove}
+                />
               ))}
             </ul>
           ) : null}

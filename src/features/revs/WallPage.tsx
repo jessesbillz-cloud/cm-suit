@@ -183,7 +183,7 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
   }
   if (isPhone) return <div className="px-4 pt-3">{body}</div>;
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <BackToRevs projectId={projectId} canManage={manage.data === true} />
       <Card>{body}</Card>
     </div>

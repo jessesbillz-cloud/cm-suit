@@ -54,7 +54,7 @@ function InspectionsMain({ projectId, itemId, isPhone, can, job }: MainProps) {
     : undefined;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col" data-testid="inspections">
+    <div className="flex flex-col" data-testid="inspections">
       <PageHeader
         title={META.label}
         icon={META.icon}
@@ -127,7 +127,7 @@ export function InspectionsTool({ projectId, itemId, isPhone }: InspectionsToolP
   const { can, job } = access;
   if (!seesInspections(can)) {
     return (
-      <div className="mx-auto max-w-6xl">
+      <div>
         <PageHeader title={META.label} icon={META.icon} />
         <Card>
           <EmptyState icon={META.icon} title="No inspections for you on this job." />

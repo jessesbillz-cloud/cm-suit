@@ -59,13 +59,13 @@ export function DraftPage({ projectId, versionId, isPhone }: DraftPageProps) {
           onDiscarded={() => { nav.close('updates'); }}
           onBack={() => { nav.open(draftItemId(versionId)); }}
         />
-        <DraftRows projectId={projectId} rows={rows.data} />
+        <DraftRows projectId={projectId} versionId={versionId} rows={rows.data} />
       </>
     );
   }
   if (isPhone) return <div className="flex flex-col" data-testid="schedule-draft">{body}</div>;
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-2" data-testid="schedule-draft">
+    <div className="flex flex-col gap-2" data-testid="schedule-draft">
       <BackToSchedule onBack={() => { nav.close('updates'); }} />
       <Card padded={false} className="overflow-hidden">
         {body}

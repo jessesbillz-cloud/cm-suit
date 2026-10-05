@@ -36,7 +36,7 @@ interface ShellProps {
 
 function Shell({ meta, actions, below, children }: ShellProps) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col" data-testid="safety">
+    <div className="flex flex-col" data-testid="safety">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>

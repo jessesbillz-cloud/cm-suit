@@ -31,7 +31,7 @@ const META = TOOL_META.deliveries;
 
 function Frame({ meta, actions, below, children }: { meta?: string | undefined; actions?: ReactNode; below?: ReactNode; children: ReactNode }) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col">
+    <div className="flex flex-col">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>

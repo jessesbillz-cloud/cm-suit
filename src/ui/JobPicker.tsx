@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
-import { ALL_JOBS_TOOLS } from '../lib/jobs';
+import type { RailTool } from '../lib/layout';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
 
@@ -16,6 +16,8 @@ interface JobPickerProps {
   onPick: (projectId: string | null) => void;
   /** Opens the setup flow for a new job. */
   onNewJob: () => void;
+  /** What "All my jobs" holds for me (the frame's rail there), named under it. */
+  allJobsTools: readonly RailTool[];
 }
 
 interface Option {
@@ -25,8 +27,6 @@ interface Option {
 }
 
 const ALL_JOBS_LABEL = 'All my jobs';
-/** "Board, Calendar, Bids": what "All my jobs" holds, from the one list of cross-job tools. */
-const ALL_JOBS_DETAIL = ALL_JOBS_TOOLS.map((t) => TOOL_META[t].label).join(', ');
 
 function orderJobs(projects: readonly MyProject[], recentIds: readonly string[]): MyProject[] {
   const rank = new Map(recentIds.map((id, i): [string, number] => [id, i]));
@@ -70,7 +70,9 @@ function OptionRow({ option, index, active, current, onHover, onChoose }: Option
   );
 }
 
-export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: JobPickerProps) {
+export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob, allJobsTools }: JobPickerProps) {
+  /** "Board, Calendar, Bids": what "All my jobs" holds for me. */
+  const allDetail = allJobsTools.map((t) => TOOL_META[t].label).join(', ');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -80,9 +82,9 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
     const jobs = orderJobs(projects, recentIds)
       .filter((p) => q === '' || `${p.name} ${detailOf(p)}`.toLowerCase().includes(q))
       .map((p) => ({ id: p.project_id, name: p.name, detail: detailOf(p) }));
-    const all: Option = { id: null, name: ALL_JOBS_LABEL, detail: ALL_JOBS_DETAIL };
+    const all: Option = { id: null, name: ALL_JOBS_LABEL, detail: allDetail };
     return q === '' || ALL_JOBS_LABEL.toLowerCase().includes(q) ? [...jobs, all] : jobs;
-  }, [projects, recentIds, query]);
+  }, [projects, recentIds, query, allDetail]);
 
   const current = projects.find((p) => p.project_id === currentId);
   const label = currentId === null ? ALL_JOBS_LABEL : (current?.name ?? 'Pick a job');

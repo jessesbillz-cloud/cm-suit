@@ -14,8 +14,7 @@ export const VIEW_LABELS: Record<CalView, string> = { month: 'Month', week: 'Wee
 
 /** Right-column items that are not a line: the add form, blocked time, the feed link. Lines and requests are ids. */
 export const NEW_LINE = 'new';
-export const BLOCK_ITEM = 'block';
-export const SUBSCRIBE_ITEM = 'subscribe';
+export { BLOCK_ITEM, SUBSCRIBE_ITEM } from '../../lib/itemIds';
 
 /** A request opened from the calendar: its job travels with it ("All my jobs" has no job in the address). */
 export function requestItemId(projectId: string, requestId: string): string {

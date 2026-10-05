@@ -43,7 +43,7 @@ interface FrameProps {
 
 function Frame({ meta, actions, below, children }: FrameProps) {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col">
+    <div className="flex flex-col">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>

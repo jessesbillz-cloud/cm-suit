@@ -37,7 +37,8 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   const dockedBoard = docked && (loc.itemId === null || opensInMain(loc.tool, loc.itemId)) && (!choices || (choices.docked_panel !== 'none' && !choices.collapsed.right));
   usePrefetchBoardFeed(loc.projectId, (loc.tool === 'board' && !windowMode) || dockedBoard);
 
-  if (model.layoutQuery.isPending || model.projectsQuery.isPending || model.recommendedQuery.isPending || model.jobRailsQuery.isPending) {
+  const loading = [model.layoutQuery, model.projectsQuery, model.recommendedQuery, model.readableQuery, model.jobRailsQuery];
+  if (loading.some((q) => q.isPending)) {
     return <LoadingState label="Opening your jobs" />;
   }
   if (model.layoutQuery.isError) return <ErrorState error={model.layoutQuery.error} onRetry={() => void model.layoutQuery.refetch()} />;
@@ -46,6 +47,9 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   }
   if (model.recommendedQuery.isError) {
     return <ErrorState error={model.recommendedQuery.error} onRetry={() => void model.recommendedQuery.refetch()} />;
+  }
+  if (model.readableQuery.isError) {
+    return <ErrorState error={model.readableQuery.error} onRetry={() => void model.readableQuery.refetch()} />;
   }
   if (model.jobRailsQuery.isError) {
     return <ErrorState error={model.jobRailsQuery.error} onRetry={() => void model.jobRailsQuery.refetch()} />;
@@ -56,7 +60,7 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
 
   if (windowMode && loc.itemId !== null) {
     return (
-      <main className="mx-auto min-h-screen max-w-3xl bg-card shadow-card">
+      <main className="mx-auto min-h-screen max-w-reading bg-card shadow-card">
         <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone />
       </main>
     );
