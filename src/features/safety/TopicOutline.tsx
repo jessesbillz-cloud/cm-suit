@@ -46,7 +46,7 @@ function PdfButton({ projectId, pdf }: { projectId: string; pdf: NonNullable<Top
         );
       }}
     >
-      Open PDF
+      Download PDF
     </Button>
   );
 }

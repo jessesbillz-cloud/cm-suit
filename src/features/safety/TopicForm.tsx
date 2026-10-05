@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Save } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useSaveTopic } from '../../data/safety.mutations';
+import { useFile } from '../../data/queries';
 import type { Topic } from '../../data/safety.types';
 import { SAFETY_CATEGORIES } from '../../lib/safety';
 import { Button } from '../../ui/Button';
@@ -49,7 +50,10 @@ export function TopicForm({ projectId, orgId, topic, onSaved, onCancel }: TopicF
   const [questions, setQuestions] = useState(topic?.questions.join('\n') ?? '');
   const [source, setSource] = useState(topic?.source ?? '');
   const [url, setUrl] = useState(topic?.source_url ?? '');
-  const [pdf, setPdf] = useState<PickedPdf | null>(topic?.file_id ? { id: topic.file_id, name: 'PDF on file' } : null);
+  const [pdf, setPdf] = useState<PickedPdf | null>(topic?.file_id ? { id: topic.file_id, name: '' } : null);
+  // The PDF already on the topic shows its real filename (the files row; "PDF" if it can't be read from this job).
+  const kept = useFile(pdf !== null && pdf.name === '' ? pdf.id : null);
+  const shownPdf = pdf !== null && pdf.name === '' ? { ...pdf, name: kept.data?.original_name ?? 'PDF' } : pdf;
   const ready = category !== null && title.trim() !== '' && (linesOf(points).length > 0 || pdf !== null);
 
   function submit() {
@@ -95,7 +99,7 @@ export function TopicForm({ projectId, orgId, topic, onSaved, onCancel }: TopicF
           <TextField label="Regulation" value={source} onChange={setSource} maxLength={120} testId="safety-topic-source" />
           <TextField label="Link" value={url} onChange={setUrl} maxLength={300} type="url" testId="safety-topic-url" />
         </div>
-        <PdfField projectId={projectId} value={pdf} onChange={setPdf} testId="safety-topic-pdf" />
+        <PdfField projectId={projectId} value={shownPdf} onChange={setPdf} testId="safety-topic-pdf" />
         {save.isError ? (
           <p role="alert" className="text-sm text-danger">
             {messageOf(save.error)}

@@ -66,7 +66,7 @@ export function MeetingPane({ projectId, meetingId }: MeetingPaneProps) {
         {roster.isSuccess ? (
           <Roster projectId={projectId} lines={lines} timeZone={job.timezone} canRemove={lead} />
         ) : null}
-        {lead && roster.isSuccess ? <TickIn projectId={projectId} meetingId={m.id} lines={lines} /> : null}
+        {lead && roster.isSuccess ? <TickIn projectId={projectId} meetingId={m.id} kind={m.kind} lines={lines} /> : null}
       </div>
       <MeetingActions projectId={projectId} meeting={m} />
     </div>

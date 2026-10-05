@@ -286,7 +286,15 @@ export async function publicSign(key: MeetingKey, v: SignInput): Promise<void> {
   const s = read();
   const m = byToken(s, key);
   const name = v.name.trim().replace(/\s+/g, ' ');
-  if (lines(s, m.id).some((x) => x.name.toLowerCase() === name.toLowerCase())) return;
+  const same = lines(s, m.id).find((x) => x.name.toLowerCase() === name.toLowerCase());
+  if (same) {
+    // Ticked in by the leader: the signature completes that line (the database's link_meeting_sign).
+    if (same.signature === null) {
+      const at = new Date().toISOString();
+      write((x) => ({ ...x, signins: x.signins.map((y) => (y.id === same.id ? { ...y, signature: v.signature, signed_at: at } : y)) }));
+    }
+    return;
+  }
   const at = new Date().toISOString();
   const line: StoredSignin = {
     id: `mock-signin-${String(s.seq)}-${String(s.signins.length)}`, meeting_id: m.id, name, company: v.company.trim(), trade: v.trade.trim(),
@@ -300,6 +308,21 @@ export function folder(projectId: string): string {
 }
 
 /** The open meetings I lead, for the rail's badge (my_tool_counts). */
+/** The roles holding corrections.mark_ready (a synthetic copy of the matrix's row). */
+export async function builderRoles(): Promise<string[]> {
+  await delay();
+  return ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub'];
+}
+
+/** Where the job's latest meeting with a location was held. */
+export async function lastLocation(projectId: string): Promise<string> {
+  await delay();
+  need('safety.read');
+  const held = read().meetings.filter((m) => m.project_id === projectId && m.location.trim() !== '');
+  held.sort((a, b) => Date.parse(b.opened_at) - Date.parse(a.opened_at));
+  return held[0]?.location ?? '';
+}
+
 export function myOpenMeetings(projectId: string | null): string[] {
   const me = mockUser().id;
   return read().meetings.filter((m) => m.leader_id === me && m.status === 'open' && (projectId === null || m.project_id === projectId)).map((m) => m.id);
