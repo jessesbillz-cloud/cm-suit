@@ -1,5 +1,6 @@
 // Deliveries writes (SPEC §13.3). Every write is an RPC: the database owns the receipt number, Standby, the audit
-// trail and the version check. Each one refreshes the job's deliveries through the one qk.deliveries prefix.
+// trail and the version check. Each one refreshes the job's deliveries (the one qk.deliveries prefix) and what the
+// database mirrors from them: the calendar line (also the board's Today panel) and the board line.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
@@ -11,7 +12,21 @@ import type { DeliveryInput, DeliveryRow } from './deliveries.types';
 
 function useRefresh(projectId: string) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: qk.deliveries(projectId) });
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: qk.deliveries(projectId) }),
+      qc.invalidateQueries({ queryKey: qk.calendar }),
+      qc.invalidateQueries({ queryKey: qk.board(projectId) }),
+      qc.invalidateQueries({ queryKey: qk.board(null) }),
+    ]);
+}
+
+/** After a photo or ticket comes off (or goes back): the delivery, and the file wherever it shows (its folder in Files). */
+function useFileRefresh(projectId: string) {
+  const qc = useQueryClient();
+  const refresh = useRefresh(projectId);
+  return (fileId: string) =>
+    Promise.all([refresh(), qc.invalidateQueries({ queryKey: qk.file(fileId) }), qc.invalidateQueries({ queryKey: qk.filesAll })]);
 }
 
 /** Leaving p_time out means "time TBD". */
@@ -85,6 +100,32 @@ export function useAttachDeliveryFiles(projectId: string) {
         return null;
       });
     },
+  });
+}
+
+/**
+ * Takes a photo or ticket off a delivery (its poster or deliveries.manage). The file leaves the Delivery tickets folder
+ * too; useRestoreDeliveryFile is the Undo. Safe to repeat.
+ */
+export function useRemoveDeliveryFile(projectId: string) {
+  const refresh = useFileRefresh(projectId);
+  return useMutation({
+    mutationFn: async (v: { deliveryId: string; fileId: string }): Promise<void> => {
+      if (isMock()) return mock.removeFile(v.deliveryId, v.fileId);
+      throwIfErrorMaybe(await supabase.rpc('remove_delivery_file', { p_delivery_id: v.deliveryId, p_file_id: v.fileId }));
+    },
+    onSettled: (_r, _e, v) => refresh(v.fileId),
+  });
+}
+
+export function useRestoreDeliveryFile(projectId: string) {
+  const refresh = useFileRefresh(projectId);
+  return useMutation({
+    mutationFn: async (v: { deliveryId: string; fileId: string }): Promise<void> => {
+      if (isMock()) return mock.restoreFile(v.deliveryId, v.fileId);
+      throwIfErrorMaybe(await supabase.rpc('restore_delivery_file', { p_delivery_id: v.deliveryId, p_file_id: v.fileId }));
+    },
+    onSettled: (_r, _e, v) => refresh(v.fileId),
   });
 }
 
