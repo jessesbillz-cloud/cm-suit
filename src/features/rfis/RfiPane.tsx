@@ -1,9 +1,10 @@
 // One RFI in the right column (full screen on the phone, or alone in its own window): my own draft opens as the form to
 // finish and sign; any other RFI is the reading pane (Jesse, Sep 30): the substance at once, with no extra taps. The
 // header (number, the whole title, three actions), the route strip, the question with its photos and the answer right
-// under it; then impact and, small, the moves I may make. History only in the full view (its own window, or the
-// phone's full screen). Arrow keys walk the log as it is shown.
+// under it; then impact and, small, the moves I may make. History sits behind one link at every width, as in
+// corrections (SPEC §7.4). Arrow keys walk the log as it is shown.
 import { useEffect, useRef, useState } from 'react';
+import { History } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useProject } from '../../data/queries';
@@ -11,6 +12,7 @@ import { useRfiPdf, useRfiPdfView } from '../../data/rfis.mutations';
 import { useRfiDetail, useRfiList, useRfiProgress } from '../../data/rfis.queries';
 import type { RfiDetail, RfiEvent } from '../../data/rfis.types';
 import { blankTab } from '../../lib/openTab';
+import { Icon } from '../../ui/Icon';
 import { PaneSection } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
@@ -56,6 +58,7 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const root = useRef<HTMLElement>(null);
   // While editing, the pane keeps the title it opened with: a saved title must not pull focus out of the form.
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Focus the pane when the RFI changes, so the arrow keys work straight away.
   useEffect(() => {
@@ -89,7 +92,6 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const shown = visibleRows(list.data ?? [], { filter: nav.filter, query: nav.query, userId: user.id }, now);
   const { prev, next } = neighbors(shown, d.rfi.id);
   const steps = progress.data ? (stripsByRfi(progress.data).get(d.rfi.id) ?? []) : undefined;
-  const full = nav.standalone || isPhone;
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
   };
@@ -141,8 +143,20 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
           </PaneSection>
         ) : null}
         <RfiImpact detail={d} timeZone={tz} now={now} />
-        {editingTitle === null ? <RfiActions detail={d} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
-        {full ? <RfiHistory events={d.events} timeZone={tz} /> : null}
+        {editingTitle === null ? <RfiActions detail={d} isPhone={isPhone} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
+        <button
+          type="button"
+          aria-expanded={historyOpen}
+          className="inline-flex h-8 items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-accent hover:underline"
+          data-testid="rfi-history-link"
+          onClick={() => {
+            setHistoryOpen((v) => !v);
+          }}
+        >
+          <Icon icon={History} size={14} />
+          History
+        </button>
+        {historyOpen ? <RfiHistory events={d.events} timeZone={tz} /> : null}
       </div>
     </article>
   );

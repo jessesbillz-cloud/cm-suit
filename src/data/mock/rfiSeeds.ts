@@ -113,7 +113,7 @@ export function seedState(now: number): RfiMockState {
   const unopened: StoredRfi = {
     ...blank(now, 'mock-rfi-job-a-4', 'Sample door hardware set at stair 2', SUB, 7),
     number: 4, status: 'open', question: 'Sample question: hardware set 12 lists a closer the frame cannot take. Which set applies?',
-    sent_at: iso(now - 6 * DAY), issued_at: iso(now - 5 * DAY), due_at: iso(now + 2 * DAY), held_since: iso(now - 5 * DAY),
+    needed_by: iso(now + 9 * DAY).slice(0, 10), sent_at: iso(now - 6 * DAY), issued_at: iso(now - 5 * DAY), due_at: iso(now + 2 * DAY), held_since: iso(now - 5 * DAY),
     held_opened_at: null, version: 4,
   };
   const toIssue: StoredRfi = {
