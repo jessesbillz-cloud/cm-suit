@@ -2,18 +2,22 @@
 // name, spec sections and scope, saving as it goes (blur, or each section picked or taken off) with a version check.
 // Saves go one at a time: a change made while one is on its way is sent right after it, from the saved version.
 import { useRef, useState } from 'react';
-import { useSavePackage, type PackagePatch } from '../../data/bids.mutations';
+import { Trash2 } from 'lucide-react';
+import { useRemovePackage, useSavePackage, type PackagePatch } from '../../data/bids.mutations';
 import { useBidPackages } from '../../data/bids.queries';
 import type { PackageRow } from '../../data/bids.types';
 import { useCsiLibrary } from '../../data/csi.queries';
 import type { CsiLibrary } from '../../data/csi.types';
 import { messageOf } from '../../data/errors';
+import { Button } from '../../ui/Button';
 import { TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
+import { useToast } from '../../ui/Toast';
 import { NewPackageForm } from './NewPackageForm';
 import { NEW_PACKAGE_ITEM, divisionOfCode, packageProblem } from './packageDraft';
 import { PackageScopeField, SpecSectionsField } from './PackageParts';
+import { useBidsNav } from './useBidsNav';
 
 function samePackage(a: PackagePatch, b: PackagePatch): boolean {
   return (
@@ -28,6 +32,39 @@ function samePackage(a: PackagePatch, b: PackagePatch): boolean {
 interface PackageFieldsProps {
   row: PackageRow;
   library: CsiLibrary;
+}
+
+/** Remove (a package nothing was sent or received on), with Undo. The pane closes; Undo brings it back. */
+function RemovePackage({ row }: { row: PackageRow }) {
+  const remove = useRemovePackage();
+  const nav = useBidsNav(row.project_id);
+  const toast = useToast();
+  function run() {
+    remove.mutateAsync({ row, version: row.version, removed: true }).then(
+      (version) => {
+        nav.setView('packages');
+        toast.show({
+          message: `${row.code} removed.`,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              remove.mutateAsync({ row, version, removed: false }).catch((e: unknown) => {
+                toast.show({ tone: 'error', message: `Not brought back: ${messageOf(e)}` });
+              });
+            },
+          },
+        });
+      },
+      (e: unknown) => {
+        toast.show({ tone: 'error', message: `Not removed: ${messageOf(e)}` });
+      },
+    );
+  }
+  return (
+    <Button size="sm" variant="quiet" icon={Trash2} className="w-fit" loading={remove.isPending} data-testid="package-remove" onClick={run}>
+      Remove
+    </Button>
+  );
 }
 
 function PackageFields({ row, library }: PackageFieldsProps) {
@@ -99,6 +136,7 @@ function PackageFields({ row, library }: PackageFieldsProps) {
       />
       <PackageScopeField value={scope} onChange={setScope} onBlur={commit} rows={10} />
       <SaveState pending={save.isPending} saved={save.isSuccess} problem={problem} />
+      <RemovePackage row={base} />
     </form>
   );
 }

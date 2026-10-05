@@ -1,14 +1,13 @@
 // The bidder's side (SPEC §11.4): one page JSON from bidder_page, and the few things a bidder can do.
 // Everything here is walled by the RPCs (own membership, own packages); the page never sees other bidders.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useUser } from './auth';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mock from './mock/api';
 import * as mockBids from './mock/bids';
 import { isMock } from './mock';
-import { uploadFile } from './upload';
+import { useUploadQueue } from './UploadQueue';
 import { bidderPageSchema, type BidderPage } from './bids.types';
 import type { FileRow } from './types';
 
@@ -47,33 +46,26 @@ export function useSetBidIntent() {
   });
 }
 
-interface SubmitInput {
-  projectId: string;
-  packageId: string;
-  folderId: string;
-  file: File;
-  onProgress: (loaded: number, total: number) => void;
+async function submitBid(packageId: string, fileId: string): Promise<number> {
+  if (isMock()) return mockBids.submit(packageId, fileId);
+  return throwIfError(await supabase.rpc('submit_bid', { p_package_id: packageId, p_file_id: fileId })).receipt_number;
 }
 
-/** Upload (the one uploader) into the bids-received folder, then submit_bid for the receipt. */
-export function useSubmitBid() {
+/**
+ * Submit bid: the file goes up through the one upload queue (progress, Stop, survives leaving the page) into "Bids
+ * received", then submit_bid gives the receipt (its number is the line's note). A failed submit fails the line, and
+ * Retry runs it again.
+ */
+export function useQueueBid() {
+  const queue = useUploadQueue();
   const refresh = useRefreshPage();
-  const user = useUser();
-  return useMutation({
-    mutationFn: async (v: SubmitInput) => {
-      const { fileId } = await uploadFile({
-        file: v.file,
-        projectId: v.projectId,
-        folderId: v.folderId,
-        userId: user.id,
-        onProgress: v.onProgress,
-        signal: new AbortController().signal,
-      });
-      if (isMock()) return mockBids.submit(v.packageId, fileId);
-      throwIfError(await supabase.rpc('submit_bid', { p_package_id: v.packageId, p_file_id: fileId }));
-    },
-    onSettled: (_r, _e, v) => refresh(v.projectId),
-  });
+  return (v: { projectId: string; packageId: string; folderId: string; file: File }) => {
+    queue.enqueue([v.file], v.projectId, v.folderId, async (fileId) => {
+      const receipt = await submitBid(v.packageId, fileId);
+      await refresh(v.projectId);
+      return `Receipt #${String(receipt)}`;
+    });
+  };
 }
 
 export function useAskBidQuestion() {
@@ -117,23 +109,36 @@ export function useAcknowledgeAddendum() {
 const DOC_KINDS = ['plans', 'specs'];
 const FILE_COLS = 'id, project_id, folder_id, original_name, mime, size, scan_status, upload_complete, created_at, created_by';
 
+/** Plans and Specs and every folder under them that the caller can read (RLS hides the rest). */
+function bidDocFolderIds(folders: readonly { id: string; parent_id: string | null; kind: string }[]): string[] {
+  const ids = new Set(folders.filter((f) => DOC_KINDS.includes(f.kind)).map((f) => f.id));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const f of folders) {
+      if (f.parent_id !== null && ids.has(f.parent_id) && !ids.has(f.id)) {
+        ids.add(f.id);
+        grew = true;
+      }
+    }
+  }
+  return [...ids];
+}
+
 async function fetchDocuments(projectId: string): Promise<FileRow[]> {
   if (isMock()) {
-    const folders = (await mock.folders(projectId)).filter((f) => DOC_KINDS.includes(f.kind));
-    return (await Promise.all(folders.map((f) => mock.files(f.id)))).flat();
+    const ids = bidDocFolderIds(await mock.folders(projectId));
+    return (await Promise.all(ids.map((id) => mock.files(id)))).flat().filter((f) => f.upload_complete);
   }
   const folders = throwIfError(
-    await supabase.from('folders').select('id').eq('project_id', projectId).in('kind', DOC_KINDS).is('deleted_at', null),
+    await supabase.from('folders').select('id, parent_id, kind').eq('project_id', projectId).is('deleted_at', null),
   );
-  if (folders.length === 0) return [];
+  const ids = bidDocFolderIds(folders);
+  if (ids.length === 0) return [];
   return throwIfError(
     await supabase
       .from('files')
       .select(FILE_COLS)
-      .in(
-        'folder_id',
-        folders.map((f) => f.id),
-      )
+      .in('folder_id', ids)
       .eq('upload_complete', true)
       .is('deleted_at', null)
       .is('superseded_by', null)
@@ -141,7 +146,7 @@ async function fetchDocuments(projectId: string): Promise<FileRow[]> {
   );
 }
 
-/** The job's Plans and Specs files a bidder can read (folder_can_read decides through RLS). */
+/** The job's Plans and Specs files (and those in folders under them) a bidder can read (folder_can_read decides, 0076). */
 export function useBidDocuments(projectId: string) {
   return useQuery({ queryKey: qk.bidsPart(projectId, 'documents'), queryFn: () => fetchDocuments(projectId) });
 }

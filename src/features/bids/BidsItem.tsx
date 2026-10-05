@@ -20,8 +20,8 @@ interface BidsItemProps {
 }
 
 export function BidsItem({ projectId, itemId }: BidsItemProps) {
-  const { view, open } = useBidsNav(projectId);
-  if (itemId === INVITE_ITEM) return <InviteBiddersForm projectId={projectId} />;
+  const { view, pkg, open } = useBidsNav(projectId);
+  if (itemId === INVITE_ITEM) return <InviteBiddersForm key={pkg ?? ''} projectId={projectId} packageId={pkg} />;
   switch (view) {
     case 'coverage':
       return <PackageInvites key={itemId} projectId={projectId} packageId={itemId} />;

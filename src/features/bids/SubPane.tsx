@@ -1,8 +1,12 @@
 // One sub in the right column: every field saves on blur with a version check; the CSLB result is recorded by the
 // server; history below. The directory is org-level, so this is the same sub from any job of the org.
+import { Trash2 } from 'lucide-react';
+import { messageOf } from '../../data/errors';
 import { useProject } from '../../data/queries';
+import { useRemoveSub } from '../../data/subs.mutations';
 import { useSubs } from '../../data/subs.queries';
 import type { SubContact, SubRow } from '../../data/subs.types';
+import { Button } from '../../ui/Button';
 import { TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -11,12 +15,46 @@ import { LicenseCheck } from './LicenseCheck';
 import { SubContacts } from './SubContacts';
 import { SubHistory } from './SubHistory';
 import { EMPTY_CONTACT } from './subs';
+import { useBidsNav } from './useBidsNav';
 import { useSubDraft } from './useSubDraft';
+
+/** Remove from the directory, with Undo. The pane closes; Undo brings the sub back. */
+function RemoveSub({ projectId, row }: { projectId: string; row: SubRow }) {
+  const remove = useRemoveSub();
+  const nav = useBidsNav(projectId);
+  const toast = useToast();
+  function run() {
+    remove.mutateAsync({ row, version: row.version, removed: true }).then(
+      (version) => {
+        nav.setView('subs');
+        toast.show({
+          message: `${row.company} removed.`,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              remove.mutateAsync({ row, version, removed: false }).catch((e: unknown) => {
+                toast.show({ tone: 'error', message: `Not brought back: ${messageOf(e)}` });
+              });
+            },
+          },
+        });
+      },
+      (e: unknown) => {
+        toast.show({ tone: 'error', message: `Not removed: ${messageOf(e)}` });
+      },
+    );
+  }
+  return (
+    <Button size="sm" variant="quiet" icon={Trash2} className="w-fit" loading={remove.isPending} data-testid="sub-remove" onClick={run}>
+      Remove
+    </Button>
+  );
+}
 
 const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
 const AREA = 'rounded-md border border-line px-2.5 py-2 text-sm font-normal text-ink outline-none focus:border-accent';
 
-function SubEditor({ row, tz }: { row: SubRow; tz: string }) {
+function SubEditor({ projectId, row, tz }: { projectId: string; row: SubRow; tz: string }) {
   const s = useSubDraft(row);
   const toast = useToast();
   const d = s.draft;
@@ -98,6 +136,7 @@ function SubEditor({ row, tz }: { row: SubRow; tz: string }) {
       </label>
       <SaveState pending={s.pending} saved={s.saved} problem={s.problem} />
       <SubHistory orgId={row.org_id} subId={row.id} tz={tz} />
+      <RemoveSub projectId={projectId} row={s.base} />
     </div>
   );
 }
@@ -116,5 +155,5 @@ export function SubPane({ projectId, subId }: SubPaneProps) {
   if (project.isPending || subs.isPending) return <LoadingState label="Loading sub" />;
   const row = subs.data.find((x) => x.id === subId);
   if (!row) return <EmptyState title="That sub is gone." />;
-  return <SubEditor row={row} tz={project.data.timezone} />;
+  return <SubEditor projectId={projectId} row={row} tz={project.data.timezone} />;
 }

@@ -23,6 +23,8 @@ import {
   mockProfile,
   toBoardLine,
 } from './fixtures';
+import { ADDENDUM_FILES } from './addenda';
+import { fileReadable, folderReadable } from './fileAccess';
 import { MOCK_FOLDERS } from './folders';
 import { mockUser } from './index';
 import { delay, readMock, writeMock } from './store';
@@ -93,8 +95,9 @@ function allFolders(): FolderRow[] {
 export async function folders(projectId: string): Promise<FolderRow[]> {
   await delay();
   const files = allFiles();
-  return allFolders()
-    .filter((f) => f.project_id === projectId)
+  const all = allFolders();
+  return all
+    .filter((f) => f.project_id === projectId && folderReadable(f, all))
     .map((f) => ({ ...f, file_count: f.kind === 'inbound' ? files.filter((x) => x.folder_id === f.id).length : null }))
     .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
 }
@@ -137,12 +140,15 @@ export function renameFolder(folderId: string, version: number, name: string): P
   return changeFolder(folderId, version, { name });
 }
 
-/** Fixture files (a saved copy of one wins: moved or renamed by a mock write) plus the ones added in this test, less the
- *  removed uploads and the deleted files. */
+/**
+ * Fixture files (a saved copy of one wins: moved or renamed by a mock write) plus the ones added in this test, less the
+ * removed uploads and the deleted files, as the signed-in mock user may read them (the bidder: mock/fileAccess).
+ */
 function allFiles(): FileRow[] {
   const { files: saved, removedUploads, removedFiles } = readMock();
-  return [...MOCK_FILES.filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter(
-    (f) => !removedUploads.includes(f.id) && !removedFiles.includes(f.id),
+  const folderRows = allFolders();
+  return [...[...MOCK_FILES, ...ADDENDUM_FILES].filter((f) => !saved.some((x) => x.id === f.id)), ...saved].filter(
+    (f) => !removedUploads.includes(f.id) && !removedFiles.includes(f.id) && fileReadable(f, folderRows),
   );
 }
 
@@ -230,7 +236,7 @@ export async function removeOwnUpload(fileId: string): Promise<void> {
 export async function download(fileId: string): Promise<{ blob: Blob; filename: string }> {
   await delay();
   const f = allFiles().find((x) => x.id === fileId);
-  if (!f) throw new Error('That file no longer exists.');
+  if (!f) throw new Error("You don't have access to this file.");
   return { blob: new Blob([`Synthetic e2e file: ${f.original_name}\n`], { type: 'application/pdf' }), filename: f.original_name };
 }
 

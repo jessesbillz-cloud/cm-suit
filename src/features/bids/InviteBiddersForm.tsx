@@ -1,22 +1,27 @@
-// Invite bidders (SPEC §11.3): pick packages, paste emails (one per line, "Company <email>" allowed), Send.
-// Results show inline: sent or not, with each invitee's permanent link to copy.
+// Invite bidders (SPEC §11.3): pick packages (prefilled when opened from a package), add subs from the directory for
+// those packages or paste emails (one per line, "Company <email>" allowed), Send. Results show inline: sent or not,
+// with each invitee's permanent link to copy.
 import { useState } from 'react';
 import { Copy, Send } from 'lucide-react';
 import { useInviteBidders } from '../../data/bids.mutations';
 import { useBidPackages } from '../../data/bids.queries';
 import type { InviteBiddersResult } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
+import { useProject } from '../../data/queries';
 import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
+import { DirectoryPicks } from './DirectoryPicks';
 import { parseRecipients } from './model';
 
 interface InviteBiddersFormProps {
   projectId: string;
+  /** The package the form was opened from: picked at the start. */
+  packageId: string | null;
 }
 
-function copy(text: string, toast: ReturnType<typeof useToast>) {
+export function copyLink(text: string, toast: ReturnType<typeof useToast>) {
   navigator.clipboard.writeText(text).then(
     () => {
       toast.show({ message: 'Link copied.' });
@@ -32,7 +37,7 @@ function InviteResults({ result }: { result: InviteBiddersResult }) {
   return (
     <ul className="flex flex-col gap-2 text-sm" data-testid="invite-results">
       {result.invited.map((r) => {
-        const sent = r.email_status === 'sent' || r.email_status === 'queued';
+        const sent = r.email_status === 'sent' || r.email_status === 'queued' || r.email_status === 'test_mode';
         return (
           <li key={r.member_id} className="flex items-center gap-2">
             <span className="min-w-0 flex-1 break-all text-ink">{r.email}</span>
@@ -43,7 +48,7 @@ function InviteResults({ result }: { result: InviteBiddersResult }) {
               icon={Copy}
               aria-label={`Copy link for ${r.email}`}
               onClick={() => {
-                copy(r.link_url, toast);
+                copyLink(r.link_url, toast);
               }}
             />
           </li>
@@ -62,10 +67,11 @@ function InviteResults({ result }: { result: InviteBiddersResult }) {
   );
 }
 
-export function InviteBiddersForm({ projectId }: InviteBiddersFormProps) {
+export function InviteBiddersForm({ projectId, packageId }: InviteBiddersFormProps) {
   const packages = useBidPackages(projectId);
+  const project = useProject(projectId);
   const invite = useInviteBidders();
-  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set(packageId !== null ? [packageId] : []));
   const [text, setText] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [result, setResult] = useState<InviteBiddersResult | null>(null);
@@ -118,6 +124,7 @@ export function InviteBiddersForm({ projectId }: InviteBiddersFormProps) {
             <input
               type="checkbox"
               className="mt-1"
+              data-testid={`invite-package-${p.code}`}
               checked={picked.has(p.id)}
               onChange={() => {
                 toggle(p.id);
@@ -128,10 +135,19 @@ export function InviteBiddersForm({ projectId }: InviteBiddersFormProps) {
           </label>
         ))}
       </fieldset>
+      <DirectoryPicks
+        orgId={project.data?.org_id}
+        codes={packages.data.filter((p) => picked.has(p.id)).map((p) => p.code)}
+        listed={new Set(parseRecipients(text).recipients.map((r) => r.email))}
+        onAdd={(line) => {
+          setText((t) => (t.trim() === '' ? line : `${t.replace(/\n+$/, '')}\n${line}`));
+        }}
+      />
       <textarea
         aria-label="Emails, one per line"
         placeholder="Company <email>"
         rows={6}
+        data-testid="invite-emails"
         className="rounded-md border border-line px-2.5 py-2 text-sm text-ink outline-none focus:border-accent"
         value={text}
         onChange={(e) => {
@@ -139,7 +155,7 @@ export function InviteBiddersForm({ projectId }: InviteBiddersFormProps) {
         }}
       />
       {problem ? <p className="text-sm text-danger">{problem}</p> : null}
-      <Button type="submit" variant="primary" icon={Send} loading={invite.isPending}>
+      <Button type="submit" variant="primary" icon={Send} loading={invite.isPending} data-testid="invite-send">
         Send
       </Button>
       {result ? <InviteResults result={result} /> : null}

@@ -6435,6 +6435,33 @@ export type Database = {
         Args: { p_addendum_id: string }
         Returns: undefined
       }
+      add_addendum_file: {
+        Args: { p_addendum_id: string; p_file_id: string }
+        Returns: {
+          body: string
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_ids: string[]
+          id: string
+          issued_at: string | null
+          number: number
+          org_id: string
+          project_id: string
+          signed_at: string | null
+          signed_by: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "addenda"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_comment: {
         Args: {
           p_body: string
@@ -6516,6 +6543,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      addenda_folder_make: { Args: { p_project_id: string }; Returns: string }
+      addendum_file_readable: { Args: { p_file_id: string }; Returns: boolean }
       answer_bid_question: {
         Args: {
           p_answer: string
@@ -6680,6 +6709,7 @@ export type Database = {
           submitted: number
         }[]
       }
+      bid_docs_folder: { Args: { p_folder_id: string }; Returns: boolean }
       bid_flags: {
         Args: { p_project_id: string }
         Returns: {
@@ -10157,6 +10187,7 @@ export type Database = {
         Args: { p_kind: string; p_project_id: string }
         Returns: number
       }
+      open_addenda_folder: { Args: { p_project_id: string }; Returns: string }
       open_bid_forms: { Args: { p_project_id: string }; Returns: string }
       org_logo_org: { Args: { p_name: string }; Returns: string }
       peek_author_number: {
@@ -13321,6 +13352,10 @@ export type Database = {
         }[]
       }
       session_aal: { Args: never; Returns: string }
+      set_addendum_discarded: {
+        Args: { p_addendum_id: string; p_discarded: boolean; p_version: number }
+        Returns: number
+      }
       set_bid_intent: {
         Args: { p_intent: string; p_invite_id: string; p_reason?: string }
         Returns: {
@@ -13368,6 +13403,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_bid_package_removed: {
+        Args: { p_package_id: string; p_removed: boolean; p_version: number }
+        Returns: number
       }
       set_correction_status: {
         Args: {
@@ -13584,6 +13623,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_sub_removed: {
+        Args: { p_removed: boolean; p_sub_id: string; p_version: number }
+        Returns: number
       }
       set_submission_sub: {
         Args: { p_sub_id: string; p_submission_id: string }

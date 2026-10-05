@@ -1,5 +1,5 @@
 // Issue an addendum (a signed legal record, SPEC §6.9): the edge function numbers, hashes and signs it.
-import { useIssueAddendum } from '../../data/bids.mutations';
+import { useIssueAddendum } from '../../data/addenda';
 import type { AddendumRow } from '../../data/bids.types';
 import { useToast } from '../../ui/Toast';
 import { SignButton } from '../auth/SignButton';

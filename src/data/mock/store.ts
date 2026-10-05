@@ -48,6 +48,8 @@ interface MockState {
   mfa: MockMfa;
   /** Bid packages added in this test, and edits to the fixture ones (by id). */
   packages: PackageRow[];
+  /** Ids of bid packages removed in this test (set_bid_package_removed). */
+  removedPackages: string[];
 }
 
 const EMPTY: MockState = {
@@ -67,6 +69,7 @@ const EMPTY: MockState = {
   projects: [],
   mfa: { factorId: null, verified: false, level: 'aal1' },
   packages: [],
+  removedPackages: [],
 };
 
 export function readMock(): MockState {

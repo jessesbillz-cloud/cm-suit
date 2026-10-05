@@ -1,6 +1,7 @@
-// Addenda (SPEC §11.5): number, title, draft/issued, acknowledgments as "acked/bidders". A row opens it on the right.
+// Addenda (SPEC §11.5): number, title, draft/issued, acknowledgments as "acked/bidders" (the open addendum lists who).
+// A row opens it on the right.
 import { Plus } from 'lucide-react';
-import { useCreateAddendum } from '../../data/bids.mutations';
+import { useCreateAddendum } from '../../data/addenda';
 import { useAddenda, useAddendumAcks, useBidInvites } from '../../data/bids.queries';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
@@ -31,6 +32,7 @@ export function AddendaView({ projectId, selectedId, onOpen }: AddendaViewProps)
     <Button
       size="sm"
       icon={Plus}
+      data-testid="addendum-new"
       loading={create.isPending}
       onClick={() => {
         create.mutate(projectId, {
