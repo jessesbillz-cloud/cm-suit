@@ -3701,6 +3701,7 @@ export type Database = {
           review_no: number
           updated_at: string
           version: number
+          withdrawn_at: string | null
         }
         Insert: {
           backcheck?: number
@@ -3720,6 +3721,7 @@ export type Database = {
           review_no: number
           updated_at?: string
           version?: number
+          withdrawn_at?: string | null
         }
         Update: {
           backcheck?: number
@@ -3739,6 +3741,7 @@ export type Database = {
           review_no?: number
           updated_at?: string
           version?: number
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -10528,6 +10531,7 @@ export type Database = {
           review_no: number
           updated_at: string
           version: number
+          withdrawn_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -10561,6 +10565,7 @@ export type Database = {
           review_no: number
           updated_at: string
           version: number
+          withdrawn_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -10599,6 +10604,7 @@ export type Database = {
           review_no: number
           updated_at: string
           version: number
+          withdrawn_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -10632,6 +10638,36 @@ export type Database = {
           review_no: number
           updated_at: string
           version: number
+          withdrawn_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "permit_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      permit_review_withdraw: {
+        Args: { p_review_id: string; p_version: number }
+        Returns: {
+          backcheck: number
+          created_at: string
+          created_by: string
+          cycle: number
+          id: string
+          kind: string
+          org_id: string
+          outcome: string | null
+          outcome_retired_0061: string
+          permit_id: string
+          project_id: string
+          received_on: string
+          request_key: string | null
+          returned_on: string | null
+          review_no: number
+          updated_at: string
+          version: number
+          withdrawn_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -11648,6 +11684,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      rev_move: {
+        Args: { p_dir: number; p_id: string; p_kind: string; p_version: number }
+        Returns: Json
       }
       rev_need: {
         Args: { p_cap: string; p_project_id: string }
