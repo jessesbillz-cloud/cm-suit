@@ -303,6 +303,11 @@ test.describe('revs', () => {
     // + / - and Fit, always there, phones too (Oct 5).
     const frame = sheet.getByTestId('sheet-frame');
     await expect(sheet.getByTestId('sheet-zoom')).toBeVisible();
+    if (!desktop) {
+      // A phone opens the plan as tall as the frame, across the walls (0059); Fit shows the whole sheet.
+      await expect(frame).not.toHaveAttribute('data-zoom', '1.00');
+      await sheet.getByTestId('sheet-fit').click();
+    }
     await expect(frame).toHaveAttribute('data-zoom', '1.00');
     await sheet.getByRole('button', { name: 'Zoom in' }).click();
     await expect(frame).toHaveAttribute('data-zoom', '1.50');
@@ -488,7 +493,8 @@ test.describe('revs', () => {
     await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052');
     await wall.getByTestId('rev-before-clear').click();
     await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'open');
-    await page.getByRole('button', { name: 'Undo' }).last().click();
+    // Clear's own toast: its Undo comes once the wall has refreshed, after the re-sign's toast still on screen.
+    await page.getByRole('status').filter({ hasText: 'not signed off.' }).getByRole('button', { name: 'Undo' }).click();
     await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'passed');
 
     // The PM reads it as done, with no sign-off buttons.

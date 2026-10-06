@@ -212,7 +212,11 @@ export async function file(fileId: string): Promise<RevFile> {
 export async function history(projectId: string, areaId: string): Promise<HistoryRow[]> {
   if (!has('revs.read')) throw fail('That item no longer exists.', 'P0002');
   const s = readRevs();
-  const reqs = new Map((await mockIr.serverList(projectId, (r) => r.status !== 'withdrawn' && r.deleted_at === null)).map((r) => [r.id, r]));
+  // One round trip, like the RPC: every live request, and the ones I may open.
+  const live = (r: { status: string; deleted_at: string | null }) => r.status !== 'withdrawn' && r.deleted_at === null;
+  const [all, mine] = await Promise.all([mockIr.serverList(projectId, live), mockIr.list(projectId, live)]);
+  const reqs = new Map(all.map((r) => [r.id, r]));
+  const openable = new Set(mine.map((r) => r.id));
   const rows: HistoryRow[] = [];
   for (const c of s.cells.filter((x) => x.area_id === areaId)) {
     const q = reqs.get(c.request_id);
@@ -220,7 +224,7 @@ export async function history(projectId: string, areaId: string): Promise<Histor
     rows.push({
       item_id: c.item_id, kind: 'request', request_id: q.id, ir_number: q.number, ofs_number: q.ofs_number, day: q.request_date,
       result: c.result === 'passed' || c.result === 'failed' ? c.result : 'requested', note: c.result === 'failed' ? c.result_note : null, file_id: null, file_name: null,
-      can_open: (await mockIr.request(q.id)) !== null, at: c.result_at ?? `${q.request_date}T16:00:00Z`,
+      can_open: openable.has(q.id), at: c.result_at ?? `${q.request_date}T16:00:00Z`,
     });
   }
   for (const so of s.signoffs.filter((x) => x.area_id === areaId && x.deleted_at === null)) {
