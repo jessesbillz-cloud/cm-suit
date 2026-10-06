@@ -8089,6 +8089,15 @@ export type Database = {
         Args: { p_name: string; p_parent_id: string; p_project_id: string }
         Returns: boolean
       }
+      folder_row_can_read: {
+        Args: {
+          p_id: string
+          p_kind: string
+          p_parent_id: string
+          p_project_id: string
+        }
+        Returns: boolean
+      }
       folder_server_only: { Args: { p_folder_id: string }; Returns: boolean }
       has_capability: {
         Args: { p_cap: string; p_project_id: string }
