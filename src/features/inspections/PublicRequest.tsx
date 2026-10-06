@@ -3,8 +3,9 @@
 // length, type, color), the member form's fields, up to 3 photos or PDFs, and who is asking (remembered on this phone).
 // The database numbers the request; the receipt carries the private status link. A request, not a booking. On an OFS
 // job with revs, an OFS request picks walls and items with the members' Revs picker (0057), and its map is drawn right
-// after sending, by the receipt. Every OFS request answers one question: special inspection required? (0061).
-import { useState } from 'react';
+// after sending, by the receipt. Every OFS request answers one question: special inspection required? (0061). Before
+// an OFS request goes, the visitor confirms the job's attestation wording in one small dialog (0091).
+import { useState, type FormEvent } from 'react';
 import { Send } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import type { IrKind } from '../../data/inspections.types';
@@ -18,6 +19,7 @@ import { Card } from '../../ui/Card';
 import { FIELD_AREA_LARGE, FIELD_LABEL } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { listsWithWalls, prefillPick, requestPlan, statusIndex, type RevPick } from '../revs/revPick';
+import { AttestDialog } from './AttestDialog';
 import { ChoiceRow } from './ChoiceRow';
 import { ContactFields } from './ContactFields';
 import { DayList } from './DayList';
@@ -86,33 +88,52 @@ function PublicRequestForm({ linkKey, first, revs, onSent, onSignIn }: FormProps
   const what = plan !== null ? plan.items.length > 0 && plan.walls.length > 0 : items.trim() !== '';
   const answered = kind !== 'ofs' || specialRequired !== null;
   const ready = valid && what && contactReady(contact) && ack && answered && (kind !== 'special' || special !== '');
+  const [attesting, setAttesting] = useState(false);
+  const back = {
+    onError: () => {
+      setAttesting(false);
+    },
+  };
+
+  function send() {
+    const sent = (map: boolean) => (receipt: Submitted) => {
+      rememberContact(contact);
+      onSent({ receipt, map });
+    };
+    if (plan !== null) {
+      if (specialRequired === null) return;
+      const areaIds = plan.walls.map((a) => a.id);
+      const itemIds = plan.items.map((r) => r.item.id);
+      const sheetFileId = sheetToSend(plan.walls, sheet);
+      submitOfs.mutate({ contact, ...whenValue, areaIds, itemIds, sheetFileId, specialRequired, files }, { ...back, onSuccess: sent(true) });
+      return;
+    }
+    const specialKindId = kind === 'special' ? special : null;
+    submit.mutate(
+      { contact, ...whenValue, kind, specialKindId, items, specialRequired: kind === 'ofs' ? specialRequired : null, files },
+      { ...back, onSuccess: sent(false) },
+    );
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!ready) return;
+    if (kind === 'ofs') setAttesting(true);
+    else send();
+  }
 
   return (
-    <form
-      className="flex flex-col gap-4"
-      data-testid="public-request"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!ready) return;
-        const sent = (map: boolean) => (receipt: Submitted) => {
-          rememberContact(contact);
-          onSent({ receipt, map });
-        };
-        if (plan !== null) {
-          if (specialRequired === null) return;
-          const areaIds = plan.walls.map((a) => a.id);
-          const itemIds = plan.items.map((r) => r.item.id);
-          const sheetFileId = sheetToSend(plan.walls, sheet);
-          submitOfs.mutate({ contact, ...whenValue, areaIds, itemIds, sheetFileId, specialRequired, files }, { onSuccess: sent(true) });
-          return;
-        }
-        const specialKindId = kind === 'special' ? special : null;
-        submit.mutate(
-          { contact, ...whenValue, kind, specialKindId, items, specialRequired: kind === 'ofs' ? specialRequired : null, files },
-          { onSuccess: sent(false) },
-        );
-      }}
-    >
+    <form className="flex flex-col gap-4" data-testid="public-request" onSubmit={onSubmit}>
+      {attesting ? (
+        <AttestDialog
+          text={first.attest_text}
+          sending={sending.isPending}
+          onConfirm={send}
+          onBack={() => {
+            setAttesting(false);
+          }}
+        />
+      ) : null}
       <Card title="When">
         <div className="flex flex-col gap-3">
           <WhenFields value={when} onChange={setWhen} testId="public" large />

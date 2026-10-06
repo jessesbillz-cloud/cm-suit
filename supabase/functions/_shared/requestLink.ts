@@ -100,6 +100,8 @@ const Calendar = z.object({
   today: day,
   day,
   ofs: z.boolean(),
+  // 0091: the words a visitor confirms before an OFS request goes.
+  attest_text: z.string(),
   kinds: z.array(z.object({ id: uuid, name: z.string() })),
   rows: z.array(DayRow),
 });

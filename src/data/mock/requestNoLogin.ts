@@ -14,6 +14,7 @@ import { MOCK_PROJECTS } from './fixtures';
 import { permitJobName } from './permitJobs';
 import { addLinkRequest, folder, formContext, serverDay, serverRequest } from './inspections';
 import { projectSettings } from './jobs';
+import { wording } from './ofsRules';
 import { jobFor } from './requestLink';
 import { sheetUrl } from './sheet';
 import { delay } from './store';
@@ -46,7 +47,7 @@ export async function day(key: LinkKey, picked: string | null): Promise<PublicDa
   const rows = (await serverDay(key.projectId, d)).map((r) => ({
     start_time: r.start_time, duration_kind: r.duration_kind, duration_min: r.duration_min, kind: r.kind, status_key: r.status_key,
   }));
-  return { today: ctx.today, day: d, ofs: ctx.ofs, kinds: ctx.kinds, rows };
+  return { today: ctx.today, day: d, ofs: ctx.ofs, attest_text: wording(key.projectId), kinds: ctx.kinds, rows };
 }
 
 /** The job's name, a sample job or the fire marshal's. */

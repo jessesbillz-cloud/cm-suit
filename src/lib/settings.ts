@@ -28,12 +28,16 @@ export const PROJECT_SETTINGS_DEFAULTS = {
   ir_gc_approval: false,
   /** Inspections: OFS is one of the request types on this job. */
   ir_ofs_allowed: false,
+  /** Inspections: the words a sub confirms before an OFS request goes to the GC. Null: the database's standard wording
+   *  (ir_ofs_attest_wording, 0091), which the form and the settings box read from the database. */
+  ir_ofs_attest_text: null as string | null,
 };
 
 const projectSettingsSchema = z.object({
   show_ball_in_court: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.show_ball_in_court),
   ir_gc_approval: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_gc_approval),
   ir_ofs_allowed: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_allowed),
+  ir_ofs_attest_text: z.string().trim().min(1).max(1000).nullable().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_attest_text),
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 

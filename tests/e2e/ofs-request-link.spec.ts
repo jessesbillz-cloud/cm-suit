@@ -74,6 +74,11 @@ test.describe('OFS request with revs from the link, no login', () => {
     await page.getByTestId('public-special-required-yes').click();
     await expect(page.getByTestId('public-special-required-notice')).toHaveText("Have the special inspector's reports on site for the fire marshal.");
     await page.getByTestId('public-submit').click();
+    // 0091: the job's attestation, one confirm.
+    await expect(page.getByTestId('ir-attest-text')).toHaveText(
+      'To the best of my knowledge, the work listed is complete and ready for inspection.',
+    );
+    await page.getByTestId('ir-attest-confirm').click();
 
     // The receipt: it waits on the GC, then the inspector, then OFS. The map right under it: the request's colors,
     // the picked sheet, page 1 of the set.

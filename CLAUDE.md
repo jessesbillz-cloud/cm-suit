@@ -39,6 +39,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
    - Writes are safe to repeat.
    - Saves carry a version check.
    - Never compute a number or an ID in the browser.
+   - Except the OFS request number, which the responsible person types, unique per project (0091).
 8. **No job, customer or user data in code.** That means no UUIDs, names, contractor lists, company rules or plan images. Put them in the database or private storage.
 9. **Settings have one zod schema per settings object**, with defaults defined in one place only.
 10. **Small pieces.**

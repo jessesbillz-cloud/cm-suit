@@ -1,6 +1,6 @@
 // People on the job (names, companies and Invited / Active from people_display only; role names in the words of
 // roles.description). Managers invite and remove access. Removing access waits for the toast to close so Undo works
-// (no "are you sure?").
+// (no "are you sure?"). Below the people, who sends the job's OFS requests (DutyCard, 0091).
 import { useState, type ReactNode } from 'react';
 import { UserMinus, UserPlus } from 'lucide-react';
 import { useUser } from '../../data/auth';
@@ -15,6 +15,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
+import { DutyCard } from './DutyCard';
 import { InviteForm, roleLabel } from './InviteForm';
 
 const META = TOOL_META.people;
@@ -192,6 +193,7 @@ export function PeopleTool({ projectId }: { projectId: string }) {
             </ul>
           ) : null}
         </Card>
+        <DutyCard projectId={projectId} />
       </div>
     </div>
   );
