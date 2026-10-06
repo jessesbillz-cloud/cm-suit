@@ -270,4 +270,60 @@ test.describe('dailies (SPEC §13.1)', () => {
     await expect(recipients).toHaveValue(/super@example\.test/);
     await expect(recipients).not.toHaveValue(/pm@example\.test/);
   });
+  test("the day's inspections fill the inspector's daily: received and scheduled, once, editable (Oct 5)", async ({ page }) => {
+    // Two requests: one for tomorrow (received today), one for today at 9:00 (on today's daily).
+    async function ask(day: 'today' | 'tomorrow', items: string): Promise<string> {
+      await page.goto('/p/job-a/inspections?view=week');
+      await page.getByTestId('ir-new').click();
+      if (day === 'tomorrow') {
+        const today = await page.getByTestId('ir-date').inputValue();
+        const d = new Date(`${today}T12:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + 1);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        await page.getByTestId('ir-date').fill(`${String(d.getUTCFullYear())}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`);
+      }
+      await page.getByTestId('ir-time').selectOption('09:00');
+      await page.getByTestId('ir-items').fill(items);
+      await page.getByTestId('ir-ack').check();
+      await page.getByTestId('ir-submit').click();
+      await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
+      return ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
+    }
+    const later = await ask('tomorrow', 'Sample anchor bolts at grid D');
+    const now = await ask('today', 'Sample hold-downs at grid E');
+    const dayLine = `IR ${now} IOR · 9:00 AM · Sample Concrete Co: Pending. Sample hold-downs at grid E`;
+
+    /** Today's report opened again: its inspection lines, once `ready` holds (the day's facts are filled in). */
+    async function lines(ready: (t: string[]) => boolean): Promise<string[]> {
+      await page.goto('/p/job-a/dailies');
+      await page.getByTestId('daily-today').click();
+      const area = page.getByTestId('daily-editor').getByTestId('daily-inspections').locator('textarea');
+      const read = () => area.evaluateAll((els) => els.map((e) => (e as HTMLTextAreaElement).value));
+      await expect.poll(async () => ready(await read())).toBe(true);
+      return read();
+    }
+    const first = await lines((t) => t.includes(dayLine) && t.some((x) => x.startsWith(`IR ${later} `)));
+    expect(first.filter((t) => t.startsWith(`IR ${later} IOR requested for `) && t.endsWith('Sample anchor bolts at grid D'))).toHaveLength(1);
+    expect(first.filter((t) => t === dayLine)).toHaveLength(1);
+
+    // Edit the day's line: it stays as written, once, when the report opens again.
+    const box = page.getByTestId('daily-editor').getByTestId('daily-inspections');
+    const at = first.indexOf(dayLine);
+    await box.locator('textarea').nth(at).fill(`IR ${now} walked with the super`);
+    await expect(page.getByTestId('daily-editor').getByText('Saved', { exact: true })).toBeVisible();
+    // Remove the received line; Undo is offered. It stays off.
+    await box.getByTestId('daily-inspection-remove').nth(first.findIndex((t) => t.startsWith(`IR ${later} `))).click();
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+    await expect(page.getByTestId('daily-editor').getByText('Saved', { exact: true })).toBeVisible();
+    await lines((t) => t.some((x) => x.startsWith(`IR ${now} `)));
+    // Give the day's facts time to be read again: nothing comes back, nothing doubles.
+    await page.waitForTimeout(1500);
+    const again = await page
+      .getByTestId('daily-editor')
+      .getByTestId('daily-inspections')
+      .locator('textarea')
+      .evaluateAll((els) => els.map((e) => (e as HTMLTextAreaElement).value));
+    expect(again.filter((t) => t.startsWith(`IR ${now} `))).toEqual([`IR ${now} walked with the super`]);
+    expect(again.filter((t) => t.startsWith(`IR ${later} `))).toEqual([]);
+  });
 });

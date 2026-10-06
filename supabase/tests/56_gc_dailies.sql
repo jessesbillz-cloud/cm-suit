@@ -204,7 +204,7 @@ select is(array[jsonb_array_length(pg_temp.facts()->'signins'), jsonb_array_leng
                 jsonb_array_length(pg_temp.facts()->'inspections')], array[3, 2, 0],
   'facts: the foreman sees only what the foreman may read (no one else''s inspection requests)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000564');
-select is(pg_temp.facts(), '{"signins": [], "meetings": [], "deliveries": [], "inspections": []}'::jsonb,
+select is(pg_temp.facts(), '{"signins": [], "meetings": [], "deliveries": [], "inspections": [], "received": []}'::jsonb,
   'facts: an outsider learns nothing');
 reset role;
 
