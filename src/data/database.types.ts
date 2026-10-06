@@ -4972,12 +4972,159 @@ export type Database = {
           },
         ]
       }
+      rev_room_walls: {
+        Row: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          line: Json | null
+          org_id: string
+          position: number
+          project_id: string
+          room_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          line?: Json | null
+          org_id: string
+          position?: number
+          project_id: string
+          room_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          line?: Json | null
+          org_id?: string
+          position?: number
+          project_id?: string
+          room_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_room_walls_area_id_project_id_fkey"
+            columns: ["area_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_areas"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_room_walls_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "rev_room_walls_room_id_project_id_fkey"
+            columns: ["room_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_rooms"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      rev_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          image_file_id: string | null
+          image_name: string | null
+          kind: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          image_file_id?: string | null
+          image_name?: string | null
+          kind?: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position?: number
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          image_file_id?: string | null
+          image_name?: string | null
+          kind?: string
+          level?: string
+          list_id?: string
+          name?: string
+          number?: string
+          org_id?: string
+          position?: number
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_rooms_image_file_id_fkey"
+            columns: ["image_file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rev_rooms_list_id_project_id_fkey"
+            columns: ["list_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_lists"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_rooms_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
       rev_signoffs: {
         Row: {
           area_id: string
           created_at: string
           created_by: string
           deleted_at: string | null
+          file_id: string | null
           id: string
           item_id: string
           note: string | null
@@ -4993,6 +5140,7 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          file_id?: string | null
           id?: string
           item_id: string
           note?: string | null
@@ -5008,6 +5156,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          file_id?: string | null
           id?: string
           item_id?: string
           note?: string | null
@@ -5025,6 +5174,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rev_areas"
             referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_signoffs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "rev_signoffs_item_id_project_id_fkey"
@@ -6738,6 +6894,15 @@ export type Database = {
         Returns: {
           mime: string
           original_name: string
+          storage_path: string
+        }[]
+      }
+      authorize_rev_file: {
+        Args: { p_download: boolean; p_file_id: string; p_project_id: string }
+        Returns: {
+          mime: string
+          original_name: string
+          size: number
           storage_path: string
         }[]
       }
@@ -12016,6 +12181,153 @@ export type Database = {
         Args: { p_name: string; p_number: number }
         Returns: undefined
       }
+      rev_room_area_check: {
+        Args: { p_area_id: string; p_at: string; p_room: Database["public"]["Tables"]["rev_rooms"]["Row"] }
+        Returns: undefined
+      }
+      rev_room_check: {
+        Args: { p_at: string; p_level: string; p_name: string; p_number: string }
+        Returns: undefined
+      }
+      rev_room_image_of: {
+        Args: { p_name: string; p_project_id: string }
+        Returns: string
+      }
+      rev_room_line_ok: {
+        Args: { p_line: Json }
+        Returns: boolean
+      }
+      rev_room_lock: {
+        Args: { p_room_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          image_file_id: string | null
+          image_name: string | null
+          kind: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_room_save: {
+        Args: { p_id: string; p_name: string; p_number: string; p_version: number }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          image_file_id: string | null
+          image_name: string | null
+          kind: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_room_wall_add: {
+        Args: { p_area_id: string; p_room_id: string }
+        Returns: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          line: Json | null
+          org_id: string
+          position: number
+          project_id: string
+          room_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_room_walls"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_room_wall_line: {
+        Args: { p_area_id: string; p_line: Json; p_room_id: string; p_version: number }
+        Returns: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          line: Json | null
+          org_id: string
+          position: number
+          project_id: string
+          room_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_room_walls"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_room_wall_remove: {
+        Args: { p_area_id: string; p_room_id: string }
+        Returns: {
+          area_id: string
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          line: Json | null
+          org_id: string
+          position: number
+          project_id: string
+          room_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_room_walls"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_rooms_link_images: {
+        Args: { p_list_id: string }
+        Returns: Json
+      }
+      rev_rooms_load: {
+        Args: { p_list_id: string; p_rooms: Json }
+        Returns: Json
+      }
       rev_save: {
         Args: {
           p_id: string
@@ -12059,6 +12371,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          file_id: string | null
           id: string
           item_id: string
           note: string | null
@@ -12083,6 +12396,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          file_id: string | null
           id: string
           item_id: string
           note: string | null
@@ -12113,6 +12427,7 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          file_id: string | null
           id: string
           item_id: string
           note: string | null
@@ -12162,6 +12477,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rev_signoffs_link_files: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       rev_status: {
         Args: { p_project_id: string }
         Returns: {
@@ -12196,6 +12515,23 @@ export type Database = {
       rev_version_ok: {
         Args: { p_have: number; p_want: number }
         Returns: undefined
+      }
+      rev_wall_history: {
+        Args: { p_area_id: string }
+        Returns: {
+          at: string
+          can_open: boolean
+          day: string
+          file_id: string
+          file_name: string
+          ir_number: number
+          item_id: string
+          kind: string
+          note: string
+          ofs_number: number
+          request_id: string
+          result: string
+        }[]
       }
       rev_wall_sheet: {
         Args: { p_file_id: string; p_project_id: string }

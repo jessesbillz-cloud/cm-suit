@@ -20,10 +20,14 @@
 //             and the sheet's name (the wall page names its sheet to readers who can't open Files).
 //   plan_download: the same plan sheet saved with its original filename (0080): the same gate as the caller, so whoever
 //             may see the plan may download it, Files folder or not; a signed URL with the download header.
+//   rev_file / rev_file_download: a room's cropped plan image, or the OFS IR a sign-off before the app is linked to
+//             (0083), by job and file: authorize_rev_file() AS THE CALLER (whoever reads revs on the job, for those
+//             files only; the scan rules). Shown: logged as a preview, at most 40 MB, a 10-minute signed URL without the
+//             download header, its name and type. Saved: logged as a download, the download header.
 // Service client (admin_service_key_allowlist.txt): the sheet's files row and bytes, the signer's signature image, the
 // map's own row, the map's folder (ir_folder_make: nobody writes the OFS folder by hand, and a requester holds neither
 // deciding capability), storing and recording the map and signing URLs; each only after ir_map_context (or, for 'plan',
-// authorize_rev_sheet) ran as the caller.
+// authorize_rev_sheet, for 'rev_file', authorize_rev_file) ran as the caller.
 import { handle, HttpError, ok } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, signedViewUrl } from '../_shared/db.ts';
 import { requireUser } from '../_shared/auth.ts';
@@ -33,7 +37,7 @@ import { checkSheetSize, ensureMap, type MapFacts, mapFactsSchema, type MapJob, 
 
 const Body = z.union([
   z.object({ action: z.enum(['render', 'download', 'view', 'sheet']), request_id: uuid }).strict(),
-  z.object({ action: z.enum(['plan', 'plan_download']), project_id: uuid, file_id: uuid }).strict(),
+  z.object({ action: z.enum(['plan', 'plan_download', 'rev_file', 'rev_file_download']), project_id: uuid, file_id: uuid }).strict(),
 ]);
 
 interface Authorized {
@@ -61,9 +65,30 @@ async function planSheet(client: Db, projectId: string, fileId: string): Promise
   return f;
 }
 
+/** A room's image or a sign-off's file, through Revs' own gate as the caller (logged as a preview, or a download). */
+async function revFile(client: Db, projectId: string, fileId: string, download: boolean): Promise<Authorized & { size: number; mime: string }> {
+  const rows = await rpc<(Authorized & { size: number; mime: string })[]>(client, 'authorize_rev_file', {
+    p_project_id: projectId,
+    p_file_id: fileId,
+    p_download: download,
+  });
+  const f = rows?.[0];
+  if (!f) throw new HttpError(404, 'File not found');
+  return f;
+}
+
 Deno.serve(handle(async (req) => {
   const { user, client } = await requireUser(req);
   const body = await parseJson(req, Body, 4096);
+  if ('project_id' in body && (body.action === 'rev_file' || body.action === 'rev_file_download')) {
+    const download = body.action === 'rev_file_download';
+    const f = await revFile(client, body.project_id, body.file_id, download);
+    if (download) {
+      return ok(req, { url: await signedDownloadUrl(serviceClient(), 'files', f.storage_path, f.original_name), filename: f.original_name });
+    }
+    checkSheetSize(f.size);
+    return ok(req, { url: await signedViewUrl(serviceClient(), f.storage_path), filename: f.original_name, mime: f.mime });
+  }
   if ('project_id' in body) {
     const f = await planSheet(client, body.project_id, body.file_id);
     if (body.action === 'plan_download') {

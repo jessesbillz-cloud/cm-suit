@@ -10,6 +10,7 @@ import { qk } from './keys';
 import { isMock } from './mock';
 import * as mockRevs from './mock/revs';
 import * as mockRequests from './mock/revRequests';
+import * as mockRooms from './mock/revRooms';
 import type { IrRef } from './inspections.mutations';
 import type { IrRequest, IrRowRaw } from './inspections.types';
 import {
@@ -185,12 +186,12 @@ interface RemoveInput {
   version: number;
 }
 
-/** Removes a list, rev, item or wall; the answer's version is what the Undo (useRestoreRev) sends. */
+/** Removes a list, rev, item, wall or room; the answer's version is what the Undo (useRestoreRev) sends. */
 export function useRemoveRev() {
   const refresh = useRefreshRevs();
   return useMutation({
     mutationFn: async (v: RemoveInput): Promise<RevRemoved> => {
-      if (isMock()) return mockRevs.remove(v.kind, v.id, v.version, true);
+      if (isMock()) return v.kind === 'room' ? mockRooms.toggleRoom(v.id, v.version, true) : mockRevs.remove(v.kind, v.id, v.version, true);
       const data: unknown = throwIfError(await supabase.rpc('rev_remove', { p_kind: v.kind, p_id: v.id, p_version: v.version }));
       return revRemovedSchema.parse(data);
     },
@@ -203,7 +204,7 @@ export function useRestoreRev() {
   const refresh = useRefreshRevs();
   return useMutation({
     mutationFn: async (v: RemoveInput): Promise<RevRemoved> => {
-      if (isMock()) return mockRevs.remove(v.kind, v.id, v.version, false);
+      if (isMock()) return v.kind === 'room' ? mockRooms.toggleRoom(v.id, v.version, false) : mockRevs.remove(v.kind, v.id, v.version, false);
       const data: unknown = throwIfError(await supabase.rpc('rev_restore', { p_kind: v.kind, p_id: v.id, p_version: v.version }));
       return revRemovedSchema.parse(data);
     },

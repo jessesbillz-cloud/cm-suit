@@ -1,5 +1,6 @@
 // Code-based routes (TanStack Router). App flow goes through the router only (CLAUDE.md rule 10).
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import { sideItem } from '../lib/itemIds';
 import { STAGES } from '../lib/jobs';
 import { isTool, type Tool } from '../lib/layout';
 import { EmptyState } from '../ui/States';
@@ -49,6 +50,10 @@ interface ToolSearch {
   level?: string;
   wall?: string;
   place?: string;
+  /** Revs (0083): the room a wall was opened from (its page comes back there). */
+  room?: string;
+  /** A record beside a page in the main area, in the right column: `<tool>:<item>` (lib/itemIds sideItem). */
+  side?: string;
   /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
   range?: string;
   /** Requirements (0069, 0073): All's grouping (section or company; absent = by kind). */
@@ -79,6 +84,8 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const level = str(s['level']);
   const wall = idList(s['wall']);
   const place = idList(s['place']);
+  const room = idList(s['room']);
+  const side = str(s['side']);
   const range = str(s['range']);
   const by = s['by'];
   return {
@@ -94,6 +101,8 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(level && level.length <= 40 ? { level } : {}),
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
+    ...(room && !room.includes(',') ? { room } : {}),
+    ...(side && sideItem(side) !== null ? { side } : {}),
     ...(range === '2m' ? { range } : {}),
     ...(by === 'section' || by === 'company' ? { by } : {}),
   };

@@ -145,6 +145,8 @@ export const PUBLIC_TABLES = [
   'rev_lists', 'revs', 'rev_items', 'rev_areas', 'rev_marks', 'ir_rev_items', 'ir_maps',
   // Signed off before the app (0082)
   'rev_signoffs',
+  // Rooms (0083)
+  'rev_rooms', 'rev_room_walls',
   // Safety (0060)
   'safety_topics', 'safety_meetings', 'safety_signins',
   // Schedule (0062)
@@ -308,6 +310,20 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_text_or_null', { p_text: 'probe', p_max: 1, p_what: 'probe' }],
   ['rev_signoff_live', { p_area_id: ZERO_UUID, p_item_id: ZERO_UUID }],
   ['rev_signoff_wall', { p_area_id: ZERO_UUID, p_item_ids: [ZERO_UUID] }],
+  // Rooms, a room's image or a sign-off's file, a wall's history and the OFS IRs linked (0083), and their helpers.
+  ['rev_rooms_load', { p_list_id: ZERO_UUID, p_rooms: [] }],
+  ['rev_rooms_link_images', { p_list_id: ZERO_UUID }],
+  ['rev_room_save', { p_id: ZERO_UUID, p_version: 1, p_number: 'probe', p_name: 'probe' }],
+  ['rev_room_wall_add', { p_room_id: ZERO_UUID, p_area_id: ZERO_UUID }],
+  ['rev_room_wall_remove', { p_room_id: ZERO_UUID, p_area_id: ZERO_UUID }],
+  ['rev_room_wall_line', { p_room_id: ZERO_UUID, p_area_id: ZERO_UUID, p_version: 1, p_line: null }],
+  ['authorize_rev_file', { p_project_id: ZERO_UUID, p_file_id: ZERO_UUID, p_download: false }],
+  ['rev_wall_history', { p_area_id: ZERO_UUID }],
+  ['rev_signoffs_link_files', { p_project_id: ZERO_UUID }],
+  ['rev_room_line_ok', { p_line: [[0, 0], [1, 1]] }],
+  ['rev_room_check', { p_level: 'probe', p_number: 'probe', p_name: 'probe', p_at: '' }],
+  ['rev_room_image_of', { p_project_id: ZERO_UUID, p_name: 'probe' }],
+  ['rev_room_lock', { p_room_id: ZERO_UUID }],
 ];
 
 /** A valid setup of a daily form (0072), for the probes. */

@@ -1,8 +1,8 @@
 // The desktop frame (SPEC §7.2): the rail down the left, then the top bar (job picker) over main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
 import { Suspense } from 'react';
-import { useSearch } from '@tanstack/react-router';
-import { opensInMain } from '../../lib/itemIds';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { opensInMain, sideItem } from '../../lib/itemIds';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
@@ -44,24 +44,43 @@ function Docked({ model }: DockedProps) {
   );
 }
 
+/** The search without `side`: the page in the main area as it was, the record beside it closed. */
+function withoutSide(search: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(search).filter((e): e is [string, string] => e[0] !== 'side' && typeof e[1] === 'string'));
+}
+
 export function Frame({ model, folderId }: FrameProps) {
   const { loc, choices } = model;
-  // The tool's sub-view (Bids ?view=) names what an opened item is.
-  const search: { view?: string | undefined } = useSearch({ strict: false });
+  const navigate = useNavigate();
+  // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=).
+  const search: { view?: string | undefined; side?: string | undefined } = useSearch({ strict: false });
   if (!choices) return null;
 
-  // An item that is a page of its own (a Revs wall) fills the main area; the right column keeps its docked panel.
+  // An item that is a page of its own (a Revs wall) fills the main area; the right column keeps its docked panel, or
+  // shows a record opened from the page beside it (?side=: a wall's request), Close bringing the panel back.
   const itemInMain = loc.itemId !== null && opensInMain(loc.tool, loc.itemId);
+  const side = itemInMain ? sideItem(search.side) : null;
   const itemOpen = loc.itemId !== null && !itemInMain;
-  const showRight = itemOpen || choices.docked_panel !== 'none';
-  const rightCollapsed = !itemOpen && choices.collapsed.right;
-  const rightFull = showRight && !rightCollapsed && model.rightFull && !itemInMain;
-  const openItemId = itemOpen ? loc.itemId : null;
+  const right = itemOpen && loc.itemId !== null ? { tool: loc.tool, itemId: loc.itemId } : side;
+  const showRight = right !== null || choices.docked_panel !== 'none';
+  const rightCollapsed = right === null && choices.collapsed.right;
+  const rightFull = showRight && !rightCollapsed && model.rightFull && (!itemInMain || side !== null);
+  const closeSide =
+    side !== null && loc.projectId !== null && loc.itemId !== null
+      ? () => {
+          model.setRightFull(false);
+          void navigate({
+            to: '/p/$projectId/$tool/$itemId',
+            params: { projectId: loc.projectId ?? '', tool: loc.tool, itemId: loc.itemId ?? '' },
+            search: withoutSide(search),
+          });
+        }
+      : undefined;
   // Every item has Open in new window (SPEC §7.2): in its own pane where it has one, else in the column's header.
   const openWindow =
-    openItemId !== null && !itemHasOwnWindowButton(loc.tool, openItemId)
+    right !== null && !itemHasOwnWindowButton(right.tool, right.itemId)
       ? () => {
-          window.open(model.itemWindowHref(loc.tool, openItemId), '_blank', 'noopener');
+          window.open(model.itemWindowHref(right.tool, right.itemId), '_blank', 'noopener');
         }
       : undefined;
 
@@ -110,7 +129,7 @@ export function Frame({ model, folderId }: FrameProps) {
           )}
           {showRight ? (
             <RightColumn
-              title={openItemId !== null ? itemTitle(loc.tool, openItemId, search.view) : loc.tool === 'board' ? 'Today' : 'Board'}
+              title={right !== null ? itemTitle(right.tool, right.itemId, search.view) : loc.tool === 'board' ? 'Today' : 'Board'}
               collapsed={rightCollapsed}
               full={rightFull}
               onToggleCollapsed={() => {
@@ -124,11 +143,11 @@ export function Frame({ model, folderId }: FrameProps) {
               onToggleFull={() => {
                 model.setRightFull(!model.rightFull);
               }}
-              onCloseItem={itemOpen ? model.closeItem : undefined}
+              onCloseItem={itemOpen ? model.closeItem : closeSide}
               onOpenWindow={openWindow}
             >
-              {openItemId !== null ? (
-                <ItemView model={model} tool={loc.tool} itemId={openItemId} standalone={false} />
+              {right !== null ? (
+                <ItemView model={model} tool={right.tool} itemId={right.itemId} standalone={false} />
               ) : (
                 <Docked model={model} />
               )}

@@ -7,6 +7,11 @@ export const MAX_ZOOM = 6;
 export const TAP_ZOOM = 2.5;
 const STEP = 1.25;
 
+/** A pinch's or the wheel's zoom, kept between the limits. */
+export function clampZoom(z: number): number {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(z * 1000) / 1000));
+}
+
 export function zoomStep(z: number, dir: 1 | -1): number {
   const next = dir > 0 ? z * STEP : z / STEP;
   // Passing the fit on the way stops there, so Fit is always one of the steps.
