@@ -74,7 +74,9 @@ test.describe('corrections log (SPEC §13.4)', () => {
     await expect(page.getByTestId('cn-latest')).toContainText('Sample: sealant checked at the sleeve');
     await expect(page.getByTestId('cn-add-note')).toHaveCount(0);
 
+    // History opens under its link, scrolled into view and focused.
     await page.getByRole('button', { name: 'History' }).click();
+    await expect(page.getByTestId('pane-history-link-shown')).toBeFocused();
     await expect(page.getByTestId('cn-history').getByRole('listitem')).toHaveCount(3);
     await expect(page.getByTestId('log-row-CN-001')).toContainText('Signed off');
   });
@@ -85,13 +87,21 @@ test.describe('corrections log (SPEC §13.4)', () => {
     await openLogAs(page, 'inspector');
     await page.getByTestId('cn-new').click();
     await page.getByTestId('cn-title').fill('Sample missing hanger wire');
-    await expect(page.getByLabel('Notice no.')).toBeVisible();
+    // Nothing to number and no separate spec box: the CN number comes at Save, the section goes in the description.
+    await expect(page.getByLabel('Notice no.')).toHaveCount(0);
+    await expect(page.getByLabel('Spec tags')).toHaveCount(0);
+    await page.getByTestId('cn-description').fill('Sample: no hanger wire at grid 4, see 09 51 13');
     await page.getByTestId('cn-photo-input').setInputFiles(PHOTO);
     await expect(page.getByTestId('cn-picked-photo')).toHaveCount(1);
     await page.getByTestId('cn-notice-input').setInputFiles(NOTICE);
     await expect(page.getByText('Sample notice 12.pdf')).toBeVisible();
     await page.getByTestId('cn-save').click();
     await expect(page.getByTestId('log-row-CN-001')).toBeVisible();
+    await expect(page.getByTestId('cn-notice')).toBeVisible();
+    // The section written in the description finds the item.
+    await page.getByTestId('cn-search').fill('09 51 13');
+    await expect(page.getByTestId('log-row-CN-001')).toBeVisible();
+    await page.getByTestId('cn-search').fill('');
 
     // The notice went to its own folder, never among the photos.
     const folders = await page.evaluate(() => {

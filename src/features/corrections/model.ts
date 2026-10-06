@@ -136,12 +136,12 @@ function numberQuery(query: string): number | null {
   return m?.[1] ? Number(m[1]) : null;
 }
 
-/** One box over number, title, trade, location and spec tags. */
+/** One box over number, title, trade, location, description and spec tags (older items). */
 export function matches(row: CorrectionRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (q === '') return true;
   if (numberQuery(q) === row.number) return true;
-  return [cnLabel(row.number), row.title, row.trade, row.location, ...row.spec_tags].some((v) => v.toLowerCase().includes(q));
+  return [cnLabel(row.number), row.title, row.trade, row.location, row.description, ...row.spec_tags].some((v) => v.toLowerCase().includes(q));
 }
 
 export function visibleRows(rows: readonly CorrectionRow[], query: string, sort: Sort): CorrectionRow[] {
@@ -167,11 +167,6 @@ export function neighbors(visible: readonly CorrectionRow[], id: string): { prev
 export function prefill(rows: readonly CorrectionRow[], userId: string): { trade: string; location: string } {
   const mine = rows.filter((r) => r.created_by === userId).sort((a, b) => b.number - a.number)[0];
   return { trade: mine?.trade ?? '', location: mine?.location ?? '' };
-}
-
-/** Spec tags typed as one line: commas or semicolons between them. */
-export function parseTags(text: string): string[] {
-  return [...new Set(text.split(/[,;]/).map((t) => t.trim()).filter((t) => t !== ''))];
 }
 
 export const HISTORY_LABELS: Record<HistoryAction, string> = {

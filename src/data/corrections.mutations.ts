@@ -62,10 +62,8 @@ export function useCreateCorrection() {
           p_description: v.description,
           p_trade: v.trade,
           p_location: v.location,
-          p_spec_tags: v.spec_tags,
           p_photo_ids: v.photoIds,
           ...(v.noticeFileId ? { p_notice_file_id: v.noticeFileId } : {}),
-          p_notice_ref: v.notice_ref,
         }),
       );
       return parseRow(data);

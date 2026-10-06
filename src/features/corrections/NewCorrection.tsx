@@ -34,8 +34,6 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
   const [draft, setDraft] = useState<FieldsDraft>(() => ({
     title: '',
     description: '',
-    tags: '',
-    noticeRef: '',
     ...prefill(list.data ?? [], user.id),
   }));
   const [noticeFileId, setNoticeFileId] = useState<string | null>(null);

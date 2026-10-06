@@ -12,7 +12,6 @@ import {
   nextSort,
   openTarget,
   parseSort,
-  parseTags,
   prefill,
   sortCorrections,
   sortParam,
@@ -122,12 +121,15 @@ describe('sorting', () => {
 });
 
 describe('search', () => {
-  const r = row({ number: 7, title: 'Firestop gap at duct', trade: 'Sample Drywall', location: 'Level 2 corridor', spec_tags: ['07 84 00'] });
+  const r = row({
+    number: 7, title: 'Firestop gap at duct', trade: 'Sample Drywall', location: 'Level 2 corridor',
+    description: 'Sample: annular gap not sealed per 07 84 00', spec_tags: ['09 21 16'],
+  });
   it('finds by number in any usual form', () => {
     for (const q of ['CN-7', 'cn-007', 'cn 7', '7', '#7']) expect(matches(r, q)).toBe(true);
   });
-  it('finds by title, trade, location and spec tag, without case', () => {
-    for (const q of ['firestop', 'DRYWALL', 'corridor', '84 00']) expect(matches(r, q)).toBe(true);
+  it('finds by title, trade, location, description and an older item\'s spec tag, without case', () => {
+    for (const q of ['firestop', 'DRYWALL', 'corridor', '84 00', 'annular', '21 16']) expect(matches(r, q)).toBe(true);
     expect(matches(r, 'roofing')).toBe(false);
     expect(matches(r, '  ')).toBe(true);
   });
@@ -154,9 +156,6 @@ describe('new item and history', () => {
     ];
     expect(prefill(rows, 'me')).toEqual({ trade: 'Sample Drywall', location: 'Level 2' });
     expect(prefill(rows, 'new-person')).toEqual({ trade: '', location: '' });
-  });
-  it('reads spec tags from one line', () => {
-    expect(parseTags(' 07 84 00, 09 21 16; 07 84 00 ,')).toEqual(['07 84 00', '09 21 16']);
   });
   it('the latest step skips undone ones', () => {
     const h = (seq: number, action: CorrectionHistoryRow['action'], undoes: string | null = null): CorrectionHistoryRow => ({
