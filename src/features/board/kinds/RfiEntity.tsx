@@ -1,16 +1,19 @@
-// A board line about an RFI: its number and title, where it is (status, who has it and how long, not opened, due),
+// A board line about an RFI: its number and title, its route strip (the same tracker as in RFIs, so its status reads
+// here without leaving the board: Jesse, Oct 5), where it is (status, who has it and how long, not opened, due),
 // who asked, the question, an impact claim when there is one, the PDF (View full screen, through the rfis function's
 // own gate, and one-click download), and Open in RFIs. Reading it here as the holder counts as opening it.
 import { TriangleAlert } from 'lucide-react';
 import { DataError, messageOf } from '../../../data/errors';
 import { rfiPdfViewUrl, useRfiPdf } from '../../../data/rfis.mutations';
-import { useRfiDetail } from '../../../data/rfis.queries';
+import { useRfiDetail, useRfiProgress } from '../../../data/rfis.queries';
 import { useFileViewer } from '../../../ui/FileViewer';
 import { Icon } from '../../../ui/Icon';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { StatusChip } from '../../../ui/StatusChip';
 import { useToast } from '../../../ui/Toast';
 import { daysSince, daysText, dueText, impactKinds, notOpened, rfiLabel, statusChip } from '../../rfis/model';
+import { stripsByRfi } from '../../rfis/progress';
+import { RouteStrip } from '../../rfis/RouteStrip';
 import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
 function gone(e: unknown): boolean {
@@ -19,6 +22,7 @@ function gone(e: unknown): boolean {
 
 export function RfiEntity({ frame, id }: KindProps) {
   const q = useRfiDetail(frame.projectId, id);
+  const progress = useRfiProgress(frame.projectId);
   const pdf = useRfiPdf();
   const toast = useToast();
   const viewer = useFileViewer();
@@ -61,6 +65,10 @@ export function RfiEntity({ frame, id }: KindProps) {
         },
       }}
     >
+      {progress.data ? (
+        <RouteStrip steps={stripsByRfi(progress.data).get(r.id) ?? []} timeZone={frame.zone} mine={d.is_mine_to_act} size="md" testId="rfi-entity-strip" />
+      ) : null}
+      {progress.isError ? <ErrorState error={progress.error} onRetry={() => void progress.refetch()} className="m-0" /> : null}
       <Facts
         rows={[
           ['Status', <StatusChip key="status" status={chip.status} label={chip.label} />],

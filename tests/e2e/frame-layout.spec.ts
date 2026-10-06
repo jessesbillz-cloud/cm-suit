@@ -4,7 +4,7 @@
 // window; More offers only the tools the role may read. Runs against the e2e mock.
 // Contract with the mock: 'pm' on job-a has the board lines "Sample Plan Set A.pdf was added to Plans" and "Delivery #3:
 // Sample Steel Co"; 'bidder' on job-a reads only the board and Bids (my_readable_tools, 0081). Test ids: main-area
-// (data-tool), tool-width, right-column, board-line, board-item, item-open-window, daily-today, daily-editor, rail-more,
+// (data-tool), tool-width, right-column (data-full), right-full (Full screen / Back), board-line, board-item, item-open-window, daily-today, daily-editor, rail-more,
 // rail-more-menu, rail-more-<tool>, phone-tab-more, phone-more-<tool>.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
@@ -62,6 +62,30 @@ test.describe('the frame on a desktop', () => {
     await expect(page).toHaveURL(/\/p\/job-a\/files$/);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
     await expect(right.getByTestId('board-line').first()).toBeVisible();
+  });
+
+  test('Full screen turns into Back, and Back (or Escape) returns to the tool as it was', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'The right column is the desktop frame.');
+    await signIn(page, 'pm');
+    await page.goto('/p/job-a/files');
+    const right = page.getByTestId('right-column');
+    await right.getByTestId('board-line').filter({ hasText: 'Delivery #3: Sample Steel Co' }).click();
+    await expect(right.getByTestId('board-item')).toBeVisible();
+    const full = right.getByTestId('right-full');
+    await expect(full).toHaveText('Full screen');
+    await full.click();
+    await expect(right).toHaveAttribute('data-full', 'true');
+    await expect(page.getByTestId('main-area')).toBeHidden();
+    await expect(full).toHaveText('Back');
+    await full.click();
+    await expect(right).toHaveAttribute('data-full', 'false');
+    await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
+    await expect(page.getByTestId('main-area')).toBeVisible();
+    await full.click();
+    await expect(right).toHaveAttribute('data-full', 'true');
+    await page.keyboard.press('Escape');
+    await expect(right).toHaveAttribute('data-full', 'false');
+    await expect(right.getByTestId('board-item')).toBeVisible();
   });
 
   test('a daily report has Open in new window', async ({ page, isMobile }) => {

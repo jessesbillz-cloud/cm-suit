@@ -34,6 +34,8 @@ interface ToolSearch {
   folder?: string;
   /** "Open in new window": render the item alone. */
   window?: '1';
+  /** Arrived from another tool's record ("Open in RFIs" on the board): the top bar shows Back to it. */
+  back?: '1';
   /** Bids: the sub-view (coverage, packages, subs, received, leveling, summary, questions, addenda). */
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
@@ -79,6 +81,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const pkg = str(s['pkg']);
   const day = str(s['day']);
   const win = s['window'] === '1' || s['window'] === 1;
+  const back = s['back'] === '1' || s['back'] === 1;
   const sort = str(s['sort']);
   const q = str(s['q']);
   const level = str(s['level']);
@@ -93,6 +96,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(view ? { view } : {}),
     ...(pkg ? { pkg } : {}),
     ...(win ? { window: '1' as const } : {}),
+    ...(back ? { back: '1' as const } : {}),
     ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
     ...(sort ? { sort } : {}),
     ...(q ? { q } : {}),
