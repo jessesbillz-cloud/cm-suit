@@ -48,7 +48,7 @@ export async function checkOutsiders(p: OutsiderProbe): Promise<void> {
   const plans = await folderOf('plans');
   const photos = await folderOf('photos');
   const reports = await folderOf('reports');
-  const attach = (await p.service.rpc('ir_folder_make', { p_project_id: p.projectId, p_which: 'attachments' })).data;
+  const attach: unknown = (await p.service.rpc('ir_folder_make', { p_project_id: p.projectId, p_which: 'attachments' })).data;
   if (typeof attach !== 'string') throw new Error('ir_folder_make returned no folder');
 
   const file = async (folder: string, name: string, by: OutsiderProbeUser): Promise<string> =>

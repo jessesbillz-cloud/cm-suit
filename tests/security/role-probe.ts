@@ -251,12 +251,8 @@ async function hasCap(c: Client, project: string, cap: string): Promise<boolean>
   if (res.error) throw new Error(`has_capability(${cap}): ${res.error.message}`);
   return res.data === true;
 }
-async function count(c: Client, table: string, col: string, val: string): Promise<number> {
-  return must(await c.from(table).select('*').eq(col, val), `${table} select`).length;
-}
-async function myProjects(c: Client): Promise<string[]> {
-  return must(await c.rpc('my_projects'), 'my_projects').map((r) => str(r, 'project_id'));
-}
+const count = async (c: Client, table: string, col: string, val: string): Promise<number> => must(await c.from(table).select('*').eq(col, val), `${table} select`).length;
+const myProjects = async (c: Client): Promise<string[]> => must(await c.rpc('my_projects'), 'my_projects').map((r) => str(r, 'project_id'));
 
 async function checkMatrix(s: Seed, clients: Map<UserKey, Client>): Promise<void> {
   const got = new Map<string, Set<Role>>();
