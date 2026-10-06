@@ -1,13 +1,14 @@
-// A PDF in the viewer: every page, one under another, scrolled; + and - zoom, Fit shows a whole page (never narrower
-// than a readable letter page, never wider than the window), and "Page N of M" follows the scroll. pdf.js loads with
-// the first PDF (lib/pdf, its own chunk).
-import { useLayoutEffect, useRef, useState } from 'react';
+// A PDF in the viewer: every page, one under another, scrolled; + and - zoom (a trackpad's pinch too), Fit shows a
+// whole page (never narrower than a readable letter page, never wider than the window), and "Page N of M" follows the
+// scroll. pdf.js loads with the first PDF (lib/pdf, its own chunk).
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import type { PDFDocumentProxy } from '../../lib/pdf/pdfjs';
 import { Icon } from '../Icon';
 import { PdfPage } from './PdfPage';
 import { useBoxSize } from './useBoxSize';
 import { usePdfDoc } from './usePdfDoc';
+import { clampZoom } from './zoom';
 import { ZoomBar } from './ZoomBar';
 
 interface PdfViewProps {
@@ -51,6 +52,21 @@ function Pages({ doc, aspect, tone }: PagesProps) {
     el.scrollTop = el.scrollTop * ratio;
     el.scrollLeft = (el.scrollLeft + el.clientWidth / 2) * ratio - el.clientWidth / 2;
   }, [width]);
+
+  // A trackpad's pinch (the wheel with Ctrl) zooms; the plain wheel scrolls the pages.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return undefined;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setZoom((z) => clampZoom(z * Math.exp(-e.deltaY * 0.01)));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, []);
 
   const onScroll = () => {
     const el = scroller.current;

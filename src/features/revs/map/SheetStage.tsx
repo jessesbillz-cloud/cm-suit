@@ -1,7 +1,8 @@
-// The sheet in its frame: pdf.js underneath, the marks on top, both moved by one pan/zoom transform. Starts with the
-// whole page in view (or zoomed in on `focus`); "Fit" comes back to it. Pinch, wheel or drag; on a desktop + / - and
-// Fit are always there (a mouse or a trackpad without pinch; + and - keys too). The Revs plan (0059) adds an overlay
-// that keeps its size on screen (the walls' lines and callouts, drawn where each page point is now) and taps.
+// The sheet in its frame: pdf.js underneath (or a picture: a room's cropped plan, 0083), the marks on top, both moved by
+// one pan/zoom transform. Starts with the whole page in view (or zoomed in on `focus`); "Fit" comes back to it. Pinch,
+// wheel or drag, and + / - / Fit always there, phones too (Jesse, Oct 5: "I need a zoom button on there on the
+// viewers"; + and - keys too). The Revs plan (0059) adds an overlay that keeps its size on screen (the walls' lines and
+// callouts, drawn where each page point is now) and taps.
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Maximize, Minus, Plus } from 'lucide-react';
 import { HIGHLIGHT_WIDTH, type MarkupColor, type Stroke } from '../../../lib/markup';
@@ -20,7 +21,9 @@ export interface PagePlace {
 }
 
 interface SheetStageProps {
-  page: PDFPageProxy;
+  /** The PDF page drawn, or `image` (a picture's URL) instead. */
+  page?: PDFPageProxy | undefined;
+  image?: string | undefined;
   /** Page height / width, as viewed. */
   aspect: number;
   strokes: readonly Stroke[];
@@ -47,13 +50,13 @@ interface ZoomBarProps {
   onFit: () => void;
 }
 
-/** + / - / Fit at the corner of the sheet, for a mouse (a pinch does the same on a phone or a trackpad). */
+/** + / - / Fit at the corner of the sheet, at every size (a pinch or the wheel does the same). Finger-sized. */
 function ZoomBar({ zoom, onZoom, onFit }: ZoomBarProps) {
   return (
-    <div className="absolute bottom-3 right-3 hidden items-center gap-0.5 rounded-full bg-card p-1 shadow-pop sm:flex" data-testid="sheet-zoom">
-      <Button size="sm" variant="quiet" icon={Minus} aria-label="Zoom out" title="Zoom out" className="!rounded-full" disabled={zoom <= 1.01} onClick={() => { onZoom(1 / STEP); }} />
-      <Button size="sm" variant="quiet" icon={Plus} aria-label="Zoom in" title="Zoom in" className="!rounded-full" disabled={zoom >= MAX_ZOOM - 0.01} onClick={() => { onZoom(STEP); }} />
-      <Button size="sm" variant="quiet" icon={Maximize} className="!rounded-full" data-testid="sheet-fit" onClick={onFit}>
+    <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-full bg-card p-1 shadow-pop" data-testid="sheet-zoom">
+      <Button variant="quiet" icon={Minus} aria-label="Zoom out" title="Zoom out" className="!rounded-full" disabled={zoom <= 1.01} onClick={() => { onZoom(1 / STEP); }} />
+      <Button variant="quiet" icon={Plus} aria-label="Zoom in" title="Zoom in" className="!rounded-full" disabled={zoom >= MAX_ZOOM - 0.01} onClick={() => { onZoom(STEP); }} />
+      <Button variant="quiet" icon={Maximize} className="!rounded-full !px-3" data-testid="sheet-fit" disabled={zoom <= 1.01} onClick={onFit}>
         Fit
       </Button>
     </div>
@@ -80,7 +83,7 @@ function useElementSize(ref: RefObject<HTMLElement | null>): Size {
   return size;
 }
 
-export function SheetStage({ page, aspect, strokes, pen, onStroke, onError, overlay, onTap, focus, aiming = false }: SheetStageProps) {
+export function SheetStage({ page, image, aspect, strokes, pen, onStroke, onError, overlay, onTap, focus, aiming = false }: SheetStageProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const frame = useElementSize(frameRef);
   const fit = useMemo(() => fitSize(aspect, frame), [aspect, frame]);
@@ -112,7 +115,6 @@ export function SheetStage({ page, aspect, strokes, pen, onStroke, onError, over
       }
     : undefined;
   const { live, handlers } = useSheetGestures({ frameRef, fit, frame, view, setView, drawing: pen !== null, onStroke, onTap: tap });
-  const zoomed = view.z > 1.01;
   const zoomBy = (factor: number) => {
     setView((v) => zoomAt(v, frame.w / 2, frame.h / 2, factor, fit, frame));
   };
@@ -143,22 +145,25 @@ export function SheetStage({ page, aspect, strokes, pen, onStroke, onError, over
           className="absolute left-0 top-0 origin-top-left bg-white shadow-card will-change-transform"
           style={{ width: fit.w, height: fit.h, transform: `translate(${String(view.x)}px, ${String(view.y)}px) scale(${String(view.z)})` }}
         >
-          <SheetCanvas page={page} fit={fit} view={view} frame={frame} onError={onError} />
+          {page ? <SheetCanvas page={page} fit={fit} view={view} frame={frame} onError={onError} /> : null}
+          {image !== undefined ? (
+            <img
+              src={image}
+              alt=""
+              draggable={false}
+              className="absolute inset-0 h-full w-full select-none"
+              data-testid="sheet-image"
+              onError={() => {
+                onError(new Error('The picture did not load.'));
+              }}
+            />
+          ) : null}
           <StrokeLayer strokes={strokes} aspect={aspect} />
           {live && pen ? <LiveStroke points={live} color={pen} width={HIGHLIGHT_WIDTH} aspect={aspect} /> : null}
         </div>
         {overlay && fit.w > 0 ? <div className="pointer-events-none absolute inset-0">{overlay(place)}</div> : null}
       </div>
       <ZoomBar zoom={view.z} onZoom={zoomBy} onFit={toFit} />
-      {zoomed ? (
-        <button
-          type="button"
-          onClick={toFit}
-          className="absolute bottom-3 right-3 h-11 rounded-full bg-card px-5 text-sm font-medium text-ink shadow-pop hover:bg-card-head focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:hidden"
-        >
-          Fit
-        </button>
-      ) : null}
     </div>
   );
 }

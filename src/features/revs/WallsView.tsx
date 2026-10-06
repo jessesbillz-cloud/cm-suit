@@ -1,6 +1,7 @@
 // Walls: every wall as a callout tile, by level (and by list when a job has more than one): its tag (F6a) small, the
 // wall's name big (it wraps, never cut), its grid or room small, and a slim bar of what passed, is requested or
 // failed. A tap opens the wall's own page.
+import type { ReactNode } from 'react';
 import { Settings2 } from 'lucide-react';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
@@ -24,14 +25,16 @@ interface WallTileProps {
   setup: RevSetup;
   index: StatusIndex;
   onOpen: (id: string) => void;
+  /** Under the tile: a manager's moves on it in a room (0083). */
+  footer?: ReactNode;
 }
 
-function WallTile({ area, setup, index, onOpen }: WallTileProps) {
+export function WallTile({ area, setup, index, onOpen, footer }: WallTileProps) {
   const count = countOf(wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status)));
   const { title, sub } = calloutOf(area.name);
   const done = count.needed > 0 && count.passed === count.needed;
   return (
-    <li>
+    <li className="flex flex-col gap-1">
       <button
         type="button"
         data-testid={`rev-wall-${area.id}`}
@@ -58,38 +61,48 @@ function WallTile({ area, setup, index, onOpen }: WallTileProps) {
           </span>
         </span>
       </button>
+      {footer}
     </li>
   );
 }
 
-function LevelHead({ title, walls }: { title: string; walls: number }) {
+/** "Level 01 · 6 walls": a level's heading. */
+export function LevelHead({ title, count }: { title: string; count: string }) {
   return (
     <h2 className="flex items-baseline gap-2 px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">
       <span className="break-words">{title}</span>
-      <span className="font-medium normal-case tracking-normal text-ink-3">{`${String(walls)} ${walls === 1 ? 'wall' : 'walls'}`}</span>
+      <span className="font-medium normal-case tracking-normal text-ink-3">{count}</span>
     </h2>
+  );
+}
+
+/** "6 walls", "1 room". */
+export function countOfThings(n: number, one: string, many: string): string {
+  return `${String(n)} ${n === 1 ? one : many}`;
+}
+
+/** Managers: the empty screen points to Setup. */
+export function NoWalls({ onSetup }: { onSetup?: (() => void) | undefined }) {
+  return (
+    <Card>
+      <EmptyState
+        icon={TOOL_META.revs.icon}
+        title="No walls yet."
+        action={
+          onSetup ? (
+            <Button variant="primary" icon={Settings2} data-testid="rev-go-setup" onClick={onSetup}>
+              Open Setup
+            </Button>
+          ) : undefined
+        }
+      />
+    </Card>
   );
 }
 
 export function WallsView({ setup, index, onOpen, onSetup }: WallsViewProps) {
   const groups = wallsByList(setup);
-  if (groups.length === 0) {
-    return (
-      <Card>
-        <EmptyState
-          icon={TOOL_META.revs.icon}
-          title="No walls yet."
-          action={
-            onSetup ? (
-              <Button variant="primary" icon={Settings2} data-testid="rev-go-setup" onClick={onSetup}>
-                Open Setup
-              </Button>
-            ) : undefined
-          }
-        />
-      </Card>
-    );
-  }
+  if (groups.length === 0) return <NoWalls onSetup={onSetup} />;
   const manyLists = setup.lists.length > 1;
   return (
     <div className="flex flex-col gap-5" data-testid="rev-walls">
@@ -103,7 +116,7 @@ export function WallsView({ setup, index, onOpen, onSetup }: WallsViewProps) {
           ) : null}
           {levels.map((g) => (
             <section key={g.level} className="flex flex-col gap-2" data-testid="rev-level">
-              <LevelHead title={g.level} walls={g.areas.length} />
+              <LevelHead title={g.level} count={countOfThings(g.areas.length, 'wall', 'walls')} />
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {g.areas.map((a) => (
                   <WallTile key={a.id} area={a} setup={setup} index={index} onOpen={onOpen} />

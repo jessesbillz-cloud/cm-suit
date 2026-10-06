@@ -5,25 +5,35 @@
 // picked for Request (Inspections > new, prefilled). On a desktop it fills the main area (the drawing beside the
 // items when there is room); on a phone it is its own screen with the drawing held at the top while the items scroll.
 // A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app (0082: the
-// form opens over the items). In its own window (?window=1) there is no "Revs" to go back to.
+// form opens over the items). At the top, the wall highlighted on its room's image (0083, the little picker: a tap
+// opens it full screen) beside where it is on the plan; at the bottom its history, every inspection per item (a tap
+// opens the request or the OFS IR beside the page on a desktop). Opened from a room, Back goes to the room. In its own
+// window (?window=1) there is no "Revs" to go back to.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
+import { useRevFileFetch } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
+import { useRevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { indexStatus, wallRevs, type StatusIndex } from './model';
 import { WallThumb } from './plan/WallThumb';
+import { revFileItem } from './room/revFileItem';
+import { WallRoomPick } from './room/WallRoomPick';
+import { roomLabel } from './rooms';
 import { useRevsNav } from './useRevsNav';
 import { Wall3D } from './wall3d/Wall3D';
 import { useWidth } from './wall3d/useWidth';
 import { WallFacts } from './WallFacts';
 import { WallHeader } from './WallHeader';
+import { WallHistory } from './WallHistory';
 import { WallItems } from './WallItems';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
 import { useWallManage } from './WallManage';
@@ -45,6 +55,8 @@ interface BodyProps {
   canManage: boolean;
   canRequest: boolean;
   isPhone: boolean;
+  /** In its own window: nothing opens beside it. */
+  alone: boolean;
 }
 
 function RequestButton({ picked, onRequest, wide }: { picked: number; onRequest: () => void; wide: boolean }) {
@@ -64,9 +76,14 @@ function RequestButton({ picked, onRequest, wide }: { picked: number; onRequest:
   );
 }
 
-function WallBody({ projectId, area, setup, index, timeZone, canManage, canRequest, isPhone }: BodyProps) {
+function WallBody({ projectId, area, setup, index, timeZone, canManage, canRequest, isPhone, alone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const toast = useToast();
+  const rooms = useRevRooms(projectId);
+  const viewer = useFileViewer();
+  const fetchFile = useRevFileFetch();
+  // Beside the page on a desktop; on a phone (or alone in a window) the request is its own screen, a file the viewer.
+  const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
   const revs = useMemo(() => wallRevs(setup, index, area), [setup, index, area]);
   const items = useMemo(() => wallItems(revs), [revs]);
@@ -99,8 +116,22 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   };
   const button = canRequest && askable ? <RequestButton picked={pick.picked.length} onRequest={request} wide={isPhone} /> : null;
   const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: nav.close });
-  // Where it is on the plan: a tap opens the plan there; a manager places or redraws it.
-  const thumb = (
+  // Where it is in its room, and on the plan: a tap opens the room full screen, or the plan there; a manager places or
+  // redraws it.
+  const pick = rooms.data ? (
+    <WallRoomPick
+      projectId={projectId}
+      area={area}
+      setup={setup}
+      index={index}
+      rooms={rooms.data}
+      fromRoom={nav.fromRoom}
+      isPhone={isPhone}
+      onOpenRoom={nav.openRoom}
+      onOpenWall={nav.openFromRoom}
+    />
+  ) : null;
+  const sheetThumb = (
     <WallThumb
       projectId={projectId}
       area={area}
@@ -113,6 +144,12 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
         nav.showPlan({ level: area.level.trim(), place: area.id });
       }}
     />
+  );
+  const thumb = (
+    <div className={`flex gap-3 ${isPhone ? 'flex-col' : 'shrink-0 flex-col items-end'}`}>
+      {pick}
+      {sheetThumb}
+    </div>
   );
 
   return (
@@ -172,23 +209,47 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
           />
         </div>
       </div>
+      <WallHistory
+        projectId={projectId}
+        areaId={area.id}
+        items={items}
+        onRequest={(requestId) => {
+          if (beside) nav.openBeside(area.id, { requestId });
+          else nav.openRequest(requestId);
+        }}
+        onFile={(row) => {
+          if (beside) nav.openBeside(area.id, { fileId: row.file_id });
+          else viewer.open([revFileItem(projectId, row.file_id, row.file_name ?? 'OFS IR', fetchFile)]);
+        }}
+      />
       {isPhone && button ? <div className="sticky bottom-0 z-10 -mx-4 border-t border-line bg-card px-4 py-3">{button}</div> : null}
     </div>
   );
 }
 
+/** Back to Revs, or to the room the wall was opened from (by its name). */
 function BackToRevs({ projectId, canManage }: { projectId: string; canManage: boolean }) {
   const nav = useRevsNav(projectId, canManage);
+  const rooms = useRevRooms(projectId);
+  const from = nav.fromRoom === undefined ? undefined : rooms.data?.rooms.find((r) => r.id === nav.fromRoom);
   return (
-    <button type="button" className="-ml-1 flex h-8 items-center gap-0.5 self-start text-sm font-medium text-accent" data-testid="rev-wall-back" onClick={nav.close}>
+    <button
+      type="button"
+      className="-ml-1 flex min-h-8 items-center gap-0.5 self-start break-words text-left text-sm font-medium text-accent"
+      data-testid="rev-wall-back"
+      onClick={() => {
+        if (from) nav.openRoom(from.id);
+        else nav.close();
+      }}
+    >
       <Icon icon={ChevronLeft} size={16} />
-      Revs
+      {from ? roomLabel(from) : 'Revs'}
     </button>
   );
 }
 
 export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
-  const own: { window?: string | undefined } = useSearch({ strict: false });
+  const own: { window?: string | undefined; room?: string | undefined } = useSearch({ strict: false });
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const manage = useCapability(projectId, 'revs.manage');
@@ -215,10 +276,19 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
         canManage={manage.data === true}
         canRequest={ask.data === true}
         isPhone={isPhone}
+        alone={own.window === '1'}
       />
     );
   }
-  if (isPhone) return <div className="px-4 pt-3">{body}</div>;
+  // A phone's screen has its own Back (to Revs); opened from a room, the way back to the room is at the top.
+  if (isPhone) {
+    return (
+      <div className="flex flex-col gap-1 px-4 pt-3">
+        {own.window !== '1' && own.room !== undefined ? <BackToRevs projectId={projectId} canManage={manage.data === true} /> : null}
+        {body}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-2">
       {own.window === '1' ? null : <BackToRevs projectId={projectId} canManage={manage.data === true} />}
