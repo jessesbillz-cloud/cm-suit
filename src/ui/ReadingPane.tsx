@@ -3,10 +3,11 @@
 // with "Open in new window", the item's own actions and "Download". History sits behind one link. Arrow keys move to
 // the next/previous item. PaneSection is the one look for a titled block inside a pane (tracker, question, answer).
 import { useEffect, useRef, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, Download, ExternalLink, History } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, ExternalLink } from 'lucide-react';
 import { usePreviewFetch, type PreviewVia } from '../data/preview';
 import { fileKind } from '../lib/fileKind';
 import { formatBytes } from '../lib/format';
+import { BehindLink } from './BehindLink';
 import { Button } from './Button';
 import { useFileViewer, type ViewerItem } from './FileViewer';
 import { fileIcon } from './fileIcon';
@@ -45,7 +46,8 @@ interface ReadingPaneProps {
   actions?: ReactNode | undefined;
   onPrev?: (() => void) | undefined;
   onNext?: (() => void) | undefined;
-  onHistory?: (() => void) | undefined;
+  /** The item's history, behind one link under the body (mounted only once the link is tapped). */
+  history?: ReactNode | undefined;
 }
 
 interface PaneSectionProps {
@@ -92,7 +94,7 @@ function Stepper({ onPrev, onNext }: StepperProps) {
 }
 
 export function ReadingPane(props: ReadingPaneProps) {
-  const { eyebrow, number, title, meta, children, attachments = [], actions, onPrev, onNext, onHistory } = props;
+  const { eyebrow, number, title, meta, children, attachments = [], actions, onPrev, onNext, history } = props;
   const root = useRef<HTMLElement>(null);
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
@@ -109,7 +111,7 @@ export function ReadingPane(props: ReadingPaneProps) {
       return Promise.resolve();
     },
   }));
-  const hasBody = (children !== undefined && children !== null && children !== false) || attachments.length > 0 || onHistory !== undefined;
+  const hasBody = (children !== undefined && children !== null && children !== false) || attachments.length > 0 || history !== undefined;
 
   // Focus the pane when the item changes, so the arrow keys work straight away.
   useEffect(() => {
@@ -186,15 +188,12 @@ export function ReadingPane(props: ReadingPaneProps) {
             ))}
           </ul>
         ) : null}
-        {onHistory ? (
-          <button
-            type="button"
-            className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-md text-[13px] font-medium text-accent hover:underline"
-            onClick={onHistory}
-          >
-            <Icon icon={History} size={14} />
-            History
-          </button>
+        {history !== undefined ? (
+          <div className="mt-4 flex flex-col">
+            <BehindLink label="History" testId="pane-history-link">
+              {history}
+            </BehindLink>
+          </div>
         ) : null}
       </div>
 

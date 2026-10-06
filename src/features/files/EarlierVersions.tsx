@@ -1,11 +1,10 @@
 // A file's earlier versions (a regenerated report's older PDFs), behind one small "Earlier versions" line in its pane
 // (SPEC §8.1: "the old one stays viewable"). Each opens in the file viewer; Download is there too.
-import { useState } from 'react';
-import { History } from 'lucide-react';
 import type { EarlierVersion } from '../../data/files';
 import { usePreviewFetch } from '../../data/preview';
 import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
+import { BehindLink } from '../../ui/BehindLink';
 import { fileIcon } from '../../ui/fileIcon';
 import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
@@ -17,7 +16,6 @@ interface EarlierVersionsProps {
 }
 
 export function EarlierVersions({ versions, timeZone }: EarlierVersionsProps) {
-  const [open, setOpen] = useState(false);
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   if (versions.length === 0) return null;
@@ -25,19 +23,7 @@ export function EarlierVersions({ versions, timeZone }: EarlierVersionsProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        data-testid="file-earlier"
-        aria-expanded={open}
-        className="inline-flex h-8 items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-accent hover:underline"
-        onClick={() => {
-          setOpen(!open);
-        }}
-      >
-        <Icon icon={History} size={14} />
-        Earlier versions ({versions.length})
-      </button>
-      {open ? (
+      <BehindLink label={`Earlier versions (${String(versions.length)})`} testId="file-earlier">
         <ul className="flex flex-col gap-1.5">
           {versions.map((v, i) => (
             <li key={v.id}>
@@ -57,7 +43,7 @@ export function EarlierVersions({ versions, timeZone }: EarlierVersionsProps) {
             </li>
           ))}
         </ul>
-      ) : null}
+      </BehindLink>
     </div>
   );
 }

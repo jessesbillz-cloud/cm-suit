@@ -4,7 +4,6 @@
 // inspector, or the deputy once an OFS request is sent to OFS). On an OFS request the inspector only sends it on or
 // postpones it (OfsRoute). The database decides each one again. An OFS request with walls also shows its walls and
 // items (with their results) and its map.
-import { useState } from 'react';
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
@@ -70,7 +69,6 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const download = useDownloadIrFile();
   const viewer = useFileViewer();
   const names = useIrFileNames(row.project_id, row.attachment_ids);
-  const [history, setHistory] = useState(false);
   const chip = requestChip(row, can.ofsDecide);
   const mine = row.requested_by === user.id;
   const atGc = row.status === 'gc_review' || row.status === 'returned';
@@ -107,9 +105,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
       }}
       attachmentVia={{ requestId: row.id }}
       downloadingId={download.isPending ? download.variables.fileId : null}
-      onHistory={() => {
-        setHistory(!history);
-      }}
+      history={<History projectId={row.project_id} requestId={row.id} tz={job.tz} visitor={row.requester_name} />}
       onOpenWindow={onOpenWindow}
     >
       <div className="flex flex-col gap-4" data-testid="ir-pane">
@@ -143,7 +139,6 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         {mine && can.request ? <RequesterActions row={row} canMove={!decides} /> : null}
         {can.gcApprove && atGc ? <GcActions row={row} /> : null}
         <DeciderSteps row={row} can={can} me={user.id} jobName={job.name} revs={revs} />
-        {history ? <History projectId={row.project_id} requestId={row.id} tz={job.tz} visitor={row.requester_name} /> : null}
       </div>
     </ReadingPane>
   );
