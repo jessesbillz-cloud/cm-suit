@@ -12,6 +12,7 @@ import type { ProjectRow } from '../../data/types';
 import { formatDay, todayInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
+import { DateInput } from '../../ui/Fields';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
@@ -187,7 +188,7 @@ function Today({ project, reportType, settingsIfNew, isPhone, onOpen }: TodayPro
         >
           <label className="flex items-center gap-2 text-sm text-ink-2">
             Past date
-            <input
+            <DateInput
               type="date"
               max={today}
               className={DATE_INPUT}

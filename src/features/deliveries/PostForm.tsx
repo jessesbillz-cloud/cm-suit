@@ -6,7 +6,7 @@ import { TriangleAlert } from 'lucide-react';
 import { DURATIONS, durationLabel } from '../../lib/deliveries';
 import type { DeliveryInput } from '../../data/deliveries.types';
 import { Button } from '../../ui/Button';
-import { CheckField, FIELD_CONTROL, FIELD_LABEL, SelectField, TextField } from '../../ui/Fields';
+import { CheckField, DateInput, FIELD_CONTROL, FIELD_LABEL, SelectField, TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { StandbyChip } from './DeliveryCard';
 
@@ -74,7 +74,7 @@ export function PostForm({ value, onChange, companies, headsUp, busy, submitLabe
         <div className="flex flex-col">
           <label className={LABEL}>
             Time
-            <input
+            <DateInput
               type="time"
               className={CONTROL}
               value={value.time ?? ''}

@@ -7,7 +7,7 @@ import { messageOf } from '../../data/errors';
 import { useAddActivity, useRemoveActivity, useSaveActivity, useScheduleUndo } from '../../data/schedule.mutations';
 import type { ActivityInput, DraftRow } from '../../data/schedule.types';
 import { Button } from '../../ui/Button';
-import { CheckField, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
+import { CheckField, TextField } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 interface DraftRowEditProps {
@@ -67,10 +67,7 @@ export function DraftRowEdit({ projectId, versionId, row, onDone }: DraftRowEdit
   }
 
   const field = (label: string, value: string, set: (v: string) => void, testId: string, type = 'text') => (
-    <label className={FIELD_LABEL}>
-      {label}
-      <input type={type} className={FIELD_CONTROL} value={value} data-testid={testId} onChange={(e) => { set(e.target.value); }} />
-    </label>
+    <TextField label={label} type={type} value={value} testId={testId} onChange={set} />
   );
 
   return (
