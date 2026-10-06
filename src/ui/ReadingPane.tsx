@@ -1,9 +1,9 @@
 // The reading pane (SPEC §7.4): one flat view. Header, body, attachments (a thumbnail for a photo, a tap opens the file
-// viewer over the list, one-click Download), and a footer
+// viewer over the list; Full screen and Download on each, one click), and a footer
 // with "Open in new window", the item's own actions and "Download". History sits behind one link. Arrow keys move to
 // the next/previous item. PaneSection is the one look for a titled block inside a pane (tracker, question, answer).
 import { useEffect, useRef, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, Download, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, ExternalLink, Maximize2 } from 'lucide-react';
 import { usePreviewFetch, type PreviewVia } from '../data/preview';
 import { fileKind } from '../lib/fileKind';
 import { formatBytes } from '../lib/format';
@@ -170,7 +170,18 @@ export function ReadingPane(props: ReadingPaneProps) {
                   )}
                   <span className="min-w-0 flex-1 break-words">{a.name}</span>
                 </button>
-                {a.size !== undefined ? <span className="shrink-0 text-xs tabular-nums text-ink-3">{formatBytes(a.size)}</span> : null}
+                {a.size !== undefined ? <span className="shrink-0 text-xs tabular-nums text-ink-2">{formatBytes(a.size)}</span> : null}
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  icon={Maximize2}
+                  aria-label={`Full screen ${a.name}`}
+                  title="Full screen"
+                  data-testid="attachment-full"
+                  onClick={() => {
+                    viewer.open(items, i);
+                  }}
+                />
                 {props.onDownloadAttachment ? (
                   <Button
                     size="sm"
