@@ -97,7 +97,7 @@ select ok(not exists (select 1 from unnest(array['permits', 'permit_stage_events
                           or has_table_privilege('authenticated', 'public.' || t, 'DELETE')
                           or not has_table_privilege('authenticated', 'public.' || t, 'SELECT')),
   'anon reads nothing; signed in: read only, writes go through the RPCs');
-select is((select description from public.roles where name = 'ahj'), 'Fire / building official', 'the role ahj, as data');
+select is((select description from public.roles where name = 'ahj'), 'Fire marshal', 'the role ahj, as data (0087: Jesse''s word)');
 select is((select recommended_tools from public.roles where name = 'ahj'), '{board,calendar,permits,inspections,revs,files}'::text[],
   'its recommended rail (Revs from 0056)');
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'permits.read'),
