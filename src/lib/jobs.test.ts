@@ -4,6 +4,7 @@ import {
   allJobsTool,
   defaultStage,
   isBidStage,
+  isPinnedJobTool,
   jobRail,
   jobTool,
   phoneRail,
@@ -185,6 +186,16 @@ describe('jobs', () => {
       'files',
     ]);
     expect(railModel('a', [{ project_id: 'a', modules: FIELD }], { a: rec }, {}).job).toEqual(['calendar', 'inspections', 'files']);
+  });
+  it('Revs is pinned: under the job name for anyone who may read it, even when the position or my list leaves it out', () => {
+    const s = [{ project_id: 's', modules: ['files', 'calendar', 'inspections', 'revs'] }];
+    const pm = { s: ['board', 'calendar', 'inspections', 'files'] };
+    expect(railModel('s', s, pm, {}).job).toEqual(['calendar', 'inspections', 'files', 'revs']);
+    expect(railModel('s', s, pm, { s: ['files'] }).job).toEqual(['files', 'revs']);
+    expect(railModel('s', s, pm, { s: ['files'] }).more).not.toContain('revs');
+    expect(railModel('s', s, pm, {}, { s: ['board', 'files'] }).job).toEqual(['files']);
+    expect(isPinnedJobTool('revs')).toBe(true);
+    expect(isPinnedJobTool('files')).toBe(false);
   });
   it('Safety: a job tool after Corrections, on for jobs being built (0060), after Dailies for the field positions', () => {
     expect(JOB_TOOLS.indexOf('safety')).toBe(JOB_TOOLS.indexOf('corrections') + 1);

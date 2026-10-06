@@ -9,7 +9,7 @@
 // picked, data-focus when shown, its dot [data-status]), rev-ir-link, rev-item-note, rev-na, rev-request (data-count),
 // rev-open-item-<item> (data-count), rev-open-wall (data-status), rev-new-list, rev-list-new, rev-list-name,
 // rev-legend, rev-legend-error, rev-legend-preview, rev-preview-rev, rev-list-create, rev-setup.
-// The plan (0059): rev-walls-as-<list|plan>, rev-plan (data-level), plan-level-<level>, plan-sheet (data-page), each
+// The plan (0059): rev-view-<list|plan>, rev-plan (data-level), plan-level-<level>, plan-sheet (data-page), each
 // drawn wall a [data-wall] (its second line in its color), plan-wall-<area> (its callout; data-focus), plan-add-wall,
 // plan-draw-bar (data-points), plan-prompt, plan-done, plan-wall-name, plan-wall-save, rev-wall-thumb, rev-wall-place.
 // The synthetic plan set (mock/sheet) has every wall but Level 02's electrical wall drawn on it, Level 02 on page 2.
@@ -222,7 +222,7 @@ test.describe('revs', () => {
 
   test("Plan: a level's sheet with its walls in their colors; a wall opens its page, whose thumbnail opens the plan on it", async ({ page }) => {
     await openAs(page, 'pm', '/p/job-s/revs');
-    await page.getByTestId('rev-walls-as-plan').click();
+    await page.getByTestId('rev-view-plan').click();
     const plan = page.getByTestId('rev-plan');
     await expect(plan).toHaveAttribute('data-level', 'Level 01');
     await expect(plan.locator('[data-wall]')).toHaveCount(3);
@@ -353,7 +353,7 @@ test.describe('revs', () => {
 
     await wall.getByTestId('rev-wall-remove').click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs$/);
-    await page.getByTestId('rev-walls-as-list').click();
+    await page.getByTestId('rev-view-list').click();
     await expect(page.getByTestId('rev-wall-mock-rev-area-4')).toBeVisible();
     await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo' }).click();
@@ -409,8 +409,8 @@ test.describe('revs', () => {
     await openAs(page, 'inspector', '/p/job-s/revs?view=setup');
     await page.getByRole('button', { name: 'Remove Sample Rated Walls' }).click();
     await expect(page.getByText('No lists yet.')).toBeVisible();
-    await page.getByTestId('rev-view-walls').click();
-    await page.getByTestId('rev-walls-as-plan').click();
+    await page.getByTestId('rev-view-rooms').click();
+    await page.getByTestId('rev-view-plan').click();
     await page.getByTestId('plan-open-setup').click();
     await expect(page).toHaveURL(/view=setup/);
   });
@@ -451,7 +451,7 @@ test.describe('revs', () => {
     await wall.getByTestId('rev-wall-check').click();
     await expect(wall.getByTestId('rev-wall-check-note')).toHaveText('Sample head of wall joint');
     await page.getByTestId('rev-wall-back').click();
-    await page.getByTestId('rev-walls-as-list').click();
+    await page.getByTestId('rev-view-list').click();
     await expect(page.getByTestId('rev-wall-mock-rev-area-5').getByTestId('rev-wall-tag')).toHaveText('F6a');
   });
 
