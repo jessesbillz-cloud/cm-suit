@@ -243,7 +243,7 @@ function BackToRevs({ projectId, canManage }: { projectId: string; canManage: bo
       }}
     >
       <Icon icon={ChevronLeft} size={16} />
-      {from ? roomLabel(from) : 'Revs'}
+      {from ? roomLabel(from) : 'OFS required'}
     </button>
   );
 }
