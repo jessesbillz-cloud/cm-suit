@@ -118,7 +118,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: nav.close });
   // Where it is in its room, and on the plan: a tap opens the room full screen, or the plan there; a manager places or
   // redraws it.
-  const pick = rooms.data ? (
+  const roomPick = rooms.data ? (
     <WallRoomPick
       projectId={projectId}
       area={area}
@@ -147,7 +147,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   );
   const thumb = (
     <div className={`flex gap-3 ${isPhone ? 'flex-col' : 'shrink-0 flex-col items-end'}`}>
-      {pick}
+      {roomPick}
       {sheetThumb}
     </div>
   );

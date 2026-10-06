@@ -72,7 +72,11 @@ function revFileQuery(projectId: string, fileId: string) {
 /** A room's image or a sign-off's file: its URL, name and type. Nothing until a file is known. */
 export function useRevFile(projectId: string, fileId: string | null) {
   return useQuery({
-    ...(fileId !== null ? revFileQuery(projectId, fileId) : { queryKey: qk.revsPart(projectId, 'file:'), queryFn: skipToken }),
+    queryKey: qk.revsPart(projectId, `file:${fileId ?? ''}`),
+    queryFn: fileId !== null ? () => fetchRevFile(projectId, fileId) : skipToken,
+    staleTime: FRESH_MS,
+    gcTime: FRESH_MS,
+    retry: retryOnce,
     // A new URL would reload a picture already on screen.
     refetchOnWindowFocus: false,
   });
