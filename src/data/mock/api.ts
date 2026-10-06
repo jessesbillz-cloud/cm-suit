@@ -104,13 +104,31 @@ function allFolders(): FolderRow[] {
   return [...base, ...saved.filter((x) => !base.some((b) => b.id === x.id))];
 }
 
+const APP_KINDS = new Set(['reports', 'inbound', 'bids_received', 'rfis', 'approved_plans', 'stamping']);
+
+/** Mirrors folder_marks: kind and the app's reserved names tell its folders apart (an author's folder sets person). */
+function mockAppOnly(f: FolderRow): boolean {
+  return (
+    APP_KINDS.has(f.kind) ||
+    f.person !== null ||
+    (f.parent_id === null && f.kind === 'general' && f.name === 'Inspection requests') ||
+    (f.kind === 'photos' && (f.name === 'Corrections' || f.name === 'Delivery tickets'))
+  );
+}
+
 export async function folders(projectId: string): Promise<FolderRow[]> {
   await delay();
   const files = allFiles();
   const all = allFolders();
   return all
     .filter((f) => f.project_id === projectId && folderReadable(f, all))
-    .map((f) => ({ ...f, file_count: f.kind === 'inbound' ? files.filter((x) => x.folder_id === f.id).length : null }))
+    .map((f) => {
+      // folder_marks (0092): the folders only the app fills, and the counts the tree hides empty ones by.
+      const appOnly = mockAppOnly(f);
+      const counted = appOnly || f.kind === 'ti';
+      const fileCount = counted ? files.filter((x) => x.folder_id === f.id && x.upload_complete).length : null;
+      return { ...f, app_only: appOnly, file_count: fileCount };
+    })
     .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
 }
 
@@ -129,6 +147,8 @@ export async function createFolder(projectId: string, parentId: string | null, n
     ai_reads: aiReads,
     version: 1,
     file_count: null,
+    app_only: false,
+    person: null,
   };
   writeMock((m) => ({ ...m, folders: [...m.folders, row] }));
   return row;

@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { defaultFolderId, folderPath, treeOrder, visibleFolders } from './folderOrder';
+import { defaultFolderId, folderLabel, folderPath, treeOrder, visibleFolders } from './folderOrder';
 
-type F = { id: string; parent_id: string | null; name: string; kind: string; sort: number; file_count: number | null };
+type F = {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  kind: string;
+  sort: number;
+  file_count: number | null;
+  person: string | null;
+};
 
 function folder(id: string, name: string, sort: number, extra: Partial<F> = {}): F {
-  return { id, parent_id: null, name, kind: 'general', sort, file_count: null, ...extra };
+  return { id, parent_id: null, name, kind: 'general', sort, file_count: null, person: null, ...extra };
 }
 
 describe('folder tree order', () => {
@@ -52,6 +60,31 @@ describe('folder tree order', () => {
       folder('photos', 'Photos', 60, { kind: 'photos' }),
     ];
     expect(visibleFolders(list).map((f) => f.id)).toEqual(['in', 'sorted', 'photos']);
+  });
+
+  it("hides the app's folders while empty, even inside one another, and keeps Plans, Photos and people's folders", () => {
+    const list = [
+      folder('plans', 'Plans', 10, { kind: 'plans' }),
+      folder('reports', 'Reports', 50, { kind: 'reports', file_count: 0 }),
+      folder('ir', 'Inspection reports', 100, { kind: 'reports', parent_id: 'reports', file_count: 0 }),
+      folder('ofs', 'OFS inspection reports', 100, { kind: 'reports', parent_id: 'reports', file_count: 0 }),
+      folder('photos', 'Photos', 60, { kind: 'photos' }),
+      folder('corr', 'Corrections', 100, { kind: 'photos', parent_id: 'photos', file_count: 0 }),
+      folder('mine', 'Sample submittals', 100),
+    ];
+    expect(visibleFolders(list).map((f) => f.id)).toEqual(['plans', 'photos', 'mine']);
+    const filed = list.map((f) => (f.id === 'ofs' ? { ...f, file_count: 1 } : f));
+    expect(visibleFolders(filed).map((f) => f.id)).toEqual(['plans', 'reports', 'ofs', 'photos', 'mine']);
+  });
+
+  it("names an author's folder by the person, in the tree order and the path", () => {
+    const list = [
+      folder('reports', 'Reports', 50, { kind: 'reports', file_count: 1 }),
+      folder('z', 'probe_handle', 100, { parent_id: 'reports', person: 'Ada Author', file_count: 2 }),
+      folder('b', 'Bea Builder', 100, { parent_id: 'reports', person: 'Bea Builder', file_count: 1 }),
+    ];
+    expect(treeOrder(list).map((n) => folderLabel(n.folder))).toEqual(['Reports', 'Ada Author', 'Bea Builder']);
+    expect(folderPath(list, 'z')).toBe('Reports / Ada Author');
   });
 
   it('opens on nothing when there are no folders to show', () => {

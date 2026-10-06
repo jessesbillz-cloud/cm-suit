@@ -18,8 +18,12 @@ export type FolderRow = Pick<
   Tables<'folders'>,
   'id' | 'project_id' | 'parent_id' | 'name' | 'kind' | 'view_only' | 'proprietary' | 'sort' | 'ai_reads' | 'version'
 > & {
-  /** Emailed in (kind inbound) only: the files in it I can see, so the tree can hide it while empty. Null elsewhere. */
+  /** The folders the tree hides while empty (the app's, and Testing & inspections): the files in it I can see. Null elsewhere. */
   file_count: number | null;
+  /** Only the app puts files in it (reports, requests, RFIs, Emailed in ...): the tree marks it, Files has no Upload there. */
+  app_only: boolean;
+  /** An author's daily folder: the person's name today (full name, else the email name). Null elsewhere. */
+  person: string | null;
 };
 
 export type FileRow = Pick<

@@ -62,7 +62,7 @@ export function permitJobZone(projectId: string): string {
 function folder(id: string, projectId: string, parentId: string | null, name: string, kind: string, sort: number): FolderRow {
   return {
     id, project_id: projectId, parent_id: parentId, name, kind, view_only: false, proprietary: false, sort,
-    ai_reads: kind !== 'reports', version: 1, file_count: null,
+    ai_reads: kind !== 'reports', version: 1, file_count: null, app_only: false, person: null,
   };
 }
 

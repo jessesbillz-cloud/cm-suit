@@ -179,19 +179,23 @@ export function useUserLayout() {
 
 export const FOLDER_COLS = 'id, project_id, parent_id, name, kind, view_only, proprietary, sort, ai_reads, version';
 
-async function countFiles(folderId: string): Promise<number> {
-  const res = await supabase.from('files').select('id', { count: 'exact', head: true }).eq('folder_id', folderId).is('deleted_at', null);
-  throwIfErrorMaybe(res);
-  return res.count ?? 0;
-}
+const folderMarksSchema = z.array(
+  z.object({ folder_id: z.string(), app_only: z.boolean(), person: z.string().nullable(), file_count: z.number().nullable() }),
+);
 
 async function fetchFolders(projectId: string): Promise<FolderRow[]> {
   if (isMock()) return mock.folders(projectId);
-  const rows = throwIfError(
-    await supabase.from('folders').select(FOLDER_COLS).eq('project_id', projectId).is('deleted_at', null).order('sort').order('name'),
-  );
-  // Only "Emailed in" needs a count (the tree hides it while empty); a job has one at most.
-  return Promise.all(rows.map(async (f) => ({ ...f, file_count: f.kind === 'inbound' ? await countFiles(f.id) : null })));
+  const [rowsRes, marksRes] = await Promise.all([
+    supabase.from('folders').select(FOLDER_COLS).eq('project_id', projectId).is('deleted_at', null).order('sort').order('name'),
+    supabase.rpc('folder_marks', { p_project_id: projectId }),
+  ]);
+  const rows = throwIfError(rowsRes);
+  // Which folders only the app fills, an author's folder's person, and the counts the tree hides empty folders by.
+  const marks = new Map(folderMarksSchema.parse(throwIfError(marksRes)).map((m) => [m.folder_id, m]));
+  return rows.map((f) => {
+    const m = marks.get(f.id);
+    return { ...f, file_count: m?.file_count ?? null, app_only: m?.app_only ?? false, person: m?.person ?? null };
+  });
 }
 
 export function useFolders(projectId: string | null) {

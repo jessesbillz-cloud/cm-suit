@@ -1,6 +1,7 @@
 // Files (SPEC §8.1, Phase 0 core): folder tree, file rows with one-click download, drag-and-drop and button upload
 // through the single uploader with per-file progress, and folder create and rename for files.manage. The tree lists
-// folders by sort then name (each job opens with what its kind of user uses most) and hides an empty "Emailed in". A
+// folders by sort then name (each job opens with what its kind of user uses most) and hides the app's folders while they
+// are empty (0092), with a lock on them and no Upload there. A
 // row's name opens the file's pane (the file itself, Full screen, Rename, Delete); its icon opens it full screen. In
 // Plans and Specs the name opens the file full screen at once (Jesse, Oct 5: the right column is too small for a sheet
 // or a spec), its pane under it for Rename, Delete and versions; a spec book carries its section bar.
@@ -172,9 +173,10 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
   const canWrite = useCanWriteFolder(current.id);
   const project = useProject(projectId);
   const queue = useUploadQueue();
-  const writable = canWrite.data === true;
+  // A folder only the app fills takes files from its tool, not from Upload here.
+  const writable = canWrite.data === true && !current.app_only;
   // People's own folders (and an old one in the way of a tool's folder); never a folder the system finds by its name.
-  const renamable = manager && current.kind === 'general' && !(current.parent_id === null && current.name === 'Inspection requests');
+  const renamable = manager && current.kind === 'general' && !current.app_only;
   const enqueue = (picked: File[]) => {
     if (picked.length > 0) queue.enqueue(picked, projectId, current.id);
   };
@@ -188,7 +190,7 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
     </>
   );
   // Without the answer Upload can't show; say why instead of leaving it out (CLAUDE.md rule 6).
-  const writeError = canWrite.isError ? (
+  const writeError = canWrite.isError && !current.app_only ? (
     <ErrorState error={canWrite.error} title="Upload is not available." onRetry={() => void canWrite.refetch()} className="m-0 mb-4" />
   ) : null;
 

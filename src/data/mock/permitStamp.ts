@@ -78,7 +78,7 @@ async function ensureFolder(f: FolderRow): Promise<string> {
 }
 
 function treeFolder(id: string, projectId: string, parentId: string, name: string, kind: string, sort: number): FolderRow {
-  return { id, project_id: projectId, parent_id: parentId, name, kind, view_only: false, proprietary: false, sort, ai_reads: false, version: 1, file_count: null };
+  return { id, project_id: projectId, parent_id: parentId, name, kind, view_only: false, proprietary: false, sort, ai_reads: false, version: 1, file_count: null, app_only: false, person: null };
 }
 
 function moveFiles(ids: readonly string[], folderId: string, all: readonly FileRow[]): void {

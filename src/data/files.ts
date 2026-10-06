@@ -125,7 +125,7 @@ async function renameFolder(folder: FolderRow, name: string): Promise<FolderRow>
   );
   const row = rows[0];
   if (!row) throw conflictError();
-  return { ...row, file_count: folder.file_count };
+  return { ...row, file_count: folder.file_count, app_only: folder.app_only, person: folder.person };
 }
 
 /** A folder's Rename (files.manage; the database refuses the system's own names and the server's folders). */

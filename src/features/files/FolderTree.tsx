@@ -1,8 +1,9 @@
 // Folder tree in the main area. Flat data from the database, nested and ordered by folderOrder. Names wrap, never cut.
-import { Folder, FolderOpen } from 'lucide-react';
+// A folder only the app fills carries a small lock.
+import { Folder, FolderOpen, Lock } from 'lucide-react';
 import type { FolderRow } from '../../data/types';
 import { Icon } from '../../ui/Icon';
-import { treeOrder } from './folderOrder';
+import { folderLabel, treeOrder } from './folderOrder';
 
 interface FolderTreeProps {
   /** The folders to list (visibleFolders already applied). */
@@ -31,7 +32,12 @@ export function FolderTree({ folders, selectedId, onSelect }: FolderTreeProps) {
               }}
             >
               <Icon icon={active ? FolderOpen : Folder} size={17} className={`shrink-0 ${active ? 'text-accent' : 'text-ink-3'}`} />
-              <span className="min-w-0 flex-1 wrap-anywhere">{folder.name}</span>
+              <span className="min-w-0 flex-1 wrap-anywhere">{folderLabel(folder)}</span>
+              {folder.app_only ? (
+                <span data-testid="folder-lock" className="shrink-0 text-ink-3">
+                  <Icon icon={Lock} size={13} label="Filled by the app" />
+                </span>
+              ) : null}
             </button>
           </li>
         );
