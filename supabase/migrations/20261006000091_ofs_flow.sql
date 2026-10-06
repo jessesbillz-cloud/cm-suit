@@ -358,7 +358,8 @@ $$;
 create trigger ir_ofs_stamp before insert or update on public.inspection_requests
   for each row execute function public.tg_ir_ofs_stamp();
 
--- The next OFS IR number: one after the job's highest (its requests and its walls signed off on paper IRs).
+-- The next OFS IR number: one after the job's highest (its requests, its walls signed off on paper IRs, and the old
+-- counter, which a job's real numbering was set on before the app had its paper IRs).
 create or replace function public.ir_ofs_next_number(p_project_id uuid)
 returns int
 language sql
@@ -368,7 +369,8 @@ set search_path = public, pg_temp
 as $$
   select least(999999, greatest(
     coalesce((select max(q.ofs_number) from public.inspection_requests q where q.project_id = p_project_id), 0),
-    coalesce((select max(s.ofs_number) from public.rev_signoffs s where s.project_id = p_project_id and s.deleted_at is null), 0)) + 1);
+    coalesce((select max(s.ofs_number) from public.rev_signoffs s where s.project_id = p_project_id and s.deleted_at is null), 0),
+    coalesce((select c.next_value - 1 from public.project_counters c where c.project_id = p_project_id and c.kind = 'ofs_ir'), 0)) + 1);
 $$;
 
 -- 0056's trigger: the next number after the job's highest, not a counter (a typed number moves the next one on).
