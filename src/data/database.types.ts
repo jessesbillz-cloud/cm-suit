@@ -7771,6 +7771,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      file_on_visible_request: {
+        Args: { p_file_id: string; p_project_id: string }
+        Returns: boolean
+      }
       file_remove: {
         Args: { p_file_id: string; p_version: number }
         Returns: undefined
@@ -7879,6 +7883,7 @@ export type Database = {
       folder_can_read: { Args: { p_folder_id: string }; Returns: boolean }
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
       folder_effective_id: { Args: { p_folder_id: string }; Returns: string }
+      folder_is_document: { Args: { p_folder_id: string }; Returns: boolean }
       folder_name_reserved: {
         Args: { p_name: string; p_parent_id: string; p_project_id: string }
         Returns: boolean
@@ -10402,6 +10407,13 @@ export type Database = {
         Returns: Json
       }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
+      my_calendar_kinds: {
+        Args: { p_project_id?: string }
+        Returns: {
+          kinds: string[]
+          project_id: string
+        }[]
+      }
       my_capabilities: { Args: { p_project_id: string }; Returns: string[] }
       my_daily_form: { Args: { p_project_id: string }; Returns: string }
       my_daily_today: {

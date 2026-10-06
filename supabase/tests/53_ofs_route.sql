@@ -377,8 +377,9 @@ select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'I') || pg_temp.
 select is((select count(*)::int from public.calendar_entries where source_type = 'inspection_request'), 0,
   'no inspection line of any kind on the deputy''s job calendar');
 select is((select count(*)::int from public.ir_blocks), 0, 'none of the inspector''s blocked time');
-select is((select count(*)::int from public.files where folder_id = pg_temp.rid('attach')), 0,
-  'the deputy doesn''t browse the request folder');
+select is((select array_agg(id::text) from public.files where folder_id = pg_temp.rid('attach')),
+  '{e0000000-0000-0000-0000-000000000543}'::text[],
+  'the deputy doesn''t browse the request folder: only the file of the OFS request he reads (0090)');
 select ok(not public.folder_can_read(pg_temp.rid('attach')) and public.folder_can_write(pg_temp.rid('attach')),
   '... he only adds to it (result photos), as requesters do');
 select throws_ok($$ select public.ir_folder('c0000000-0000-0000-0000-000000000541', 'reports') $$, '42501', null,

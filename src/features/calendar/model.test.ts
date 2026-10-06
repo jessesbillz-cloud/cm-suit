@@ -7,6 +7,7 @@ import {
   lineChip,
   lineDay,
   lineTime,
+  offeredKinds,
   parseCalView,
   parseDay,
   parseRequestItem,
@@ -216,5 +217,26 @@ describe('which lines a person sees', () => {
     expect(inspectionJobs(field, null)).toEqual(['job-a']);
     expect(inspectionJobs(field, 'job-a')).toEqual(['job-a']);
     expect(inspectionJobs(field, 'job-b')).toEqual([]);
+  });
+});
+
+describe('offeredKinds', () => {
+  const jobs = [
+    { project_id: 'a', modules: ['calendar'] },
+    { project_id: 'b', modules: ['calendar'] },
+    { project_id: 'c', modules: [] },
+  ];
+  const byJob = { a: ['inspections', 'meetings'], b: ['meetings', 'deliveries'], c: ['my_due'] };
+  it('is not known until the answer comes', () => {
+    expect(offeredKinds(undefined, jobs, 'a')).toBeNull();
+  });
+  it('offers one job its own types', () => {
+    expect(offeredKinds(byJob, jobs, 'a')).toEqual(['inspections', 'meetings']);
+  });
+  it('offers All my jobs the types of the jobs with the calendar on', () => {
+    expect(offeredKinds(byJob, jobs, null)).toEqual(['inspections', 'meetings', 'deliveries']);
+  });
+  it('offers nothing on a job it has no answer for', () => {
+    expect(offeredKinds(byJob, jobs, 'z')).toEqual([]);
   });
 });
