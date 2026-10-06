@@ -259,7 +259,7 @@ export function useRoles() {
   return useQuery({
     queryKey: qk.roles,
     queryFn: async () =>
-      isMock() ? mock.roles() : throwIfError(await supabase.from('roles').select('name, description, invitable').order('description')),
+      isMock() ? mock.roles() : throwIfError(await supabase.from('roles').select('name, description, invitable').order('sort').order('description')),
     staleTime: Infinity,
   });
 }
@@ -275,17 +275,41 @@ export function useProfile() {
   return useQuery({ queryKey: qk.profile, queryFn: fetchProfile });
 }
 
-async function fetchCapability(projectId: string, cap: string): Promise<boolean> {
-  return isMock() ? mockBids.capability(cap) : throwIfError(await supabase.rpc('has_capability', { p_project_id: projectId, p_cap: cap }));
+/**
+ * Every capability I hold on a job, in one call (my_capabilities, the has_capability test for all of them). One answer
+ * per job serves every screen's question, so opening a tool never waits on its own capability calls. The mock answers
+ * one capability at a time (its own key per capability), as the list it would need has no end.
+ */
+async function fetchCapabilities(projectId: string, cap: string): Promise<readonly string[]> {
+  if (isMock()) return (await mockBids.capability(cap)) ? [cap] : [];
+  return throwIfError(await supabase.rpc('my_capabilities', { p_project_id: projectId }));
 }
 
-/** Asks the database (has_capability) — the UI never decides permissions from role names. */
-export function useCapability(projectId: string | null, cap: string) {
-  return useQuery({
-    queryKey: qk.capability(projectId ?? '', cap),
-    queryFn: projectId ? () => fetchCapability(projectId, cap) : skipToken,
+function capabilityQuery(projectId: string, cap: string) {
+  return {
+    queryKey: isMock() ? qk.capability(projectId, cap) : qk.capabilities(projectId),
+    queryFn: () => fetchCapabilities(projectId, cap),
     staleTime: 60_000,
+  };
+}
+
+/** Asks the database (my_capabilities) — the UI never decides permissions from role names. */
+export function useCapability(projectId: string | null, cap: string) {
+  const q = capabilityQuery(projectId ?? '', cap);
+  return useQuery({
+    ...q,
+    queryFn: projectId ? q.queryFn : skipToken,
+    select: (caps: readonly string[]) => caps.includes(cap),
   });
+}
+
+/** Starts reading my capabilities on a job (the frame, as soon as a job opens), so its tools open without waiting. */
+export function usePrefetchCapabilities(projectId: string | null): void {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (projectId === null || isMock()) return;
+    void qc.prefetchQuery(capabilityQuery(projectId, ''));
+  }, [qc, projectId]);
 }
 
 interface JobsWithCapability {
@@ -309,9 +333,8 @@ function jobsWith(results: UseQueryResult<{ projectId: string; has: boolean }>[]
 export function useJobsWithCapability(projectIds: readonly string[], cap: string): JobsWithCapability {
   return useQueries({
     queries: projectIds.map((id) => ({
-      queryKey: [...qk.capability(id, cap), 'job'],
-      queryFn: async () => ({ projectId: id, has: await fetchCapability(id, cap) }),
-      staleTime: 60_000,
+      ...capabilityQuery(id, cap),
+      select: (caps: readonly string[]) => ({ projectId: id, has: caps.includes(cap) }),
     })),
     combine: jobsWith,
   });

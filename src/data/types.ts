@@ -47,7 +47,7 @@ export type ProfileRow = Pick<
 >;
 
 /** What a profile save changes: only the fields that changed (Settings > Profile saves as I go). */
-export type ProfilePatch = Partial<Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company' | 'timezone' | 'timezone_set_by_user'>>;
+export type ProfilePatch = Partial<Pick<ProfileRow, 'full_name' | 'phone' | 'title' | 'company'>>;
 
 export type ProjectRow = Pick<
   Tables<'projects'>,

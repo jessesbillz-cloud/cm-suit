@@ -20,7 +20,7 @@ const inviteSchema = z.object({
   accessEnds: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date or leave it empty.'),
 });
 
-/** A role in words: its description ("Fire / building official"), else its name made readable. */
+/** A role in words: its description ("Fire marshal"), else its name made readable. */
 export function roleLabel(name: string, roles: readonly RoleRow[] | undefined): string {
   const description = roles?.find((r) => r.name === name)?.description ?? '';
   return description !== '' ? description : humanize(name);
@@ -151,7 +151,7 @@ export function InviteForm({ projectId, projectName, timeZone, onClose }: Invite
             }}
           >
             <option value="">Pick a role</option>
-            {/* Bidders and requesters join by their own links (roles.invitable), never from here. */}
+            {/* The six roles People offers, in their order (roles.invitable and roles.sort, 0087). */}
             {(roles.data ?? [])
               .filter((r) => r.invitable)
               .map((r) => (

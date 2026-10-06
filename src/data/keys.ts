@@ -20,6 +20,8 @@ export const qk = {
   roles: ['roles'] as const,
   profile: ['profile'] as const,
   capability: (projectId: string, cap: string) => ['capability', projectId, cap] as const,
+  /** Every capability I hold on a job (my_capabilities): one answer for all of a job's screens. */
+  capabilities: (projectId: string) => ['capability', projectId] as const,
   orgAdmin: (orgId: string) => ['is_org_admin', orgId] as const,
   orgSettings: (orgId: string) => ['org_settings', orgId] as const,
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */

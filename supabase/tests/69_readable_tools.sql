@@ -72,7 +72,7 @@ select is_empty($$ select * from public.my_readable_tools('c0000000-0000-0000-00
 
 -- The invite form offers only the roles one is invited to; the link-only roles are data, not names in the app.
 reset role;
-select is((select array_agg(name order by name) from public.roles where not invitable), '{bidder,requester}'::text[],
+select ok((select not bool_or(invitable) from public.roles where name in ('bidder', 'requester')),
   'bidder and requester join by their own links, not by an invite');
 select col_not_null('public', 'roles', 'invitable', 'every role says whether People can invite to it');
 

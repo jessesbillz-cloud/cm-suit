@@ -5620,6 +5620,7 @@ export type Database = {
           invitable: boolean
           name: string
           recommended_tools: string[]
+          sort: number
         }
         Insert: {
           daily_form?: string | null
@@ -5627,6 +5628,7 @@ export type Database = {
           invitable?: boolean
           name: string
           recommended_tools?: string[]
+          sort?: number
         }
         Update: {
           daily_form?: string | null
@@ -5634,6 +5636,7 @@ export type Database = {
           invitable?: boolean
           name?: string
           recommended_tools?: string[]
+          sort?: number
         }
         Relationships: []
       }
@@ -10399,6 +10402,7 @@ export type Database = {
         Returns: Json
       }
       my_bidder_member_id: { Args: { p_project_id: string }; Returns: string }
+      my_capabilities: { Args: { p_project_id: string }; Returns: string[] }
       my_daily_form: { Args: { p_project_id: string }; Returns: string }
       my_daily_today: {
         Args: never
