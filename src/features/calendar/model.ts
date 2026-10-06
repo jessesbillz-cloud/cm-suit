@@ -118,6 +118,20 @@ export function visibleLines<L extends Pick<CalendarLine, 'kind' | 'project_id'>
   return lines.filter((l) => on.has(l.kind) && (projectId !== null || calendarJobs.has(l.project_id)));
 }
 
+/**
+ * The calendar types the filter offers (0090): those I could ever see on this job, or on any of my jobs with the calendar
+ * on (All my jobs). null = not known yet (every type shows).
+ */
+export function offeredKinds(
+  byJob: Readonly<Record<string, readonly string[]>> | undefined,
+  jobs: readonly CalendarJob[],
+  projectId: string | null,
+): string[] | null {
+  if (byJob === undefined) return null;
+  const ids = projectId === null ? jobs.filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id) : [projectId];
+  return [...new Set(ids.flatMap((id) => byJob[id] ?? []))];
+}
+
 /** A mirrored delivery (0025): its all-day line is a delivery whose time is TBD, its "pending" is Standby. */
 function isDelivery(line: { source_type?: string | undefined }): boolean {
   return line.source_type === 'delivery';

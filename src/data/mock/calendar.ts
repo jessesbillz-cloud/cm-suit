@@ -206,3 +206,22 @@ export async function inspections(projectId: string, from: string, to: string): 
     return { ...row, attachment_ids: r?.attachment_ids ?? [], postpone_count: r?.postpone_count ?? 0 };
   });
 }
+
+/** my_calendar_kinds (0090): the types whose lines the mock user could see, by the same capabilities as the migration. */
+const KIND_CAPS: readonly (readonly [string, readonly string[]])[] = [
+  ['inspections', ['ir.request', 'ir.view_all', 'ir.decide', 'ir.ofs_view', 'ir.ofs_decide']],
+  ['special_inspections', ['ir.request', 'ir.view_all', 'ir.decide']],
+  ['deliveries', ['deliveries.view']],
+  ['meetings', ['calendar.read', 'safety.read']],
+  ['pours', ['calendar.read']],
+  ['milestones', ['calendar.read', 'permits.read', 'schedule.read']],
+  ['lookahead', ['calendar.read', 'schedule.read']],
+  ['my_due', ['dailies.write', 'bids.manage', 'rfi.answer']],
+];
+
+export async function kinds(): Promise<{ project_id: string; kinds: string[] }[]> {
+  // All at once: the mock's has_capability waits a moment per call.
+  const held = await Promise.all(KIND_CAPS.map(async ([, caps]) => (await Promise.all(caps.map(capability))).some(Boolean)));
+  const list = KIND_CAPS.filter((_, i) => held[i] === true).map(([kind]) => kind);
+  return MOCK_PROJECTS.map((p) => ({ project_id: p.project_id, kinds: list }));
+}

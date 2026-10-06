@@ -9,9 +9,11 @@ import { useToast } from '../../ui/Toast';
 
 interface TypeFilterProps {
   selected: readonly string[];
+  /** The types I could ever see here (0090): the rest are always empty for me, so they don't show. null = all. */
+  offered: readonly string[] | null;
 }
 
-export function TypeFilter({ selected }: TypeFilterProps) {
+export function TypeFilter({ selected, offered }: TypeFilterProps) {
   const save = useSaveLayout();
   const toast = useToast();
 
@@ -32,7 +34,7 @@ export function TypeFilter({ selected }: TypeFilterProps) {
   return (
     // Phone: one row that scrolls sideways, so the week stays in view. Desktop: the chips wrap.
     <div role="group" aria-label="Types shown" className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-      {CALENDAR_TYPES.map((kind) => {
+      {CALENDAR_TYPES.filter((kind) => offered === null || offered.includes(kind)).map((kind) => {
         const on = selected.includes(kind);
         return (
           <button

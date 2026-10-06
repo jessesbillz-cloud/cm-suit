@@ -3,6 +3,7 @@
 // lines and the week's look-ahead. "All my jobs" (projectId null) merges every job, which is how double-booking shows.
 // Days and times are each job's own (projects.timezone). The phone gets the same month and day, one column.
 import { useMemo } from 'react';
+import { useCalendarKinds } from '../../data/calendar.queries';
 import type { CalendarLine } from '../../data/calendar.types';
 import { useCapability, useJobsWithCapability, useMyProjects } from '../../data/queries';
 import { detectZone, todayInZone } from '../../lib/dates';
@@ -16,7 +17,7 @@ import { CalendarFooter } from './CalendarFooter';
 import { DayStepper } from './CalendarBar';
 import { DayDetail } from './DayDetail';
 import { isLookahead, type Entry, type LineEntry } from './entries';
-import { CAL_VIEWS, rangeLabel, step, VIEW_LABELS, visibleDays, type CalView } from './model';
+import { CAL_VIEWS, offeredKinds, rangeLabel, step, VIEW_LABELS, visibleDays, type CalView } from './model';
 import { MonthGrid } from './MonthGrid';
 import { TypeFilter } from './TypeFilter';
 import { useCalendarData } from './useCalendarData';
@@ -44,6 +45,8 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const week = useMemo(() => visibleDays('week', selected), [selected]);
   const data = useCalendarData(projectId, days);
   const manage = useCapability(projectId, 'calendar.manage');
+  const kinds = useCalendarKinds();
+  const offered = useMemo(() => offeredKinds(kinds.data, projects.data ?? [], projectId), [kinds.data, projects.data, projectId]);
   // All my jobs: Add shows only when some job with the calendar on lets me add lines (as Block time does).
   const calendarJobs = useMemo(
     () => (projectId === null ? (projects.data ?? []).filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id) : []),
@@ -72,7 +75,7 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
           />
         </>
       }
-      below={data.types ? <TypeFilter selected={data.types} /> : null}
+      below={data.types ? <TypeFilter selected={data.types} offered={offered} /> : null}
     />
   );
 
