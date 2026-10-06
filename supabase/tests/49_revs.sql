@@ -83,11 +83,11 @@ select 'b0000000-0000-0000-0000-000000000491', p, u, e, r, 'active'
 
 -- Files: a plan sheet (PDF) and a photo on J1, a PDF on J3, the server-made map; request-folder uploads by the sub and
 -- the requester.
-insert into public.folders (id, org_id, project_id, name, created_by) values
+insert into public.folders (id, org_id, project_id, name, kind, created_by) values
   ('d0000000-0000-0000-0000-000000000491', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000491',
-   'Sample Plans', 'a0000000-0000-0000-0000-000000000491'),
+   'Sample Plans', 'plans', 'a0000000-0000-0000-0000-000000000491'),
   ('d0000000-0000-0000-0000-000000000493', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000493',
-   'Sample Plans', 'a0000000-0000-0000-0000-000000000491');
+   'Sample Plans', 'plans', 'a0000000-0000-0000-0000-000000000491');
 insert into ids values ('attach', public.ir_folder_make('c0000000-0000-0000-0000-000000000491', 'attachments'));
 insert into public.files (id, org_id, project_id, folder_id, storage_path, original_name, mime, created_by, scan_status) values
   ('e0000000-0000-0000-0000-000000000491', 'b0000000-0000-0000-0000-000000000491', 'c0000000-0000-0000-0000-000000000491',
