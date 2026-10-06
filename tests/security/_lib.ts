@@ -350,6 +350,13 @@ export const WEATHER_RPCS: [string, Record<string, unknown>][] = [
   }],
 ];
 
+/** Outside people see their own part (0090): a request's files with the request, documents vs working folders, calendar types. */
+export const OUTSIDE_SCOPE_RPCS: [string, Record<string, unknown>][] = [
+  ['file_on_visible_request', { p_file_id: ZERO_UUID, p_project_id: ZERO_UUID }],
+  ['folder_is_document', { p_folder_id: ZERO_UUID }],
+  ['my_calendar_kinds', {}],
+];
+
 /** Files' Delete, Undo and Rename and the viewer's keep rule (0074). */
 export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   ['file_remove', { p_file_id: ZERO_UUID, p_version: 1 }],

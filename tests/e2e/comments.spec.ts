@@ -61,7 +61,7 @@ test.describe('comments', () => {
     await signIn(page, 'pm', RFI);
     await expect(page.getByTestId('right-column')).toBeVisible();
     await expect(page.getByTestId('comments')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Full width' }).click();
+    await page.getByTestId('right-full').click();
     await expect(page.getByTestId('comments').getByTestId('comment')).toHaveCount(2);
   });
 

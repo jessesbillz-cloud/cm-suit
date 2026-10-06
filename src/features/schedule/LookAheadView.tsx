@@ -23,7 +23,7 @@ function Group({ title, sub, count, testId, children }: { title: string; sub: st
   return (
     <section data-testid={testId} className="border-b border-line last:border-b-0">
       <header className="flex items-baseline gap-2 bg-card-head px-4 py-2">
-        <h2 className="text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-2">{title}</h2>
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.04em] text-ink">{title}</h2>
         {sub ? <span className="text-[13px] text-ink-3">{sub}</span> : null}
         <span className="ml-auto text-[13px] tabular-nums text-ink-3">{count}</span>
       </header>

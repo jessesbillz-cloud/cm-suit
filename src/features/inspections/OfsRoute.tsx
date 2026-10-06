@@ -1,6 +1,7 @@
-// An OFS request in the inspector's hands (SPEC §18.4 P1): he routes it, he never inspects it. Before it is sent: Send
-// to OFS, or Postpone (the form every request has). Once sent it is the deputy's: one quiet line here, and Undo while
-// the deputy has not acted. The database decides each one again.
+// An OFS request in the hands of whoever sends it (SPEC §18.4 P1, 0091): the inspector, or the job's OFS duty holder.
+// He routes it, he never inspects it. Before it is sent: Send to OFS (the duty holder's once the inspector has checked
+// it), or Postpone (the inspector's, the form every request has). Once sent it is the deputy's: one quiet line here, and
+// Undo for the sender while the deputy has not acted. The database decides each one again.
 import { useState } from 'react';
 import { PauseCircle, Send, Undo2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -10,6 +11,7 @@ import type { IrRevItem } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
 import { WITH_GC, WITH_OFS, ownsSteps, withOfs } from './model';
+import { canSend } from './ofsFlow';
 import { PostponeForm, canPostpone } from './PostponeForm';
 
 interface OfsRouteProps {
@@ -17,15 +19,17 @@ interface OfsRouteProps {
   me: string;
   /** The request's walls and items (null when it has none): a wall with a result means the deputy has acted. */
   revs: readonly IrRevItem[] | null;
+  /** I decide inspections here (ir.decide); otherwise I hold the job's OFS requests duty. */
+  inspector: boolean;
 }
 
 /** Not sent yet, and mine or nobody's: send it on, or postpone it. */
-function OfsSend({ row, me }: { row: IrRequest; me: string }) {
+function OfsSend({ row, me, inspector }: { row: IrRequest; me: string; inspector: boolean }) {
   const send = useSendOfs();
   const [postponing, setPostponing] = useState(false);
   if (!ownsSteps(row, me)) return null;
   const sendable = row.status === 'pending' || row.status === 'postponed';
-  const postponable = canPostpone(row.status);
+  const postponable = inspector && canPostpone(row.status);
 
   return (
     <section
@@ -39,6 +43,7 @@ function OfsSend({ row, me }: { row: IrRequest; me: string }) {
             variant="primary"
             icon={Send}
             loading={send.isPending}
+            disabled={!canSend(row, inspector)}
             data-testid="ir-send-ofs"
             onClick={() => {
               send.mutate(row);
@@ -104,7 +109,7 @@ function OfsSent({ row, me, revs }: OfsRouteProps) {
   );
 }
 
-export function OfsRoute({ row, me, revs }: OfsRouteProps) {
+export function OfsRoute({ row, me, revs, inspector }: OfsRouteProps) {
   if (WITH_GC.includes(row.status)) return null;
-  return withOfs(row) ? <OfsSent row={row} me={me} revs={revs} /> : <OfsSend row={row} me={me} />;
+  return withOfs(row) ? <OfsSent row={row} me={me} revs={revs} inspector={inspector} /> : <OfsSend row={row} me={me} inspector={inspector} />;
 }

@@ -81,6 +81,39 @@ test.describe('inspections (SPEC §13.2)', () => {
     await expect(pane.getByTestId('ir-generate')).toBeVisible();
   });
 
+  test('attendance only sets the attendance: a pending request stays pending until Confirm (Oct 5)', async ({ page }) => {
+    await page.goto('/p/job-a/inspections?view=week');
+    await page.getByTestId('ir-new').click();
+    await page.getByTestId('ir-time').selectOption('09:00');
+    await page.getByTestId('ir-items').fill('Sample shear wall nailing at grid C');
+    await page.getByTestId('ir-ack').check();
+    await page.getByTestId('ir-submit').click();
+    await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
+    const n = ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
+
+    await page.goto(`/p/job-a/inspections/mock-ir-${n}`);
+    const pane = page.getByTestId('ir-pane');
+    // Pending: Confirm and Attendance; no result to tap until it is confirmed.
+    await expect(pane.getByTestId('ir-confirm')).toBeVisible();
+    await expect(pane.getByTestId('ir-result-approved')).toHaveCount(0);
+    await pane.getByTestId('ir-attendance-be_present').click();
+    await expect(pane.getByTestId('ir-attendance-be_present')).toHaveAttribute('aria-checked', 'true');
+    await expect(pane.getByTestId('ir-tracker')).not.toContainText('Confirmed');
+    await expect(pane.getByTestId('ir-confirm')).toBeVisible();
+    await expect(pane.getByTestId('ir-result-approved')).toHaveCount(0);
+    // The day's queue beside it: still pending (yellow), with the attendance call.
+    const row = page.getByTestId(`ir-queue-${n}`);
+    await expect(row).toContainText('Pending');
+    await expect(row).toContainText('Be present with the IOR');
+
+    // Confirm is its own tap; then the result opens.
+    await pane.getByTestId('ir-confirm').click();
+    await expect(row).toContainText('Confirmed');
+    await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
+    await expect(pane.getByTestId('ir-attendance-be_present')).toHaveAttribute('aria-checked', 'true');
+    await expect(pane.getByTestId('ir-result-approved')).toBeVisible();
+  });
+
   test('attendance in MDR\'s words; Send results offers the link requester and a typed address (0075)', async ({ page }) => {
     // A visitor asks through the link with an email (a later init script wins over the pm one).
     await page.addInitScript(() => {

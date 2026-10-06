@@ -3,7 +3,7 @@
 // else (the Calendar, the Board) the deliveries board behind it moves to the delivery's day. The receipt has no stored
 // PDF, so it prints (SPEC §7.2's Download applies once the worker renders receipts).
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, History, Pencil, Printer, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, Printer, Trash2 } from 'lucide-react';
 import { useIsPhone } from '../../app/frame/useIsPhone';
 import { useUser } from '../../data/auth';
 import { useDelivery } from '../../data/deliveries.queries';
@@ -12,6 +12,7 @@ import type { DeliveryRow } from '../../data/deliveries.types';
 import { messageOf } from '../../data/errors';
 import { useCapability, useProject } from '../../data/queries';
 import { todayInZone } from '../../lib/dates';
+import { BehindLink } from '../../ui/BehindLink';
 import { Button } from '../../ui/Button';
 import { PaneSection } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -42,7 +43,7 @@ interface PaneProps {
   onOpenWindow?: (() => void) | undefined;
 }
 
-type Mode = 'view' | 'edit' | 'delete' | 'history' | 'print';
+type Mode = 'view' | 'edit' | 'delete' | 'print';
 
 function DeliveryPane({ projectId, projectName, row, tz, canChange, onOpenWindow }: PaneProps) {
   const [mode, setMode] = useState<Mode>('view');
@@ -115,30 +116,23 @@ function DeliveryPane({ projectId, projectName, row, tz, canChange, onOpenWindow
           <DeliveryPhotos projectId={projectId} deliveryId={row.id} fileIds={row.file_ids} canAdd={canChange} isPhone={isPhone} />
         )}
         {mode === 'delete' ? <DeleteBox projectId={projectId} row={row} onDeleted={onDeleted} onCancel={toView} /> : null}
-        <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-          {canChange && !deleted && mode !== 'delete' ? (
-            <>
-              <Button icon={Pencil} onClick={() => {
-                  setMode('edit');
-                }}>
-                Edit
-              </Button>
-              <Button variant="danger" icon={Trash2} onClick={() => {
-                  setMode('delete');
-                }}>
-                Delete
-              </Button>
-            </>
-          ) : null}
-          {mode !== 'history' ? (
-            <Button variant="quiet" icon={History} onClick={() => {
-                setMode('history');
+        {canChange && !deleted && mode !== 'delete' ? (
+          <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+            <Button icon={Pencil} onClick={() => {
+                setMode('edit');
               }}>
-              History
+              Edit
             </Button>
-          ) : null}
-        </div>
-        {mode === 'history' ? <HistoryList projectId={projectId} deliveryId={row.id} tz={tz} /> : null}
+            <Button variant="danger" icon={Trash2} onClick={() => {
+                setMode('delete');
+              }}>
+              Delete
+            </Button>
+          </div>
+        ) : null}
+        <BehindLink label="History" testId="delivery-history-link">
+          <HistoryList projectId={projectId} deliveryId={row.id} tz={tz} />
+        </BehindLink>
       </div>
       {mode === 'print' ? (
         <PrintSheet onClose={toView}>

@@ -19,7 +19,7 @@ function what(h: CorrectionHistoryRow, all: readonly CorrectionHistoryRow[]): st
 
 export function CorrectionHistory({ projectId, history, nameOf, timeZone }: CorrectionHistoryProps) {
   return (
-    <ol className="mt-4 flex flex-col gap-3 border-t border-line pt-4" data-testid="cn-history">
+    <ol className="mt-2 flex flex-col gap-3 border-t border-line pt-4" data-testid="cn-history">
       {history.map((h) => (
         <li key={h.id} className="flex flex-col gap-1">
           <p className="text-sm text-ink">

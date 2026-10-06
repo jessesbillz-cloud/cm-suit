@@ -92,7 +92,6 @@ export function useCreateRfi() {
         await supabase.rpc('rfi_create', {
           p_project_id: v.projectId,
           ...fieldArgs(v),
-          ...(v.neededBy ? { p_needed_by: v.neededBy } : {}),
           ...(v.costImpact !== null ? { p_cost_impact: v.costImpact } : {}),
           ...(v.timeImpact !== null ? { p_time_impact: v.timeImpact } : {}),
           p_key: v.key,
@@ -115,7 +114,6 @@ export function useUpdateRfi() {
           p_rfi_id: v.ref.id,
           p_version: v.ref.version,
           ...fieldArgs(v.fields),
-          p_needed_by: sqlNull(v.fields.neededBy),
           p_cost_impact: sqlNull(v.fields.costImpact),
           p_time_impact: sqlNull(v.fields.timeImpact),
         }),

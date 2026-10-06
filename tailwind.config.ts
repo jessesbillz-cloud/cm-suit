@@ -10,14 +10,16 @@ export default {
       colors: {
         page: '#EDF0F4',
         card: { DEFAULT: '#FFFFFF', head: '#F8F9FB' },
-        ink: { DEFAULT: '#111827', 2: '#586273', 3: '#98A1B0' },
+        // Readable ink only (Jesse, Oct 5: "you like to hide things and put things in super light lettering"): ink for
+        // what matters, ink-2 for a second line, ink-3 for small print. Placeholders and disabled use ink-3 at half.
+        ink: { DEFAULT: '#111827', 2: '#374151', 3: '#4B5563' },
         line: { DEFAULT: '#E2E5EA', strong: '#CDD2DA' },
         accent: { DEFAULT: '#2563EB', hover: '#1D4ED8', soft: '#EFF6FF' },
         danger: { DEFAULT: '#DC2626', soft: '#FEF2F2' },
         // The one amber highlight: impact claimed (row, box edge, icon).
         impact: { row: '#FFF7E6', edge: '#F3D7A6', ink: '#B45309' },
         // The tool rail: a dark navy strip down the left, so the white work area reads as the page.
-        rail: { DEFAULT: '#0F1A2B', hover: '#1B2A40', active: '#24364F', ink: '#8D9BB0', line: '#22324A' },
+        rail: { DEFAULT: '#0F1A2B', hover: '#1B2A40', active: '#24364F', ink: '#D3DBE6', line: '#22324A' },
       },
       boxShadow: {
         // Hairline edge + contact shadow + soft lift.

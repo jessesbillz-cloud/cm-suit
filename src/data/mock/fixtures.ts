@@ -53,6 +53,19 @@ export const MOCK_FILES: FileRow[] = [
     created_at: '2026-09-20T16:00:00Z',
     created_by: 'mock-someone',
   })),
+  // Job A's project manual (mock/specs has its sections).
+  {
+    id: 'job-a-file-manual',
+    project_id: 'job-a',
+    folder_id: 'job-a-specs',
+    original_name: 'Sample Project Manual.pdf',
+    mime: 'application/pdf',
+    size: 52_418,
+    scan_status: 'clean',
+    upload_complete: true,
+    created_at: '2026-09-21T16:00:00Z',
+    created_by: 'mock-someone',
+  },
   ...SEED_FILES,
   ...IR_SEED_FILES,
   ...PERMIT_JOB_FILES,
@@ -171,14 +184,19 @@ export const MOCK_PEOPLE: Person[] = [
   { user_id: null, member_id: 'member-5', full_name: 'sample.invitee', company: '', role: 'viewer', status: 'invited', access_ends_at: null },
 ];
 
+/** As roles answers (0087): the six offered roles in their order, then roles people may still hold. */
 export const MOCK_ROLES: RoleRow[] = [
-  { name: 'architect', description: 'Architect / engineer of record', invitable: true },
-  { name: 'bidder', description: 'Invited to bid', invitable: false },
-  { name: 'inspector', description: 'Inspector of record', invitable: true },
   { name: 'pm', description: 'Project manager', invitable: true },
-  { name: 'viewer', description: 'Read-only', invitable: true },
+  { name: 'pe', description: 'Project engineer', invitable: true },
+  { name: 'superintendent', description: 'Superintendent', invitable: true },
+  { name: 'inspector', description: 'Inspector', invitable: true },
+  { name: 'ahj', description: 'Fire marshal', invitable: true },
+  { name: 'owner_rep', description: 'Owner / CM', invitable: true },
+  { name: 'architect', description: 'Architect / engineer of record', invitable: false },
+  { name: 'bidder', description: 'Invited to bid', invitable: false },
+  { name: 'viewer', description: 'Read-only', invitable: false },
   { name: 'requester', description: 'Requester', invitable: false },
-  { name: 'sub', description: 'Subcontractor on the job', invitable: true },
+  { name: 'sub', description: 'Subcontractor on the job', invitable: false },
 ];
 
 export function mockProfile(userId: string, email: string): ProfileRow {

@@ -83,6 +83,18 @@ export function useCalendarFeed() {
   return useQuery({ queryKey: qk.calendarFeed, queryFn: fetchFeed });
 }
 
+const kindsSchema = z.array(z.object({ project_id: z.string(), kinds: z.array(z.string()) }));
+
+async function fetchKinds(): Promise<Record<string, string[]>> {
+  const rows = isMock() ? await mock.kinds() : kindsSchema.parse(throwIfError(await supabase.rpc('my_calendar_kinds')));
+  return Object.fromEntries(rows.map((r) => [r.project_id, r.kinds]));
+}
+
+/** Job id -> the calendar types I could ever see there (0090, has_capability): the type filter offers only these. */
+export function useCalendarKinds() {
+  return useQuery({ queryKey: qk.calendarKinds, queryFn: fetchKinds, staleTime: 5 * 60_000 });
+}
+
 /** Inspections are live: they refresh every 30 seconds while on screen, like the inspections tool. */
 const LIVE_MS = 30_000;
 

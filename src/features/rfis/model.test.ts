@@ -215,18 +215,18 @@ describe('the RFI form', () => {
   };
 
   it('starts empty for a new RFI and from the saved one otherwise', () => {
-    expect(formOf(null)).toEqual({ title: '', question: '', suggestion: '', refs: '', neededBy: '', cost: false, time: false, kept: [] });
+    expect(formOf(null)).toEqual({ title: '', question: '', suggestion: '', refs: '', cost: false, time: false, kept: [] });
     expect(formOf(saved)).toEqual({
-      title: 'Sample title', question: 'Sample question?', suggestion: 'Sample idea', refs: 'Sample A-101', neededBy: '2026-10-01',
+      title: 'Sample title', question: 'Sample question?', suggestion: 'Sample idea', refs: 'Sample A-101',
       cost: true, time: false, kept: ['p1', 'p2'],
     });
   });
 
   it('a save trims, keeps photos then adds new ones, and sends unchecked impact as not stated', () => {
-    const form = { ...formOf(saved), title: '  Sample title  ', neededBy: '', cost: false, kept: ['p2'] };
+    const form = { ...formOf(saved), title: '  Sample title  ', cost: false, kept: ['p2'] };
     expect(fieldsOf(form, ['p2', 'p3'])).toEqual({
       title: 'Sample title', question: 'Sample question?', photoIds: ['p2', 'p3'], suggestion: 'Sample idea', refs: 'Sample A-101',
-      neededBy: null, costImpact: null, timeImpact: null,
+      costImpact: null, timeImpact: null,
     });
   });
 

@@ -14,7 +14,7 @@ insert into want values
   ('signin_keys', ''), ('requirements', ''),
   ('csi_divisions', 'SELECT'), ('csi_sections', 'SELECT'), ('ir_maps', 'SELECT'), ('ir_rev_items', 'SELECT'),
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
-  ('rev_signoffs', 'SELECT'), ('rev_rooms', 'SELECT'), ('rev_room_walls', 'SELECT'),
+  ('rev_signoffs', 'SELECT'), ('rev_rooms', 'SELECT'), ('rev_room_walls', 'SELECT'), ('project_duties', 'SELECT'), ('spec_sections', 'SELECT'),
   ('safety_signins', 'SELECT'), ('safety_topics', 'SELECT'), ('schedule_activities', 'SELECT'),
   ('project_places', 'SELECT'), ('project_weather', 'SELECT'),
   ('schedule_versions', 'SELECT'), ('role_permissions', 'SELECT'), ('roles', 'SELECT'), ('job_kinds', 'SELECT'),

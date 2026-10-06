@@ -10,6 +10,7 @@ import {
   parseView,
   requestChip,
   requestCount,
+  resultOpen,
   routesOnly,
   rowChip,
   trackerSteps,
@@ -164,8 +165,12 @@ describe('views and the log', () => {
 
 describe('inspector step cards', () => {
   const row = { status: 'pending', result: null, attendance: null, ir_file_id: null, pdf_stale: false, results_sent_at: null };
-  it('starts on Confirm; Result can be recorded any time; IR and Send wait', () => {
-    expect(inspectorSteps(row)).toEqual({ confirm: 'current', attendance: 'open', result: 'open', pdf: 'todo', send: 'todo' });
+  it('starts on Confirm; attendance any time; Result waits for Confirm, as do the IR and Send', () => {
+    expect(inspectorSteps(row)).toEqual({ confirm: 'current', attendance: 'open', result: 'todo', pdf: 'todo', send: 'todo' });
+    expect(inspectorSteps({ ...row, attendance: 'be_present' })).toEqual({
+      confirm: 'current', attendance: 'done', result: 'todo', pdf: 'todo', send: 'todo',
+    });
+    expect([resultOpen('pending'), resultOpen('postponed'), resultOpen('confirmed'), resultOpen('complete')]).toEqual([false, false, true, true]);
   });
   it('moves to Result, then the IR, then Send results', () => {
     expect(inspectorSteps({ ...row, status: 'confirmed', attendance: 'alone' })).toEqual({

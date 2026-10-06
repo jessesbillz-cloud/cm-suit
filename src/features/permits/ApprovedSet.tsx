@@ -16,7 +16,7 @@ import { LoadingState } from '../../ui/States';
 import { useDownload } from '../files/useDownload';
 import { stampLabel } from './stamp';
 
-const HEADING = 'text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3';
+const HEADING = 'text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink';
 
 interface SetCardProps {
   permitId: string;

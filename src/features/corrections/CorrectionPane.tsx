@@ -1,6 +1,5 @@
 // One correction in the right column (or full screen on the phone): the reading pane (SPEC §7.4). Arrow keys move
 // through the log in the order it is shown (sort and search come from the URL). History sits behind one link.
-import { useState } from 'react';
 import { useUser } from '../../data/auth';
 import { useCorrectionHistory, useCorrections } from '../../data/corrections.queries';
 import { useProject, usePeopleDisplay } from '../../data/queries';
@@ -28,7 +27,6 @@ export function CorrectionPane({ projectId, itemId, isPhone, onOpenWindow }: Cor
   const project = useProject(projectId);
   const people = usePeopleDisplay(projectId);
   const { caps, error: capsError, retry } = useCorrectionCaps(projectId);
-  const [showHistory, setShowHistory] = useState(false);
 
   if (capsError) return <ErrorState error={capsError} onRetry={retry} />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
@@ -60,9 +58,7 @@ export function CorrectionPane({ projectId, itemId, isPhone, onOpenWindow }: Cor
       onNext={next === null ? undefined : () => {
         nav.open(next);
       }}
-      onHistory={() => {
-        setShowHistory((v) => !v);
-      }}
+      history={<CorrectionHistory projectId={projectId} history={history.data} nameOf={nameOf} timeZone={tz} />}
       onOpenWindow={onOpenWindow}
     >
       <CorrectionBody
@@ -75,7 +71,6 @@ export function CorrectionPane({ projectId, itemId, isPhone, onOpenWindow }: Cor
         timeZone={tz}
         isPhone={isPhone}
       />
-      {showHistory ? <CorrectionHistory projectId={projectId} history={history.data} nameOf={nameOf} timeZone={tz} /> : null}
     </ReadingPane>
   );
 }

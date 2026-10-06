@@ -13,7 +13,9 @@ import { MOCK_PEOPLE } from './fixtures';
 import { calendarRows, type MockBlock } from './irCalendar';
 import { permitJobRequests, seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
-import { STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, type Args } from './irRules';
+import { holder } from './duties';
+import { NO_OFS_CHECKS, STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, type Args } from './irRules';
+import { OFS_STEPS, backToGc, stampOnFile } from './ofsRules';
 import { projectSettings } from './jobs';
 import { has as hasPermitRight } from './permitStore';
 import { revsJobRequests } from './revSeeds';
@@ -21,7 +23,8 @@ import { read as readRevs } from './revs';
 import { delay, readMock } from './store';
 
 const KEY = 'e2e-mock-ir';
-const TZ = 'America/Los_Angeles';
+/** The sample jobs' zone. */
+export const TZ = 'America/Los_Angeles';
 /** The active special kinds in order: My Daily Reports' list (0084), as ir_form_context answers them. */
 const KINDS = [
   { id: 'kind-welding', name: 'Welding' },
@@ -186,7 +189,7 @@ function newRow(a: Args, number: number): IrRowRaw {
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
-    ofs_sent_at: null, ofs_sent_by: null, special_required: null,
+    ofs_sent_at: null, ofs_sent_by: null, special_required: null, ...NO_OFS_CHECKS,
   };
 }
 
@@ -225,20 +228,21 @@ function fileRequest(a: Args, by: string | null, patch: Partial<IrRowRaw>): IrRo
   const s = read();
   const number = s.next[projectId] ?? 1;
   const fresh = newRow(a, number);
-  const row = withOfs(
+  const filed = withOfs(
     {
       ...fresh, status: firstStatus(by, kind, jobFacts(projectId)), special_required: kind === 'ofs' && typeof special === 'boolean' ? special : null,
       ofs_sent_at: sent ? fresh.created_at : null, ofs_sent_by: sent ? by : null, ...patch,
     },
     s,
   );
+  const row = { ...filed, ...stampOnFile(filed, by) };
   write((x) => ({ ...x, requests: [...x.requests, row], next: { ...x.next, [projectId]: number + 1 },
     events: [...x.events, { id: x.events.length + 1, request_id: row.id, action: 'submit', actor_id: by, created_at: row.created_at }] }));
   return row;
 }
 
 /** ir_for_update: the request, if the signed-in mock user may read it in full. */
-function readable(requestId: unknown): IrRowRaw {
+export function readable(requestId: unknown): IrRowRaw {
   const r = read().requests.find((x) => x.id === requestId);
   if (!r || !maySee(mockUser().id, r)) throw notFound();
   return r;
@@ -258,7 +262,7 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   await delay();
   const me = mockUser().id;
   if (name === 'ir_submit') return fileRequest(a, me, {});
-  const step = STEPS[name];
+  const step = STEPS[name] ?? OFS_STEPS[name];
   if (!step) throw notFound();
   const current = readable(a['p_request_id']);
   // The permit link checks the version only once it has something to change (set_request_permit).
@@ -271,10 +275,13 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
     first: (kind) => firstStatus(me, kind, jobFacts(current.project_id)),
     wallResult: readRevs().cells.some((c) => c.request_id === current.id && c.result !== null),
     permits: { manage: hasPermitRight('permits.manage'), read: hasPermitRight('permits.read') },
+    sender: holds(me, 'ir.decide') || holder(current.project_id) === me,
+    numberTaken: (n) => read().requests.some((r) => r.project_id === current.project_id && r.id !== current.id && r.ofs_number === n),
   });
   if (change === null) return current;
   if (late && current.version !== a['p_version']) throw conflictError();
-  const next: IrRowRaw = { ...current, ...change, version: current.version + 1, updated_at: now };
+  const changed: IrRowRaw = { ...current, ...change };
+  const next: IrRowRaw = { ...changed, ...backToGc(current, changed), version: current.version + 1, updated_at: now };
   write((s) => ({
     ...s,
     requests: s.requests.map((r) => (r.id === next.id ? next : r)),

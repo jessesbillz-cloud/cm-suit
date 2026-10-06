@@ -5,7 +5,7 @@ import { ChipPick } from '../../ui/ChipPick';
 import type { LevelGroup } from './revPick';
 
 /** The thin label over a group of buttons (a level, a rev). */
-export const GROUP_LABEL = 'text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3';
+export const GROUP_LABEL = 'text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink';
 
 interface RevWallsProps {
   groups: readonly LevelGroup[];

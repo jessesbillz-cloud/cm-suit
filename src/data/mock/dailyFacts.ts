@@ -1,6 +1,7 @@
 // my_daily_form and daily_day_facts (0070) in the e2e mock, read from the other mocks the way the database reads its
 // tables: that day's sign-ins at the job's safety meetings by company and trade (a person once), its closed meetings,
-// deliveries and inspection requests (not withdrawn). Safety only for a mock user who reads it, like its RLS.
+// deliveries and inspection requests (not withdrawn), and the requests received that day for another day (0085). Safety only for a mock user who reads it, like its RLS.
+import { formatInZone } from '../../lib/dates';
 import type { DayFacts } from '../dailies.types';
 import * as mockDeliveries from './deliveries';
 import { gcJobForm } from './gcJobs';
@@ -41,6 +42,10 @@ export async function dayFacts(projectId: string, day: string): Promise<DayFacts
   const safety = await safetyFacts(projectId, day);
   const deliveries = await mockDeliveries.list(projectId, day, day);
   const inspections = await mockInspections.list(projectId, (r) => r.request_date === day && r.status !== 'withdrawn');
+  const received = await mockInspections.list(
+    projectId,
+    (r) => r.request_date !== day && formatInZone(r.created_at, mockInspections.TZ, 'yyyy-MM-dd') === day,
+  );
   return {
     ...safety,
     deliveries: deliveries.map((d) => ({
@@ -51,6 +56,13 @@ export async function dayFacts(projectId: string, day: string): Promise<DayFacts
       .map((r) => ({
         id: r.id, number: r.number, kind: r.kind, special: r.ir_special_kinds?.name ?? null, items: r.items,
         start_time: r.start_time === null ? null : r.start_time.slice(0, 5), status: r.status, result: r.result, helper_id: r.helper_id,
+        company: r.company, ofs_sent: r.ofs_sent_at !== null,
+      })),
+    received: received
+      .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.number - b.number)
+      .map((r) => ({
+        id: r.id, number: r.number, kind: r.kind, special: r.ir_special_kinds?.name ?? null, items: r.items, company: r.company,
+        request_date: r.request_date, start_time: r.start_time === null ? null : r.start_time.slice(0, 5), ofs_sent: r.ofs_sent_at !== null,
       })),
   };
 }

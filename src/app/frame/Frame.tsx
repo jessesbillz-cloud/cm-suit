@@ -1,8 +1,10 @@
 // The desktop frame (SPEC §7.2): the rail down the left, then the top bar (job picker) over main area / right column. Bounded: nothing drags
 // or resizes; each pane collapses. Layout choices are read from and saved to user_layout.
 import { Suspense } from 'react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate, useRouter, useSearch } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
 import { opensInMain, sideItem } from '../../lib/itemIds';
+import { Button } from '../../ui/Button';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
@@ -52,8 +54,10 @@ function withoutSide(search: Record<string, unknown>): Record<string, string> {
 export function Frame({ model, folderId }: FrameProps) {
   const { loc, choices } = model;
   const navigate = useNavigate();
-  // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=).
-  const search: { view?: string | undefined; side?: string | undefined } = useSearch({ strict: false });
+  const router = useRouter();
+  // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=); ?back=board
+  // when a board line's "Open in ..." brought me here.
+  const search: { view?: string | undefined; side?: string | undefined; back?: string | undefined } = useSearch({ strict: false });
   if (!choices) return null;
 
   // An item that is a page of its own (a Revs wall) fills the main area; the right column keeps its docked panel, or
@@ -111,6 +115,19 @@ export function Frame({ model, folderId }: FrameProps) {
             onPick={model.pickJob}
             onNewJob={model.newJob}
           />
+          {search.back === 'board' ? (
+            <Button
+              size="sm"
+              icon={ArrowLeft}
+              className="font-semibold"
+              data-testid="frame-back"
+              onClick={() => {
+                router.history.back();
+              }}
+            >
+              Back
+            </Button>
+          ) : null}
           <div className="ml-auto">
             <ViewAs />
           </div>
@@ -119,13 +136,17 @@ export function Frame({ model, folderId }: FrameProps) {
             gets the same width (max-w-tool), so the left edge never jumps between tools. */}
         <div className="flex min-h-0 flex-1 justify-center">
           <div data-testid="frame-pair" className={`flex min-h-0 w-full ${rightFull ? '' : 'max-w-frame'}`}>
-          {rightFull ? null : (
-            <main data-testid="main-area" data-tool={loc.tool} className="min-w-0 flex-1 overflow-auto p-4 [scrollbar-gutter:stable]">
-              <div data-testid="tool-width" className="mx-auto w-full max-w-tool">
-                <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
-              </div>
-            </main>
-          )}
+          {/* At full screen the main area only hides: Back finds it exactly as it was, scrolled where it was. */}
+          <main
+            data-testid="main-area"
+            data-tool={loc.tool}
+            hidden={rightFull}
+            className={`min-w-0 flex-1 overflow-auto p-4 [scrollbar-gutter:stable] ${rightFull ? 'hidden' : ''}`}
+          >
+            <div data-testid="tool-width" className="mx-auto w-full max-w-tool">
+              <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
+            </div>
+          </main>
           {showRight ? (
             <RightColumn
               title={right !== null ? itemTitle(right.tool, right.itemId, search.view) : loc.tool === 'board' ? 'Today' : 'Board'}

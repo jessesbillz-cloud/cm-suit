@@ -45,7 +45,7 @@ interface BodyProps {
 const FRAME = 'relative flex min-h-[260px] flex-col overflow-hidden rounded-lg border border-line bg-page';
 const FRAME_SIZE = `${FRAME} h-[44dvh] sm:h-[calc(100dvh-360px)] sm:max-h-[640px]`;
 
-const LINK = 'min-h-8 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3';
+const LINK = 'min-h-8 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3/50';
 
 function RoomBody({ projectId, room, setup, index, rooms, canManage, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);

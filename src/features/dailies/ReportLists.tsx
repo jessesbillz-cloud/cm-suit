@@ -1,7 +1,7 @@
 // The report lists: mine (drafts and submitted, newest day first) and, for dailies.read_all, the team's submitted
-// reports with the signed PDF one click away (View full screen, Download). One row per report: number, day, (author),
-// status, open.
-import { ChevronRight, Download, Eye } from 'lucide-react';
+// reports. A row with a signed PDF has it one click away (Full screen, Download), in both lists. One row per report:
+// number, day, (author), status, open.
+import { ChevronRight, Download, Maximize2 } from 'lucide-react';
 import { useMyDailies, useTeamDailies } from '../../data/dailies.queries';
 import type { DailyReportRow } from '../../data/dailies.types';
 import { usePreviewFetch } from '../../data/preview';
@@ -20,17 +20,16 @@ import { dailyPdfItem } from './pdfItem';
 import { useDailiesNav, type DailiesView } from './useDailiesNav';
 
 const ROW = 'group flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left text-sm';
-const HOVER = 'cursor-pointer hover:bg-page/60';
 /** The row open in the right column: a soft accent fill and a 3px accent edge on the left. */
 const SELECTED = 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
 const NUMBER = 'w-10 shrink-0 font-medium tabular-nums text-ink';
 const ROW_ICON =
-  'flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-card hover:text-accent disabled:text-ink-3';
+  'flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink hover:bg-card hover:text-accent disabled:text-ink-3/50';
 
 type DownloadState = ReturnType<typeof useDownload>;
 
 function Chevron() {
-  return <Icon icon={ChevronRight} size={16} className="shrink-0 text-ink-3 group-hover:text-ink-2" />;
+  return <Icon icon={ChevronRight} size={16} className="shrink-0 text-ink-2 group-hover:text-ink" />;
 }
 
 interface ListProps {
@@ -39,23 +38,69 @@ interface ListProps {
   onOpen: (id: string) => void;
 }
 
+interface PdfButtonsProps {
+  row: DailyReportRow;
+  fileId: string;
+  download: DownloadState;
+  onView: () => void;
+  testPrefix: string;
+}
+
+/** The report's signed PDF from its row, each one click: Full screen and Download. */
+function PdfButtons({ row, fileId, download, onView, testPrefix }: PdfButtonsProps) {
+  // A changed report's stored PDF is the signed copy, never offered as current: it says so.
+  const signedOnly = pdfOffer(row, false) === 'signed';
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`${signedOnly ? 'Full screen signed copy' : 'Full screen'} ${row.filename ?? 'report'}`}
+        title={signedOnly ? 'Changed since signed. Full screen the signed copy.' : 'Full screen'}
+        data-testid={`${testPrefix}-view`}
+        className={ROW_ICON}
+        onClick={onView}
+      >
+        <Icon icon={Maximize2} size={18} />
+      </button>
+      <button
+        type="button"
+        aria-label={`${signedOnly ? 'Download signed copy' : 'Download'} ${row.filename ?? 'report'}`}
+        title={signedOnly ? 'Changed since signed. Download the signed copy.' : 'Download'}
+        disabled={download.pendingId === fileId}
+        data-testid={`${testPrefix}-download`}
+        className={ROW_ICON}
+        onClick={() => {
+          download.start(fileId);
+        }}
+      >
+        <Icon icon={Download} size={18} />
+      </button>
+    </>
+  );
+}
+
 function MyList({ projectId, selectedId, onOpen }: ListProps) {
   const mine = useMyDailies(projectId, true);
+  const download = useDownload();
+  const viewer = useFileViewer();
+  const preview = usePreviewFetch();
   if (mine.isPending) return <LoadingState label="Loading reports" />;
   if (mine.isError) return <ErrorState error={mine.error} onRetry={() => void mine.refetch()} />;
   if (mine.data.length === 0) return <EmptyState icon={TOOL_META.dailies.icon} title="No reports yet." />;
+  const items: ViewerItem[] = mine.data.flatMap((r) => (r.pdf_file_id === null ? [] : [dailyPdfItem(r, r.pdf_file_id, preview)]));
   return (
     <ul className="divide-y divide-line">
       {mine.data.map((r) => {
         const chip = reportChip(r);
         const selected = r.id === selectedId;
+        const fileId = r.pdf_file_id;
         return (
-          <li key={r.id}>
+          <li key={r.id} className={`flex items-center ${selected ? SELECTED : 'hover:bg-page/60'}`}>
             <button
               type="button"
               data-testid="daily-row"
               aria-current={selected || undefined}
-              className={`${ROW} ${selected ? SELECTED : HOVER}`}
+              className={`${ROW} min-w-0 flex-1 cursor-pointer pr-2`}
               onClick={() => {
                 onOpen(r.id);
               }}
@@ -63,8 +108,24 @@ function MyList({ projectId, selectedId, onOpen }: ListProps) {
               <span className={NUMBER}>{r.number === null ? '' : `#${String(r.number)}`}</span>
               <span className="min-w-0 flex-1 font-medium text-ink">{formatDay(r.report_date, 'EEE, MMM d')}</span>
               <StatusChip status={chip.status} label={chip.label} />
-              <Chevron />
             </button>
+            {fileId === null ? null : (
+              <PdfButtons
+                row={r}
+                fileId={fileId}
+                download={download}
+                testPrefix="daily-row"
+                onView={() => {
+                  viewer.open(
+                    items,
+                    items.findIndex((i) => i.id === fileId),
+                  );
+                }}
+              />
+            )}
+            <span className="pr-4">
+              <Chevron />
+            </span>
           </li>
         );
       })}
@@ -86,8 +147,6 @@ function TeamRow({ row, selected, onOpen, download, onView }: TeamRowProps) {
   const author = header.success ? header.data.author_name : '';
   const chip = reportChip(row);
   const fileId = row.pdf_file_id;
-  // A changed report's stored PDF is the signed copy, never offered as current: it says so.
-  const signedOnly = pdfOffer(row, false) === 'signed';
   return (
     <li className={`flex items-center ${selected ? SELECTED : 'hover:bg-page/60'}`}>
       <button
@@ -107,31 +166,7 @@ function TeamRow({ row, selected, onOpen, download, onView }: TeamRowProps) {
         <StatusChip status={chip.status} label={chip.label} />
       </button>
       {fileId === null ? null : (
-        <>
-          <button
-            type="button"
-            aria-label={`${signedOnly ? 'View signed copy' : 'View'} ${row.filename ?? 'report'}`}
-            title={signedOnly ? 'Changed since signed. View the signed copy.' : 'View'}
-            data-testid="daily-team-view"
-            className={ROW_ICON}
-            onClick={onView}
-          >
-            <Icon icon={Eye} size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label={`${signedOnly ? 'Download signed copy' : 'Download'} ${row.filename ?? 'report'}`}
-            title={signedOnly ? 'Changed since signed. Download the signed copy.' : 'Download'}
-            disabled={download.pendingId === fileId}
-            data-testid="daily-team-download"
-            className={ROW_ICON}
-            onClick={() => {
-              download.start(fileId);
-            }}
-          >
-            <Icon icon={Download} size={18} />
-          </button>
-        </>
+        <PdfButtons row={row} fileId={fileId} download={download} onView={onView} testPrefix="daily-team" />
       )}
       <span className="pr-4">
         <Chevron />

@@ -6,6 +6,7 @@ import type { CorrectionRow } from '../corrections.types';
 import type { DailyReportRow } from '../dailies.types';
 import type { IrRowRaw } from '../inspections.types';
 import type { FileRow } from '../types';
+import { NO_OFS_CHECKS } from './irRules';
 
 const JOB = 'job-b';
 const DAY = '2026-09-25';
@@ -58,7 +59,7 @@ export const SEED_IR: IrRowRaw = {
   ir_file_id: SEED_IR_PDF_ID, content_hash: null, signed_at: '2026-09-25T19:00:00Z', signed_by: INSPECTOR, pdf_stale: false,
   pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
   requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
-  ofs_sent_at: null, ofs_sent_by: null, special_required: null,
+  ofs_sent_at: null, ofs_sent_by: null, special_required: null, ...NO_OFS_CHECKS,
 };
 
 /** CN-004: open, with one photo; the next correction on the job is CN-005. */

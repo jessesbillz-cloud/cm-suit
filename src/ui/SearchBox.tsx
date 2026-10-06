@@ -27,7 +27,7 @@ export function SearchBox({ label, placeholder, initial = '', onChange, onEnter,
         aria-label={label}
         placeholder={placeholder}
         data-testid={testId}
-        className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-3"
+        className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-3/50"
         value={text}
         onChange={(e) => {
           setText(e.target.value);

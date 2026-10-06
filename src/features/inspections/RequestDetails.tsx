@@ -20,6 +20,8 @@ interface RequestDetailsProps {
   viewIsMain: boolean;
   /** Its walls and items show on their own (an OFS request with walls). */
   walls: boolean;
+  /** My Attendance step card shows it: not repeated here, so the steps don't jump under my finger when I tap it. */
+  attendanceInSteps?: boolean | undefined;
 }
 
 function Note({ label, children, testId }: { label: string; children: ReactNode; testId?: string | undefined }) {
@@ -55,9 +57,9 @@ function ViaLink({ row }: { row: IrRequest }) {
   );
 }
 
-export function RequestDetails({ row, tz, onViewIr, onDownloadIr, downloading, viewIsMain, walls }: RequestDetailsProps) {
+export function RequestDetails({ row, tz, onViewIr, onDownloadIr, downloading, viewIsMain, walls, attendanceInSteps = false }: RequestDetailsProps) {
   const result = resultLabel(row.result);
-  const attendance = attendanceLabel(row.attendance);
+  const attendance = attendanceInSteps ? null : attendanceLabel(row.attendance);
   const special = row.kind === 'ofs' ? row.special_required : null;
   const notes =
     !walls ||

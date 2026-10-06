@@ -29,7 +29,7 @@ export const MODULES = [
   { value: 'dailies', label: 'Dailies' },
   { value: 'inspections', label: 'Inspections' },
   // The fire marshal's walls and their revs (0056): on for OFS jobs being built.
-  { value: 'revs', label: 'Revs' },
+  { value: 'revs', label: 'OFS required' },
   { value: 'rfis', label: 'RFIs' },
   // For the fire / building official (0052): on for jobs being built.
   { value: 'permits', label: 'Permits' },
@@ -139,8 +139,20 @@ export function jobRail(
 ): RailModel {
   const on = railForJob(JOB_TOOLS, modules).filter((t) => readable === null || readable.includes(t));
   const chosen = choice ?? defaultJobTools(recommended);
-  const job = on.filter((t) => chosen.includes(t)).sort((a, b) => chosen.indexOf(a) - chosen.indexOf(b));
+  // A pinned tool the list doesn't name joins the end.
+  const at = (t: string) => (chosen.includes(t) ? chosen.indexOf(t) : chosen.length);
+  const job = on.filter((t) => chosen.includes(t) || isPinnedJobTool(t)).sort((a, b) => at(a) - at(b));
   return { general: [], job, more: on.filter((t) => !job.includes(t)) };
+}
+
+/**
+ * Tools always under the job's name when the job has them on and my role may read them: never under More, never taken
+ * off with Edit. Revs (Jesse, Oct 5: "I lost how to get back to the walls that we made").
+ */
+const PINNED_JOB_TOOLS: readonly string[] = ['revs'];
+
+export function isPinnedJobTool(tool: string): boolean {
+  return PINNED_JOB_TOOLS.includes(tool);
 }
 
 interface RailJob {

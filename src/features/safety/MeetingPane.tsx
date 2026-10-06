@@ -24,7 +24,7 @@ function Head({ meeting }: { meeting: Meeting }) {
   return (
     <header className="flex flex-col gap-1">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3" data-testid="safety-meeting-label">
+        <span className="text-[13px] font-bold uppercase tracking-[0.04em] text-ink" data-testid="safety-meeting-label">
           {meetingLabel(meeting.kind, meeting.number)}
         </span>
         <MeetingStatus status={meeting.status} />

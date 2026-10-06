@@ -268,13 +268,15 @@ export async function buildRfiPdf(input: RfiPdfInput): Promise<Uint8Array> {
   const c = new Cursor(doc, fonts, pdfSafe(`${rfiLabel(input.number)} · ${input.job.name} (continued)`));
 
   await header(c, input);
+  // "Needed by" only on an older RFI that has one: the answer is due by the contract ("Answer due", Jesse, Oct 5).
+  const neededBy: [string, string][] = input.neededByLabel === null ? [] : [['Needed by', input.neededByLabel]];
   fieldGrid(c, [
     ['From', [input.from.name, input.from.company].filter(Boolean).join(', ')],
     ['To', input.to],
     ['Date sent', input.sentLabel ?? '-'],
     ['Date issued', input.issuedLabel ?? '-'],
     ['Answer due', input.dueLabel ?? '-'],
-    ['Needed by', input.neededByLabel ?? '-'],
+    ...neededBy,
     ['Reference', input.refs || '-'],
   ]);
   c.gap(4);

@@ -159,7 +159,7 @@ function JobHead({ label, compact }: JobHeadProps) {
     <p
       aria-hidden="true"
       data-testid="job-rail-label"
-      className="mb-1 w-[80px] shrink-0 text-balance break-words border-b border-rail-line px-1 pb-2 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-white/85 wrap-anywhere"
+      className="mb-1 w-[80px] shrink-0 text-balance break-words border-b border-rail-line px-1 pb-2 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-white wrap-anywhere"
     >
       {label}
     </p>

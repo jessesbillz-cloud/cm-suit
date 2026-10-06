@@ -25,9 +25,16 @@ const FACTS: DayFacts = {
     { id: 'd2', number: 2, starts_at: null, company: 'Sample Steel Co', description: 'Embeds', standby: true },
   ],
   inspections: [
-    { id: 'i1', number: 7, kind: 'ior', special: null, items: 'Shear walls', start_time: '08:00', status: 'confirmed', result: null, helper_id: null },
-    { id: 'i2', number: 8, kind: 'special', special: 'Concrete', items: 'Footings', start_time: null, status: 'pending', result: null, helper_id: null },
+    {
+      id: 'i1', number: 7, kind: 'ior', special: null, items: 'Shear walls', start_time: '08:00', status: 'confirmed', result: null, helper_id: null,
+      company: 'Sample Framing Co', ofs_sent: false,
+    },
+    {
+      id: 'i2', number: 8, kind: 'special', special: 'Concrete', items: 'Footings', start_time: null, status: 'pending', result: null, helper_id: null,
+      company: 'Sample Concrete Co', ofs_sent: false,
+    },
   ],
+  received: [],
 };
 
 function content(v: unknown = {}): DailyContent {

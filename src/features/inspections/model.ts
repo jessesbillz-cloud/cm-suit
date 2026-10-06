@@ -243,6 +243,12 @@ interface StepsInput {
   results_sent_at: string | null;
 }
 
+/** A result is recorded on a confirmed request only: Confirm is its own step (MDR: Confirm schedule, the attendance
+ *  call, then Approved / Not approved; Jesse, Oct 5). Attendance never confirms, and neither does a stray result tap. */
+export function resultOpen(status: string): boolean {
+  return status === 'confirmed' || status === 'complete';
+}
+
 /** Where the inspector is on one request: Confirm → Attendance → Result → IR → Send results. */
 export function inspectorSteps(r: StepsInput): Record<'confirm' | 'attendance' | 'result' | 'pdf' | 'send', CardState> {
   const waiting = r.status === 'pending' || r.status === 'postponed';
@@ -250,7 +256,7 @@ export function inspectorSteps(r: StepsInput): Record<'confirm' | 'attendance' |
   return {
     confirm: waiting ? 'current' : 'done',
     attendance: r.attendance !== null ? 'done' : 'open',
-    result: r.status === 'postponed' ? 'todo' : r.result !== null ? 'done' : r.status === 'pending' ? 'open' : 'current',
+    result: !resultOpen(r.status) ? 'todo' : r.result !== null ? 'done' : 'current',
     pdf: r.result === null || (r.status === 'postponed' && r.ir_file_id === null) ? 'todo' : hasPdf ? 'done' : 'current',
     send: r.status !== 'complete' || !hasPdf ? 'todo' : r.results_sent_at !== null ? 'done' : 'current',
   };

@@ -8,7 +8,7 @@ import { useDiscardDraft, usePublish, useSaveDraft, useScheduleUndo } from '../.
 import type { Version } from '../../data/schedule.types';
 import { Button } from '../../ui/Button';
 import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
-import { FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
+import { DateInput, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { SaveState } from '../../ui/SaveState';
 import { StatusChip } from '../../ui/StatusChip';
@@ -137,7 +137,7 @@ export function DraftHead({ projectId, draft, source, beside, isPhone, onPublish
       <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
         <label className={FIELD_LABEL}>
           Data date
-          <input
+          <DateInput
             type="date"
             className={`${FIELD_CONTROL} ${draft.data_date === null ? 'border-danger/60' : ''}`}
             value={draft.data_date ?? ''}

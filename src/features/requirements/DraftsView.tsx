@@ -23,14 +23,37 @@ function sourceWords(row: Pick<Requirement, 'source_file_name' | 'source_page' |
   return `${row.source_file_name ?? 'Spec file'}${page}`;
 }
 
-export function Quote({ row }: { row: Pick<Requirement, 'source_quote' | 'source_file_name' | 'source_page' | 'source_file_id'> }) {
+interface QuoteProps {
+  row: Pick<Requirement, 'source_quote' | 'source_file_name' | 'source_page' | 'source_file_id'>;
+  /** Opens the book at the quoted page (the pane; never inside the draft card, which is itself a button). */
+  onSource?: ((fileId: string, page: number) => void) | undefined;
+}
+
+export function Quote({ row, onSource }: QuoteProps) {
   if (row.source_quote === '') return null;
+  const fileId = row.source_file_id;
+  const page = row.source_page;
   return (
     <figure className="flex flex-col gap-1">
       <blockquote className="border-l-2 border-line-strong pl-3 text-sm italic leading-6 text-ink-2" data-testid="req-quote">
         {row.source_quote}
       </blockquote>
-      <figcaption className="pl-3 text-xs text-ink-3">{sourceWords(row)}</figcaption>
+      <figcaption className="pl-3 text-xs text-ink-3">
+        {onSource && fileId !== null && page !== null ? (
+          <button
+            type="button"
+            data-testid="req-quote-source"
+            className="text-left font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+            onClick={() => {
+              onSource(fileId, page);
+            }}
+          >
+            {sourceWords(row)}
+          </button>
+        ) : (
+          sourceWords(row)
+        )}
+      </figcaption>
     </figure>
   );
 }

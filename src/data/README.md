@@ -6,7 +6,7 @@
 4. Edge functions are called only through `callFunction` (`functions.ts`); a non-2xx answer throws `FunctionError` with the status and error ID.
 5. Reads are TanStack Query hooks in `queries.ts`; writes are hooks in `mutations.ts`. Query keys live in `keys.ts`.
 6. Saves carry a version check: `.eq('version', v)`, and zero rows back means a conflict error. Never compute an ID or a number in the browser.
-7. Permissions come from the database (`useCapability` -> `has_capability`). The UI never reasons about role names.
+7. Permissions come from the database (`useCapability` -> `my_capabilities`, the `has_capability` test for all of a job's capabilities in one call). The UI never reasons about role names.
 8. Upload only through `upload.ts` (TUS, resumable) and its queue (`UploadQueue.tsx`); download only through `download.ts` -> `lib/saveFile`.
 9. Auth is email codes only (`auth.ts`): `sendCode`, `verifyCode`, `signOut` (clears query cache, IndexedDB, Cache Storage, `app:` keys).
 10. After every sign-in, `accept_invites()` binds pending invites (`SessionProvider.tsx`).
@@ -15,3 +15,4 @@
 13. Mock fixtures are synthetic ("Sample Job A"). No real job, customer or user data anywhere in code.
 14. No module-level mutable state: caches live in TanStack Query, the upload queue in React state, mock state in sessionStorage.
 15. Fonts are not bundled: the app uses `Inter, system-ui` and falls back to the system font (no `@fontsource/inter`, no CDN).
+16. A write waits for the server only. The one QueryClient (`queryClient.ts`) returns from `invalidateQueries` at once and reloads the lists on screen in the background. Where a screen shows the written row in place, put the server's answer in the cache with `setQueryData`.

@@ -237,7 +237,8 @@ async function render(form: ReportFormId | null, i: RenderInput): Promise<{ byte
         photosPerPage: settings.photos_per_page,
         photos: i.photos.map(({ photo: p, bytes }) => ({
           bytes,
-          caption: [p.caption.trim(), p.taken_at ? visPhotoTime(p.taken_at, header.timezone) : ''].filter((s) => s !== '').join(' · '),
+          caption: p.caption,
+          time: p.taken_at ? visPhotoTime(p.taken_at, header.timezone) : '',
           description: p.description,
         })),
       });

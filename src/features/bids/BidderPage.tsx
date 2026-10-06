@@ -21,7 +21,7 @@ import { dueRelative } from './pipeline';
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[12px] font-medium uppercase tracking-wide text-ink-3">{label}</dt>
+      <dt className="text-[12px] font-bold uppercase tracking-wide text-ink">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium text-ink">{children}</dd>
     </div>
   );

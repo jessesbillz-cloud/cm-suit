@@ -6,7 +6,8 @@
 // title bar, the job and daily table, the IOR Notes box, the signature line and the footer. Nothing is cut off: a table
 // value shrinks and wraps to fit its cell (a value too long even then is refused by name, FormFitError); notes flow onto
 // "IOR Notes (continued)" pages; photos follow 1/2/4 per page ("Site Photos"); photos with a description get "Photo
-// Analysis" pages, where a long description continues in a further card. The logo and footer are the company's data
+// Analysis" pages: the photo left with its time under it, its title and description as text beside it (no box), a long
+// description running on down the page and onto the next. The logo and footer are the company's data
 // (orgs.logo_path, the setup's job values), passed in; nothing about the company is in this file.
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { REPORT_FORMS } from '../reportForms.ts';
@@ -16,8 +17,11 @@ import { pdfSafe, wrapText } from './inspectionReport.ts';
 export interface VisPhoto {
   /** JPEG or PNG (told apart by their bytes). */
   bytes: Uint8Array;
-  /** Printed under the photo (caption and the time it was taken). */
+  /** The photo's title (the editor's "Title" box): under the photo on Site Photos, over its description on Photo
+   *  Analysis. */
   caption: string;
+  /** When it was taken (visPhotoTime), or '': under the photo. */
+  time: string;
   /** Optional; a photo with one goes on the Photo Analysis pages. */
   description: string;
 }
@@ -352,6 +356,11 @@ async function embedPhoto(ctx: Ctx, p: VisPhoto): Promise<PDFImage> {
   return img;
 }
 
+/** Title and time on one line, as the caption under a photo on Site Photos. */
+function captionOf(p: VisPhoto): string {
+  return [p.caption.trim(), p.time.trim()].filter((s) => s !== '').join(' · ');
+}
+
 /** "Site Photos": each photo fitted in its slot, its caption centered under it; a long caption takes room from the
  *  photo, never cut. */
 async function sitePhotos(ctx: Ctx, list: readonly VisPhoto[]): Promise<void> {
@@ -361,7 +370,8 @@ async function sitePhotos(ctx: Ctx, list: readonly VisPhoto[]): Promise<void> {
     for (let j = 0; j < per && i + j < list.length; j++) {
       const p = list[i + j] as VisPhoto;
       const s = SLOTS[per][j] as Slot;
-      const lines = p.caption.trim() === '' ? [] : wrapText(p.caption.trim(), ctx.font, 9, s.w);
+      const caption = captionOf(p);
+      const lines = caption === '' ? [] : wrapText(caption, ctx.font, 9, s.w);
       const extra = Math.max(0, lines.length - 1) * 11.25;
       drawFitted(page, await embedPhoto(ctx, p), s.x, s.top, s.w, s.h - extra);
       captionLines(ctx, page, lines, s.x, s.w, s.top + s.h - extra + 8, 9);
@@ -369,27 +379,19 @@ async function sitePhotos(ctx: Ctx, list: readonly VisPhoto[]): Promise<void> {
   }
 }
 
-/** Photo Analysis: two rows a page, the photo left and its description in a light card right (MDR's layout). */
-const A = { top: 150, bottom: 748, rowH: 250, gap: 48, photoX: 40, photoW: 232, cardX: 290, cardW: 286, pad: 10, size: 9, lh: 12.5 };
+/** Photo Analysis: two rows a page, the photo left (its time under it) and its title and description beside it. */
+const A = { top: 150, bottom: 748, rowH: 250, gap: 36, photoX: 40, photoW: 232, textX: 290, textW: 286, size: 9, lh: 12.5, title: 10.5, titleLh: 14 };
 
 interface AnalysisCursor {
   page: PDFPage | null;
   top: number;
 }
 
-/** Card height for n description lines (first line 14 below the top, 6 clear at the bottom, as MDR's card). */
-function cardHeight(n: number): number {
-  return 20 + A.size + Math.max(0, n - 1) * A.lh;
-}
-
-/** A light card with description lines; returns how many lines it took. */
-function card(ctx: Ctx, page: PDFPage, top: number, h: number, lines: readonly string[]): number {
-  page.drawRectangle({ x: A.cardX, y: vy(top + h), width: A.cardW, height: h, borderColor: INK, borderWidth: 0.75, color: rgb(0.97, 0.97, 0.97) });
-  const fits = Math.max(1, Math.floor((h - 20 - A.size) / A.lh) + 1);
-  lines.slice(0, fits).forEach((line, i) => {
-    text(ctx, page, line, A.cardX + A.pad, top + 14 + i * A.lh, A.size, ctx.font);
-  });
-  return Math.min(fits, lines.length);
+interface TextLine {
+  text: string;
+  bold: boolean;
+  size: number;
+  lh: number;
 }
 
 function analysisPage(ctx: Ctx, c: AnalysisCursor): PDFPage {
@@ -398,23 +400,36 @@ function analysisPage(ctx: Ctx, c: AnalysisCursor): PDFPage {
   return c.page;
 }
 
-/** One described photo; a description longer than its card continues in further cards (and pages). */
+/** The text beside a photo: its title in bold, a little space, then the description. */
+function besideLines(ctx: Ctx, p: VisPhoto): TextLine[] {
+  const title = p.caption.trim() === '' ? [] : wrapText(p.caption.trim(), ctx.bold, A.title, A.textW);
+  return [
+    ...title.map((text) => ({ text, bold: true, size: A.title, lh: A.titleLh })),
+    ...(title.length > 0 ? [{ text: '', bold: false, size: 0, lh: 4 }] : []),
+    ...wrapText(p.description.trim(), ctx.font, A.size, A.textW).map((text) => ({ text, bold: false, size: A.size, lh: A.lh })),
+  ];
+}
+
+/** One described photo. Its text runs down beside and below the photo, onto the next page when it is long. */
 async function analysisRow(ctx: Ctx, c: AnalysisCursor, p: VisPhoto): Promise<void> {
-  const lines = wrapText(p.description.trim(), ctx.font, A.size, A.cardW - 2 * A.pad);
   let page = c.page && c.top + A.rowH <= A.bottom ? c.page : analysisPage(ctx, c);
-  const h = Math.min(Math.max(A.rowH, cardHeight(lines.length)), A.bottom - c.top);
-  const cap = p.caption.trim() === '' ? [] : wrapText(p.caption.trim(), ctx.font, 8, A.photoW);
-  const capH = cap.length === 0 ? 0 : cap.length * 10 + 4;
-  drawFitted(page, await embedPhoto(ctx, p), A.photoX, c.top, A.photoW, A.rowH - capH);
-  captionLines(ctx, page, cap, A.photoX, A.photoW, c.top + A.rowH - capH + 4, 8);
-  let rest = lines.slice(card(ctx, page, c.top, h, lines));
-  c.top += h + A.gap;
-  while (rest.length > 0) {
-    if (c.top + cardHeight(1) > A.bottom) page = analysisPage(ctx, c);
-    const ch = Math.min(cardHeight(rest.length), A.bottom - c.top);
-    rest = rest.slice(card(ctx, page, c.top, ch, rest));
-    c.top += ch + A.gap;
+  const rowTop = c.top;
+  const time = p.time.trim() === '' ? [] : wrapText(p.time.trim(), ctx.font, 8, A.photoW);
+  const timeH = time.length === 0 ? 0 : time.length * 10 + 4;
+  drawFitted(page, await embedPhoto(ctx, p), A.photoX, rowTop, A.photoW, A.rowH - timeH);
+  captionLines(ctx, page, time, A.photoX, A.photoW, rowTop + A.rowH - timeH + 4, 8);
+  let y = rowTop;
+  let samePage = true;
+  for (const l of besideLines(ctx, p)) {
+    if (y + l.lh > A.bottom) {
+      page = analysisPage(ctx, c);
+      y = c.top;
+      samePage = false;
+    }
+    text(ctx, page, l.text, A.textX, y, l.size, l.bold ? ctx.bold : ctx.font);
+    y += l.lh;
   }
+  c.top = (samePage ? Math.max(rowTop + A.rowH, y) : y) + A.gap;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

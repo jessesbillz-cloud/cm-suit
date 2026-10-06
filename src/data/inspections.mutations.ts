@@ -33,7 +33,9 @@ type IrRpcName =
   | 'ir_helper_report'
   | 'ir_delete_pdf'
   | 'ir_send_ofs'
-  | 'ir_unsend_ofs';
+  | 'ir_unsend_ofs'
+  | 'ir_ofs_check'
+  | 'ir_ofs_number_set';
 
 /** The request fields a write needs: which one, and the version I saw (the database refuses a stale one). */
 export type IrRef = Pick<IrRequest, 'id' | 'version' | 'project_id'>;

@@ -23,6 +23,8 @@ import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone,
 import { PhotoStrip } from './PhotoStrip';
 import { StepForm } from './StepForm';
 import { useUndoOffer } from './useUndoOffer';
+import { SpecLink } from '../specs/SpecLink';
+import { sectionDigits } from '../specs/sections';
 
 type Mode = { kind: 'read' } | { kind: 'edit' } | { kind: 'step'; step: CorrectionStep };
 
@@ -36,21 +38,20 @@ interface CorrectionBodyProps {
   isPhone: boolean;
 }
 
-/** The notice: its number, and its file (View full screen, Download in one click). */
+/** The notice's file (View full screen, Download in one click). Its number is the item's CN number, in the header. */
 function Notice({ row }: { row: CorrectionRow }) {
   const download = useDownload();
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   const file = usePhotoFiles(row.project_id, row.notice_file_id === null ? [] : [row.notice_file_id]);
-  if (row.notice_ref === '' && row.notice_file_id === null) return null;
   const fileId = row.notice_file_id;
+  if (fileId === null) return null;
   const f = file.data?.[0];
   const item = f ? fileViewerItem(f, preview) : null;
   return (
     <p className="flex flex-wrap items-center gap-2 text-sm" data-testid="cn-notice">
       <span className="text-ink-2">Notice</span>
-      {row.notice_ref !== '' ? <span className="break-words text-ink">{row.notice_ref}</span> : null}
-      {fileId !== null && item !== null && item.kind !== 'other' ? (
+      {item !== null && item.kind !== 'other' ? (
         <Button
           size="sm"
           icon={Eye}
@@ -62,19 +63,17 @@ function Notice({ row }: { row: CorrectionRow }) {
           View
         </Button>
       ) : null}
-      {fileId !== null ? (
-        <Button
-          size="sm"
-          icon={Download}
-          loading={download.pendingId === fileId}
-          data-testid="cn-notice-download"
-          onClick={() => {
-            download.start(fileId, f?.size);
-          }}
-        >
-          {f ? 'Download' : 'Notice file'}
-        </Button>
-      ) : null}
+      <Button
+        size="sm"
+        icon={Download}
+        loading={download.pendingId === fileId}
+        data-testid="cn-notice-download"
+        onClick={() => {
+          download.start(fileId, f?.size);
+        }}
+      >
+        {f ? 'Download' : 'Notice file'}
+      </Button>
     </p>
   );
 }
@@ -104,8 +103,7 @@ function Latest({ projectId, step, nameOf, timeZone }: LatestProps) {
 
 /** Photos, description, spec tags and the notice: what was found. Left out when there is none of it. */
 function Details({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
-  const hasNotice = row.notice_ref !== '' || row.notice_file_id !== null;
-  if (row.photo_ids.length === 0 && row.description === '' && row.spec_tags.length === 0 && !hasNotice) return null;
+  if (row.photo_ids.length === 0 && row.description === '' && row.spec_tags.length === 0 && row.notice_file_id === null) return null;
   return (
     <PaneSection>
       <PhotoStrip projectId={row.project_id} ids={row.photo_ids} timeZone={timeZone} />
@@ -114,7 +112,7 @@ function Details({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
         <ul className="flex flex-wrap gap-1.5" aria-label="Spec tags">
           {row.spec_tags.map((t) => (
             <li key={t} className="rounded-md border border-line bg-card-head px-2 py-0.5 text-xs font-medium tabular-nums text-ink-2">
-              {t}
+              {sectionDigits(t) !== null ? <SpecLink projectId={row.project_id} section={t} /> : t}
             </li>
           ))}
         </ul>

@@ -205,8 +205,6 @@ export interface RfiFields {
   photoIds: string[];
   suggestion: string;
   refs: string;
-  /** yyyy-MM-dd, or null. */
-  neededBy: string | null;
   costImpact: boolean | null;
   timeImpact: boolean | null;
 }

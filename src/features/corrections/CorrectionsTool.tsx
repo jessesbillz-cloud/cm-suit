@@ -167,7 +167,7 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
     rows.length > 0 ? (
       <SearchBox
         label="Search corrections"
-        placeholder="Number, title or trade"
+        placeholder="Number, title, trade or spec"
         initial={nav.query}
         testId="cn-search"
         onChange={nav.setQuery}

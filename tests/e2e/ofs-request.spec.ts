@@ -49,13 +49,14 @@ async function subAsks(page: Page): Promise<string> {
   await page.getByTestId('ir-special-required-no').click();
   await page.getByTestId('ir-ack').check();
   await page.getByTestId('ir-submit').click();
+  await page.getByTestId('ir-attest-confirm').click();
   return receiptNumber(page);
 }
 
-/** The GC confirms request `n`, then the inspector sends it to OFS. */
+/** The GC checks request `n` Ready (0091), then the inspector sends it to OFS. */
 async function toOfs(page: Page, n: string): Promise<void> {
   await openAs(page, 'pm', `/p/job-s/inspections/mock-ir-${n}`);
-  await page.getByTestId('ir-gc').getByRole('button', { name: 'Approve' }).click();
+  await page.getByTestId('ofs-gc-check').click();
   await expect(page.getByTestId('ir-gc')).toHaveCount(0);
   await openAs(page, 'inspector', `/p/job-s/inspections/mock-ir-${n}`);
   await page.getByTestId('ir-send-ofs').click();
@@ -102,6 +103,7 @@ test.describe('OFS request with revs', () => {
     await page.getByTestId('ir-special-required-yes').click();
     await expect(page.getByTestId('ir-special-required-notice')).toHaveText(NOTICE);
     await page.getByTestId('ir-submit').click();
+    await page.getByTestId('ir-attest-confirm').click();
 
     // It waits on the GC (this job's own GC step is off: an OFS request takes it anyway). The map, right away: the
     // request's three colors; one stroke saves itself; then Make map.
@@ -125,7 +127,7 @@ test.describe('OFS request with revs', () => {
     await expect(page.getByTestId('ir-map-make')).toBeDisabled();
 
     // The deputy, once the GC has confirmed it and the inspector has sent it: the step cards (no helper), each wall
-    // his. Fail on one wall needs a reason before anything saves; the rest pass; the request is not approved.
+    // his once he confirms it. Fail on one wall needs a reason before anything saves; the rest pass; the request is not approved.
     await toOfs(page, n);
     await openAs(page, 'ahj', `/p/job-s/inspections/mock-ir-${n}`);
     const pane = page.getByTestId('ir-pane');
@@ -133,6 +135,11 @@ test.describe('OFS request with revs', () => {
     await expect(pane.getByTestId('ir-confirm')).toBeVisible();
     await expect(pane.getByLabel('Helper')).toHaveCount(0);
     await expect(pane.getByTestId('ir-special')).toContainText(NOTICE);
+    // Results wait for Confirm (its own step): the walls are read only until then.
+    await expect(page.getByTestId('rev-results')).toHaveCount(0);
+    await expect(pane.getByTestId('rev-cells')).toBeVisible();
+    await pane.getByTestId('ir-confirm').click();
+    await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
     await expect(page.getByTestId('rev-results')).toBeVisible();
     await expect(page.getByTestId('rev-left')).toHaveText('6 left');
     await page.getByTestId(`${cell(4, 1)}-failed`).click();
@@ -154,13 +161,13 @@ test.describe('OFS request with revs', () => {
     const n = await subAsks(page);
     await expect(page.getByTestId('ir-receipt')).toContainText('GC review');
 
-    // The GC: it is on the review list; Approve passes it to the inspector.
+    // The GC: it is on the review list; his Ready check (0091) passes it to the inspector.
     await openAs(page, 'pm', '/p/job-s/inspections?view=review');
     await page.getByTestId(`ir-review-${n}`).click();
     const pane = page.getByTestId('ir-pane');
     await expect(pane.getByTestId('ir-tracker')).toContainText('OFS');
     await expect(pane.getByTestId('ir-special')).toContainText('No');
-    await pane.getByTestId('ir-gc').getByRole('button', { name: 'Approve' }).click();
+    await pane.getByTestId('ofs-gc-check').click();
     await expect(pane.getByTestId('ir-gc')).toHaveCount(0);
 
     // The inspector: Send to OFS or Postpone. No Confirm, on his day or on the request; no step cards; the walls are

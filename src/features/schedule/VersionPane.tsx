@@ -22,7 +22,7 @@ interface VersionPaneProps {
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-ink-3">{label}</dt>
+      <dt className="text-[12px] font-bold uppercase tracking-[0.04em] text-ink">{label}</dt>
       <dd className="break-words text-[15px] text-ink">{children}</dd>
     </div>
   );
@@ -44,7 +44,7 @@ export function VersionPane({ projectId, versionId }: VersionPaneProps) {
       <div className="flex flex-1 flex-col gap-5 px-5 py-4">
         <header className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3">{versionName(v)}</span>
+            <span className="text-[13px] font-bold uppercase tracking-[0.04em] text-ink">{versionName(v)}</span>
             <VersionChip status={v.status} />
           </div>
           <h1 className="break-words text-[19px] font-semibold leading-7 tracking-[-0.01em] text-ink">{v.title ?? v.file_name ?? versionName(v)}</h1>

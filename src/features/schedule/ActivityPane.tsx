@@ -18,7 +18,7 @@ interface ActivityPaneProps {
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-ink-3">{label}</dt>
+      <dt className="text-[12px] font-bold uppercase tracking-[0.04em] text-ink">{label}</dt>
       <dd className="break-words text-[15px] text-ink">{children}</dd>
     </div>
   );

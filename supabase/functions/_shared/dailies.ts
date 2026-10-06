@@ -154,11 +154,13 @@ export const dailyContentSchema = z
     /** Sections that come back on the next report. */
     carry_sections: z.array(z.enum(NOTE_KEYS)).max(NOTE_KEYS.length).default([]),
     /**
-     * Reserved for inspections: IR results written into the report for the inspection date, one entry per IR (ref),
-     * updated in place when regenerated. Filled by the inspections module, never typed here.
+     * The day's inspections, one line per request (ref): requests received that day ('irq:<id>') and the day's
+     * inspections ('ir:<id>'), filled in from the day (app prefill, `auto` = the words it wrote, so a line follows its
+     * request until someone edits it), and the IR result written over the same line when the IR is generated (0029,
+     * no `auto`). Editable and removable; each source goes in once (content.pulled).
      */
     inspections: z
-      .array(z.object({ ref: z.string().min(1).max(100), text: z.string().max(4000) }))
+      .array(z.object({ ref: z.string().min(1).max(100), text: z.string().max(4000), auto: z.string().max(4000).optional() }))
       .max(100)
       .default([]),
     /** A company form's daily values (reportForms.ts), by field key. The work log leaves it empty. */

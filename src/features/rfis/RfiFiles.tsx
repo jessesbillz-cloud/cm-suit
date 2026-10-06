@@ -1,8 +1,8 @@
 // An RFI's photos or answer files. A tap opens the file viewer over them (a photo, a PDF's pages; arrows between them,
 // Download inside), all through the RFI's own gate (the preview via the RFI; the download through the rfis edge
 // function: a fresh signed URL, the original filename, logged). Photo tiles show the picture (ui/Thumb) with a
-// one-click Download in the corner; files are a line each, with Download at the end.
-import { Download } from 'lucide-react';
+// one-click Download in the corner; files are a line each, with Full screen and Download at the end (one click each).
+import { Download, Maximize2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { usePreviewFetch } from '../../data/preview';
 import { saveRfiFile, useRfiDownload } from '../../data/rfis.mutations';
@@ -60,11 +60,22 @@ export function RfiFiles({ rfiId, files, kind }: RfiFilesProps) {
                 viewer.open(items, i);
               }}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink-2">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-page text-ink">
                 <Icon icon={fileIcon(f.original_name, f.mime)} size={16} />
               </span>
               <span className="min-w-0 flex-1 break-words">{f.original_name}</span>
             </button>
+            <Button
+              size="sm"
+              variant="quiet"
+              icon={Maximize2}
+              aria-label={`Full screen ${f.original_name}`}
+              title="Full screen"
+              data-testid="rfi-file-full"
+              onClick={() => {
+                viewer.open(items, i);
+              }}
+            />
             <Button
               size="sm"
               variant="quiet"

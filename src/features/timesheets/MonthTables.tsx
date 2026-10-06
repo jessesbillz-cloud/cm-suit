@@ -75,7 +75,7 @@ export function HoursGrid({ month, hours, isPhone }: GridProps) {
             </tr>
           ))}
           <tr className="h-[48px] bg-card-head">
-            <td className={`${TD} pl-4 text-[12px] font-medium uppercase tracking-wide text-ink-3`}>Total</td>
+            <td className={`${TD} pl-4 text-[12px] font-bold uppercase tracking-wide text-ink`}>Total</td>
             {days.map((x) => {
               const sum = hours.grid.reduce((s, p) => s + (p.days[x.d] ?? 0), 0);
               return (

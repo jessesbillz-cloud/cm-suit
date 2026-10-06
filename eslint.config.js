@@ -59,6 +59,10 @@ export default tseslint.config(
           selector: "MemberExpression[property.name=/^(toLocaleDateString|toLocaleTimeString|toLocaleString|toISOString|getTimezoneOffset)$/]",
           message: 'Dates are stored UTC and shown in the project zone through src/lib/dates only (CLAUDE.md rule 14).',
         },
+        {
+          selector: "JSXOpeningElement[name.name='input'] > JSXAttribute[name.name='type'][value.value=/^(date|time|datetime-local|month|week)$/]",
+          message: 'Date and time boxes are TextField or DateInput (src/ui/Fields.tsx): a tap anywhere in the box opens the picker.',
+        },
         ...['Literal[value', 'TemplateElement[value.raw'].map((node) => ({
           selector: `${node}=/(^|\\s)(truncate|text-ellipsis|line-clamp-\\w+)(\\s|$)/]`,
           message: 'Never cut a title off: let it wrap (break-words, or wrap-anywhere for long names with no spaces). CLAUDE.md rule 15.',

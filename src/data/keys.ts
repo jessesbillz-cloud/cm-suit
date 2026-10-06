@@ -20,6 +20,8 @@ export const qk = {
   roles: ['roles'] as const,
   profile: ['profile'] as const,
   capability: (projectId: string, cap: string) => ['capability', projectId, cap] as const,
+  /** Every capability I hold on a job (my_capabilities): one answer for all of a job's screens. */
+  capabilities: (projectId: string) => ['capability', projectId] as const,
   orgAdmin: (orgId: string) => ['is_org_admin', orgId] as const,
   orgSettings: (orgId: string) => ['org_settings', orgId] as const,
   /** Every bids query of a job sits under this prefix: one invalidation after any bid write. */
@@ -40,6 +42,8 @@ export const qk = {
   calendarLine: (id: string) => ['calendar', 'line', id] as const,
   /** When my calendar feed link was made (never the token itself). */
   calendarFeed: ['calendar_feed'] as const,
+  /** The calendar types I could ever see on each of my jobs (0090): the type filter offers only these. */
+  calendarKinds: ['my_calendar_kinds'] as const,
   /** Every dailies query of a job sits under this prefix (SPEC §13.1). */
   dailies: (projectId: string) => ['dailies', projectId] as const,
   dailiesPart: (projectId: string, part: string, id = '') => ['dailies', projectId, part, id] as const,
@@ -143,4 +147,6 @@ export const qk = {
   /** Every requirements query of a job (0069: the register, the spec book's sections, the folder) sits under this prefix. */
   requirements: (projectId: string) => ['requirements', projectId] as const,
   requirementsPart: (projectId: string, part: string) => ['requirements', projectId, part] as const,
+  /** The job's spec books with their sections (0088). */
+  specBooks: (projectId: string) => ['spec_books', projectId] as const,
 };

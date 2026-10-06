@@ -66,7 +66,7 @@ test.describe('revs rooms', () => {
     // The elevator shaft is in no room: it is still there.
     await expect(rooms.getByTestId('rev-other-walls')).toBeVisible();
     await expect(rooms.getByTestId('rev-wall-mock-rev-area-3')).toBeVisible();
-    await expect(page.getByTestId('rev-walls-as-list')).toBeVisible();
+    await expect(page.getByTestId('rev-view-list')).toBeVisible();
 
     await corridor.click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs\/room-mock-room-110/);

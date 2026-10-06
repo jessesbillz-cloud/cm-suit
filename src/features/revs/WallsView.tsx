@@ -69,9 +69,9 @@ export function WallTile({ area, setup, index, onOpen, footer }: WallTileProps) 
 /** "Level 01 · 6 walls": a level's heading. */
 export function LevelHead({ title, count }: { title: string; count: string }) {
   return (
-    <h2 className="flex items-baseline gap-2 px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">
+    <h2 className="flex items-baseline gap-2 px-1 text-[12px] font-bold uppercase leading-5 tracking-[0.06em] text-ink">
       <span className="break-words">{title}</span>
-      <span className="font-medium normal-case tracking-normal text-ink-3">{count}</span>
+      <span className="font-bold normal-case tracking-normal text-ink">{count}</span>
     </h2>
   );
 }

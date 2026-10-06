@@ -1,5 +1,5 @@
 // One look for the bids lists and tables: column headers, clickable rows, and the row open in the right column.
-export const TH = 'text-[12px] font-medium uppercase tracking-wide text-ink-3';
+export const TH = 'text-[12px] font-bold uppercase tracking-wide text-ink';
 
 export const ROW_HOVER = 'cursor-pointer hover:bg-page/60';
 

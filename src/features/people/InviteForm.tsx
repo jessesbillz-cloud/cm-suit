@@ -11,7 +11,7 @@ import { endOfDayInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
+import { DateInput, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 const inviteSchema = z.object({
@@ -20,7 +20,7 @@ const inviteSchema = z.object({
   accessEnds: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Pick a date or leave it empty.'),
 });
 
-/** A role in words: its description ("Fire / building official"), else its name made readable. */
+/** A role in words: its description ("Fire marshal"), else its name made readable. */
 export function roleLabel(name: string, roles: readonly RoleRow[] | undefined): string {
   const description = roles?.find((r) => r.name === name)?.description ?? '';
   return description !== '' ? description : humanize(name);
@@ -151,7 +151,7 @@ export function InviteForm({ projectId, projectName, timeZone, onClose }: Invite
             }}
           >
             <option value="">Pick a role</option>
-            {/* Bidders and requesters join by their own links (roles.invitable), never from here. */}
+            {/* The six roles People offers, in their order (roles.invitable and roles.sort, 0087). */}
             {(roles.data ?? [])
               .filter((r) => r.invitable)
               .map((r) => (
@@ -163,7 +163,7 @@ export function InviteForm({ projectId, projectName, timeZone, onClose }: Invite
         </label>
         <label className={FIELD_LABEL}>
           Access ends (optional)
-          <input
+          <DateInput
             type="date"
             className={FIELD_CONTROL}
             value={accessEnds}

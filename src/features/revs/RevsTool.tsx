@@ -30,9 +30,13 @@ import { WallsView } from './WallsView';
 
 const META = TOOL_META.revs;
 
-const WALLS_MODES: { value: WallsMode; label: string }[] = [
+/** One row of views, always all there (Jesse, Oct 5: the walls "kind of disappeared" once the views changed): the three
+ *  ways to see the walls, then Open, Checklist and Setup. */
+type RevTab = WallsMode | Exclude<RevView, 'walls'>;
+
+const WALLS_TABS: { value: WallsMode; label: string }[] = [
   { value: 'rooms', label: 'Rooms' },
-  { value: 'list', label: 'List' },
+  { value: 'list', label: 'Walls' },
   { value: 'plan', label: 'Plan' },
 ];
 
@@ -93,8 +97,12 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const rooms = useRevRooms(projectId);
   const jobs = useMyProjects();
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
-  const views = VIEWS.filter((v) => v !== 'setup' || canManage).map((v) => ({ value: v, label: VIEW_LABELS[v] }));
+  const tabs: { value: RevTab; label: string }[] = [
+    ...WALLS_TABS,
+    ...VIEWS.filter((v): v is Exclude<RevView, 'walls'> => v !== 'walls' && (v !== 'setup' || canManage)).map((v) => ({ value: v, label: VIEW_LABELS[v] })),
+  ];
   const view = nav.view;
+  const tab: RevTab = view === 'walls' ? nav.mode : view;
   const meta = setup.data && status.data && setup.data.areas.length > 0 ? metaLine(setup.data, index) : undefined;
   const needsStatus = view !== 'setup';
   const needsRooms = view === 'walls' && nav.mode === 'rooms';
@@ -163,20 +171,21 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
           >
             Print
           </Button>
-        ) : view === 'walls' ? (
-          <Segments<WallsMode>
-            label="Walls"
-            options={WALLS_MODES}
-            value={nav.mode}
-            onPick={(m) => {
-              if (m === 'plan') nav.showPlan({});
-              else nav.setMode(m);
-            }}
-            testId="rev-walls-as"
-          />
         ) : undefined
       }
-      below={<Segments<RevView> label="View" options={views} value={view} onPick={nav.setView} testId="rev-view" />}
+      below={
+        <Segments<RevTab>
+          label="View"
+          options={tabs}
+          value={tab}
+          onPick={(t) => {
+            if (t === 'plan') nav.showPlan({});
+            else if (t === 'rooms' || t === 'list') nav.setMode(t);
+            else nav.setView(t);
+          }}
+          testId="rev-view"
+        />
+      }
     >
       {body}
     </Shell>

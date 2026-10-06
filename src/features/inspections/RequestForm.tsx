@@ -3,12 +3,14 @@
 // booking: nothing is refused for notice or overlaps. On an OFS job with revs, an OFS request picks walls and items
 // instead of typing them (prefilled from the Revs link: ?areas=&items=), and its map is drawn right after sending.
 // Every OFS request answers one question (special inspection required?); the inspector filing one himself states,
-// once, that the earlier inspections are complete (SPEC §18.4 P1: no box per item).
+// once, that the earlier inspections are complete (SPEC §18.4 P1: no box per item). Anyone else confirms the job's
+// attestation wording in one small dialog before an OFS request goes (0091).
 import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { Send } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useSubmitIr, type IrUpload } from '../../data/inspections.mutations';
+import { useOfsAttestText } from '../../data/inspections.ofs';
 import { useIrFormContext } from '../../data/inspections.queries';
 import type { FormContext, IrKind, IrRowRaw } from '../../data/inspections.types';
 import { useSubmitOfs } from '../../data/revs.mutations';
@@ -18,6 +20,7 @@ import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { listsWithWalls, prefillPick, requestPlan, statusIndex, type RevPick } from '../revs/revPick';
 import { AttachmentsField } from './AttachmentsField';
+import { AttestDialog } from './AttestDialog';
 import { ChoiceRow } from './ChoiceRow';
 import { ConflictPreview } from './ConflictPreview';
 import { IrMap } from './IrMap';
@@ -79,6 +82,10 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
   const [specialRequired, setSpecialRequired] = useState<boolean | null>(null);
   const [stated, setStated] = useState(false);
   const [sent, setSent] = useState<Sent | null>(null);
+  // The sub's attestation (0091): the dialog is open, the request goes on I confirm.
+  const [attesting, setAttesting] = useState(false);
+  const attests = kind === 'ofs' && !inspector;
+  const wording = useOfsAttestText(projectId, attests);
   const plan = kind === 'ofs' && revs !== null ? requestPlan(revs.setup, statusIndex(revs.status), pick) : null;
   const sending = plan !== null ? submitOfs : submit;
 
@@ -99,6 +106,7 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
           setAck(false);
           setSpecialRequired(null);
           setStated(false);
+          setAttesting(false);
         }}
       >
         {sent.map ? <IrMap requestId={sent.row.id} projectId={projectId} editing /> : null}
@@ -110,6 +118,47 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
   const ofsReady = kind !== 'ofs' || (specialRequired !== null && (!inspector || stated));
   const ready = isDay(when.date) && company.trim() !== '' && what && ack && ofsReady && !uploading && (kind !== 'special' || special !== '');
   const whenValue = whenOf(when);
+  const back = {
+    onError: () => {
+      setAttesting(false);
+    },
+  };
+
+  function send() {
+    const common = { projectId, company: company.trim(), attachmentIds: files.map((f) => f.id), noticeAck: ack, ...whenValue };
+    const inspectorAck = kind === 'ofs' && inspector && stated;
+    if (plan !== null) {
+      if (specialRequired === null) return;
+      const areaIds = plan.walls.map((a) => a.id);
+      const itemIds = plan.items.map((r) => r.item.id);
+      submitOfs.mutate(
+        { ...common, areaIds, itemIds, sheetFileId: sheet, specialRequired, inspectorAck },
+        {
+          ...back,
+          onSuccess: (row) => {
+            setSent({ row, map: true });
+          },
+        },
+      );
+      return;
+    }
+    submit.mutate(
+      {
+        ...common,
+        kind,
+        specialKindId: kind === 'special' ? special : null,
+        items: items.trim(),
+        specialRequired: kind === 'ofs' ? specialRequired : null,
+        inspectorAck,
+      },
+      {
+        ...back,
+        onSuccess: (row) => {
+          setSent({ row, map: false });
+        },
+      },
+    );
+  }
 
   return (
     <form
@@ -118,39 +167,22 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
       onSubmit={(e) => {
         e.preventDefault();
         if (!ready) return;
-        const common = { projectId, company: company.trim(), attachmentIds: files.map((f) => f.id), noticeAck: ack, ...whenValue };
-        const inspectorAck = kind === 'ofs' && inspector && stated;
-        if (plan !== null) {
-          if (specialRequired === null) return;
-          const areaIds = plan.walls.map((a) => a.id);
-          const itemIds = plan.items.map((r) => r.item.id);
-          submitOfs.mutate(
-            { ...common, areaIds, itemIds, sheetFileId: sheet, specialRequired, inspectorAck },
-            {
-              onSuccess: (row) => {
-                setSent({ row, map: true });
-              },
-            },
-          );
-          return;
-        }
-        submit.mutate(
-          {
-            ...common,
-            kind,
-            specialKindId: kind === 'special' ? special : null,
-            items: items.trim(),
-            specialRequired: kind === 'ofs' ? specialRequired : null,
-            inspectorAck,
-          },
-          {
-            onSuccess: (row) => {
-              setSent({ row, map: false });
-            },
-          },
-        );
+        if (attests) setAttesting(true);
+        else send();
       }}
     >
+      {attesting ? (
+        <AttestDialog
+          text={wording.data}
+          error={wording.isError ? wording.error : null}
+          onRetry={() => void wording.refetch()}
+          sending={sending.isPending}
+          onConfirm={send}
+          onBack={() => {
+            setAttesting(false);
+          }}
+        />
+      ) : null}
       <div className="flex flex-1 flex-col gap-3 p-4">
         <p className="break-words rounded-md bg-page px-3 py-2 text-[13px] text-ink-2">
           {job.name}

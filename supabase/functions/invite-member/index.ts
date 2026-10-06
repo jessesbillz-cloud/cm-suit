@@ -113,10 +113,12 @@ Deno.serve(handle(async (req) => {
   if (!project) throw new HttpError(404, 'Project not found');
 
   const role = must(
-    await service.from('roles').select('name, description').eq('name', body.role).maybeSingle(),
+    await service.from('roles').select('name, description, invitable').eq('name', body.role).maybeSingle(),
     'role lookup',
-  ) as { name: string; description: string } | null;
+  ) as { name: string; description: string; invitable: boolean } | null;
   if (!role) throw new HttpError(400, 'Unknown role');
+  // Only the roles People offers (roles.invitable, 0087). Bidders and requesters join by their own links.
+  if (!role.invitable) throw new HttpError(400, 'That role is not offered');
 
   if (body.member_org_id) {
     const org = must(await service.from('orgs').select('id').eq('id', body.member_org_id).maybeSingle(), 'org lookup');
