@@ -25,7 +25,7 @@ import { History } from './History';
 import { InspectorPanel } from './InspectorPanel';
 import { irPdfItem } from './irItems';
 import { IrMap } from './IrMap';
-import { decidesRequest, ownsSteps, requestChip, routesOnly, trackerSteps, typeLabel } from './model';
+import { decidesRequest, ownsSteps, requestChip, resultOpen, routesOnly, trackerSteps, typeLabel } from './model';
 import { OfsRoute } from './OfsRoute';
 import { RequestDetails } from './RequestDetails';
 import { RequesterActions } from './RequesterActions';
@@ -77,8 +77,10 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const cells = useIrRevItems(row.kind === 'ofs' ? row.id : null);
   const revs = cells.data !== undefined && cells.data.length > 0 ? cells.data : null;
   const decides = decidesRequest(row, can);
-  // The deputy records each wall in his Result step; everyone else sees the walls with their results here.
-  const deciding = decides && !routesOnly(row) && ownsSteps(row, user.id) && row.status !== 'postponed';
+  // My step cards show on this request (InspectorPanel). The deputy records each wall in his Result step once it is
+  // confirmed; everyone else (and he, before that) sees the walls with their results here.
+  const mySteps = decides && !routesOnly(row) && ownsSteps(row, user.id);
+  const deciding = mySteps && resultOpen(row.status);
 
   function save(fileId?: string) {
     download.mutate(
@@ -122,6 +124,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
           downloading={download.isPending && download.variables.fileId === undefined}
           viewIsMain={!decides}
           walls={revs !== null}
+          attendanceInSteps={mySteps}
           onViewIr={() => {
             viewer.open([irPdfItem(row.id, row.number)]);
           }}
