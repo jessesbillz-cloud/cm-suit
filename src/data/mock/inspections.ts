@@ -21,7 +21,8 @@ import { read as readRevs } from './revs';
 import { delay, readMock } from './store';
 
 const KEY = 'e2e-mock-ir';
-const TZ = 'America/Los_Angeles';
+/** The sample jobs' zone. */
+export const TZ = 'America/Los_Angeles';
 /** The active special kinds in order: My Daily Reports' list (0084), as ir_form_context answers them. */
 const KINDS = [
   { id: 'kind-welding', name: 'Welding' },

@@ -2,7 +2,7 @@
 // synthetic reports: page 1 carries the form's table and notes, long notes make continuation pages with nothing
 // dropped or drawn off a page, photos paginate 1/2/4 per page, described photos get Photo Analysis pages, a value too
 // long for its cell is refused by name, and the stamp signs page 1's signature line.
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { PDFDocument, PDFPage, StandardFonts } from 'pdf-lib';
 import { dailyValues, lockedValues, REPORT_FORMS } from '../reportForms.ts';
 import { PhotoReadError } from './dailyReport.ts';
 import { stampSignature } from './stamp.ts';
@@ -62,8 +62,8 @@ function words(from: number, count: number): string {
   return Array.from({ length: count }, (_, i) => `w${String(from + i).padStart(4, '0')}`).join(' ');
 }
 
-function photo(caption: string, description = '', bytes = JPEG): VisPhoto {
-  return { bytes, caption, description };
+function photo(caption: string, description = '', bytes = JPEG, time = ''): VisPhoto {
+  return { bytes, caption, time, description };
 }
 
 function titles(drawn: DrawnText[], title: string): number {
@@ -129,6 +129,34 @@ Deno.test('vis pdf: described photos get Photo Analysis pages, two a page; a lon
   const all = long.drawn.map((d) => d.text).join(' ');
   check(all.includes('w0001') && all.includes('w1200'), 'a long description is printed whole');
   check(titles(long.drawn, 'Photo Analysis') >= 2, 'and continues on another page');
+});
+
+Deno.test('vis pdf: a described photo: its title heads the description beside it, the time under it, no gray box (Oct 5)', async () => {
+  // Every filled rectangle drawn (the old analysis card was a light gray fill as big as a photo).
+  const filled: number[] = [];
+  const original = PDFPage.prototype.drawRectangle;
+  PDFPage.prototype.drawRectangle = function (this: PDFPage, options) {
+    if (options?.color !== undefined) filled.push(options.height ?? 0);
+    return original.call(this, options);
+  };
+  try {
+    const p = photo('Fire caulk at corridor 210', 'Listed system W-L-0000. No gaps at the deck.', JPEG, 'Mon, Sep 28, 2026 at 9:14 AM');
+    const { pages, drawn } = await build(input({}, [p]));
+    check(pages === 2, `${pages} pages: the form and one analysis page`);
+    const title = drawn.filter((d) => d.text === 'Fire caulk at corridor 210');
+    const desc = drawn.find((d) => d.text.startsWith('Listed system W-L-0000'));
+    const time = drawn.find((d) => d.text === 'Mon, Sep 28, 2026 at 9:14 AM');
+    check(title.length === 1, 'the title is printed once');
+    const t = title[0] as DrawnText;
+    check(desc !== undefined && time !== undefined, 'the description and the time are printed');
+    check(t.page === 1 && t.x >= 290, `the title is beside the photo, not under it (x ${t.x})`);
+    check(t.y > (desc as DrawnText).y && Math.abs(t.x - (desc as DrawnText).x) < 1, 'the title is right above its description');
+    check(t.size > (desc as DrawnText).size, 'the title reads as a heading');
+    check((time as DrawnText).x < 272, 'the time is under the photo');
+    check(filled.length === 0, `no filled box is drawn (${filled.length})`);
+  } finally {
+    PDFPage.prototype.drawRectangle = original;
+  }
 });
 
 Deno.test('vis pdf: a table value shrinks and wraps to fit; one too long for its cell is refused by name', async () => {

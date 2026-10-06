@@ -240,7 +240,7 @@ export function ReportEditor(props: ReportEditorProps) {
                 draft.edit((x) => ({ ...x, tables: { ...x.tables, [key]: change(x.tables[key] ?? []) } }));
               }}
             />
-            <InspectionsList items={c.inspections} />
+            <InspectionsList items={c.inspections} locked={locked} edit={draft.edit} />
           </>
         ) : (
           <WorkLogBody content={c} header={header} locked={locked} field={field} edit={draft.edit} onRowPhotos={onPhotos} />

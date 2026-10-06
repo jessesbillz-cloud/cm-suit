@@ -83,6 +83,24 @@ export const dayFactsSchema = z.object({
       status: z.string(),
       result: z.string().nullable(),
       helper_id: z.string().nullable(),
+      company: z.string(),
+      /** With OFS: the deputy's to decide (features/inspections/model decidesRequest). */
+      ofs_sent: z.boolean(),
+    }),
+  ),
+  /** Requests that came in that day (the job's day) for another day (0085). */
+  received: z.array(
+    z.object({
+      id: z.string(),
+      number: z.number().int(),
+      kind: z.string(),
+      special: z.string().nullable(),
+      items: z.string(),
+      company: z.string(),
+      /** The day it is for (yyyy-MM-dd) and its wall-clock time (HH:mm), or null. */
+      request_date: z.string(),
+      start_time: z.string().nullable(),
+      ofs_sent: z.boolean(),
     }),
   ),
 });

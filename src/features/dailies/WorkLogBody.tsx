@@ -1,5 +1,5 @@
-// The built-in work log's day: weather, the work log (each row with its own camera), IR results, and the note
-// sections. Field Mode shows only the IR results and the notes (roomy), under the big photo button.
+// The built-in work log's day: weather, the work log (each row with its own camera), the day's inspections, and the
+// note sections. Field Mode shows only the inspections and the notes (roomy), under the big photo button.
 import type { PhotoPick } from '../../data/dailies.mutations';
 import type { DailyContent, DailyHeader } from '../../lib/dailies';
 import { InspectionsList } from './InspectionsList';
@@ -54,7 +54,7 @@ export function WorkLogBody({ content: c, header, locked, field, edit, onRowPhot
           />
         </>
       )}
-      <InspectionsList items={c.inspections} />
+      <InspectionsList items={c.inspections} locked={locked} edit={edit} />
       <NotesFields
         content={c}
         locked={locked}

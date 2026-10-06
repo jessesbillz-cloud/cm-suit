@@ -125,7 +125,7 @@ test.describe('OFS request with revs', () => {
     await expect(page.getByTestId('ir-map-make')).toBeDisabled();
 
     // The deputy, once the GC has confirmed it and the inspector has sent it: the step cards (no helper), each wall
-    // his. Fail on one wall needs a reason before anything saves; the rest pass; the request is not approved.
+    // his once he confirms it. Fail on one wall needs a reason before anything saves; the rest pass; the request is not approved.
     await toOfs(page, n);
     await openAs(page, 'ahj', `/p/job-s/inspections/mock-ir-${n}`);
     const pane = page.getByTestId('ir-pane');
@@ -133,6 +133,11 @@ test.describe('OFS request with revs', () => {
     await expect(pane.getByTestId('ir-confirm')).toBeVisible();
     await expect(pane.getByLabel('Helper')).toHaveCount(0);
     await expect(pane.getByTestId('ir-special')).toContainText(NOTICE);
+    // Results wait for Confirm (its own step): the walls are read only until then.
+    await expect(page.getByTestId('rev-results')).toHaveCount(0);
+    await expect(pane.getByTestId('rev-cells')).toBeVisible();
+    await pane.getByTestId('ir-confirm').click();
+    await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
     await expect(page.getByTestId('rev-results')).toBeVisible();
     await expect(page.getByTestId('rev-left')).toHaveText('6 left');
     await page.getByTestId(`${cell(4, 1)}-failed`).click();
