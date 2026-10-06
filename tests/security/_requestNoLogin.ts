@@ -69,7 +69,7 @@ export async function checkNoLogin(p: NoLoginProbe, token: string): Promise<void
   const day = (await cal.json()) as { rows?: unknown[] };
   report.check('no login', 'calendar with no session (200)', cal.status === 200, `status ${cal.status}`);
   report.check('no login', 'calendar: time, length, type and color only',
-    (day.rows ?? []).every((r) => keysOf(r) === DAY_KEYS) && keysOf(day) === 'day,kinds,ofs,rows,today', keysOf(day));
+    (day.rows ?? []).every((r) => keysOf(r) === DAY_KEYS) && keysOf(day) === 'attest_text,day,kinds,ofs,rows,today', keysOf(day));
 
   const items = `Probe framing ${Date.now()}`;
   const sent = await post(p, form(p, token, items));
