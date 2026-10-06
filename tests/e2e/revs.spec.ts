@@ -67,7 +67,7 @@ test.describe('revs', () => {
 
   test("walls are tiles with their tally; a wall's own page fills the main area and points at its next item", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The main area beside the docked panel is the desktop frame; the phone has its own test.');
-    await openAs(page, 'pm', '/p/job-s/revs');
+    await openAs(page, 'pm', '/p/job-s/revs?view=list');
     await expect(page.getByTestId('rev-view-setup')).toHaveCount(0);
 
     const corridor = page.getByTestId('rev-wall-mock-rev-area-2');
@@ -164,7 +164,7 @@ test.describe('revs', () => {
 
   test('phone: the walls, then a wall as its own screen; the drawing stays in view while the items scroll', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'Phone only.');
-    await openAs(page, 'pm', '/p/job-s/revs');
+    await openAs(page, 'pm', '/p/job-s/revs?view=list');
     await page.getByTestId('rev-wall-mock-rev-area-1').click();
     const wall = page.getByTestId('rev-wall-page');
     const drawing = wall.getByTestId('rev-wall-3d');
@@ -300,20 +300,20 @@ test.describe('revs', () => {
     await expect(sheet).toHaveAttribute('data-full', 'true');
     await expect(sheet).toContainText('Sample A-101 Floor Plan');
     await expect(sheet.locator('[data-wall]')).toHaveCount(3);
+    // + / - and Fit, always there, phones too (Oct 5).
+    const frame = sheet.getByTestId('sheet-frame');
+    await expect(sheet.getByTestId('sheet-zoom')).toBeVisible();
+    await expect(frame).toHaveAttribute('data-zoom', '1.00');
+    await sheet.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(frame).toHaveAttribute('data-zoom', '1.50');
+    await sheet.getByTestId('sheet-fit').click();
+    await expect(frame).toHaveAttribute('data-zoom', '1.00');
     if (desktop) {
-      // + / - and Fit, always there on a desktop.
-      const frame = sheet.getByTestId('sheet-frame');
-      await expect(frame).toHaveAttribute('data-zoom', '1.00');
-      await sheet.getByRole('button', { name: 'Zoom in' }).click();
-      await expect(frame).toHaveAttribute('data-zoom', '1.50');
-      await sheet.getByTestId('sheet-fit').click();
-      await expect(frame).toHaveAttribute('data-zoom', '1.00');
       const download = page.waitForEvent('download');
       await sheet.getByTestId('plan-download').click();
       expect((await download).suggestedFilename()).toBe('Sample A-101 Floor Plan.pdf');
       await page.keyboard.press('Escape');
     } else {
-      await expect(sheet.getByTestId('sheet-zoom')).toBeHidden();
       await sheet.getByTestId('sheet-exit').click();
     }
     await expect(sheet).not.toHaveAttribute('data-full', 'true');
@@ -348,6 +348,8 @@ test.describe('revs', () => {
 
     await wall.getByTestId('rev-wall-remove').click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs$/);
+    await page.getByTestId('rev-walls-as-list').click();
+    await expect(page.getByTestId('rev-wall-mock-rev-area-4')).toBeVisible();
     await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toBeVisible();
@@ -444,6 +446,7 @@ test.describe('revs', () => {
     await wall.getByTestId('rev-wall-check').click();
     await expect(wall.getByTestId('rev-wall-check-note')).toHaveText('Sample head of wall joint');
     await page.getByTestId('rev-wall-back').click();
+    await page.getByTestId('rev-walls-as-list').click();
     await expect(page.getByTestId('rev-wall-mock-rev-area-5').getByTestId('rev-wall-tag')).toHaveText('F6a');
   });
 
