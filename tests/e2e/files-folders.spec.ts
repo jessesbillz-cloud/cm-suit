@@ -1,5 +1,6 @@
-// Files: a job opens with the folders its company kind uses most, in that order (migration 0027), an empty
-// "Emailed in" stays out of the tree, and a new folder asks one question. Uploads: files dropped on the list go up,
+// Files: a job opens with the folders its company kind uses most, in that order (migration 0027), the folders only
+// the app fills (Reports, Bids received, Emailed in ...) stay out of the tree while empty and carry a lock (0092), and a
+// new folder asks one question. Uploads: files dropped on the list go up,
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
 // be removed (migration 0065). The file viewer (migration 0074): a sheet in Plans straight to full screen, a photo in
 // the file's pane, Full screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
@@ -45,11 +46,23 @@ const fileNamed = (page: Page, name: string) => page.getByTestId('file-row-name'
 test.describe('files: folders by who uses them', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test('a GC job lists Plans first and Photos last; an empty Emailed in is hidden', async ({ page }) => {
+  test("a GC job lists Plans first and Photos last; the app's empty folders are hidden", async ({ page }) => {
     await signIn(page, 'pm', '/p/job-a/board');
     await page.getByTestId('rail-files').click();
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Bids received', 'Reports', 'Photos']);
+    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Photos']);
     await expect(page.getByTestId('folder').first()).toHaveAttribute('aria-current', 'true');
+    await expect(page.getByTestId('folder-lock')).toHaveCount(0);
+  });
+
+  test("a folder the app fills shows once it has something, with a lock and no Upload", async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
+    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Reports', 'Photos']);
+    const reports = page.getByTestId('folder').filter({ hasText: 'Reports' });
+    await expect(reports.getByTestId('folder-lock')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    await reports.click();
+    await expect(fileNamed(page, 'Sample Daily Report 7.pdf')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toHaveCount(0);
   });
 
   test('a new folder asks whether search and the AI read it (on by default), and it can change later', async ({ page }) => {
@@ -62,7 +75,7 @@ test.describe('files: folders by who uses them', () => {
     await ask.uncheck();
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Bids received', 'Reports', 'Photos', 'Sample submittals']);
+    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Photos', 'Sample submittals']);
     const toggle = page.getByTestId('folder-ai-reads');
     await expect(toggle).not.toBeChecked();
     await toggle.check();
@@ -81,7 +94,7 @@ test.describe('files: folders by who uses them', () => {
     await expect(page.getByTestId('main-area')).toBeVisible();
 
     await page.getByTestId('rail-files').click();
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'DSA 103', 'CCDs', 'Reports', 'Photos']);
+    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'DSA 103', 'CCDs', 'Photos']);
   });
 });
 

@@ -23,7 +23,7 @@ async function insertFolder(userId: string, v: NewFolderInput): Promise<FolderRo
   if (isMock()) return mock.createFolder(v.projectId, v.parentId, v.name, v.aiReads);
   const projectRow: unknown = throwIfError(await supabase.from('projects').select('org_id').eq('id', v.projectId).single());
   const project = z.object({ org_id: z.string() }).parse(projectRow);
-  const row: Omit<FolderRow, 'file_count'> = throwIfError(
+  const row: Omit<FolderRow, 'file_count' | 'app_only' | 'person'> = throwIfError(
     await supabase
       .from('folders')
       .insert({
@@ -37,7 +37,7 @@ async function insertFolder(userId: string, v: NewFolderInput): Promise<FolderRo
       .select(FOLDER_COLS)
       .single(),
   );
-  return { ...row, file_count: null };
+  return { ...row, file_count: null, app_only: false, person: null };
 }
 
 export function useCreateFolder() {

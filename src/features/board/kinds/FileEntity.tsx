@@ -8,6 +8,7 @@ import { formatBytes } from '../../../lib/format';
 import { useFileViewer } from '../../../ui/FileViewer';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { StatusChip } from '../../../ui/StatusChip';
+import { folderLabel } from '../../files/folderOrder';
 import { canOpenNow, scanChip } from '../../files/scanStatus';
 import { useDownload } from '../../files/useDownload';
 import { fileViewerItem } from '../../files/viewerItems';
@@ -26,7 +27,8 @@ export function FileEntity({ frame, id }: KindProps) {
   if (file.data === null) return <EntityPane frame={{ ...frame, open: null }} label="File" title="This file isn't here." />;
 
   const f = file.data;
-  const folder = folders.data?.find((x) => x.id === f.folder_id)?.name ?? null;
+  const inFolder = folders.data?.find((x) => x.id === f.folder_id);
+  const folder = inFolder ? folderLabel(inFolder) : null;
   const chip = scanChip(f.scan_status, f.upload_complete);
   const canDownload = f.upload_complete && f.scan_status !== 'infected';
   const item = fileViewerItem(f, preview);

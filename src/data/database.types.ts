@@ -8085,10 +8085,20 @@ export type Database = {
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
       folder_effective_id: { Args: { p_folder_id: string }; Returns: string }
       folder_is_document: { Args: { p_folder_id: string }; Returns: boolean }
+      folder_marks: {
+        Args: { p_project_id: string }
+        Returns: {
+          app_only: boolean
+          file_count: number
+          folder_id: string
+          person: string
+        }[]
+      }
       folder_name_reserved: {
         Args: { p_name: string; p_parent_id: string; p_project_id: string }
         Returns: boolean
       }
+      folder_person: { Args: { p_folder_id: string }; Returns: string }
       folder_row_can_read: {
         Args: {
           p_id: string

@@ -1,9 +1,11 @@
 begin;
-select plan(9);
+select plan(17);
 -- Migration 0092 (staging, Oct 6): a member who holds files.manage made a folder in Files and got 403 "new row violates
 -- row-level security policy for table folders". The app inserts with RETURNING, so the new row must pass "folders:
 -- readable". That policy asked folder_can_read(id), which looks the folder up by id, and the row being inserted is not
 -- there yet. The policy now reads the row's own columns: the same answer folder_can_read gives once the row exists.
+-- And the Files tree (Jesse, Oct 6, "cluttered"): folder_marks says which folders only the app fills (the tree hides
+-- them while empty and marks them with a lock), the person's name today for each author's folder, and the counts.
 \ir _helpers.psql
 
 create temp table ids (k text primary key, v uuid);
@@ -70,8 +72,60 @@ select throws_ok($$
           'a0000000-0000-0000-0000-000000000803')
   returning id $$, '42501', null, 'the inspector does not make folders');
 
--- folder_row_can_read is for the policy: not callable by anon.
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The Files tree: folder_marks
+-- ---------------------------------------------------------------------------------------------------------------------
 reset role;
+-- The job's own Reports and Plans (from its company kind's templates), and the requests folder.
+insert into ids select k, id from public.folders f cross join lateral (values ('reports'), ('plans')) v(k)
+ where f.project_id = 'c0000000-0000-0000-0000-000000000801' and f.parent_id is null and f.kind = v.k;
+insert into public.folders (id, org_id, project_id, name, kind, created_by) values
+  ('d0000000-0000-0000-0000-000000000804', 'b0000000-0000-0000-0000-000000000801', 'c0000000-0000-0000-0000-000000000801',
+   'Inspection requests', 'general', 'a0000000-0000-0000-0000-000000000801');
+insert into ids values ('ivy', public.daily_author_folder('c0000000-0000-0000-0000-000000000801',
+  'a0000000-0000-0000-0000-000000000803', 'reports'));
+-- Made while the profile had no name: the folder carries the email handle. The tree shows the name the person has now.
+update public.folders set name = 'probe+rb-insp' where id = (select v from ids where k = 'ivy');
+insert into public.files (id, org_id, project_id, folder_id, original_name, mime, size, storage_path, created_by, upload_complete)
+values ('e0000000-0000-0000-0000-000000000801', 'b0000000-0000-0000-0000-000000000801', 'c0000000-0000-0000-0000-000000000801',
+        'd0000000-0000-0000-0000-000000000804', 'Sample attachment.pdf', 'application/pdf', 10, 'sample/attachment.pdf',
+        'a0000000-0000-0000-0000-000000000801', true);
+
+create temp table marks as select * from public.folder_marks('c0000000-0000-0000-0000-000000000801') limit 0;
+grant all on marks to public;
+create function pg_temp.marks_as(p_uid uuid) returns void language plpgsql as $$
+begin
+  perform pg_temp.login(p_uid);
+  delete from marks;
+  insert into marks select * from public.folder_marks('c0000000-0000-0000-0000-000000000801');
+end $$;
+grant execute on all functions in schema pg_temp to public;
+
+set local role authenticated;
+select pg_temp.marks_as('a0000000-0000-0000-0000-000000000802');
+select is((select array[app_only::text, coalesce(file_count::text, 'none')] from marks
+            where folder_id = (select v from ids where k = 'reports')), '{true,0}', 'Reports: only the app fills it, empty');
+select is((select array[app_only::text, coalesce(file_count::text, 'none')] from marks
+            where folder_id = (select v from ids where k = 'plans')), '{false,none}', 'Plans: people''s, always shown');
+select is((select array[app_only::text, coalesce(file_count::text, 'none')] from marks
+            where folder_id = 'd0000000-0000-0000-0000-000000000804'), '{true,1}', 'Inspection requests: the app''s, one file');
+select is((select app_only from marks where folder_id = (select v from ids where k = 'top')), false,
+  'a folder a person made is not the app''s');
+select is((select array[app_only::text, person] from marks where folder_id = (select v from ids where k = 'ivy')),
+  '{true,"Ivy Inspector"}', 'an author''s folder: the app''s, with the person''s name today');
+select pg_temp.marks_as('a0000000-0000-0000-0000-000000000804');
+select is((select count(*) from marks where folder_id = (select v from ids where k = 'ivy'))::int, 0,
+  'the sub does not get the author''s folder (nor a name)');
+reset role;
+update public.profiles set full_name = '' where user_id = 'a0000000-0000-0000-0000-000000000803';
+set local role authenticated;
+select pg_temp.marks_as('a0000000-0000-0000-0000-000000000803');
+select is((select person from marks where folder_id = (select v from ids where k = 'ivy')), 'probe+rb-insp',
+  'no full name: the email name');
+
+-- folder_row_can_read and folder_marks are for signed-in callers: not callable by anon.
+reset role;
+select is(has_function_privilege('anon', 'public.folder_marks(uuid)', 'execute'), false, 'anon cannot call folder_marks');
 select is(has_function_privilege('anon', 'public.folder_row_can_read(uuid, uuid, uuid, text)', 'execute'), false,
   'anon cannot call folder_row_can_read');
 

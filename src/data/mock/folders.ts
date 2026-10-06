@@ -53,6 +53,8 @@ function fromTemplates(projectId: string, orgKind: string, applies: readonly App
       ai_reads: t.aiReads,
       version: 1,
       file_count: null,
+      app_only: false,
+      person: null,
     }));
 }
 
@@ -74,6 +76,8 @@ export const MOCK_FOLDERS: FolderRow[] = [...MOCK_PROJECTS.flatMap((p) => [
     ai_reads: false,
     version: 1,
     file_count: 0,
+    app_only: false,
+    person: null,
   },
 ]), ...PERMIT_JOB_FOLDERS];
 
