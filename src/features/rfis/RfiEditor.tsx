@@ -1,5 +1,6 @@
 // The RFI's typed fields: title, question and photos first (all most RFIs need), then a quiet "More" section with the
-// suggestion, reference, needed-by date and possible impact. Nothing below the photos is required. Autosaves.
+// suggestion, reference and possible impact. Nothing below the photos is required. Autosaves. No "needed by" date: the
+// answer is due by the contract (the job's RFI settings set the due date when it is issued, Jesse, Oct 5).
 import { usePreviewFetch } from '../../data/preview';
 import { saveRfiFile } from '../../data/rfis.mutations';
 import type { RfiFileRef } from '../../data/rfis.types';
@@ -125,27 +126,16 @@ export function RfiEditor({ draft, rfiId, photos, isPhone, autoFocus }: RfiEdito
             onBlur={() => void draft.flush()}
           />
         </label>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
-          <TextField
-            label="Reference"
-            value={form.refs}
-            maxLength={500}
-            testId="rfi-refs"
-            onChange={(refs) => {
-              edit({ refs });
-            }}
-            onBlur={() => void draft.flush()}
-          />
-          <TextField
-            label="Needed by"
-            type="date"
-            value={form.neededBy}
-            testId="rfi-needed-by"
-            onChange={(neededBy) => {
-              edit({ neededBy });
-            }}
-          />
-        </div>
+        <TextField
+          label="Reference"
+          value={form.refs}
+          maxLength={500}
+          testId="rfi-refs"
+          onChange={(refs) => {
+            edit({ refs });
+          }}
+          onBlur={() => void draft.flush()}
+        />
         <fieldset className="flex flex-col">
           <legend className="text-[13px] font-medium text-ink-2">Possible impact</legend>
           <div className="flex gap-6">

@@ -81,11 +81,19 @@ test.describe('RFIs', () => {
     // Sub: the only typing is the title and the question. Signed and sent, it goes to the inspector with no number yet.
     await openAs(page, 'sub', '/p/job-a/rfis');
     await page.getByTestId('rfi-new').click();
+    // No date to pick: the answer is due by the job's contract days, set when it is issued (Jesse, Oct 5).
+    await expect(right.getByTestId('rfi-compose').locator('input[type="date"]')).toHaveCount(0);
     await page.getByTestId('rfi-title').fill(TITLE);
     await page.getByTestId('rfi-question').fill('Sample question: the beam pocket is 8 in. deep on the plans and 10 in. on the shop drawing. Which applies?');
     await page.getByTestId('rfi-send').click();
     await expect(right.getByTestId('rfi-status')).toHaveText('In review');
     await expect(right.getByTestId('rfi-label')).toHaveText('Draft');
+    // The page it lands on: History opens under its link, scrolled into view and focused (no hunting for it).
+    await right.getByTestId('rfi-history-link').click();
+    const landed = right.getByTestId('rfi-history-link-shown');
+    await expect(landed).toBeFocused();
+    await expect(landed).toBeInViewport();
+    await expect(landed).toContainText('Signed & sent');
     await expect(row).toBeVisible();
     await expect(nowCell(row)).toContainText('Inspector');
     await expect(row.getByTestId('rfi-strip').locator('[data-state="done"]')).toHaveCount(1);
@@ -168,7 +176,7 @@ test.describe('RFIs', () => {
     // RFI 002 is answered: one tap, and the question and the architect's answer are both there.
     await page.getByTestId('rfi-row-002').click();
     await expect(page.getByTestId('rfi-question-text')).toContainText('Which governs?');
-    await expect(page.getByTestId('rfi-extras')).toContainText('Needed by');
+    await expect(page.getByTestId('rfi-extras')).toContainText('Answer due');
     await expect(page.getByTestId('rfi-answer')).toContainText('anchors at 16 in. on center');
     if (testInfo.project.name === 'desktop') {
       // The log stays put beside it, and the pane's header has exactly its three actions.
@@ -176,10 +184,10 @@ test.describe('RFIs', () => {
       await expect(page.getByTestId('right-column').getByTestId('rfi-head-actions').getByRole('button')).toHaveCount(3);
     }
 
-    // "Needed by" only on an RFI whose impact is claimed: 004 has a date but no claim (002, claimed, shows it above).
+    // The contract due date sits with the question only on an RFI whose impact is claimed (002 above, not 004).
     await page.goto('/p/job-a/rfis/mock-rfi-job-a-4');
     await expect(page.getByTestId('rfi-question-text')).toContainText('hardware set 12');
-    await expect(page.getByTestId('rfi-question-text')).not.toContainText('Needed by');
+    await expect(page.getByTestId('rfi-question-text')).not.toContainText('Answer due');
   });
 
   test('the architect answers with a photo and a PDF through the shared picker (thumbnails, retry, Camera on the phone)', async ({ page }, testInfo) => {

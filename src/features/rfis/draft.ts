@@ -7,8 +7,6 @@ export interface DraftForm {
   question: string;
   suggestion: string;
   refs: string;
-  /** yyyy-MM-dd, or '' for none. */
-  neededBy: string;
   cost: boolean;
   time: boolean;
   /** Photos already on the RFI that stay. */
@@ -21,7 +19,6 @@ export function formOf(row: RfiRow | null): DraftForm {
     question: row?.question ?? '',
     suggestion: row?.suggestion ?? '',
     refs: row?.refs ?? '',
-    neededBy: row?.needed_by ?? '',
     cost: row?.cost_impact === true,
     time: row?.time_impact === true,
     kept: row ? [...row.photo_ids] : [],
@@ -36,7 +33,6 @@ export function fieldsOf(form: DraftForm, uploaded: readonly string[]): RfiField
     photoIds: [...form.kept, ...uploaded.filter((id) => !form.kept.includes(id))],
     suggestion: form.suggestion.trim(),
     refs: form.refs.trim(),
-    neededBy: form.neededBy === '' ? null : form.neededBy,
     costImpact: form.cost ? true : null,
     timeImpact: form.time ? true : null,
   };

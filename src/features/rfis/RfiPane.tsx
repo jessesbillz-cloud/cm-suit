@@ -4,7 +4,6 @@
 // under it; then impact and, small, the moves I may make. History sits behind one link at every width, as in
 // corrections (SPEC §7.4). Arrow keys walk the log as it is shown.
 import { useEffect, useRef, useState } from 'react';
-import { History } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useProject } from '../../data/queries';
@@ -12,7 +11,7 @@ import { rfiPdfViewUrl, useRfiPdf } from '../../data/rfis.mutations';
 import { useRfiDetail, useRfiList, useRfiProgress } from '../../data/rfis.queries';
 import type { RfiDetail, RfiEvent, RfiRow } from '../../data/rfis.types';
 import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
-import { Icon } from '../../ui/Icon';
+import { BehindLink } from '../../ui/BehindLink';
 import { PaneSection } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
@@ -63,7 +62,6 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
   const root = useRef<HTMLElement>(null);
   // While editing, the pane keeps the title it opened with: a saved title must not pull focus out of the form.
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Focus the pane when the RFI changes, so the arrow keys work straight away.
   useEffect(() => {
@@ -143,19 +141,9 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
         ) : null}
         <RfiImpact detail={d} timeZone={tz} now={now} />
         {editingTitle === null ? <RfiActions detail={d} isPhone={isPhone} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
-        <button
-          type="button"
-          aria-expanded={historyOpen}
-          className="inline-flex h-8 items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-accent hover:underline"
-          data-testid="rfi-history-link"
-          onClick={() => {
-            setHistoryOpen((v) => !v);
-          }}
-        >
-          <Icon icon={History} size={14} />
-          History
-        </button>
-        {historyOpen ? <RfiHistory events={d.events} timeZone={tz} /> : null}
+        <BehindLink label="History" testId="rfi-history-link">
+          <RfiHistory events={d.events} timeZone={tz} />
+        </BehindLink>
       </div>
     </article>
   );

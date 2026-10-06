@@ -1,7 +1,8 @@
 // The RFI itself, one flat view (SPEC §7.4): the question, its photos, what else the originator filled in, and the
-// architect's answer with its files. Nothing folds away. "Needed by" shows only once impact is claimed (SPEC §7.4).
+// architect's answer with its files. Nothing folds away. Once impact is claimed it also shows the contract due date
+// (SPEC §7.4), set from the job's RFI settings, never typed.
 import type { RfiDetail } from '../../data/rfis.types';
-import { formatDay, formatInZone } from '../../lib/dates';
+import { formatInZone } from '../../lib/dates';
 import { PaneSection } from '../../ui/ReadingPane';
 import { impactKinds } from './model';
 import { RfiFiles } from './RfiFiles';
@@ -39,7 +40,7 @@ export function RfiBody({ detail, timeZone }: RfiBodyProps) {
           rows={[
             ['Suggestion', r.suggestion],
             ['Reference', r.refs],
-            ['Needed by', r.needed_by === null || r.impact_claimed_at === null ? '' : formatDay(r.needed_by, 'EEE, MMM d')],
+            ['Answer due', r.due_at === null || r.impact_claimed_at === null ? '' : formatInZone(r.due_at, timeZone, 'EEE, MMM d')],
             ['Possible impact', possible],
           ]}
         />

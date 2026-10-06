@@ -11,7 +11,7 @@ import { endOfDayInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
+import { DateInput, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 
 const inviteSchema = z.object({
@@ -163,7 +163,7 @@ export function InviteForm({ projectId, projectName, timeZone, onClose }: Invite
         </label>
         <label className={FIELD_LABEL}>
           Access ends (optional)
-          <input
+          <DateInput
             type="date"
             className={FIELD_CONTROL}
             value={accessEnds}

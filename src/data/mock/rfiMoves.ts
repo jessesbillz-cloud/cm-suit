@@ -24,7 +24,7 @@ function fieldsOf(v: RfiFields) {
   if (title === '' || question === '') throw invalid('Add a title and a question.');
   return {
     title, question, photo_ids: v.photoIds, suggestion: v.suggestion.trim(), refs: v.refs.trim(),
-    needed_by: v.neededBy, cost_impact: v.costImpact, time_impact: v.timeImpact,
+    needed_by: null, cost_impact: v.costImpact, time_impact: v.timeImpact,
   };
 }
 

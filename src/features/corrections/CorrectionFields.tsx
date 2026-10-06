@@ -1,17 +1,14 @@
-// The fields a person types on an item: title, trade, location, description, spec tags, notice reference.
-// One set for New and Edit.
+// The fields a person types on an item: title, trade, location, description. One set for New and Edit. No number box:
+// the CN number comes from the database at Save and is the notice's number. No spec box either: the section goes in
+// the description as it is written (Jesse, Oct 5).
 import type { CorrectionFields as SavedFields } from '../../data/corrections.types';
 import { FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
-import { parseTags } from './model';
 
 export interface FieldsDraft {
   title: string;
   trade: string;
   location: string;
   description: string;
-  /** Spec tags as typed: "07 84 00, 09 21 16". */
-  tags: string;
-  noticeRef: string;
 }
 
 export function draftOf(v: SavedFields): FieldsDraft {
@@ -20,8 +17,6 @@ export function draftOf(v: SavedFields): FieldsDraft {
     trade: v.trade,
     location: v.location,
     description: v.description,
-    tags: v.spec_tags.join(', '),
-    noticeRef: v.notice_ref,
   };
 }
 
@@ -31,8 +26,6 @@ export function fieldsOf(d: FieldsDraft): SavedFields {
     trade: d.trade.trim(),
     location: d.location.trim(),
     description: d.description.trim(),
-    spec_tags: parseTags(d.tags),
-    notice_ref: d.noticeRef.trim(),
   };
 }
 
@@ -90,24 +83,6 @@ export function CorrectionFields({ value, onChange, autoFocus }: CorrectionField
           }}
         />
       </label>
-      <div className="grid grid-cols-2 gap-3">
-        <TextField
-          label="Spec tags"
-          value={value.tags}
-          testId="cn-tags"
-          onChange={(tags) => {
-            set({ tags });
-          }}
-        />
-        <TextField
-          label="Notice no."
-          value={value.noticeRef}
-          testId="cn-notice-ref"
-          onChange={(noticeRef) => {
-            set({ noticeRef });
-          }}
-        />
-      </div>
     </div>
   );
 }

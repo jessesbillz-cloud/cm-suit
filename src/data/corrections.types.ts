@@ -73,14 +73,13 @@ export type CorrectionHistoryRow = z.infer<typeof correctionHistorySchema>;
 
 export const HISTORY_COLS = 'id, seq, correction_id, actor_user_id, action, from_status, to_status, note, photo_ids, created_at, undoes';
 
-/** The fields a person types. */
+/** The fields a person types. The CN number is the notice's number (the database's, at Save): nobody types another
+ * one (0086). Spec sections go in the description as written; spec_tags and notice_ref are only read (older items). */
 export interface CorrectionFields {
   title: string;
   description: string;
   trade: string;
   location: string;
-  spec_tags: string[];
-  notice_ref: string;
 }
 
 export interface NewCorrectionInput extends CorrectionFields {
