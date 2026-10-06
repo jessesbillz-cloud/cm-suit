@@ -7,7 +7,7 @@ import { stageLabel } from './model';
 export function PermitHistory({ events, timeZone }: { events: readonly PermitEvent[]; timeZone: string }) {
   return (
     <section className="flex flex-col gap-1.5" data-testid="permit-history">
-      <h2 className="text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3">History</h2>
+      <h2 className="text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink">History</h2>
       <ol className="flex flex-col gap-1 text-[13px] leading-5">
         {[...events].reverse().map((e, i) => (
           <li key={`${e.at}-${String(i)}`} className={`flex gap-2 ${e.undone ? 'text-ink-3 line-through' : 'text-ink-2'}`}>

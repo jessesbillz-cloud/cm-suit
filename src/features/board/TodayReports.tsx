@@ -39,7 +39,7 @@ export function TodayReports() {
 
   return (
     <section aria-labelledby={titleId} data-testid="today-reports" className="flex flex-col gap-2">
-      <h2 id={titleId} className="px-1 text-[12px] font-medium uppercase tracking-wide text-ink-3">
+      <h2 id={titleId} className="px-1 text-[12px] font-bold uppercase tracking-wide text-ink">
         Today&apos;s reports{day === null ? '' : ` · ${day}`}
       </h2>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3">

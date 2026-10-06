@@ -53,7 +53,7 @@ function DayColumn({ day, today, current, rows, selectedId, isPhone, ofsDecide, 
           onPickDay(day);
         }}
       >
-        <span className="text-xs font-medium uppercase tracking-wide text-ink-3">{formatDay(day, 'EEE')}</span>
+        <span className="text-xs font-bold uppercase tracking-wide text-ink">{formatDay(day, 'EEE')}</span>
         <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm font-semibold tabular-nums ${dateMark(day, today, current)}`}>
           {formatDay(day, 'd')}
         </span>

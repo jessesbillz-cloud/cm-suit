@@ -19,7 +19,7 @@ interface FileViewerOverlayProps {
 }
 
 const BAR_BTN =
-  'inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-white/90 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50';
+  'inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50';
 const SIDE_BTN =
   'absolute top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white';
 
@@ -122,11 +122,11 @@ export function FileViewerOverlay({ items, index, onIndex, onRemoved, onClose }:
     >
       <div className="flex min-h-14 shrink-0 items-center gap-1 border-b border-white/10 px-2 pt-[env(safe-area-inset-top)] sm:gap-2 sm:px-4">
         <div className="min-w-0 flex-1 px-1">
-          <p data-testid="viewer-name" className="break-words text-sm font-medium leading-5 sm:text-[15px]">
+          <p data-testid="viewer-name" className="break-words text-sm font-semibold leading-5 sm:text-[15px]">
             {item.name}
           </p>
           {many ? (
-            <p data-testid="viewer-count" className="text-xs tabular-nums text-white/60">
+            <p data-testid="viewer-count" className="text-xs tabular-nums text-white/85">
               {index + 1} of {items.length}
             </p>
           ) : null}

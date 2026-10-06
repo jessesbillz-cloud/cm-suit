@@ -137,7 +137,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
                 autoFocus
                 aria-label="Find a job"
                 placeholder="Find a job"
-                className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3"
+                className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3/50"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);

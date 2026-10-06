@@ -64,7 +64,7 @@ export function FormsView({ projectId, selectedId, onOpen, project }: FormsViewP
       {groupForms(items).map((g) => (
         <section key={g.timing} aria-label={g.label} data-testid={`forms-group-${g.timing}`}>
           <header className="flex items-baseline justify-between gap-3 border-b border-line bg-card-head px-4 pb-2 pt-3 text-xs">
-            <h3 className="text-[12px] font-medium uppercase tracking-wide text-ink-3">{g.label}</h3>
+            <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink">{g.label}</h3>
             {g.timing === 'with_bid' && project.bid_due_at !== null ? (
               <span className="tabular-nums text-ink-2">Due {formatInZone(project.bid_due_at, project.timezone, 'MMM d, h:mm a')}</span>
             ) : null}

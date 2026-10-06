@@ -46,7 +46,7 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
         <span aria-hidden="true" className={`absolute left-0 w-[3px] rounded-r bg-accent ${compact ? 'top-2 h-6' : 'top-3 h-9'}`} />
       ) : null}
       <Icon icon={icon} size={compact ? 20 : 22} />
-      <span className={compact ? 'sr-only' : 'text-[12px] font-medium leading-4'}>{label}</span>
+      <span className={compact ? 'sr-only' : 'text-[12px] font-semibold leading-4'}>{label}</span>
       <CountBadge
         n={count}
         testId={badgeId}

@@ -4,8 +4,8 @@
 import type { HTMLInputTypeAttribute, InputHTMLAttributes, MouseEvent } from 'react';
 
 const FOCUS = 'outline-none transition-[border-color,box-shadow] focus:border-accent focus:ring-[3px] focus:ring-accent/20';
-export const FIELD_CONTROL = `h-10 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink shadow-control placeholder:text-ink-3 disabled:bg-card-head disabled:text-ink-3 ${FOCUS}`;
-export const FIELD_AREA = `rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal leading-6 text-ink shadow-control placeholder:text-ink-3 ${FOCUS}`;
+export const FIELD_CONTROL = `h-10 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink shadow-control placeholder:text-ink-3/50 disabled:bg-card-head disabled:text-ink-3/50 ${FOCUS}`;
+export const FIELD_AREA = `rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal leading-6 text-ink shadow-control placeholder:text-ink-3/50 ${FOCUS}`;
 export const FIELD_LABEL = 'flex flex-col gap-1.5 text-[13px] font-medium text-ink-2';
 const CONTROL = FIELD_CONTROL;
 const LABEL = FIELD_LABEL;

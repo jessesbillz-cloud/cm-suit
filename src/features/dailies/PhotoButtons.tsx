@@ -88,7 +88,7 @@ export function PhotoButtons({ projectName, tz, onPicked, variant = 'plain', dis
           type="button"
           aria-label="Photo for this row"
           disabled={disabled}
-          className="flex h-10 w-9 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink disabled:text-ink-3"
+          className="flex h-10 w-9 shrink-0 items-center justify-center rounded-md text-ink-2 hover:bg-page hover:text-ink disabled:text-ink-3/50"
           onClick={() => {
             camera.current?.click();
           }}

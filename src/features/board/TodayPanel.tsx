@@ -99,7 +99,7 @@ export function TodayPanel({ projectId }: TodayPanelProps) {
 
   return (
     <section aria-label="Today" data-testid="today-panel" className="flex flex-col">
-      <p className="px-4 pb-1 pt-3 text-[12px] font-medium uppercase tracking-wide text-ink-3">
+      <p className="px-4 pb-1 pt-3 text-[12px] font-bold uppercase tracking-wide text-ink">
         {formatDay(today, 'EEEE, MMM d')}
       </p>
       {error ? (

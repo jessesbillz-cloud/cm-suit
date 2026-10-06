@@ -38,7 +38,7 @@ function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetail
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-3.5 sm:px-5">
       <div className="min-w-0">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3">
+        <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
           {formatDay(day, 'EEEE')}
           {day === today ? <span className="text-accent"> · Today</span> : null}
         </p>

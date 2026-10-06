@@ -23,7 +23,7 @@ interface WallFactsProps {
   onClearBefore?: ((item: WallItem) => void) | undefined;
 }
 
-const LINK = '-my-1 min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3';
+const LINK = '-my-1 min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3/50';
 
 function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea; shown: WallItem }) {
   const mark = useMarkRevNa();

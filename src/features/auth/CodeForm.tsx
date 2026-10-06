@@ -97,7 +97,7 @@ export function CodeForm({ email, emailLabel, onVerified, onBack }: CodeFormProp
         )}
         <button
           type="button"
-          className="text-accent hover:underline disabled:text-ink-3"
+          className="text-accent hover:underline disabled:text-ink-3/50"
           disabled={resent}
           onClick={() => {
             setResent(true);

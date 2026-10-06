@@ -2,7 +2,7 @@
 export function SectionTitle({ label, count }: { label: string; count?: string | number | undefined }) {
   return (
     <div className="mb-2 flex items-center gap-2">
-      <h3 className="shrink-0 text-[12px] font-semibold uppercase tracking-wide text-ink-3">
+      <h3 className="shrink-0 text-[12px] font-bold uppercase tracking-wide text-ink">
         {label}
         {count !== undefined ? <span className="font-medium normal-case tracking-normal"> · {count}</span> : null}
       </h3>

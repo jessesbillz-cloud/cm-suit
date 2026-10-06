@@ -60,7 +60,7 @@ export function ChipPick<T extends string>({ chips, picked, onChange, label, mul
                 ? 'border-accent bg-accent text-white'
                 : c.done
                   ? 'cursor-default border-line bg-card-head text-ink-3'
-                  : 'border-line bg-card text-ink hover:border-line-strong disabled:cursor-not-allowed disabled:text-ink-3'
+                  : 'border-line bg-card text-ink hover:border-line-strong disabled:cursor-not-allowed disabled:text-ink-3/50'
             }`}
             onClick={() => {
               onChange(nextPicked(picked, c.value, multiple, max));
