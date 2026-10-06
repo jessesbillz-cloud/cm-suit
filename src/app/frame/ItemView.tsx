@@ -14,6 +14,8 @@ import {
   NEW_TOPIC_ITEM,
   PROGRESS_ITEM,
   READ_ITEM,
+  REV_FILE_PREFIX,
+  ROOM_ITEM_PREFIX,
   SETUP_ITEM,
   SHARE_ITEM,
   TOPIC_ITEM_PREFIX,
@@ -174,7 +176,11 @@ export function itemTitle(tool: Tool, itemId: string, view?: string): string {
   if (kind !== null) return kind;
   if (tool === 'dailies') return itemId === SETUP_ITEM ? 'Setup' : 'Daily report';
   if (tool === 'inspections') return itemId === SHARE_ITEM ? 'Share' : 'Inspection';
-  if (tool === 'revs') return itemId === NEW_ITEM ? 'New list' : itemId === WALLS_ITEM ? 'Add walls' : 'Wall';
+  if (tool === 'revs') {
+    if (itemId.startsWith(REV_FILE_PREFIX)) return 'File';
+    if (itemId.startsWith(ROOM_ITEM_PREFIX)) return 'Room';
+    return itemId === NEW_ITEM ? 'New list' : itemId === WALLS_ITEM ? 'Add walls' : 'Wall';
+  }
   if (tool === 'corrections') return itemId === NEW_ITEM ? 'New correction' : itemId === PROGRESS_ITEM ? 'Progress' : 'Correction';
   if (tool === 'rfis') return 'RFI';
   if (tool === 'permits') return 'Permit';
