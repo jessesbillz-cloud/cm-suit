@@ -100,7 +100,7 @@ export function BoardItem({ activityId, boardProjectId, onNavigate, onOpenWindow
           label: `Open in ${TOOL_META[target.tool].label}`,
           // Back in the top bar returns to this line (Jesse, Oct 5: "it doesn't allow me to get back to that original view").
           go: (extra) => {
-            openTarget(a.project_id, target, { ...extra, back: '1' });
+            openTarget(a.project_id, target, { ...extra, back: 'board' });
           },
         }
       : null,

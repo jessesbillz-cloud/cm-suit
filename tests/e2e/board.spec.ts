@@ -61,7 +61,7 @@ test.describe('message board (SPEC §7.3)', () => {
     expect((await download).suggestedFilename()).toBe('Sample Plan Set A.pdf');
 
     await right.getByRole('button', { name: 'Open in Files' }).click();
-    await expect(page).toHaveURL(/\/p\/job-a\/files\/job-a-file-1\?folder=job-a-plans&back=1$/);
+    await expect(page).toHaveURL(/\/p\/job-a\/files\/job-a-file-1\?folder=job-a-plans&back=board$/);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
     // Back (top bar) returns to the board with the line open, as it was.
     await page.getByTestId('frame-back').click();

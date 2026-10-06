@@ -55,7 +55,7 @@ export function Frame({ model, folderId }: FrameProps) {
   const { loc, choices } = model;
   const navigate = useNavigate();
   const router = useRouter();
-  // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=); ?back=1
+  // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=); ?back=board
   // when a board line's "Open in ..." brought me here.
   const search: { view?: string | undefined; side?: string | undefined; back?: string | undefined } = useSearch({ strict: false });
   if (!choices) return null;
@@ -115,7 +115,7 @@ export function Frame({ model, folderId }: FrameProps) {
             onPick={model.pickJob}
             onNewJob={model.newJob}
           />
-          {search.back === '1' ? (
+          {search.back === 'board' ? (
             <Button
               size="sm"
               icon={ArrowLeft}

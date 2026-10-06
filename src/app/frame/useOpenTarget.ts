@@ -8,7 +8,7 @@ import type { EntityTarget } from '../../lib/entityTarget';
 export interface OpenExtra {
   folder?: string;
   /** Leaves a Back in the top bar to where the jump started (a board line's "Open in RFIs"). */
-  back?: '1';
+  back?: 'board';
 }
 
 export function useOpenTarget(): (projectId: string, target: EntityTarget, extra?: OpenExtra) => void {
