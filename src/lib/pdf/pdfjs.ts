@@ -42,6 +42,20 @@ export async function openSheet(url: string): Promise<PDFDocumentLoadingTask> {
   return lib.getDocument({ ...source, isEvalSupported: false, wasmUrl: WASM_URL, verbosity: ERRORS_ONLY });
 }
 
+/** One page's text, a line per line of the page (pdf.js marks each line's end). */
+export async function pageText(doc: PDFDocumentProxy, number: number): Promise<string> {
+  const page = await doc.getPage(number);
+  const content = await page.getTextContent();
+  let out = '';
+  for (const item of content.items) {
+    if (!('str' in item)) continue;
+    out += item.str;
+    if (item.hasEOL) out += '\n';
+  }
+  page.cleanup();
+  return out;
+}
+
 /** A short sentence for a sheet that won't open. */
 export function sheetErrorMessage(e: unknown): string {
   const name = e instanceof Error ? e.name : '';

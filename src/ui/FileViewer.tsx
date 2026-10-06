@@ -19,6 +19,8 @@
 //   <button onClick={() => { viewer.open(items, index); }}>...</button>     // a photo strip: arrows walk the list
 //   <Button onClick={() => { viewer.open([item]); }}>Full screen</Button>   // one PDF
 //   <FilePreview item={item} onFullScreen={() => { viewer.open([item]); }} />  // inline, in a pane
+//   A PDF may open at a page (`startPage`) and carry its own bar over the pages (`pageBar`: the spec book's sections),
+//   which gets where the reader is (PageNav) and moves them.
 //
 // The overlay: file name, Download, Delete (only when the item has `remove`), Close; Escape and Close close it; focus
 // stays inside; left / right (and the arrows) move through the list. Photos: fitted, tap or +/- to zoom, drag to pan.
@@ -43,6 +45,20 @@ export interface ViewerItem {
   download: () => Promise<void>;
   /** Delete, when this person may. The viewer closes the item (or the viewer) first; the caller's toast offers Undo. */
   remove?: (() => void) | undefined;
+  /** A PDF: the page it opens at (1, the first, when left out). */
+  startPage?: number | undefined;
+  /** A PDF: a bar over its pages, drawn from where the reader is (the spec book's section picker). */
+  pageBar?: ((nav: PageNav) => ReactNode) | undefined;
+}
+
+/** Where the reader is in a PDF, and how to move: what a `pageBar` gets. */
+export interface PageNav {
+  /** The page in view (1-based). */
+  page: number;
+  pages: number;
+  goTo: (page: number) => void;
+  /** One page's text (pdf.js), lines joined with newlines. */
+  text: (page: number) => Promise<string>;
 }
 
 interface Opened {

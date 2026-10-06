@@ -40,7 +40,11 @@ function Shown({ item, kind, tone }: ShownProps) {
       </div>
     );
   }
-  return kind === 'image' ? <ImageView url={state.url} name={item.name} tone={tone} /> : <PdfView url={state.url} tone={tone} />;
+  return kind === 'image' ? (
+    <ImageView url={state.url} name={item.name} tone={tone} />
+  ) : (
+    <PdfView url={state.url} tone={tone} startPage={item.startPage} pageBar={item.pageBar} />
+  );
 }
 
 /** A refusal in plain words (the download's own sentences); the server's codes stay out of sight. */

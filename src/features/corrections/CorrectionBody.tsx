@@ -23,6 +23,8 @@ import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone,
 import { PhotoStrip } from './PhotoStrip';
 import { StepForm } from './StepForm';
 import { useUndoOffer } from './useUndoOffer';
+import { SpecLink } from '../specs/SpecLink';
+import { sectionDigits } from '../specs/sections';
 
 type Mode = { kind: 'read' } | { kind: 'edit' } | { kind: 'step'; step: CorrectionStep };
 
@@ -110,7 +112,7 @@ function Details({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
         <ul className="flex flex-wrap gap-1.5" aria-label="Spec tags">
           {row.spec_tags.map((t) => (
             <li key={t} className="rounded-md border border-line bg-card-head px-2 py-0.5 text-xs font-medium tabular-nums text-ink-2">
-              {t}
+              {sectionDigits(t) !== null ? <SpecLink projectId={row.project_id} section={t} /> : t}
             </li>
           ))}
         </ul>
