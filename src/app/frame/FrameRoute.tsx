@@ -1,9 +1,10 @@
 // Route components for /p/$projectId/$tool(/$itemId) and "All my jobs": /all/board(/$itemId), /all/calendar(/$itemId),
 // /all/bids and /all/settings. They pick the desktop frame, the phone shell, or the single-item window (?window=1), after
-// the layout and job list have loaded. The open tool's code starts loading right away, alongside those queries.
+// the layout and job list have loaded. The open tool's code starts loading right away, alongside those queries and my
+// capabilities on the job.
 import { useEffect } from 'react';
 import { getRouteApi, useParams, useSearch } from '@tanstack/react-router';
-import { usePrefetchBoardFeed } from '../../data/queries';
+import { usePrefetchBoardFeed, usePrefetchCapabilities } from '../../data/queries';
 import { opensInMain } from '../../lib/itemIds';
 import { isTool, type Tool } from '../../lib/layout';
 import { HomeLink } from '../../ui/HomeLink';
@@ -36,6 +37,8 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   const choices = model.choices;
   const dockedBoard = docked && (loc.itemId === null || opensInMain(loc.tool, loc.itemId)) && (!choices || (choices.docked_panel !== 'none' && !choices.collapsed.right));
   usePrefetchBoardFeed(loc.projectId, (loc.tool === 'board' && !windowMode) || dockedBoard);
+  // My capabilities on the job load beside the frame's own queries: every tool's screen asks them, and none waits.
+  usePrefetchCapabilities(loc.projectId);
 
   const loading = [model.layoutQuery, model.projectsQuery, model.recommendedQuery, model.readableQuery, model.jobRailsQuery];
   if (loading.some((q) => q.isPending)) {

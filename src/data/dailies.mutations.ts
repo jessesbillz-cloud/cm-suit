@@ -296,12 +296,26 @@ export function useSubmitDaily(projectId: string) {
       isMock()
         ? mockDailies.submit(reportId, version)
         : callFunction('submit-daily', { report_id: reportId, version }, submitResultSchema),
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: qk.dailies(projectId) }),
-        qc.invalidateQueries({ queryKey: qk.folders(projectId) }),
-        qc.invalidateQueries({ queryKey: ['files'] }),
-      ]);
+    onSuccess: (r) => {
+      // The report reads as submitted at once (data/queryClient: the lists reload behind it, nobody waits for them).
+      qc.setQueryData<DailyReportRow>(qk.dailiesPart(projectId, 'report', r.id), (old) =>
+        old
+          ? {
+              ...old,
+              status: r.status,
+              number: r.number,
+              filename: r.filename,
+              pdf_file_id: r.pdf_file_id,
+              version: r.version,
+              signed_at: r.signed_at,
+              signed_version: r.version,
+              submitted_at: old.submitted_at ?? r.signed_at,
+            }
+          : old,
+      );
+      void qc.invalidateQueries({ queryKey: qk.dailies(projectId) });
+      void qc.invalidateQueries({ queryKey: qk.folders(projectId) });
+      void qc.invalidateQueries({ queryKey: ['files'] });
     },
   });
 }
