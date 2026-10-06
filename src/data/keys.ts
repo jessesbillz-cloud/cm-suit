@@ -147,4 +147,6 @@ export const qk = {
   /** Every requirements query of a job (0069: the register, the spec book's sections, the folder) sits under this prefix. */
   requirements: (projectId: string) => ['requirements', projectId] as const,
   requirementsPart: (projectId: string, part: string) => ['requirements', projectId, part] as const,
+  /** The job's spec books with their sections (0088). */
+  specBooks: (projectId: string) => ['spec_books', projectId] as const,
 };

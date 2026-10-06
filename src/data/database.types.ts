@@ -6325,6 +6325,60 @@ export type Database = {
         }
         Relationships: []
       }
+      spec_sections: {
+        Row: {
+          file_id: string
+          first_page: number
+          found_at: string
+          found_by: string
+          id: string
+          last_page: number
+          project_id: string
+          replaced: boolean
+          section: string
+          title: string
+        }
+        Insert: {
+          file_id: string
+          first_page: number
+          found_at?: string
+          found_by: string
+          id?: string
+          last_page: number
+          project_id: string
+          replaced?: boolean
+          section: string
+          title?: string
+        }
+        Update: {
+          file_id?: string
+          first_page?: number
+          found_at?: string
+          found_by?: string
+          id?: string
+          last_page?: number
+          project_id?: string
+          replaced?: boolean
+          section?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spec_sections_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spec_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sub_history: {
         Row: {
           at: string
@@ -14945,6 +14999,25 @@ export type Database = {
       }
       signed_in_recently: { Args: never; Returns: boolean }
       signin_key_email: { Args: { p_token_hash: string }; Returns: string }
+      spec_book_can_send: { Args: { p_file_id: string }; Returns: boolean }
+      spec_book_pages_save: {
+        Args: { p_file_id: string; p_page_count: number; p_pages: Json }
+        Returns: number
+      }
+      spec_books: {
+        Args: { p_project_id: string }
+        Returns: {
+          can_send: boolean
+          file_id: string
+          file_name: string
+          page_count: number
+          sections: Json
+          size: number
+          text_ready: boolean
+        }[]
+      }
+      spec_sections_find: { Args: { p_file_id: string }; Returns: number }
+      spec_title_clean: { Args: { p: string }; Returns: string }
       submit_bid: {
         Args: { p_file_id: string; p_package_id: string }
         Returns: {

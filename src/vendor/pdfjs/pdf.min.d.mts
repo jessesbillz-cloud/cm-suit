@@ -23,11 +23,28 @@ export interface RenderParameters {
   background?: string | null;
 }
 
+/** One run of text on a page (getTextContent); hasEOL marks the end of a line. */
+export interface TextItem {
+  readonly str: string;
+  readonly hasEOL: boolean;
+}
+
+/** A marked-content marker in the text stream (no text of its own). */
+export interface TextMarkedContent {
+  readonly type: string;
+  readonly id?: string;
+}
+
+export interface TextContent {
+  readonly items: readonly (TextItem | TextMarkedContent)[];
+}
+
 export interface PDFPageProxy {
   /** The page's /Rotate (0, 90, 180 or 270). */
   readonly rotate: number;
   getViewport(params: { scale: number; rotation?: number; offsetX?: number; offsetY?: number }): PageViewport;
   render(params: RenderParameters): RenderTask;
+  getTextContent(): Promise<TextContent>;
   cleanup(): boolean;
 }
 

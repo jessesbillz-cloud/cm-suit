@@ -1,12 +1,13 @@
 // A file opened in the right column (or its own window): the file itself (a photo, or a PDF's pages, with Full screen),
 // its scan state, Rename and Delete (with Undo) when this person may, its earlier versions, Download, Open in new
-// window. A signed record (a daily or IR PDF, an RFI PDF, a stamped sheet) never offers Rename or Delete.
+// window. A signed record (a daily or IR PDF, an RFI PDF, a stamped sheet) never offers Rename or Delete. A sheet in
+// Plans or a spec book in Specs is not drawn in the pane (too small to read): Full screen opens it.
 import { useState } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import { useFileFacts, useRenameFile } from '../../data/files';
 import { usePreviewFetch } from '../../data/preview';
-import { useFile } from '../../data/queries';
+import { useFile, useFolders } from '../../data/queries';
 import type { FileRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
@@ -18,6 +19,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useProjectZones } from '../board/zones';
+import { useOpenSpec } from '../specs/useOpenSpec';
 import { EarlierVersions } from './EarlierVersions';
 import { RenameForm } from './RenameForm';
 import { canOpenNow, opensBeforeScan, scanChip } from './scanStatus';
@@ -57,6 +59,8 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
   const rename = useRenameFile();
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
+  const folders = useFolders(f.project_id);
+  const openSpec = useOpenSpec(f.project_id);
   const [renaming, setRenaming] = useState(false);
   const del = useDeleteFile(() => {
     onClose?.();
@@ -75,6 +79,12 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
       : undefined;
   const item = fileViewerItem(f, preview, remove);
   const shows = openable && item.kind !== 'other';
+  const folderKind = folders.data?.find((x) => x.id === f.folder_id)?.kind;
+  const big = item.kind === 'pdf' && (folderKind === 'plans' || folderKind === 'specs');
+  const fullScreen = () => {
+    if (folderKind === 'specs') openSpec({ fileId: f.id, page: 1 });
+    else viewer.open([item]);
+  };
 
   const actions =
     remove !== undefined ? (
@@ -151,7 +161,12 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
             {notice}
           </p>
         ) : null}
-        {shows ? (
+        {shows && big ? (
+          <Button variant="primary" icon={Maximize2} className="self-start" data-testid="file-full-screen" onClick={fullScreen}>
+            Full screen
+          </Button>
+        ) : null}
+        {shows && !big ? (
           <FilePreview
             item={item}
             className="h-[min(60vh,32rem)]"

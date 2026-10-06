@@ -1,13 +1,17 @@
 // Files (SPEC §8.1, Phase 0 core): folder tree, file rows with one-click download, drag-and-drop and button upload
 // through the single uploader with per-file progress, and folder create and rename for files.manage. The tree lists
 // folders by sort then name (each job opens with what its kind of user uses most) and hides an empty "Emailed in". A
-// row's name opens the file's pane (the file itself, Full screen, Rename, Delete); its icon opens it full screen.
+// row's name opens the file's pane (the file itself, Full screen, Rename, Delete); its icon opens it full screen. In
+// Plans and Specs the name opens the file full screen at once (Jesse, Oct 5: the right column is too small for a sheet
+// or a spec), its pane under it for Rename, Delete and versions; a spec book carries its section bar.
 // The whole file list is the drop target (useFileDrop). An upload that never finished is a line to remove, never a
 // file row (leftovers).
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useUser } from '../../data/auth';
 import { usePreviewFetch } from '../../data/preview';
 import { useCanWriteFolder, useCapability, useFiles, useFolders, useProject } from '../../data/queries';
+import { specBooksQuery } from '../../data/specs';
 import { useUploadQueue } from '../../data/UploadQueue';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
@@ -15,6 +19,7 @@ import { useFileViewer } from '../../ui/FileViewer';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import { specViewerItem } from '../specs/specItem';
 import { FileRow, FileRowsHead } from './FileRow';
 import { FolderAiToggle } from './FolderAiToggle';
 import { defaultFolderId, folderPath, visibleFolders } from './folderOrder';
@@ -74,13 +79,28 @@ function FolderFiles({ folder, writable, timeZone, selectedFileId, onFiles, onOp
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   const user = useUser();
+  const big = folder.kind === 'plans' || folder.kind === 'specs';
+  const books = useQuery({ ...specBooksQuery(folder.project_id), enabled: folder.kind === 'specs' });
   const rows = files.data ? storedFiles(files.data) : undefined;
-  // Full screen from a row walks the folder's photos and PDFs with the arrows.
+  // Full screen from a row walks the folder's photos and PDFs with the arrows; a spec book opens with its sections.
   const list = (rows ?? [])
     .filter((f) => canOpenNow(f, user.id))
-    .map((f) => fileViewerItem(f, preview))
+    .map((f) => {
+      const book = books.data?.find((b) => b.file_id === f.id);
+      return book ? specViewerItem(folder.project_id, book, preview) : fileViewerItem(f, preview);
+    })
     .filter((i) => i.kind !== 'other');
   const viewable = new Set(list.map((i) => i.id));
+  // A book just added is not in the answer yet: ask again once, so it opens with its bar.
+  const known = books.data;
+  const newBook = known !== undefined && list.some((i) => i.kind === 'pdf' && !known.some((b) => b.file_id === i.id));
+  const refetchBooks = books.refetch;
+  useEffect(() => {
+    if (newBook) void refetchBooks();
+  }, [newBook, refetchBooks]);
+  const view = (fileId: string) => {
+    viewer.open(list, list.findIndex((i) => i.id === fileId));
+  };
   const leftovers = files.data ? leftoverUploads(files.data, queue.items) : [];
 
   return (
@@ -116,11 +136,14 @@ function FolderFiles({ folder, writable, timeZone, selectedFileId, onFiles, onOp
                     timeZone={timeZone}
                     selected={f.id === selectedFileId}
                     downloading={download.pendingId === f.id}
-                    onOpen={onOpenFile}
+                    onOpen={(id) => {
+                      onOpenFile(id);
+                      if (big && viewable.has(id)) view(id);
+                    }}
                     onView={
                       viewable.has(f.id)
                         ? () => {
-                            viewer.open(list, list.findIndex((i) => i.id === f.id));
+                            view(f.id);
                           }
                         : undefined
                     }

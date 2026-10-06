@@ -13,6 +13,9 @@ import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
+import { SpecLink } from '../specs/SpecLink';
+import { sectionDigits } from '../specs/sections';
+import { useOpenSpec } from '../specs/useOpenSpec';
 import { Quote } from './DraftsView';
 import { EvidenceField, EvidenceView } from './EvidenceField';
 import { DueText, KindChip, RequiredNote, StatusOf, StatusPick } from './RequirementBits';
@@ -82,8 +85,10 @@ function Details({ projectId, row, canManage, onEdit, onClose }: { projectId: st
   const status = useStatusTap(projectId);
   const remove = useRemoveRequirement(projectId);
   const toast = useToast();
+  const openSpec = useOpenSpec(projectId);
   const trigger = triggerWords(row);
-  const where = [row.spec_section, row.spec_title, row.spec_ref === '' ? '' : `¶${row.spec_ref}`].filter((s) => s !== '').join(' ');
+  const linked = sectionDigits(row.spec_section) !== null;
+  const where = [linked ? '' : row.spec_section, row.spec_title, row.spec_ref === '' ? '' : `¶${row.spec_ref}`].filter((s) => s !== '').join(' ');
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="req-pane">
         <div className="flex items-center gap-2">
@@ -108,12 +113,27 @@ function Details({ projectId, row, canManage, onEdit, onClose }: { projectId: st
         )}
         <dl className="divide-y divide-line border-y border-line">
           {row.responsible !== '' ? <Fact label="Who">{row.responsible}</Fact> : null}
-          {where !== '' ? <Fact label="Section">{where}</Fact> : null}
+          {linked || where !== '' ? (
+            <Fact label="Section">
+              {linked ? <SpecLink projectId={projectId} section={row.spec_section} /> : null}
+              {linked && where !== '' ? ' ' : null}
+              {where}
+            </Fact>
+          ) : null}
           {trigger !== null ? <Fact label="When">{trigger}</Fact> : null}
           {row.activity_code !== '' ? <Fact label="Activity ID">{row.activity_code}</Fact> : null}
           {row.details !== '' ? <Fact label="Details"><span className="whitespace-pre-wrap">{row.details}</span></Fact> : null}
         </dl>
-        <Quote row={row} />
+        <Quote
+          row={row}
+          onSource={
+            row.source_file_id !== null && row.source_page !== null
+              ? (fileId, page) => {
+                  openSpec({ fileId, page });
+                }
+              : undefined
+          }
+        />
         {row.draft ? null : (
           <section className="flex flex-col gap-2">
             <h3 className="text-[13px] font-medium text-ink-2">Evidence</h3>
