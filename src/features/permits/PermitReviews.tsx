@@ -48,7 +48,7 @@ export function PermitReviews({ detail }: PermitReviewsProps) {
   return (
     <section className="flex flex-col gap-2" data-testid="permit-reviews">
       <div className="relative flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3">Reviews</h2>
+        <h2 className="text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink">Reviews</h2>
         {canOpen ? (
           <Button
             size="sm"

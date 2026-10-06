@@ -111,7 +111,7 @@ export function RfiEditor({ draft, rfiId, photos, isPhone, autoFocus }: RfiEdito
       </div>
 
       <section className="flex flex-col gap-3 border-t border-line pt-4" aria-label="More">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-3">More</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-ink">More</h2>
         <label className={LABEL}>
           Suggestion
           <textarea

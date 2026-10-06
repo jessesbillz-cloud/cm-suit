@@ -61,8 +61,12 @@ test.describe('message board (SPEC §7.3)', () => {
     expect((await download).suggestedFilename()).toBe('Sample Plan Set A.pdf');
 
     await right.getByRole('button', { name: 'Open in Files' }).click();
-    await expect(page).toHaveURL(/\/p\/job-a\/files\/job-a-file-1\?folder=job-a-plans$/);
+    await expect(page).toHaveURL(/\/p\/job-a\/files\/job-a-file-1\?folder=job-a-plans&back=board$/);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
+    // Back (top bar) returns to the board with the line open, as it was.
+    await page.getByTestId('frame-back').click();
+    await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'board');
+    await expect(right.getByRole('button', { name: 'Open in Files' })).toBeVisible();
   });
 
   test('other kinds show their record and open where they live', async ({ page }, testInfo) => {
@@ -129,8 +133,10 @@ test.describe('message board (SPEC §7.3)', () => {
     test.skip(testInfo.project.name !== 'desktop', 'The right column is the desktop frame.');
     await page.goto('/p/job-a/board');
     await openLine(page, 'RFI 002 impact claimed');
+    // The RFI's route strip reads right here, without leaving the board.
+    await expect(page.getByTestId('right-column').getByTestId('rfi-entity-strip')).toBeVisible();
     await expect(page.getByTestId('comments')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Full width' }).click();
+    await page.getByTestId('right-full').click();
     await expect(page.getByTestId('comments').getByTestId('comment')).toHaveCount(2);
     // The new comment box takes more than one line: Shift+Enter is a new line, Enter sends.
     const box = page.getByTestId('comment-input');

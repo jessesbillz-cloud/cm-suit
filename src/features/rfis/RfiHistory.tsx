@@ -11,7 +11,7 @@ interface RfiHistoryProps {
 export function RfiHistory({ events, timeZone }: RfiHistoryProps) {
   return (
     <section className="flex flex-col gap-3 border-t border-line pt-4" aria-label="History" data-testid="rfi-history">
-      <h2 className="text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3">History</h2>
+      <h2 className="text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink">History</h2>
       <ol className="flex flex-col gap-3">
         {events.map((e, i) => (
           <li key={`${e.at}-${String(i)}`} className="flex flex-col gap-0.5">

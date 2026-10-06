@@ -20,7 +20,7 @@ function Preview({ revs }: { revs: readonly LegendRev[] }) {
   const items = revs.reduce((n, r) => n + r.items.length, 0);
   return (
     <section className="flex flex-col gap-1.5" data-testid="rev-legend-preview">
-      <h2 className="text-[11.5px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-3">
+      <h2 className="text-xs font-bold uppercase leading-5 tracking-[0.06em] text-ink">
         {`${String(revs.length)} ${revs.length === 1 ? 'rev' : 'revs'} · ${String(items)} ${items === 1 ? 'item' : 'items'}`}
       </h2>
       <ol className="flex flex-col divide-y divide-line rounded-lg border border-line bg-card">

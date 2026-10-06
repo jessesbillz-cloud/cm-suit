@@ -48,7 +48,7 @@ function Lines({ inv }: { inv: InvoiceRow }) {
           </tr>
         ))}
         <tr className="bg-card-head">
-          <td className={`${TD} pl-4 text-[12px] font-medium uppercase tracking-wide text-ink-3`}>Total</td>
+          <td className={`${TD} pl-4 text-[12px] font-bold uppercase tracking-wide text-ink`}>Total</td>
           <td className={`${TD_NUM} text-right font-semibold text-ink`}>{hoursText(inv.total_hours)}</td>
           <td />
           <td className={`${TD_NUM} pr-4 text-right text-[15px] font-semibold text-ink`} data-testid="invoice-total">
@@ -178,7 +178,7 @@ function Invoice({ inv }: { inv: InvoiceRow }) {
       </div>
       {inv.bill_to !== '' ? (
         <div className="px-4">
-          <p className="text-[12px] font-medium uppercase tracking-wide text-ink-3">Bill to</p>
+          <p className="text-[12px] font-bold uppercase tracking-wide text-ink">Bill to</p>
           <p className="whitespace-pre-line text-sm text-ink">{inv.bill_to}</p>
         </div>
       ) : null}

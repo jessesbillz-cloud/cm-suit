@@ -25,7 +25,7 @@ const BUTTON =
 const TOOL = `${BUTTON} h-11 shrink-0 justify-center sm:h-10`;
 /** A color button grows with a long item name instead of cutting it. */
 const COLOR = `${BUTTON} min-h-11 max-w-full py-1.5 text-left sm:min-h-10`;
-const TOOL_IDLE = 'border-line-strong bg-card text-ink shadow-control hover:bg-card-head disabled:border-line disabled:text-ink-3 disabled:shadow-none';
+const TOOL_IDLE = 'border-line-strong bg-card text-ink shadow-control hover:bg-card-head disabled:border-line disabled:text-ink-3/50 disabled:shadow-none';
 const TOOL_ON = 'border-accent/40 bg-accent-soft text-accent';
 
 interface ToolProps {

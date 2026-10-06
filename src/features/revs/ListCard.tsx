@@ -21,7 +21,7 @@ interface ListCardProps {
 }
 
 function SectionHead({ children }: { children: string }) {
-  return <h3 className="pb-1 text-[11.5px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-3">{children}</h3>;
+  return <h3 className="pb-1 text-xs font-bold uppercase leading-5 tracking-[0.06em] text-ink">{children}</h3>;
 }
 
 export function ListCard({ projectId, list, setup, actions, isPhone }: ListCardProps) {

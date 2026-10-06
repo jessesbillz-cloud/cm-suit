@@ -1,7 +1,8 @@
-// One file on one tight row: a tap on its name opens the file's pane; a tap on its icon (a photo or a PDF) opens it full
-// screen; the download icon (data-testid="file-row-download") downloads it in one click. The name is never cut off: it wraps, even a long name with no spaces. Desktop: size and
+// One file on one tight row: a tap on its name opens the file's pane; two buttons at its end, each one click (Jesse,
+// Oct 5: "a download button right from it, maybe an open full screen right from that"): Full screen (photos and PDFs,
+// data-testid="file-row-view") and Download (data-testid="file-row-download"). The name is never cut off: it wraps, even a long name with no spaces. Desktop: size and
 // date sit on the name's line, right-aligned in columns. Phone: scan state, size and date make one short line under it.
-import { Download } from 'lucide-react';
+import { Download, Maximize2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
@@ -20,15 +21,15 @@ interface FileRowProps {
   selected: boolean;
   downloading: boolean;
   onOpen: (fileId: string) => void;
-  /** Full screen (photos and PDFs that may be opened now); left out, the icon opens the pane like the name. */
+  /** Full screen (photos and PDFs that may be opened now); left out, the row has no Full screen button. */
   onView?: (() => void) | undefined;
   onDownload: (file: File) => void;
 }
 
 const SIZE = 'w-16 shrink-0 text-right';
 const DATE = 'w-[5.75rem] shrink-0 text-right';
-/** The download icon's column: 32px on a desktop, 40px (a thumb's tap) on a phone. */
-const ACTION = 'w-10 shrink-0 sm:w-8';
+/** The two buttons' column (Full screen, Download): 32px each on a desktop, 40px (a thumb's tap) on a phone. */
+const ACTION = 'w-[5.25rem] shrink-0 sm:w-[4.25rem]';
 
 /** The column names over the rows (desktop only). */
 export function FileRowsHead() {
@@ -58,18 +59,6 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
         selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
       }`}
     >
-      {onView ? (
-        <button
-          type="button"
-          data-testid="file-row-view"
-          aria-label={`Full screen ${file.original_name}`}
-          title="Full screen"
-          className={`${iconBox} hover:bg-accent-soft hover:text-accent`}
-          onClick={onView}
-        >
-          <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
-        </button>
-      ) : null}
       <button
         type="button"
         data-testid="file-row-open"
@@ -78,11 +67,9 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
           onOpen(file.id);
         }}
       >
-        {onView ? null : (
-          <span className={iconBox}>
-            <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
-          </span>
-        )}
+        <span className={iconBox}>
+          <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
+        </span>
         <span className="min-w-0 flex-1 text-sm leading-5">
           <span data-testid="file-row-name" className="wrap-anywhere font-medium text-ink group-hover:text-accent">
             {file.original_name}
@@ -100,20 +87,34 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
         <span className={`hidden text-xs tabular-nums text-ink-3 sm:block ${SIZE}`}>{size}</span>
         <span className={`hidden text-xs tabular-nums text-ink-3 sm:block ${DATE}`}>{added}</span>
       </button>
-      <Button
-        size="sm"
-        variant="quiet"
-        icon={Download}
-        data-testid="file-row-download"
-        aria-label={`Download ${file.original_name}`}
-        title="Download"
-        className="h-10 w-10 sm:h-8 sm:w-8"
-        loading={downloading}
-        disabled={blocked}
-        onClick={() => {
-          onDownload(file);
-        }}
-      />
+      <span className={`flex items-center justify-end gap-1 ${ACTION}`}>
+        {onView ? (
+          <Button
+            size="sm"
+            variant="quiet"
+            icon={Maximize2}
+            data-testid="file-row-view"
+            aria-label={`Full screen ${file.original_name}`}
+            title="Full screen"
+            className="h-10 w-10 sm:h-8 sm:w-8"
+            onClick={onView}
+          />
+        ) : null}
+        <Button
+          size="sm"
+          variant="quiet"
+          icon={Download}
+          data-testid="file-row-download"
+          aria-label={`Download ${file.original_name}`}
+          title="Download"
+          className="h-10 w-10 sm:h-8 sm:w-8"
+          loading={downloading}
+          disabled={blocked}
+          onClick={() => {
+            onDownload(file);
+          }}
+        />
+      </span>
     </li>
   );
 }

@@ -183,7 +183,7 @@ test.describe('permits', () => {
     await openAs(page, 'pm', '/p/job-s/permits/mock-permit-s1');
     await expect(page.getByTestId('permit-pane')).toBeVisible();
     await expect(page.getByTestId('permit-history')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Full width' }).click();
+    await page.getByTestId('right-full').click();
     await expect(page.getByTestId('permit-history')).toBeVisible();
   });
 

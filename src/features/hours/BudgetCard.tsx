@@ -21,7 +21,7 @@ interface FigureProps {
 function Figure({ label, value, testId, danger = false }: FigureProps) {
   return (
     <div className="flex min-w-0 flex-col">
-      <span className="text-[12px] font-medium uppercase tracking-wide text-ink-3">{label}</span>
+      <span className="text-[12px] font-bold uppercase tracking-wide text-ink">{label}</span>
       <span data-testid={testId} className={`text-2xl font-semibold tabular-nums leading-8 ${danger ? 'text-danger' : 'text-ink'}`}>
         {hoursText(value)}
       </span>

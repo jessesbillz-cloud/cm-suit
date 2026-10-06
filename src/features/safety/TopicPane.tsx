@@ -31,7 +31,7 @@ function View({ projectId, orgId, topic, canManage, onEdit, onClose }: Omit<Topi
     <div className="flex min-h-full flex-col" data-testid="safety-topic">
       <div className="flex flex-1 flex-col gap-4 px-5 py-4">
         <header className="flex flex-col gap-1">
-          <span className="text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3">
+          <span className="text-[13px] font-bold uppercase tracking-[0.04em] text-ink">
             {categoryLabel(topic.category)}
             {topic.org_id === null ? '' : ' · Ours'}
           </span>

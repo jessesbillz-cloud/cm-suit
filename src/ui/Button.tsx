@@ -16,10 +16,10 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'chi
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-accent text-white shadow-primary hover:bg-accent-hover active:bg-accent-hover disabled:bg-accent/45 disabled:shadow-none',
   secondary:
-    'border border-line-strong bg-card text-ink shadow-control hover:border-ink-3/60 hover:bg-card-head active:bg-page disabled:border-line disabled:bg-card disabled:text-ink-3 disabled:shadow-none',
-  quiet: 'bg-transparent text-ink-2 hover:bg-page hover:text-ink active:bg-line/60 disabled:bg-transparent disabled:text-ink-3',
+    'border border-line-strong bg-card text-ink shadow-control hover:border-ink-3/60 hover:bg-card-head active:bg-page disabled:border-line disabled:bg-card disabled:text-ink-3/50 disabled:shadow-none',
+  quiet: 'bg-transparent text-ink hover:bg-page hover:text-accent active:bg-line/60 disabled:bg-transparent disabled:text-ink-3/50',
   danger:
-    'border border-line-strong bg-card text-danger shadow-control hover:border-danger/40 hover:bg-danger-soft disabled:border-line disabled:text-ink-3 disabled:shadow-none',
+    'border border-line-strong bg-card text-danger shadow-control hover:border-danger/40 hover:bg-danger-soft disabled:border-line disabled:text-ink-3/50 disabled:shadow-none',
 };
 
 // sm 32px, md 40px, lg 44px (a bar's one big action, e.g. Submit). A button with only an icon is square.

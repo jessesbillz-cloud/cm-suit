@@ -51,7 +51,7 @@ export function CommentsPanel({ target }: CommentsPanelProps) {
 
   return (
     <section aria-label="Comments" data-testid="comments" className="border-t border-line bg-card px-5 pb-5 pt-4">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase leading-4 tracking-[0.06em] text-ink-3">
+      <h2 className="flex items-center gap-2 text-xs font-bold uppercase leading-4 tracking-[0.06em] text-ink">
         Comments
         {count > 0 ? (
           <span data-testid="comments-count" className="tabular-nums text-ink-2">

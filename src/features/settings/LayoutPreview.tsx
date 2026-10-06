@@ -179,7 +179,7 @@ function PhoneSketch({ choices, rail, spot }: PreviewProps) {
         {tabs.map((t) => (
           <TabDot key={t} tool={t} active={t === choices.main_default} />
         ))}
-        <span className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-1 text-ink-2">
+        <span className="flex min-w-0 flex-1 flex-col items-center gap-0.5 py-1 text-ink">
           <Icon icon={Ellipsis} size={14} />
           <span className="text-[9px] leading-[10px]">More</span>
         </span>
@@ -192,7 +192,7 @@ function PhoneSketch({ choices, rail, spot }: PreviewProps) {
 }
 
 function Caption({ children }: { children: string }) {
-  return <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-3">{children}</p>;
+  return <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-ink">{children}</p>;
 }
 
 export function LayoutPreview({ choices, rail, spot }: PreviewProps) {

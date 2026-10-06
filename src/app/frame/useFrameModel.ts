@@ -8,7 +8,7 @@ import { messageOf } from '../../data/errors';
 import { jobRailChoices, useJobRails } from '../../data/jobRail.queries';
 import { useSaveJobRail } from '../../data/jobRail.mutations';
 import { useReadableTools, useRecommendedTools, useToolCounts } from '../../data/rail.queries';
-import { allJobsTool, jobTool, railModel } from '../../lib/jobs';
+import { allJobsTool, isPinnedJobTool, jobTool, railModel } from '../../lib/jobs';
 import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../lib/layout';
 import { countsByTool } from '../../lib/toolCounts';
 import type { RailJobPart } from '../../ui/Rail';
@@ -91,9 +91,10 @@ export function useFrameModel(loc: FrameLocation) {
         label: current.name,
         tools: rail.job,
         more: rail.more,
+        // A pinned tool (Revs) is always there: Edit doesn't offer it.
         edit: {
-          tools: [...rail.job, ...rail.more],
-          chosen: rail.job,
+          tools: [...rail.job, ...rail.more].filter((t) => !isPinnedJobTool(t)),
+          chosen: rail.job.filter((t) => !isPinnedJobTool(t)),
           own: (jobRailsQuery.data?.[current.project_id]?.tools ?? null) !== null,
           onChange: (tools) => {
             chooseTools(current.project_id, tools);
