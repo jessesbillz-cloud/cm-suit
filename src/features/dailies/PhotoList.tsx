@@ -1,5 +1,6 @@
 // The report's photos as a grid: each tile shows its place on the report, the time taken, the row it belongs to and a
-// caption (saved on leaving the box), and on a company form an optional description (its "Photo Analysis" pages); a tap
+// caption (saved on leaving the box); on a company form that box is the photo's Title, with an optional Description
+// under it (the PDF's "Photo Analysis" pages print the title over the description, beside the photo); a tap
 // on the picture opens the file viewer over all the report's photos (Download inside, and Delete while the report can
 // change); remove with Undo (usePhotoRemovals, owned by the editor so Submit can flush it), on the tile or in the viewer.
 // Upload progress and failed uploads (with Retry) come from the one upload queue. The count shows against the 40 a report
@@ -44,6 +45,8 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, on
   const [caption, setCaption] = useState(photo.caption);
   const [description, setDescription] = useState(photo.description);
   const when = photo.taken_at ? formatInZone(photo.taken_at, tz, 'h:mm a') : '';
+  // A company form prints it as the title over the description (Photo Analysis); the work log, as the caption.
+  const captionWord = describe ? 'Title' : 'Caption';
   const meta = [when, rowLabel].filter((x) => x !== null && x !== '').join(' · ');
 
   function saveText(what: string) {
@@ -87,8 +90,8 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, on
       </div>
       {meta !== '' ? <p className="break-words text-xs text-ink-2">{meta}</p> : null}
       <input
-        aria-label={`Caption for photo ${String(index + 1)}`}
-        placeholder="Caption"
+        aria-label={`${captionWord} for photo ${String(index + 1)}`}
+        placeholder={captionWord}
         maxLength={500}
         className={`h-9 min-w-0 ${INPUT}`}
         value={caption}
@@ -97,7 +100,7 @@ function PhotoTile({ projectId, photo, index, tz, rowLabel, locked, describe, on
           setCaption(e.target.value);
         }}
         onBlur={() => {
-          saveText('Caption');
+          saveText(captionWord);
         }}
       />
       {describe ? (
