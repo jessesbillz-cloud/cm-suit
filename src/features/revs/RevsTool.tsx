@@ -1,14 +1,15 @@
 // Revs (0056): a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2: "anyone can see what's left
-// on each wall at any time"). Walls: every wall by level as a callout tile with its tally (List), or the level's plan
-// sheet with its walls drawn on it (Plan, 0059); a tap opens the wall's own page (the main area; its own screen on the
-// phone). Open: the end-of-job check, what is still open and where. Checklist: the fire marshal's sheet, every wall by
+// on each wall at any time"). Walls: the rooms by level, each a tile that opens the room's page and its walls (Rooms,
+// 0083, first), every wall by level as a callout tile with its tally (List), or the level's plan sheet with its walls
+// drawn on it (Plan, 0059); a tap opens the wall's own page (the main area; its own screen on the phone). Open: the end-of-job check, what is still open and where. Checklist: the fire marshal's sheet, every wall by
 // rev, printed letter landscape (0082). Setup (revs.manage): the lists, pasted from OSFM's
 // legend, and the walls. What shows is decided by has_capability, never role names.
 import { useMemo, type ReactNode } from 'react';
 import { Plus, Printer } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
-import { NEW_ITEM, opensInMain, WALLS_ITEM } from '../../lib/itemIds';
+import { useRevRooms } from '../../data/revs.rooms';
+import { NEW_ITEM, opensInMain, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
@@ -19,15 +20,18 @@ import { ChecklistView } from './ChecklistView';
 import { VIEWS, VIEW_LABELS, indexStatus, metaLine, type RevView } from './model';
 import { OpenView } from './OpenView';
 import { PlanView } from './plan/PlanView';
+import { LinkFiles } from './room/LinkFiles';
+import { RoomPage } from './room/RoomPage';
+import { RoomsView } from './RoomsView';
 import { SetupView } from './SetupView';
-import { useRevsNav } from './useRevsNav';
+import { useRevsNav, type WallsMode } from './useRevsNav';
 import { WallPage } from './WallPage';
 import { WallsView } from './WallsView';
 
 const META = TOOL_META.revs;
 
-type WallsMode = 'list' | 'plan';
 const WALLS_MODES: { value: WallsMode; label: string }[] = [
+  { value: 'rooms', label: 'Rooms' },
   { value: 'list', label: 'List' },
   { value: 'plan', label: 'Plan' },
 ];
@@ -58,9 +62,18 @@ interface MainProps extends RevsToolProps {
   canManage: boolean;
 }
 
-function SetupActions({ onOpen, hasLists, isPhone }: { onOpen: (id: string) => void; hasLists: boolean; isPhone: boolean }) {
+interface SetupActionsProps {
+  projectId: string;
+  listIds: string[];
+  onOpen: (id: string) => void;
+  isPhone: boolean;
+}
+
+function SetupActions({ projectId, listIds, onOpen, isPhone }: SetupActionsProps) {
+  const hasLists = listIds.length > 0;
   return (
     <>
+      {hasLists ? <LinkFiles projectId={projectId} listIds={listIds} isPhone={isPhone} /> : null}
       {hasLists ? (
         <Button icon={Plus} className={isPhone ? 'h-10' : ''} data-testid="rev-add-walls" onClick={() => { onOpen(WALLS_ITEM); }}>
           Add walls
@@ -77,22 +90,24 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const nav = useRevsNav(projectId, canManage);
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
+  const rooms = useRevRooms(projectId);
   const jobs = useMyProjects();
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const views = VIEWS.filter((v) => v !== 'setup' || canManage).map((v) => ({ value: v, label: VIEW_LABELS[v] }));
   const view = nav.view;
   const meta = setup.data && status.data && setup.data.areas.length > 0 ? metaLine(setup.data, index) : undefined;
   const needsStatus = view !== 'setup';
+  const needsRooms = view === 'walls' && nav.mode === 'rooms';
 
   let body: ReactNode;
-  if (setup.isError || (needsStatus && status.isError)) {
-    const failed = setup.isError ? setup : status;
+  if (setup.isError || (needsStatus && status.isError) || (needsRooms && rooms.isError)) {
+    const failed = setup.isError ? setup : status.isError ? status : rooms;
     body = (
       <Card padded={false}>
         <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />
       </Card>
     );
-  } else if (!setup.data || (needsStatus && !status.data)) {
+  } else if (!setup.data || (needsStatus && !status.data) || (needsRooms && !rooms.data)) {
     body = (
       <Card padded={false}>
         <LoadingState label="Loading revs" />
@@ -107,6 +122,18 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
     body = <OpenView setup={setup.data} index={index} selectedId={itemId} onOpen={nav.open} />;
   } else if (nav.plan) {
     body = <PlanView projectId={projectId} setup={setup.data} index={index} canManage={canManage} isPhone={isPhone} />;
+  } else if (needsRooms && rooms.data) {
+    body = (
+      <RoomsView
+        projectId={projectId}
+        setup={setup.data}
+        index={index}
+        rooms={rooms.data}
+        onOpenRoom={nav.openRoom}
+        onOpenWall={nav.open}
+        onSetup={canManage ? () => { nav.setView('setup'); } : undefined}
+      />
+    );
   } else {
     body = (
       <WallsView
@@ -123,7 +150,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
       meta={meta}
       actions={
         view === 'setup' ? (
-          <SetupActions onOpen={nav.open} hasLists={(setup.data?.lists.length ?? 0) > 0} isPhone={isPhone} />
+          <SetupActions projectId={projectId} listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
         ) : view === 'checklist' ? (
           <Button
             icon={Printer}
@@ -140,10 +167,10 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
           <Segments<WallsMode>
             label="Walls"
             options={WALLS_MODES}
-            value={nav.plan ? 'plan' : 'list'}
+            value={nav.mode}
             onPick={(m) => {
               if (m === 'plan') nav.showPlan({});
-              else nav.setView('walls');
+              else nav.setMode(m);
             }}
             testId="rev-walls-as"
           />
@@ -185,7 +212,10 @@ export function RevsTool({ projectId, itemId, isPhone }: RevsToolProps) {
       </Shell>
     );
   }
-  // A wall is a page of its own: it fills the main area (lib/itemIds opensInMain).
+  // A wall or a room is a page of its own: it fills the main area (lib/itemIds opensInMain).
+  if (itemId !== null && itemId.startsWith(ROOM_ITEM_PREFIX)) {
+    return <RoomPage key={itemId} projectId={projectId} roomId={itemId.slice(ROOM_ITEM_PREFIX.length)} isPhone={isPhone} />;
+  }
   if (itemId !== null && opensInMain('revs', itemId)) return <WallPage key={itemId} projectId={projectId} areaId={itemId} isPhone={isPhone} />;
   return <RevsMain key={projectId} projectId={projectId} itemId={itemId} isPhone={isPhone} canManage={manage.data === true} />;
 }

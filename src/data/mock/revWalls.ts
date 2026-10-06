@@ -62,7 +62,7 @@ export async function setSignoff(areaId: string, itemIds: string[], v: SignoffVa
     const live = s.signoffs.find((x) => x.area_id === areaId && x.item_id === itemId && x.deleted_at === null);
     const values = { ofs_number: v.ofsNumber, signed_on: v.signedOn, note };
     if (live) return bump(live, values);
-    return { ...stamp(), org_id: area.org_id, project_id: area.project_id, id: newId('mock-rev-signoff'), area_id: areaId, item_id: itemId, ...values };
+    return { ...stamp(), org_id: area.org_id, project_id: area.project_id, id: newId('mock-rev-signoff'), area_id: areaId, item_id: itemId, file_id: null, ...values };
   });
   const ids = new Set(out.map((x) => x.id));
   write((x) => ({ ...x, signoffs: [...x.signoffs.filter((r) => !ids.has(r.id)), ...out] }));

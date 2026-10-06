@@ -19,6 +19,9 @@ export const HOURS_MONTH_PREFIX = 'month-';
 export const BILLING_ITEM = 'billing';
 /** Revs: adding walls to a list. */
 export const WALLS_ITEM = 'walls';
+/** Revs (0083): a room opens as `room-<id>` (a page of its own), a wall's file beside it as `file-<id>`. */
+export const ROOM_ITEM_PREFIX = 'room-';
+export const REV_FILE_PREFIX = 'file-';
 /** Safety: a new topic for the company's library. */
 export const NEW_TOPIC_ITEM = 'new-topic';
 /** Safety: a library topic opens as `topic-<id>` (a meeting opens by its own id). */
@@ -75,4 +78,18 @@ export function opensInMain(tool: string, itemId: string): boolean {
   if (boardLineOf(itemId) !== null) return false;
   if (tool === 'schedule') return itemId.startsWith(DRAFT_ITEM_PREFIX);
   return tool === 'revs' && itemId !== NEW_ITEM && itemId !== WALLS_ITEM;
+}
+
+/** The tools whose records open beside a page in the main area (a Revs wall: its requests and its OFS IRs). */
+const SIDE_TOOLS = ['inspections', 'revs'] as const;
+const SIDE = /^(inspections|revs):([0-9a-z-]{1,80})$/;
+
+/**
+ * A record in the right column beside a page in the main area (?side=<tool>:<item>), so the page stays put (Jesse,
+ * Oct 5: "click on it and expand it over there on the right hand side"). Null when the value isn't one.
+ */
+export function sideItem(side: string | undefined): { tool: (typeof SIDE_TOOLS)[number]; itemId: string } | null {
+  const m = side === undefined ? null : SIDE.exec(side);
+  const tool = SIDE_TOOLS.find((t) => t === m?.[1]);
+  return tool && m?.[2] ? { tool, itemId: m[2] } : null;
 }
