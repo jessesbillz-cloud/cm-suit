@@ -85,7 +85,7 @@ export function useRevFile(projectId: string, fileId: string | null) {
 /** For the file viewer: the same cached answer (a tapped thumbnail opens with its picture loaded). */
 export function useRevFileFetch(): (projectId: string, fileId: string) => Promise<RevFile> {
   const qc = useQueryClient();
-  return useCallback((projectId: string, fileId: string) => qc.fetchQuery(revFileQuery(projectId, fileId)), [qc]);
+  return useCallback((projectId: string, fileId: string) => qc.query(revFileQuery(projectId, fileId)), [qc]);
 }
 
 const downloadSchema = z.object({ url: z.string().url(), filename: z.string().min(1) });
