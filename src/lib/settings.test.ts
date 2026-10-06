@@ -16,4 +16,8 @@ describe('settings', () => {
     });
     expect(parseOrgSettings({ report_generator: 'vis_daily' }).report_generator).toBe('vis_daily');
   });
+  it('reads a blank OFS attestation wording as the standard one (null)', () => {
+    expect(parseProjectSettings({ ir_ofs_attest_text: '   ' }).ir_ofs_attest_text).toBeNull();
+    expect(parseProjectSettings({ ir_ofs_attest_text: ' Sample VIS wording ' }).ir_ofs_attest_text).toBe('Sample VIS wording');
+  });
 });

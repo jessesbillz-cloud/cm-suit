@@ -8,6 +8,7 @@ import { addDays, format, parseISO } from 'date-fns';
 import type { Tables } from '../database.types';
 import type { IrRowRaw } from '../inspections.types';
 import { NO_WALL_DETAILS } from '../revs.types';
+import { NO_OFS_CHECKS } from './irRules';
 
 const REVS_JOB = 'job-s';
 const ORG = 'org-owner';
@@ -150,7 +151,7 @@ export function revsJobRequests(today: string): IrRowRaw[] {
       content_hash: state === 'approved' ? 'sample' : null, signed_at: state === 'approved' ? at : null,
       signed_by: state === 'approved' ? DEPUTY : null, pdf_stale: false, pdf_postponed: false, results_sent_at: null,
       summary: null, permit_id: null, requester_name: null, requester_phone: null, requester_email: null,
-      ofs_sent_at: done ? AT : null, ofs_sent_by: done ? INSPECTOR : null, special_required: false,
+      ofs_sent_at: done ? AT : null, ofs_sent_by: done ? INSPECTOR : null, special_required: false, ...NO_OFS_CHECKS,
     };
   });
 }

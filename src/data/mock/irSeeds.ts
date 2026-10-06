@@ -8,6 +8,7 @@ import { addDays, format, isWeekend, parseISO } from 'date-fns';
 import type { IrRowRaw } from '../inspections.types';
 import type { FileRow } from '../types';
 import type { MockBlock } from './irCalendar';
+import { NO_OFS_CHECKS } from './irRules';
 import { SEED_PERMIT_S1 } from './permitSeeds';
 
 const REQUESTER = 'mock-user-sub';
@@ -107,7 +108,7 @@ function row(job: string, day: string, number: number, i: number, { time, length
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
-    ofs_sent_at: null, ofs_sent_by: null, special_required: null,
+    ofs_sent_at: null, ofs_sent_by: null, special_required: null, ...NO_OFS_CHECKS,
     ...fields(state, day, job, number, i % 11 === 5),
   };
 }

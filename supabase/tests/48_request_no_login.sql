@@ -152,7 +152,7 @@ set local role service_role;
 select pg_temp.login_service();
 insert into res values ('cal', public.link_request_calendar('c0000000-0000-0000-0000-000000000481', pg_temp.h('job-token'), null, pg_temp.d(1)));
 select results_eq($$ select k from jsonb_object_keys(pg_temp.j('cal')) k order by 1 $$,
-  $$ values ('day'::text), ('kinds'), ('ofs'), ('rows'), ('today') $$, 'calendar: the day, the form''s choices and the rows');
+  $$ values ('attest_text'::text), ('day'), ('kinds'), ('ofs'), ('rows'), ('today') $$, 'calendar: the day, the form''s choices (with the OFS attestation wording, 0091) and the rows');
 select results_eq($$ select distinct k from jsonb_array_elements(pg_temp.j('cal')->'rows') e, jsonb_object_keys(e) k order by 1 $$,
   $$ values ('duration_kind'::text), ('duration_min'), ('kind'), ('start_time'), ('status_key') $$,
   'calendar: each row is time, length, type and color only');

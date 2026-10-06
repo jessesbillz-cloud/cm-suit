@@ -421,6 +421,7 @@ test.describe('revs', () => {
     await page.getByTestId('ir-special-required-no').click();
     await page.getByTestId('ir-ack').check();
     await page.getByTestId('ir-submit').click();
+    await page.getByTestId('ir-attest-confirm').click();
     await expect(page.getByTestId('sheet-frame')).toBeVisible({ timeout: 15_000 });
     // Two walls x two items, on page 2 of the set where the walls are; saved like any mark.
     await expect(page.getByTestId('sheet-frame').locator('svg path')).toHaveCount(4);

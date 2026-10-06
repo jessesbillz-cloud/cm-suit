@@ -8,6 +8,12 @@ import type { IrRowRaw } from '../inspections.types';
 type Row = IrRowRaw;
 export type Args = Record<string, unknown>;
 
+/** A request's OFS attestation and checks (0091), none yet. */
+export const NO_OFS_CHECKS = {
+  ofs_attest_by: null, ofs_attest_at: null, ofs_attest_text: null, ofs_ready_by: null, ofs_ready_at: null, ofs_si_by: null,
+  ofs_si_at: null, ofs_si_file_id: null,
+} as const;
+
 const ASKS: readonly string[] = ['ir.request'];
 /** A mock user who is requester, GC and inspector at once ('pm' and anyone not named below), so one persona can walk
  *  a whole IOR flow. Never the OFS pair: that is the fire marshal's alone, as in the database. */
@@ -110,10 +116,14 @@ interface StepContext {
   wallResult: boolean;
   /** permits.manage / permits.read (set_request_permit). */
   permits: { manage: boolean; read: boolean };
+  /** ir_ofs_sender (0091): I am the inspector, or I hold the job's OFS requests duty. */
+  sender: boolean;
+  /** Another request of the job has this OFS number. */
+  numberTaken: (n: number) => boolean;
 }
 
 /** A step: the change to the row, or null when it changes nothing (the same row comes back). Throws its refusal. */
-type Step = (r: Row, a: Args, c: StepContext) => Partial<Row> | null;
+export type Step = (r: Row, a: Args, c: StepContext) => Partial<Row> | null;
 
 const NOT_POSTPONED = { postpone_reason: null, postpone_note: null, postpone_until: null, postponed_at: null };
 const NO_HELPER_REPORT = { helper_report: null, helper_note: null, helper_at: null };
@@ -202,17 +212,26 @@ export const STEPS: Record<string, Step> = {
     return { status: approve ? 'pending' : 'returned', gc_by: c.me, gc_at: c.now, gc_note: note(a, 'p_note') };
   },
   // The inspector sends an OFS request to OFS (from pending, or from his own postponement): the deputy's from here.
+  // The duty holder sends one the inspector has checked (0091). The inspector's own send is his Ready.
   ir_send_ofs: (r, _a, c) => {
-    if (!holds(c.me, 'ir.decide')) throw forbidden();
+    const inspector = holds(c.me, 'ir.decide');
+    if (!c.sender) throw forbidden();
     if (r.kind !== 'ofs') throw refuse('Only an OFS request goes to OFS.');
     if (r.ofs_sent_at !== null) return null;
-    if (!ownerOk(c.me, r)) throw forbidden();
+    if (inspector && !ownerOk(c.me, r)) throw forbidden();
     if (r.status !== 'pending' && r.status !== 'postponed') throw refuse('This request is not with the inspector.');
-    return { ofs_sent_at: c.now, ofs_sent_by: c.me, status: 'pending', owner_id: null, ...NOT_POSTPONED };
+    if (!inspector && r.ofs_ready_at === null) throw refuse('The inspector checks it first.');
+    if (!inspector && r.special_required === true && r.ofs_si_at === null) {
+      throw refuse('The inspector checks the special inspection report first.');
+    }
+    return {
+      ofs_sent_at: c.now, ofs_sent_by: c.me, status: 'pending', owner_id: null, ...NOT_POSTPONED,
+      ofs_ready_by: r.ofs_ready_by ?? c.me, ofs_ready_at: r.ofs_ready_at ?? c.now,
+    };
   },
-  // Undo of the send: the inspector who sent it, until the deputy has acted on it.
+  // Undo of the send: whoever sent it, until the deputy has acted on it.
   ir_unsend_ofs: (r, _a, c) => {
-    if (!holds(c.me, 'ir.decide') || r.ofs_sent_by !== c.me) throw forbidden();
+    if (!c.sender || r.ofs_sent_by !== c.me) throw forbidden();
     if (r.status !== 'pending' || r.owner_id !== null || r.result !== null || c.wallResult) throw refuse('OFS has this one now.');
     return { ofs_sent_at: null, ofs_sent_by: null };
   },

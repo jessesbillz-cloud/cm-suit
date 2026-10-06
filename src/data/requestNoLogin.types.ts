@@ -19,6 +19,8 @@ export const publicDaySchema = z.object({
   today: z.string(),
   day: z.string(),
   ofs: z.boolean(),
+  /** The words a visitor confirms before an OFS request goes (0091). */
+  attest_text: z.string(),
   kinds: z.array(z.object({ id: z.string(), name: z.string() })),
   rows: z.array(dayRowSchema),
 });
@@ -30,6 +32,7 @@ export interface PublicDay {
   today: string;
   day: string;
   ofs: boolean;
+  attest_text: string;
   kinds: { id: string; name: string }[];
   rows: CalendarRow[];
 }

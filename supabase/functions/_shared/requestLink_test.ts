@@ -108,12 +108,13 @@ Deno.test('calendar answer: time, length, type and color per row; nothing about 
     today: '2026-10-02',
     day: '2026-10-05',
     ofs: false,
+    attest_text: 'To the best of my knowledge, the work listed is complete and ready for inspection.',
     kinds: [{ id: PROJECT, name: 'Concrete', sort: 10 }],
     rows: [{ start_time: '08:00:00', duration_kind: 'timed', duration_min: 60, kind: 'ior', status_key: 'pending',
              company: 'Sample Concrete Co', items: 'Footings', number: 3, requested_by: USER }],
     timezone: 'America/Los_Angeles',
   });
-  check(JSON.stringify(Object.keys(out).sort()) === JSON.stringify(['day', 'kinds', 'ofs', 'rows', 'today']), 'top-level keys');
+  check(JSON.stringify(Object.keys(out).sort()) === JSON.stringify(['attest_text', 'day', 'kinds', 'ofs', 'rows', 'today']), 'top-level keys');
   check(JSON.stringify(Object.keys(out.rows[0] ?? {}).sort()) ===
     JSON.stringify(['duration_kind', 'duration_min', 'kind', 'start_time', 'status_key']), 'row keys');
   const text = JSON.stringify(out);
