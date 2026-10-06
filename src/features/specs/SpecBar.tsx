@@ -13,6 +13,9 @@ import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
 import { sectionAt } from './sections';
 
+/** Between a section's number and its title in the list (a select shows plain text only). */
+const GAP = '\u00a0\u00a0';
+
 /** Pages read and sent per call (the server takes at most 50). */
 const CHUNK = 25;
 
@@ -42,17 +45,19 @@ function useSendText(projectId: string, book: SpecBook, nav: PageNav): string | 
   useEffect(() => {
     if (!need) return undefined;
     let stopped = false;
+    // Asked as a call: the loop awaits, and the cleanup below may stop it in between.
+    const isStopped = () => stopped;
     const run = async () => {
-      for (let from = 1; from <= pages && !stopped; from += CHUNK) {
+      for (let from = 1; from <= pages && !isStopped(); from += CHUNK) {
         const chunk: { page: number; text: string }[] = [];
         for (let n = from; n < from + CHUNK && n <= pages; n += 1) chunk.push({ page: n, text: await live.current.nav.text(n) });
-        if (stopped) return;
+        if (isStopped()) return;
         await live.current.save.mutateAsync({ fileId: book.file_id, pageCount: pages, pages: chunk });
         setDone(Math.min(from + CHUNK - 1, pages));
       }
     };
     run().catch((e: unknown) => {
-      if (!stopped) live.current.toast.show({ message: messageOf(e), tone: 'error' });
+      if (!isStopped()) live.current.toast.show({ message: messageOf(e), tone: 'error' });
     });
     return () => {
       stopped = true;
@@ -128,7 +133,7 @@ export function SpecBar({ projectId, book: opened, nav }: SpecBarProps) {
           ) : null}
           {sections.map((s, i) => (
             <option key={`${s.section}-${String(s.first_page)}`} value={String(i)} className="bg-card text-ink">
-              {`${s.section}  ${s.title}`}
+              {`${s.section}${GAP}${s.title}`}
             </option>
           ))}
         </select>

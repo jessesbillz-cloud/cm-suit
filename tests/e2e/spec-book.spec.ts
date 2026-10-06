@@ -26,14 +26,14 @@ test.describe('spec book', () => {
     const bar = viewer.getByTestId('spec-bar');
     const section = bar.getByTestId('spec-section');
     await expect(section.locator('option')).toHaveText([
-      '09 21 16  Gypsum Board Assemblies',
-      '09 29 00  Gypsum Board',
-      '10 28 00  Toilet Accessories',
+      '09 21 16\u00a0\u00a0Gypsum Board Assemblies',
+      '09 29 00\u00a0\u00a0Gypsum Board',
+      '10 28 00\u00a0\u00a0Toilet Accessories',
     ]);
     await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
     await expect(bar.getByTestId('spec-prev-section')).toBeDisabled();
 
-    await section.selectOption({ label: '10 28 00  Toilet Accessories' });
+    await section.selectOption({ label: '10 28 00\u00a0\u00a0Toilet Accessories' });
     await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 3 of 3');
     await expect(bar.getByTestId('spec-next-section')).toBeDisabled();
     await expect(bar.getByTestId('spec-next-page')).toBeDisabled();

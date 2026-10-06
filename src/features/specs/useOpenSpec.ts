@@ -22,13 +22,13 @@ export function useOpenSpec(projectId: string): (to: SpecTarget) => void {
   return useCallback(
     (to: SpecTarget) => {
       const show = async () => {
-        const books = await qc.fetchQuery(specBooksQuery(projectId));
+        const books = await qc.query(specBooksQuery(projectId));
         const first = books[0];
         if ('fileId' in to) {
           // A book just added may not be in a recent answer yet.
           const book =
             books.find((b) => b.file_id === to.fileId) ??
-            (await qc.fetchQuery({ ...specBooksQuery(projectId), staleTime: 0 })).find((b) => b.file_id === to.fileId);
+            (await qc.query({ ...specBooksQuery(projectId), staleTime: 0 })).find((b) => b.file_id === to.fileId);
           if (!book) throw new Error('That spec book is not in Specs any more.');
           viewer.open([specViewerItem(projectId, book, preview, to.page)]);
           return;
