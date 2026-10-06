@@ -3,7 +3,7 @@
 // an expired member and a revoked member) using the service role, then signs in as each user and checks: the capability
 // matrix, cross-project isolation, access_ends_at, revocation, the bidder wall (members, people, files, invites,
 // submissions, questions, bidder_page), the sealed-bid hold, pricing-only bid files and money tables, aal2, who sees
-// an RFI draft, and a sub's own requirement lines (_requirementsOwn.ts).
+// an RFI draft, a sub's own requirement lines (_requirementsOwn.ts) and what outside people reach (_outsiders.ts, 0090).
 // Env: PROBE_SUPABASE_URL, PROBE_ANON_KEY, PROBE_SERVICE_ROLE_KEY. Exits non-zero on any failure. Cleans up even on failure.
 import { randomBytes, randomUUID } from 'node:crypto';
 import process from 'node:process';
@@ -11,6 +11,7 @@ import { type Client, Report, errText, makeClient, requireEnv, rowsOf } from './
 import { checkRfis } from './_rfis';
 import { checkRequestLink } from './_requestLink';
 import { checkRequirementsOwn } from './_requirementsOwn';
+import { checkOutsiders } from './_outsiders';
 
 const url = requireEnv('PROBE_SUPABASE_URL').replace(/\/+$/, '');
 const anonKey = requireEnv('PROBE_ANON_KEY');
@@ -21,7 +22,7 @@ const RUN = randomUUID().slice(0, 8);
 const ROLES = ['project_admin', 'estimator', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'bidder', 'sub', 'architect', 'owner_rep', 'viewer', 'inspector_admin', 'requester'] as const;
 type Role = (typeof ROLES)[number];
 /** Extra users: key -> role they hold (project A unless noted). */
-const EXTRA = { bidder2: 'bidder', 'admin-b': 'project_admin', expired: 'pm', revoked: 'pm' } as const;
+const EXTRA = { bidder2: 'bidder', 'admin-b': 'project_admin', expired: 'pm', revoked: 'pm', fire: 'ahj' } as const;
 type UserKey = Role | keyof typeof EXTRA;
 
 /** SPEC §5.2 starting matrix, at aal1. Pricing capabilities need aal2, so nobody holds them here. */
@@ -172,7 +173,7 @@ async function seed(users: Map<UserKey, ProbeUser>, created: { projects: string[
 
   const past = new Date(Date.now() - 60_000).toISOString();
   const members: Record<string, unknown>[] = [];
-  const memberKeys: UserKey[] = [...ROLES.filter((r) => r !== 'project_admin'), 'bidder2', 'expired', 'revoked'];
+  const memberKeys: UserKey[] = [...ROLES.filter((r) => r !== 'project_admin'), 'bidder2', 'expired', 'revoked', 'fire'];
   for (const key of memberKeys) {
     const u = user(s, key);
     const role = key in EXTRA ? EXTRA[key as keyof typeof EXTRA] : key;
@@ -549,6 +550,7 @@ async function main(): Promise<void> {
     await report.guard('rfis', 'rfis', () => checkRfis({ report, service, projectId: s.projA, orgId: s.orgA, run: RUN, as: get }));
     await report.guard('request link', 'request link', () => checkRequestLink({ report, service, url, anonKey, projectId: s.projA, as: get }));
     await report.guard('requirements', 'own lines', () => checkRequirementsOwn({ report, service, projectId: s.projA, run: RUN, as: get, idOf: (k) => user(s, k).id }));
+    await report.guard('outsiders', 'outside people', () => checkOutsiders({ report, service, projectId: s.projA, orgId: s.orgA, run: RUN, as: get, idOf: (k) => user(s, k).id }));
   } catch (e) {
     report.check('probe', 'seed and sign in', false, errText(e));
   } finally {
