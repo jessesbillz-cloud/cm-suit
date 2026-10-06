@@ -1,10 +1,11 @@
-// The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. Job picker on top; along the bottom the same
+// The phone layout (SPEC §7.7): its own layout, not a shrunken desktop. The Home mark and the job picker on top; along the bottom the same
 // choice as the desktop rail (lib/jobs phoneRail): on a job its Board (the phone has no right column), then the job's
 // tools in my order, each with its count; on All my jobs the cross-job tools. More for the rest, and on a job "Edit
 // tools" to choose them. One screen at a time, items full screen with a back button.
 import { useState } from 'react';
 import { phoneRail } from '../../lib/jobs';
 import { phoneTabs, type Tool } from '../../lib/layout';
+import { HomeMark } from '../../ui/BrandMark';
 import { JobPicker } from '../../ui/JobPicker';
 import { JobToolsEdit } from '../../ui/JobToolsEdit';
 import { ViewAs } from '../../ui/ViewAs';
@@ -51,6 +52,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
     <PanelScreen
       top={
         <div className="flex items-center gap-2">
+          <HomeMark />
           <div className="min-w-0 flex-1">
             <JobPicker
               projects={model.projects}
@@ -58,7 +60,6 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
               currentId={loc.projectId}
               onPick={model.pickJob}
               onNewJob={model.newJob}
-              allJobsTools={model.allJobsTools}
             />
           </div>
           <ViewAs />
