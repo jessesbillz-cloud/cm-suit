@@ -68,8 +68,8 @@ export interface LegendRev {
   items: { name: string; company: string | null }[];
 }
 
-/** What rev_remove / rev_restore take. */
-export type RevKind = 'list' | 'rev' | 'item' | 'area';
+/** What rev_remove / rev_restore take (a room: 0083). */
+export type RevKind = 'list' | 'rev' | 'item' | 'area' | 'room';
 
 /** What rev_remove / rev_restore answer: the row (as JSON); the version is what Undo sends back. */
 export const revRemovedSchema = z.object({ id: z.string(), version: z.number().int(), deleted_at: z.string().nullable() }).passthrough();
