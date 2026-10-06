@@ -22,13 +22,23 @@ import { delay, readMock } from './store';
 
 const KEY = 'e2e-mock-ir';
 const TZ = 'America/Los_Angeles';
+/** The active special kinds in order: My Daily Reports' list (0084), as ir_form_context answers them. */
 const KINDS = [
-  { id: 'kind-concrete', name: 'Concrete' },
-  { id: 'kind-rebar', name: 'Reinforcing steel' },
   { id: 'kind-welding', name: 'Welding' },
-  { id: 'kind-soils', name: 'Soils and compaction' },
+  { id: 'kind-bolting', name: 'Bolting' },
+  { id: 'kind-concrete', name: 'Concrete' },
   { id: 'kind-masonry', name: 'Masonry' },
-  { id: 'kind-anchors', name: 'Post-installed anchors' },
+  { id: 'kind-grout', name: 'Grout' },
+  { id: 'kind-epoxy', name: 'Epoxy' },
+  { id: 'kind-soils', name: 'Soils' },
+  { id: 'kind-material-id', name: 'Material ID' },
+  { id: 'kind-material-id-cwi', name: 'Material ID CWI' },
+  { id: 'kind-ut-mp', name: 'UT/MP' },
+  { id: 'kind-pull-test', name: 'Pull Test' },
+  { id: 'kind-anchors', name: 'Post Inst. Anchor' },
+  { id: 'kind-fireproofing', name: 'Fireproofing' },
+  { id: 'kind-shotcrete', name: 'Shotcrete' },
+  { id: 'kind-rebar', name: 'Rebar ID' },
 ];
 
 interface IrState {

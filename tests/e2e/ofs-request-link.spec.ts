@@ -10,6 +10,11 @@ import { expect, test, type Page } from '@playwright/test';
 
 const MOCK = process.env['VITE_E2E_MOCK'] === 'true';
 const TOKEN = 'sample-request-token-sample-request-token-1';
+/** My Daily Reports' special inspection kinds (public/request.html), in its order. */
+const MDR_SPECIAL_KINDS = [
+  'Welding', 'Bolting', 'Concrete', 'Masonry', 'Grout', 'Epoxy', 'Soils', 'Material ID', 'Material ID CWI', 'UT/MP', 'Pull Test',
+  'Post Inst. Anchor', 'Fireproofing', 'Shotcrete', 'Rebar ID',
+] as const;
 
 async function drawStroke(page: Page): Promise<void> {
   const frame = page.getByTestId('sheet-frame');
@@ -115,6 +120,8 @@ test.describe('OFS request with revs from the link, no login', () => {
     await expect(page.getByTestId('public-items')).toBeVisible();
     await expect(page.getByTestId('rev-picker')).toHaveCount(0);
     await page.getByTestId('public-kind-special').click();
+    // My Daily Reports' kinds, in its order (0084).
+    await expect(page.getByTestId('public-special').getByRole('button')).toHaveText([...MDR_SPECIAL_KINDS]);
     const masonry = page.getByTestId('public-special-kind-masonry');
     await expect(masonry).toHaveAttribute('aria-pressed', 'false');
     await masonry.click();
