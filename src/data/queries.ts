@@ -308,7 +308,9 @@ export function usePrefetchCapabilities(projectId: string | null): void {
   const qc = useQueryClient();
   useEffect(() => {
     if (projectId === null || isMock()) return;
-    void qc.prefetchQuery(capabilityQuery(projectId, ''));
+    qc.query(capabilityQuery(projectId, '')).catch(() => {
+      // Not lost: the failure stays on the query, and each screen that asks shows it there, with Try again.
+    });
   }, [qc, projectId]);
 }
 
