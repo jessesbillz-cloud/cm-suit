@@ -57,8 +57,6 @@ export function useFrameModel(loc: FrameLocation) {
   const current = projects.find((p) => p.project_id === loc.projectId);
   /** The rail (lib/jobs railModel): on All my jobs the cross-job tools; on a job only its tools in my order, and More. */
   const rail = railModel(loc.projectId, projects, recommendedQuery.data ?? {}, jobRailChoices(jobRailsQuery.data), readableQuery.data ?? {});
-  /** What "All my jobs" holds for me (its rail), named in the job picker. */
-  const allJobsTools = loc.projectId === null ? rail.general : railModel(null, projects, recommendedQuery.data ?? {}, {}).general;
   /** What needs me, per tool on this rail (the rest counts on the Board). */
   const counts = countsByTool(countsQuery.data ?? [], [...rail.general, ...rail.job, ...rail.more]);
 
@@ -114,9 +112,9 @@ export function useFrameModel(loc: FrameLocation) {
     void navigate({ to: '/p/$projectId/$tool', params: { projectId, tool: jobTool(tool) } });
   }
 
-  /** Job picker: switching keeps the current tool (SPEC §7.2); "All my jobs" keeps it when it works across jobs. */
-  function pickJob(projectId: string | null) {
-    if (projectId !== null && choices) save({ recent_project_ids: pushRecent(choices.recent_project_ids, projectId) });
+  /** Job picker: switching keeps the current tool (SPEC §7.2). Home (the mark) goes to All my jobs. */
+  function pickJob(projectId: string) {
+    if (choices) save({ recent_project_ids: pushRecent(choices.recent_project_ids, projectId) });
     go(projectId, loc.tool);
   }
 
@@ -176,7 +174,6 @@ export function useFrameModel(loc: FrameLocation) {
     choices,
     projects,
     rail,
-    allJobsTools,
     jobPart,
     counts,
     rightFull,

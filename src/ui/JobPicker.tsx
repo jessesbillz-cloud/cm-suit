@@ -1,27 +1,23 @@
-// The job picker (SPEC §7.2): always top-left. Recent jobs first, then type-to-find, "All my jobs", and "New job".
-// It only reports the pick; the frame keeps the current tool when switching (2 taps: open, pick). A job's rail holds
-// only that job (Oct 3), so "All my jobs" stays in view under the jobs, however many there are.
+// The job picker (SPEC §7.2): top-left, beside the Home mark. Recent jobs first, then type-to-find, and "New job".
+// It only switches between jobs (Jesse, Oct 5): home is the mark (ui/BrandMark HomeMark), not an entry here. It only
+// reports the pick; the frame keeps the current tool when switching (2 taps: open, pick).
 import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
-import type { RailTool } from '../lib/layout';
 import { Icon } from './Icon';
-import { TOOL_META } from './tools';
 
 interface JobPickerProps {
   projects: readonly MyProject[];
   recentIds: readonly string[];
   /** null = "All my jobs". */
   currentId: string | null;
-  onPick: (projectId: string | null) => void;
+  onPick: (projectId: string) => void;
   /** Opens the setup flow for a new job. */
   onNewJob: () => void;
-  /** What "All my jobs" holds for me (the frame's rail there), named under it. */
-  allJobsTools: readonly RailTool[];
 }
 
 interface Option {
-  id: string | null;
+  id: string;
   name: string;
   detail: string;
 }
@@ -70,21 +66,17 @@ function OptionRow({ option, index, active, current, onHover, onChoose }: Option
   );
 }
 
-export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob, allJobsTools }: JobPickerProps) {
-  /** "Board, Calendar, Bids": what "All my jobs" holds for me. */
-  const allDetail = allJobsTools.map((t) => TOOL_META[t].label).join(', ');
+export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: JobPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
 
   const options = useMemo<Option[]>(() => {
     const q = query.trim().toLowerCase();
-    const jobs = orderJobs(projects, recentIds)
+    return orderJobs(projects, recentIds)
       .filter((p) => q === '' || `${p.name} ${detailOf(p)}`.toLowerCase().includes(q))
       .map((p) => ({ id: p.project_id, name: p.name, detail: detailOf(p) }));
-    const all: Option = { id: null, name: ALL_JOBS_LABEL, detail: allDetail };
-    return q === '' || ALL_JOBS_LABEL.toLowerCase().includes(q) ? [...jobs, all] : jobs;
-  }, [projects, recentIds, query, allDetail]);
+  }, [projects, recentIds, query]);
 
   const current = projects.find((p) => p.project_id === currentId);
   const label = currentId === null ? ALL_JOBS_LABEL : (current?.name ?? 'Pick a job');
@@ -101,8 +93,6 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob, al
     if (o.id !== currentId) onPick(o.id);
   }
 
-  const last = options.at(-1);
-  const allOption = last?.id === null ? last : undefined;
   const rowProps = (o: Option, i: number): OptionRowProps => ({
     option: o,
     index: i,
@@ -165,23 +155,15 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob, al
                 }}
               />
             </div>
-            {/* The jobs scroll; "All my jobs" (always the last option) stays in view under them. */}
             <div role="listbox" aria-label="Jobs" className="py-1">
               <ul role="presentation" className="max-h-72 overflow-auto">
-                {options.map((o, i) =>
-                  o.id === null ? null : (
-                    <li key={o.id} role="presentation">
-                      <OptionRow {...rowProps(o, i)} />
-                    </li>
-                  ),
-                )}
+                {options.map((o, i) => (
+                  <li key={o.id} role="presentation">
+                    <OptionRow {...rowProps(o, i)} />
+                  </li>
+                ))}
                 {options.length === 0 ? <li className="px-3 py-3 text-sm text-ink-2">No job matches.</li> : null}
               </ul>
-              {allOption ? (
-                <div className={options.length > 1 ? 'mt-1 border-t border-line pt-1' : ''}>
-                  <OptionRow {...rowProps(allOption, options.length - 1)} />
-                </div>
-              ) : null}
             </div>
             <button
               type="button"

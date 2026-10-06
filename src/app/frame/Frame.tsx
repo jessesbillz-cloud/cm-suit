@@ -91,7 +91,6 @@ export function Frame({ model, folderId }: FrameProps) {
             currentId={loc.projectId}
             onPick={model.pickJob}
             onNewJob={model.newJob}
-            allJobsTools={model.allJobsTools}
           />
           <div className="ml-auto">
             <ViewAs />

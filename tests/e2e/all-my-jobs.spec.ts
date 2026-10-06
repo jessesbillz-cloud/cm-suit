@@ -89,11 +89,28 @@ test.describe('All my jobs and the bids pipeline', () => {
     await expect(page.getByTestId('rail-more-dailies')).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await page.getByTestId('job-picker').click();
-    await page.getByRole('option', { name: /All my jobs/ }).click();
+    await page.getByRole('link', { name: 'Home' }).click();
     await expect(page).toHaveURL(/\/all\/board$/);
     await expect(page.getByTestId('rail-files')).toHaveCount(0);
     await expect(page.getByTestId('rail-more')).toHaveCount(0);
+  });
+
+  test('Home (the mark, top-left) goes back to All my jobs in one tap; the picker only switches jobs', async ({ page }) => {
+    await signIn(page);
+    await page.goto('/p/job-a/files');
+    await expect(page.getByTestId('job-picker')).toContainText('Sample Job A');
+
+    // The picker lists jobs and New job, never All my jobs (Jesse, Oct 5).
+    await page.getByTestId('job-picker').click();
+    await expect(page.getByRole('option', { name: /Sample Job B/ })).toBeVisible();
+    await expect(page.getByRole('option', { name: /All my jobs/ })).toHaveCount(0);
+    await expect(page.getByTestId('job-picker-new')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await expect(page.getByTestId('home')).toHaveCount(1);
+    await page.getByRole('link', { name: 'Home' }).click();
+    await expect(page).toHaveURL(/\/all\/board$/);
+    await expect(page.getByTestId('job-picker')).toContainText('All my jobs');
   });
 
   test('New prospect opens the new-job form with the stage prefilled and lands in the job\'s Bids', async ({ page }) => {

@@ -6,7 +6,7 @@
 //   - 'pm' has no tools of their own on the job, so the rail is only the job's: the PM's recommendation without the
 //     Board, then Files (0040, 0051, 0058). Files there; the job's Board and Dailies under More (rail-more, then
 //     rail-more-<tool>);
-//   - test ids: job-picker (button), job-picker-option-<n> (menu items, n from 0), rail-files, rail-more,
+//   - test ids: home (the mark: All my jobs), job-picker (button), job-picker-option-<n> (jobs, n from 0), rail-files, rail-more,
 //     file-row-download (one per file row), main-area (with data-tool = the current tool);
 //   - 'bidder' as the mock user -> a bidder on job-a: /p/job-a/bids shows the bidder page with addendum 1 issued and
 //     not yet acknowledged; test ids addendum-ack-<number> (the button) and addendum-acked-<number> (after).
@@ -133,6 +133,20 @@ test.describe('tap budgets (SPEC §7.9)', () => {
       expect(await taps(page)).toBe(2);
     });
   }
+
+  // Home from inside a job is the mark, top-left (Jesse, Oct 5): one click, from any tool.
+  test('home from a job = 1 click', async ({ page }) => {
+    await openTool(page, 'files'); // setup: a job's tool
+    await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(page.getByTestId('home'), counter);
+
+    await expect(page).toHaveURL(/\/all\/board$/);
+    expect(counter.n).toBe(1);
+    expect(await taps(page)).toBe(1);
+  });
 });
 
 test.describe("tap budgets, today's daily (SPEC §7.9)", () => {

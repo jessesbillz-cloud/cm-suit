@@ -1,15 +1,14 @@
 // The rail (SPEC §7.2). On All my jobs: the cross-job tools (Board and Calendar, and the bids pipeline, permit caseload
 // and timesheets when they apply to me). On a job, only that job (Jesse, Oct 3: "once you're on a job, it should all be
 // specific to that job"): its name, the tools I chose for it (each with a count of what needs me), More for its other
-// tools, and Edit to choose them. Settings is pinned at the bottom; the job picker goes back to All my jobs.
-// A dark navy strip down the whole left edge with the product mark on top; it collapses to icons only (the job's name
+// tools, and Edit to choose them. Settings is pinned at the bottom. The product mark on top is Home: back to All my
+// jobs (Jesse, Oct 5). A dark navy strip down the whole left edge; it collapses to icons only (the job's name
 // becomes a thin line). Nobody drags or resizes it.
 import { useEffect, useRef, useState } from 'react';
 import { ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
-import { FUTURE_NAME } from '../lib/brand';
 import type { RailTool, Tool } from '../lib/layout';
 import type { ToolCounts } from '../lib/toolCounts';
-import { BrandMark } from './BrandMark';
+import { HomeMark } from './BrandMark';
 import { Icon } from './Icon';
 import { JobToolsEdit, type JobToolsChoice } from './JobToolsEdit';
 import { RailItem, RailMore } from './RailItem';
@@ -172,8 +171,8 @@ export function Rail({ general, job, counts, current, collapsed, onSelect, onPre
   const items = { counts, current, compact, onSelect, onPreload };
   return (
     <nav aria-label="Tools" className={`flex shrink-0 flex-col items-center bg-rail pb-2 ${compact ? 'w-14' : 'w-rail'}`}>
-      <div className="flex h-14 w-full shrink-0 items-center justify-center [@media(max-height:820px)]:h-11" title={FUTURE_NAME}>
-        <BrandMark size="md" />
+      <div className="flex h-14 w-full shrink-0 items-center justify-center [@media(max-height:820px)]:h-11">
+        <HomeMark />
       </div>
       <div className="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto pt-2">
         <Items tools={general} {...items} />
