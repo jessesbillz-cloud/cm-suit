@@ -60,6 +60,13 @@ OFS number in the file name. **Name each IR file with its OFS numbers**, e.g. `O
 covers several OFS numbers carries each, e.g. `OFS_IR_0041_OFS_0042_OFS_0043_IR0344.pdf` (the rule: `OFS_IR_nnnn`
 then a non-digit, or `_OFS_nnnn_`). Nothing is dropped loose into Files.
 
+**One record per OFS number** (Hunter Hall, Oct 8): the VIS result form first, then that number's IR map, joined
+without changing either (`qpdf --empty --pages vis.pdf map.pdf -- "OFS_IR_0041 IR0344.pdf"`). The map is the folder's
+`OFS_IR_nnnn.pdf` when there is one per number, else the request's `…_Attachment_1.pdf`. When an IR folder has several
+VIS forms, pick the one whose text names the number (`pdftotext vis.pdf - | grep "OFS #0041"`). Build them in a
+subfolder of the customer's folder (the browser upload only takes files from shared folders). Upload under 10 MB per
+batch. Hunter Hall: 25 records, all 92 sign-offs linked.
+
 ### 7. Walls on the plan sheets (script, then review)
 `scripts/ofs-setup/place_walls.py` finds each room picture on its sheet and turns the traced lines into sheet lines:
 ```
@@ -68,7 +75,19 @@ python3 -I scripts/ofs-setup/place_walls.py --input in.json --debug-dir scratch/
 `in.json`: the sheets by number (local PDF paths) and the rooms (picture path, sheet number, walls with area id and
 line), read from `rev_rooms` / `rev_room_walls`. Look at every image in `--debug-dir` (the red box is where the room
 was found, green the walls). Rooms in `weak` (score under 0.45) are drawn by hand in the app (Plan > Draw). Save the
-rest with `rev_area_draw` as the manager. Tested: a known crop came back within 0.0001 of the sheet.
+rest with `rev_area_place(id, null, sheet_file_id, 1, geom)` as the manager. Tested: a known crop came back within
+0.0001 of the sheet.
+
+What Hunter Hall taught (Oct 8; 46 of 48 walls placed, all checked by eye):
+- **A high score is not proof.** A picture shrunk to a speck matches noise at 0.6–1.0. `--min-px 150` (the default)
+  stops that. Look at a whole-sheet render with every line drawn before saving.
+- **The pictures of one job are cut at one resolution,** so good matches share a scale (Hunter Hall: 0.12–0.24 for
+  rooms). Use it: `"scale": [lo, hi]` on a room re-matches a miss at the known scale.
+- **A picture that spans two area sheets** (an exterior: Area A above, Area B below, a blank band between) is matched
+  in parts: `"crop": [x0, y0, x1, y1]` (split at the blank band). When a part shows more than one area sheet covers,
+  match a window around each wall instead.
+- A placed sheet that differs from the wall's sheet number goes on the review list (the wall's name may be wrong).
+- Walls with no line on their room picture stay for drawing by hand.
 
 ### 8. Sign-offs from before the app (skill)
 The `ofs-ir-backfill` skill reads each past IR (VIS form for the result and date, the IR map for which walls) and
