@@ -1,33 +1,26 @@
-// Setup's Link files (0083): after the rooms' images and the OFS IRs are dragged into Files, one tap links each room's
-// image by its name and each sign-off before the app to its OFS IR by its number. The toast says what it found.
+// Setup's Link files (0083, 0094): one tap links each room's picture by its name, each sign-off before the app to its
+// OFS IR by its number, and each wall to its plan sheet by its sheet number (a PDF in Plans named like "A201A Floor
+// Plan.pdf"). Pictures and IRs added from Revs link themselves; this is for files already on the job. The toast says
+// what it found.
 import { Link2 } from 'lucide-react';
 import { messageOf } from '../../../data/errors';
-import { useLinkRevFiles, type Linked } from '../../../data/revs.rooms';
+import { useLinkRevFiles } from '../../../data/revs.rooms';
 import { Button } from '../../../ui/Button';
 import { useToast } from '../../../ui/Toast';
-
-function linkedLine({ images, files }: Linked): string {
-  const parts = [
-    images > 0 ? `${String(images)} ${images === 1 ? 'image' : 'images'}` : null,
-    files > 0 ? `${String(files)} OFS ${files === 1 ? 'IR' : 'IRs'}` : null,
-  ].filter((x): x is string => x !== null);
-  return parts.length > 0 ? `${parts.join(' and ')} linked.` : 'Nothing new to link.';
-}
+import { linkedLine } from './revFilesLine';
 
 interface LinkFilesProps {
   projectId: string;
   listIds: string[];
-  isPhone: boolean;
 }
 
-export function LinkFiles({ projectId, listIds, isPhone }: LinkFilesProps) {
+export function LinkFiles({ projectId, listIds }: LinkFilesProps) {
   const link = useLinkRevFiles();
   const toast = useToast();
   return (
     <Button
+      variant="quiet"
       icon={Link2}
-      aria-label="Link files"
-      title="Link files"
       loading={link.isPending}
       data-testid="rev-link-files"
       onClick={() => {
@@ -44,8 +37,7 @@ export function LinkFiles({ projectId, listIds, isPhone }: LinkFilesProps) {
         );
       }}
     >
-      {/* A phone's header keeps room for Add walls and New list. */}
-      {isPhone ? undefined : 'Link files'}
+      Link files
     </Button>
   );
 }

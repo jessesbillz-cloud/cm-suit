@@ -20,7 +20,6 @@ import { ChecklistView } from './ChecklistView';
 import { VIEWS, VIEW_LABELS, indexStatus, metaLine, type RevView } from './model';
 import { OpenView } from './OpenView';
 import { PlanView } from './plan/PlanView';
-import { LinkFiles } from './room/LinkFiles';
 import { RoomPage } from './room/RoomPage';
 import { RoomsView } from './RoomsView';
 import { SetupView } from './SetupView';
@@ -67,17 +66,15 @@ interface MainProps extends RevsToolProps {
 }
 
 interface SetupActionsProps {
-  projectId: string;
   listIds: string[];
   onOpen: (id: string) => void;
   isPhone: boolean;
 }
 
-function SetupActions({ projectId, listIds, onOpen, isPhone }: SetupActionsProps) {
+function SetupActions({ listIds, onOpen, isPhone }: SetupActionsProps) {
   const hasLists = listIds.length > 0;
   return (
     <>
-      {hasLists ? <LinkFiles projectId={projectId} listIds={listIds} isPhone={isPhone} /> : null}
       {hasLists ? (
         <Button icon={Plus} className={isPhone ? 'h-10' : ''} data-testid="rev-add-walls" onClick={() => { onOpen(WALLS_ITEM); }}>
           Add walls
@@ -158,7 +155,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
       meta={meta}
       actions={
         view === 'setup' ? (
-          <SetupActions projectId={projectId} listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
+          <SetupActions listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
         ) : view === 'checklist' ? (
           <Button
             icon={Printer}

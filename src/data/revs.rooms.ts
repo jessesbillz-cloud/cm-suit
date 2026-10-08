@@ -2,19 +2,25 @@
 // list's rooms on each level (a room, the level's exterior walls, or a shaft), each with its cropped plan image and its
 // walls, each wall with its line on that image (none until drawn). A wall may be in several rooms. Reads: the tables
 // (RLS: revs.read). Writes (revs.manage): a room's number and name (version-checked), a wall in or out of a room (each
-// the other's Undo, the line kept), a wall's line (Undo sends the old one back), and Link files: the rooms' images and
-// the sign-offs' OFS IRs linked by name after they are dragged into Files. The rooms themselves are loaded in one call
-// (rev_rooms_load), not from a screen. Every write refreshes the job's revs.
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+// the other's Undo, the line kept), a wall's line (Undo sends the old one back), a room's picture from its page (0094),
+// and the job's pictures and OFS IRs added from Revs into the app's own folders (Room pictures, Reports / OFS history),
+// each linked as soon as it is stored (rev_file_link). Link files links again by name: the rooms' pictures, the
+// sign-offs' OFS IRs and the walls' plan sheets. The rooms themselves are loaded in one call (rev_rooms_load), not from
+// a screen. Every write refreshes the job's revs.
+import { useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
+import { useUser } from './auth';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import { isMock } from './mock';
+import * as mockFiles from './mock/revFiles';
 import * as mockRooms from './mock/revRooms';
 import { wallLineSchema, type WallLine } from './revs.types';
+import { uploadFile } from './upload';
 
-const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_file_id, position, version, deleted_at';
+const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_name, image_file_id, position, version, deleted_at';
 const REV_ROOM_WALL_COLS = 'id, project_id, room_id, area_id, line, position, version, deleted_at';
 
 const roomSchema = z.object({
@@ -25,6 +31,8 @@ const roomSchema = z.object({
   number: z.string(),
   name: z.string(),
   kind: z.enum(['room', 'exterior', 'shaft']),
+  /** The picture's file name (0083's load, or the picture added on the room's page). */
+  image_name: z.string().nullable(),
   image_file_id: z.string().nullable(),
   position: z.number().int(),
   version: z.number().int(),
@@ -77,6 +85,11 @@ async function fetchRooms(projectId: string): Promise<RevRooms> {
 /** The job's rooms and their walls (live, in order). */
 export function useRevRooms(projectId: string) {
   return useQuery({ queryKey: qk.revsPart(projectId, 'rooms'), queryFn: () => fetchRooms(projectId) });
+}
+
+/** A SQL null for an argument the generated types call required (PostgREST passes JSON null through). */
+function sqlNull<T>(v: T | null): T {
+  return v as T;
 }
 
 function one<T>(data: T | T[]): T {
@@ -149,25 +162,93 @@ export function useSetRoomWallLine() {
 const linkedSchema = z.object({ linked: z.number().int(), missing: z.array(z.union([z.string(), z.number()])) });
 
 export interface Linked {
-  /** Room images newly linked. */
+  /** Room pictures newly linked. */
   images: number;
   /** Sign-offs newly linked to their OFS IR. */
   files: number;
+  /** Walls newly given their plan sheet. */
+  sheets: number;
 }
 
-/** Link files (revs.manage): each list's room images by name, then the sign-offs' OFS IRs by number. */
+/** Link files (revs.manage): each list's room pictures by name, the sign-offs' OFS IRs by number, the walls' sheets. */
 export function useLinkRevFiles() {
   const refresh = useRefresh();
   return useMutation({
     mutationFn: async (v: { projectId: string; listIds: readonly string[] }): Promise<Linked> => {
-      if (isMock()) return mockRooms.linkFiles(v.projectId);
+      if (isMock()) return mockFiles.linkFiles(v.projectId);
       let images = 0;
       for (const listId of v.listIds) {
         images += linkedSchema.parse(throwIfError(await supabase.rpc('rev_rooms_link_images', { p_list_id: listId }))).linked;
       }
       const files = linkedSchema.parse(throwIfError(await supabase.rpc('rev_signoffs_link_files', { p_project_id: v.projectId }))).linked;
-      return { images, files };
+      const sheets = linkedSchema.parse(throwIfError(await supabase.rpc('rev_walls_link_sheets', { p_project_id: v.projectId }))).linked;
+      return { images, files, sheets };
     },
     onSettled: (_r, _e, v) => refresh(v.projectId),
+  });
+}
+
+/** Where a manager's pictures and OFS IRs go: the app's own folders, made on first use (0094 rev_files_folder). */
+export type RevFolder = 'pictures' | 'history';
+
+async function fetchFolder(projectId: string, which: RevFolder): Promise<string> {
+  if (isMock()) return mockFiles.filesFolder(projectId, which);
+  return z.string().parse(throwIfError(await supabase.rpc('rev_files_folder', { p_project_id: projectId, p_which: which })));
+}
+
+const folderKey = (projectId: string, which: RevFolder) => qk.revsPart(projectId, `folder:${which}`);
+
+/** The folder's id, asked once a session (it never moves). */
+export function revFolder(qc: QueryClient, projectId: string, which: RevFolder): Promise<string> {
+  return qc.query({ queryKey: folderKey(projectId, which), queryFn: () => fetchFolder(projectId, which), staleTime: Infinity });
+}
+
+/** The folder's id once something was added to it this session (its upload lines show then), else null. */
+export function useKnownRevFolder(projectId: string, which: RevFolder): string | null {
+  const q = useQuery({ queryKey: folderKey(projectId, which), queryFn: () => fetchFolder(projectId, which), enabled: false, staleTime: Infinity });
+  return q.data ?? null;
+}
+
+const fileLinkSchema = z.object({ rooms: z.number().int(), signoffs: z.number().int() });
+export type FileLink = z.infer<typeof fileLinkSchema>;
+
+/** One stored file linked at once by 0083's rules: how many rooms and sign-offs show it now (0 and 0: not matched). */
+export async function linkRevFile(projectId: string, fileId: string): Promise<FileLink> {
+  if (isMock()) return mockFiles.linkFile(projectId, fileId);
+  return fileLinkSchema.parse(throwIfError(await supabase.rpc('rev_file_link', { p_file_id: fileId })));
+}
+
+async function setImage(room: RevRoom, fileId: string | null, imageName: string | null): Promise<RevRoom> {
+  if (isMock()) return mockFiles.setImage(room, fileId, imageName);
+  const data = throwIfError(
+    await supabase.rpc('rev_room_image_set', { p_room_id: room.id, p_version: room.version, p_file_id: sqlNull(fileId), p_image_name: sqlNull(imageName) }),
+  );
+  return roomSchema.parse(one(data));
+}
+
+/** A room's picture from its page (revs.manage): stored in Room pictures, then the room's. Answers the room. */
+export function useAddRoomPicture(projectId: string) {
+  const user = useUser();
+  const qc = useQueryClient();
+  const refresh = useRefresh();
+  const userId = user.id;
+  const add = useCallback(
+    async (v: { room: RevRoom; file: File }): Promise<RevRoom> => {
+      const folderId = await revFolder(qc, projectId, 'pictures');
+      const signal = new AbortController().signal;
+      const { fileId } = await uploadFile({ file: v.file, projectId, folderId, userId, signal, onProgress: () => undefined });
+      return setImage(v.room, fileId, null);
+    },
+    [qc, projectId, userId],
+  );
+  return useMutation({ mutationFn: add, onSettled: () => refresh(projectId) });
+}
+
+/** A room's picture set back (the Undo): the old file, or none with the old name. Version-checked. */
+export function useSetRoomImage() {
+  const refresh = useRefresh();
+  return useMutation({
+    mutationFn: (v: { room: RevRoom; fileId: string | null; imageName: string | null }) => setImage(v.room, v.fileId, v.imageName),
+    onSettled: (_r, _e, v) => refresh(v.room.project_id),
   });
 }

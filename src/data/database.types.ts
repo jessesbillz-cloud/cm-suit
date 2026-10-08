@@ -12586,6 +12586,11 @@ export type Database = {
         }
       }
       rev_clean: { Args: { p_text: string }; Returns: string }
+      rev_file_link: { Args: { p_file_id: string }; Returns: Json }
+      rev_files_folder: {
+        Args: { p_project_id: string; p_which: string }
+        Returns: string
+      }
       rev_free_number: {
         Args: { p_except: string; p_list_id: string; p_number: number }
         Returns: undefined
@@ -12601,6 +12606,7 @@ export type Database = {
         Returns: undefined
       }
       rev_geom_ok: { Args: { p_geom: Json }; Returns: boolean }
+      rev_in_plans: { Args: { p_folder_id: string }; Returns: boolean }
       rev_item_check: {
         Args: { p_company: string; p_name: string }
         Returns: undefined
@@ -12778,6 +12784,10 @@ export type Database = {
         Args: { p_cap: string; p_project_id: string }
         Returns: undefined
       }
+      rev_ofs_name_has: {
+        Args: { p_name: string; p_ofs: number }
+        Returns: boolean
+      }
       rev_remove: {
         Args: { p_id: string; p_kind: string; p_version: number }
         Returns: Json
@@ -12801,6 +12811,38 @@ export type Database = {
       rev_room_image_of: {
         Args: { p_name: string; p_project_id: string }
         Returns: string
+      }
+      rev_room_image_set: {
+        Args: {
+          p_file_id: string
+          p_image_name: string
+          p_room_id: string
+          p_version: number
+        }
+        Returns: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          image_file_id: string | null
+          image_name: string | null
+          kind: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       rev_room_line_ok: {
         Args: { p_line: Json }
@@ -12969,6 +13011,10 @@ export type Database = {
         Args: { p_file_id: string; p_project_id: string }
         Returns: undefined
       }
+      rev_sheet_file_of: {
+        Args: { p_project_id: string; p_reader: boolean; p_ref: string }
+        Returns: string
+      }
       rev_sheet_ok: {
         Args: { p_file_id: string; p_project_id: string }
         Returns: boolean
@@ -12997,6 +13043,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      rev_signoff_file_of: {
+        Args: { p_ofs: number; p_project_id: string }
+        Returns: string
       }
       rev_signoff_live: {
         Args: { p_area_id: string; p_item_id: string }
@@ -13146,9 +13196,17 @@ export type Database = {
         Args: { p_file_id: string; p_project_id: string }
         Returns: boolean
       }
+      rev_walls_link_sheets: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       rev_walls_sheet_ok: {
         Args: { p_area_ids: string[]; p_file_id: string; p_project_id: string }
         Returns: boolean
+      }
+      rev_walls_sheets_fill: {
+        Args: { p_file_id: string; p_project_id: string; p_reader: boolean }
+        Returns: Json
       }
       review_delivery_month: {
         Args: {
