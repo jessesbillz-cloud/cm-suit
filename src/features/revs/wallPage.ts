@@ -74,6 +74,12 @@ export function firstPick(items: readonly WallItem[]): WallPick {
   return { focus: first?.item.id ?? null, part: first?.part ?? null, picked: [] };
 }
 
+/** Opened at an item (a chip on its room's row or tile): that item shown, nothing picked; null when it isn't the wall's. */
+export function pickAt(items: readonly WallItem[], itemId: string | undefined): WallPick | null {
+  const at = itemId === undefined ? undefined : items.find((i) => i.item.id === itemId);
+  return at ? { focus: at.item.id, part: at.part, picked: [] } : null;
+}
+
 /** A tap on an item's button: it is shown; one still to ask for is picked or dropped. full: a fourth was refused. */
 export function tapItem(state: WallPick, item: WallItem, max = MAX_PICK): { next: WallPick; full: boolean } {
   const id = item.item.id;
@@ -100,9 +106,19 @@ export function keepAskable(state: WallPick, items: readonly WallItem[]): WallPi
   return picked.length === state.picked.length ? state : { ...state, picked };
 }
 
-/** A wall's name for its callout: the name, and the grid or room when it ends in brackets ("... (B / 2–5)"). */
-export function calloutOf(name: string): { title: string; sub: string | null } {
-  const m = /^(.*\S)\s*\(([^()]+)\)\s*$/.exec(name.trim());
-  if (!m?.[1] || !m[2]) return { title: name.trim(), sub: null };
+const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** A wall's name for its callout: the name, and the grid or room when it ends in brackets ("... (B / 2–5)"). Given
+ *  the wall's tag, the name leaves out a "(D6a)" at its end or a "D6a - " at its start (the tag shows once, apart). */
+export function calloutOf(name: string, tag?: string | null): { title: string; sub: string | null } {
+  let n = name.trim();
+  const t = tag?.trim();
+  if (t) {
+    const e = escaped(t);
+    const cut = n.replace(new RegExp(`\\s*\\(\\s*${e}\\s*\\)$`, 'i'), '').replace(new RegExp(`^${e}(?:\\s+[-–—·:|]\\s+|:\\s*)`, 'i'), '').trim();
+    if (cut !== '') n = cut;
+  }
+  const m = /^(.*\S)\s*\(([^()]+)\)\s*$/.exec(n);
+  if (!m?.[1] || !m[2]) return { title: n, sub: null };
   return { title: m[1], sub: m[2].trim() };
 }

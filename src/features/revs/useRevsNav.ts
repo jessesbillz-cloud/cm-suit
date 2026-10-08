@@ -2,9 +2,10 @@
 // "all" = every level) live in the URL; the open wall, room (or a setup form) is the frame's item. The Walls view is the
 // rooms (0083, the default), the list (?view=list) or the plan (?view=plan, with a wall to center on and a wall being
 // placed: ?wall=&place=), so a wall opened from the plan comes back to the same plan, and a wall opened from a room
-// (?room=) back to that room. Every move keeps the level, so Back and links land where they were. On a desktop a
-// wall's request or OFS IR opens beside its page, in the right column (?side=). A new request opens in Inspections,
-// prefilled with the wall and its next items. Router only.
+// (?room=) back to that room. A wall opened from an item's chip on its row or tile opens at that item (?item=). Every
+// move keeps the level, so Back and links land where they were. On a desktop a wall's request or OFS IR opens beside
+// its page, in the right column (?side=). A new request opens in Inspections, prefilled with the wall and its next
+// items. Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { RevItem } from '../../data/revs.types';
 import { NEW_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX } from '../../lib/itemIds';
@@ -17,6 +18,9 @@ interface RevsSearch {
   place?: string | undefined;
   room?: string | undefined;
 }
+
+/** The item a wall's page opens at (?item=, a chip on its room's row or tile). */
+const atItem = (itemId: string | undefined): Record<string, string> => (itemId ? { item: itemId } : {});
 
 /** The plan's place in the URL. */
 interface PlanAt {
@@ -78,17 +82,17 @@ export function useRevsNav(projectId: string, canManage: boolean) {
     showPlan: (at: PlanAt, replace = false) => {
       void navigate({ to: '/p/$projectId/$tool', params, search: planSearch({ ...at, level: at.level ?? search.level }), replace });
     },
-    /** A wall (or a setup form) in the right column; the view stays. */
-    open: (itemId: string) => {
-      item(itemId, kept());
+    /** A wall (or a setup form) in the right column, a wall at one of its items; the view stays. */
+    open: (itemId: string, focusItem?: string) => {
+      item(itemId, { ...kept(), ...atItem(focusItem) });
     },
     /** A room's own page. */
     openRoom: (roomId: string) => {
       item(`${ROOM_ITEM_PREFIX}${roomId}`, levelPart());
     },
-    /** A wall from its room's page: its Back comes to the room. */
-    openFromRoom: (areaId: string, roomId: string) => {
-      item(areaId, { room: roomId, ...levelPart() });
+    /** A wall from its room's page (at one of its items): its Back comes to the room. */
+    openFromRoom: (areaId: string, roomId: string, focusItem?: string) => {
+      item(areaId, { room: roomId, ...levelPart(), ...atItem(focusItem) });
     },
     /** Back to Revs: the view and level it came from, or else the level of the wall or room it leaves. */
     close: (level?: string) => {

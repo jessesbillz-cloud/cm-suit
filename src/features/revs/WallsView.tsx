@@ -1,6 +1,7 @@
 // Walls: every wall of the level picked (all of them under All) as a callout tile, by level under All and by list when
 // a job has more than one: its tag (F6a) small, the wall's name big (it wraps, never cut), its grid or room small, and
-// its rev strip (RevStrip). A tap on the tile opens the wall's own page; a done chip with its OFS IR on file opens that.
+// its items by rev (WallItemChips). A tap on the tile opens the wall's own page; a passed item with its OFS IR on file
+// opens that, any other item the wall at that item.
 import { Settings2 } from 'lucide-react';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
@@ -9,8 +10,9 @@ import { EmptyState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { onLevel } from './levels';
 import { wallRevs, wallsByList, type StatusIndex } from './model';
-import { revStrip, type SignoffFiles, type StripChip } from './revStrip';
-import { RevStrip } from './RevStrip';
+import { itemLines, type ItemChip } from './itemLines';
+import type { SignoffFiles } from './revStrip';
+import { WallItemChips } from './WallItemChips';
 import { calloutOf, countOf } from './wallPage';
 
 interface WallsViewProps {
@@ -20,7 +22,7 @@ interface WallsViewProps {
   /** The level picked; null = All. */
   level: string | null;
   onOpen: (id: string) => void;
-  onChip: (areaId: string, chip: StripChip) => void;
+  onChip: (areaId: string, chip: ItemChip) => void;
   /** Managers: the empty screen points to Setup. */
   onSetup?: (() => void) | undefined;
 }
@@ -31,13 +33,13 @@ interface WallTileProps {
   index: StatusIndex;
   files: SignoffFiles;
   onOpen: (id: string) => void;
-  onChip: (areaId: string, chip: StripChip) => void;
+  onChip: (areaId: string, chip: ItemChip) => void;
 }
 
-/** A card the whole of which opens the wall (its name button stretched over it), its rev chips on top. */
+/** A card the whole of which opens the wall (its name button stretched over it), its item chips on top. */
 export function WallTile({ area, setup, index, files, onOpen, onChip }: WallTileProps) {
   const count = countOf(wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status)));
-  const { title, sub } = calloutOf(area.name);
+  const { title, sub } = calloutOf(area.name, area.wall_tag);
   return (
     <li
       className="relative flex flex-col gap-2.5 rounded-card bg-card px-4 pb-3.5 pt-3 shadow-card transition-shadow hover:shadow-pop"
@@ -60,9 +62,9 @@ export function WallTile({ area, setup, index, files, onOpen, onChip }: WallTile
         <span className="break-words text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">{title}</span>
         {sub ? <span className="break-words text-[13px] font-medium text-ink-2">{sub}</span> : null}
       </button>
-      <RevStrip
-        className="relative mt-auto"
-        chips={revStrip(setup, index, area, files)}
+      <WallItemChips
+        className="mt-auto"
+        lines={itemLines(setup, index, area, files)}
         onChip={(chip) => {
           onChip(area.id, chip);
         }}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Rev, RevItem, RevStatusRow } from '../../data/revs.types';
 import type { WallRev } from './model';
-import { calloutOf, countLine, countOf, firstPick, keepAskable, partStates, tapItem, tapPart, wallItems, type WallItem } from './wallPage';
+import { calloutOf, countLine, countOf, firstPick, keepAskable, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem } from './wallPage';
 
 const base = { project_id: 'job', version: 1, deleted_at: null };
 const rev = (n: number, name: string): Rev => ({ ...base, id: `r${String(n)}`, list_id: 'l1', number: n, name });
@@ -75,6 +75,12 @@ describe('a wall page', () => {
     expect(firstPick([])).toEqual({ focus: null, part: null, picked: [] });
   });
 
+  it('opened at an item (a chip on its row): that item shown, nothing picked', () => {
+    expect(pickAt(ITEMS, 'i01')).toEqual({ focus: 'i01', part: 'deck_flutes', picked: [] });
+    expect(pickAt(ITEMS, 'gone')).toBeNull();
+    expect(pickAt(ITEMS, undefined)).toBeNull();
+  });
+
   it('a tap shows an item; one still to ask for is picked, a second tap drops it', () => {
     let s = firstPick(ITEMS);
     s = tapItem(s, byId('i31')).next;
@@ -122,5 +128,15 @@ describe('a wall page', () => {
     expect(calloutOf('Electrical 0242 / IDF 0240')).toEqual({ title: 'Electrical 0242 / IDF 0240', sub: null });
     // Brackets inside the name are part of it.
     expect(calloutOf('  Stair (2) landing  ')).toEqual({ title: 'Stair (2) landing', sub: null });
+  });
+
+  it('given the tag, the name leaves it out so it shows once', () => {
+    expect(calloutOf('1-hr shaft wall (small chase - Area B) (G2a)', 'G2a')).toEqual({ title: '1-hr shaft wall', sub: 'small chase - Area B' });
+    expect(calloutOf('Main Electrical 0134 north wall (d6a)', 'D6a')).toEqual({ title: 'Main Electrical 0134 north wall', sub: null });
+    expect(calloutOf('D6a - Main Electrical 0134 north wall', 'D6a')).toEqual({ title: 'Main Electrical 0134 north wall', sub: null });
+    // Another tag, or a name that is only the tag, stays.
+    expect(calloutOf('Corridor 110 north wall (B / 2–5)', 'F6a')).toEqual({ title: 'Corridor 110 north wall', sub: 'B / 2–5' });
+    expect(calloutOf('(D6a)', 'D6a')).toEqual({ title: '(D6a)', sub: null });
+    expect(calloutOf('Wall (A.1)', 'A.1')).toEqual({ title: 'Wall', sub: null });
   });
 });

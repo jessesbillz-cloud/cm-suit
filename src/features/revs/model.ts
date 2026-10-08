@@ -2,6 +2,7 @@
 // needs every item of its list's revs; rev_status gives each wall x item one status (na, passed, requested, failed,
 // open). Here: a wall's revs with their items' statuses, what is still to ask for, the end-of-job rollup (what is
 // still open, and where), the walls by list and level, and the chip for each status (lib/status).
+import type { CSSProperties } from 'react';
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -141,6 +142,13 @@ const CHIPS: Record<CellStatus, { key: StatusKey; label: string }> = {
 
 export function chipOf(status: CellStatus): { key: StatusKey; label: string } {
   return CHIPS[status];
+}
+
+/** A tappable chip's colors (lib/status): open plain with an outline, N/A muted, the rest tinted. */
+export function chipLook(key: StatusKey, kind: 'open' | 'na' | 'set'): CSSProperties {
+  if (kind === 'open') return { color: `var(--status-${key}-fg)`, background: `var(--status-${key}-bg)`, borderColor: `var(--status-${key}-dot)` };
+  if (kind === 'na') return { color: `var(--status-${key}-dot)`, background: `var(--status-${key}-bg)`, borderColor: 'transparent' };
+  return { color: `var(--status-${key}-fg)`, background: `var(--status-${key}-bg)`, borderColor: 'transparent' };
 }
 
 /** Signed off before the app (0082): passed, with no request behind it. */

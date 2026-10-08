@@ -52,8 +52,9 @@ interface ToolSearch {
   level?: string;
   wall?: string;
   place?: string;
-  /** Revs (0083): the room a wall was opened from (its page comes back there). */
+  /** Revs (0083): the room a wall was opened from (its page comes back there), and the item it opens at. */
   room?: string;
+  item?: string;
   /** A record beside a page in the main area, in the right column: `<tool>:<item>` (lib/itemIds sideItem). */
   side?: string;
   /** Schedule look-ahead (0062): the window ('2m'; absent = 3 weeks). */
@@ -88,6 +89,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const wall = idList(s['wall']);
   const place = idList(s['place']);
   const room = idList(s['room']);
+  const item = idList(s['item']);
   const side = str(s['side']);
   const range = str(s['range']);
   const by = s['by'];
@@ -106,6 +108,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(wall && !wall.includes(',') ? { wall } : {}),
     ...(place && !place.includes(',') ? { place } : {}),
     ...(room && !room.includes(',') ? { room } : {}),
+    ...(item && !item.includes(',') ? { item } : {}),
     ...(side && sideItem(side) !== null ? { side } : {}),
     ...(range === '2m' ? { range } : {}),
     ...(by === 'section' || by === 'company' ? { by } : {}),

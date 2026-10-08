@@ -7,9 +7,10 @@
 // A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app (0082: the
 // form opens over the items). At the top, the wall highlighted on its room's image (0083, the little picker: a tap
 // opens it full screen) beside where it is on the plan; at the bottom its history, every inspection per item (a tap
-// opens the request or the OFS IR beside the page on a desktop). Under the callout, its rev strip (RevStrip, as on its
-// room's rows): a done chip with its OFS IR on file opens it, any other shows that rev's first item. Opened from a room,
-// Back goes to the room, else to its level. In its own window (?window=1) there is no "Revs" to go back to.
+// opens the request or the OFS IR beside the page on a desktop). Under the callout, its rev strip (RevStrip): a done
+// chip with its OFS IR on file opens it, any other shows that rev's first item. Opened from an item's chip on its room's
+// row or tile (?item=), that item is shown. Opened from a room, Back goes to the room, else to its level. In its own
+// window (?window=1) there is no "Revs" to go back to.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft, Plus } from 'lucide-react';
@@ -39,7 +40,7 @@ import { WallHistory } from './WallHistory';
 import { WallItems } from './WallItems';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
 import { useWallManage } from './WallManage';
-import { countOf, firstPick, keepAskable, MAX_PICK, partStates, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
+import { countOf, firstPick, keepAskable, MAX_PICK, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
 import type { WallPart } from './wallParts';
 
 interface WallPageProps {
@@ -59,6 +60,8 @@ interface BodyProps {
   isPhone: boolean;
   /** In its own window: nothing opens beside it. */
   alone: boolean;
+  /** The item it opens at (?item=, a chip on its room's row or tile). */
+  focusItem: string | undefined;
 }
 
 function RequestButton({ picked, onRequest, wide }: { picked: number; onRequest: () => void; wide: boolean }) {
@@ -78,7 +81,7 @@ function RequestButton({ picked, onRequest, wide }: { picked: number; onRequest:
   );
 }
 
-function WallBody({ projectId, area, setup, index, timeZone, canManage, canRequest, isPhone, alone }: BodyProps) {
+function WallBody({ projectId, area, setup, index, timeZone, canManage, canRequest, isPhone, alone, focusItem }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const toast = useToast();
   const rooms = useRevRooms(projectId);
@@ -91,7 +94,14 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   const revs = useMemo(() => wallRevs(setup, index, area), [setup, index, area]);
   const items = useMemo(() => wallItems(revs), [revs]);
   const states = useMemo(() => partStates(items), [items]);
-  const [chosen, setPick] = useState<WallPick>(() => firstPick(items));
+  const [chosen, setPick] = useState<WallPick>(() => pickAt(items, focusItem) ?? firstPick(items));
+  // Another item's chip tapped while this wall is open: that item is shown.
+  const [opened, setOpened] = useState(focusItem);
+  if (focusItem !== opened) {
+    setOpened(focusItem);
+    const at = pickAt(items, focusItem);
+    if (at) setPick(at);
+  }
   const [signing, setSigning] = useState<SignTarget | null>(null);
   const before = useSignoffActions(projectId, area.id);
   // A picked item that passed or went N/A meanwhile is no longer picked.
@@ -262,7 +272,7 @@ function BackToRevs({ projectId, canManage, level }: { projectId: string; canMan
 }
 
 export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
-  const own: { window?: string | undefined; room?: string | undefined } = useSearch({ strict: false });
+  const own: { window?: string | undefined; room?: string | undefined; item?: string | undefined } = useSearch({ strict: false });
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const manage = useCapability(projectId, 'revs.manage');
@@ -291,6 +301,7 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
         canRequest={ask.data === true}
         isPhone={isPhone}
         alone={own.window === '1'}
+        focusItem={own.item}
       />
     );
   }

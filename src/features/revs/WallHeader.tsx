@@ -82,7 +82,7 @@ function CheckNote({ note }: { note: string }) {
 }
 
 export function WallHeader({ projectId, area, list, count, action, side, onShowSheet, manage }: WallHeaderProps) {
-  const { title, sub } = calloutOf(area.name);
+  const { title, sub } = calloutOf(area.name, area.wall_tag);
   const meta = [area.level.trim(), list?.name, list?.phase].filter((x): x is string => Boolean(x));
   const details = detailsLine(area);
   return (
