@@ -259,7 +259,7 @@ test.describe('revs rooms', () => {
     await wall.getByTestId('rev-before-ofs').fill('41');
     await wall.getByTestId('rev-form-save').click();
     await expect(wall.getByTestId('rev-wall-strip').getByTestId('rev-chip-2')).toHaveAttribute('data-mark', 'done');
-    await linkFiles(page, '1 image and 2 OFS IRs linked.');
+    await linkFiles(page, '1 picture and 2 IRs linked.');
 
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
     const row = page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
