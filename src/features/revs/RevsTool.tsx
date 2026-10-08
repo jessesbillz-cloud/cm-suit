@@ -2,7 +2,7 @@
 // "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls, Plan, Open, Checklist, and
 // Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to filter from there"): the level
 // picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the whole printable sheet. Rooms:
-// a tile per room that opens its page and its walls (0083); Walls: every wall as a callout tile with its rev strip;
+// a tile per room that opens its page and its walls (0083); Walls: every wall as a callout tile with its items by rev;
 // Plan: the level's sheet with its walls drawn on it (0059); a tap opens the wall's own page (the main area; its own
 // screen on the phone). Open: what is still open and where. Checklist: the fire marshal's sheet, printed letter
 // landscape (0082). The header says, per list, how many and how many are complete. What shows is decided by
@@ -26,7 +26,8 @@ import { jobLevels, onLevel, pickedLevel, planLevel } from './levels';
 import { VIEWS, VIEW_LABELS, indexStatus, listLines, type RevView } from './model';
 import { OpenView } from './OpenView';
 import { PlanView } from './plan/PlanView';
-import { indexSignoffFiles, type StripChip } from './revStrip';
+import type { ItemChip } from './itemLines';
+import { indexSignoffFiles } from './revStrip';
 import { RoomPage } from './room/RoomPage';
 import { RoomsView } from './RoomsView';
 import { SetupView } from './SetupView';
@@ -135,9 +136,10 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const placing = nav.plan && canManage && nav.planAt.place !== undefined;
   const chipLevels = nav.plan && onPlan !== null && !levels.includes(onPlan) ? [...levels, onPlan] : levels;
   const toSetup = canManage ? () => { nav.setView('setup'); } : undefined;
-  const onChip = (areaId: string, chip: StripChip) => {
+  // A passed item with its OFS IR on file opens it; any other item opens the wall at that item.
+  const onChip = (areaId: string, chip: ItemChip) => {
     if (chip.fileId !== null) openFile(chip.fileId);
-    else nav.open(areaId);
+    else nav.open(areaId, chip.item.id);
   };
 
   let body: ReactNode;

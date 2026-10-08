@@ -12,7 +12,8 @@ import { roomCount, roomsByList, roomWalls } from './rooms';
 import { countLine } from './wallPage';
 import { WallProgress } from './WallProgress';
 import { sameLevel } from './levels';
-import type { SignoffFiles, StripChip } from './revStrip';
+import type { ItemChip } from './itemLines';
+import type { SignoffFiles } from './revStrip';
 import { countOfThings, LevelHead, ListHead, NothingHere, NoWalls, TILE_GRID, WallTile, WallsView } from './WallsView';
 
 interface RoomsViewProps {
@@ -25,7 +26,7 @@ interface RoomsViewProps {
   level: string | null;
   onOpenRoom: (roomId: string) => void;
   onOpenWall: (areaId: string) => void;
-  onChip: (areaId: string, chip: StripChip) => void;
+  onChip: (areaId: string, chip: ItemChip) => void;
   onSetup?: (() => void) | undefined;
 }
 
