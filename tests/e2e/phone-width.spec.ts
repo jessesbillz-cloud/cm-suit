@@ -17,6 +17,8 @@ const PAGES = [
   '/p/job-a/calendar',
   '/p/job-s/revs',
   '/p/job-s/revs/mock-rev-area-2',
+  '/p/job-s/revs/room-mock-room-110',
+  '/p/job-s/revs?view=list&level=all',
   '/p/job-s/revs?view=plan&level=Level%2002',
   '/p/job-a/safety',
   '/p/job-a/safety?view=library',

@@ -324,6 +324,17 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_room_check', { p_level: 'probe', p_number: 'probe', p_name: 'probe', p_at: '' }],
   ['rev_room_image_of', { p_project_id: ZERO_UUID, p_name: 'probe' }],
   ['rev_room_lock', { p_room_id: ZERO_UUID }],
+  // Revs files added from Revs (0094): the app's folders, a file linked at once, a room's picture, the walls' sheets,
+  // and their helpers.
+  ['rev_files_folder', { p_project_id: ZERO_UUID, p_which: 'pictures' }],
+  ['rev_file_link', { p_file_id: ZERO_UUID }],
+  ['rev_room_image_set', { p_room_id: ZERO_UUID, p_version: 1, p_file_id: null, p_image_name: null }],
+  ['rev_walls_link_sheets', { p_project_id: ZERO_UUID }],
+  ['rev_ofs_name_has', { p_name: 'probe', p_ofs: 1 }],
+  ['rev_signoff_file_of', { p_project_id: ZERO_UUID, p_ofs: 1 }],
+  ['rev_in_plans', { p_folder_id: ZERO_UUID }],
+  ['rev_sheet_file_of', { p_project_id: ZERO_UUID, p_ref: 'probe', p_reader: true }],
+  ['rev_walls_sheets_fill', { p_project_id: ZERO_UUID, p_file_id: null, p_reader: true }],
 ];
 
 /** A valid setup of a daily form (0072), for the probes. */

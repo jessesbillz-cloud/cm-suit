@@ -9,7 +9,7 @@ const wall = (n: number, level: string, name: string): RevArea => ({
   ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: n,
 });
 const room = (id: string, level: string, number: string, name: string, kind: RevRoom['kind'], position: number): RevRoom => ({
-  ...base, id, list_id: 'l1', level, number, name, kind, image_file_id: null, position,
+  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position,
 });
 const link = (roomId: string, area: number, line: RevRoomWall['line'] = null): RevRoomWall => ({
   ...base, id: `${roomId}-${String(area)}`, room_id: roomId, area_id: `a${String(area)}`, line, position: area,
@@ -63,10 +63,10 @@ describe('a room', () => {
     expect(walls[1]?.color).toBe('var(--status-not_approved-solid)');
     expect(roomCount(walls)).toEqual({ needed: 4, passed: 2, requested: 0, failed: 1 });
   });
-  it('a shared wall is in both rooms; Add wall offers the rest, its level first', () => {
+  it('a shared wall is in both rooms; Add wall offers the rest of its level only', () => {
     expect(roomsOfWall(ROOMS, 'a3').map((r) => r.room.id)).toEqual(['ext', 'r205']);
     const r205 = ROOMS.rooms[2];
     if (!r205) throw new Error('no room');
-    expect(wallsToAdd(SETUP, r205, roomWalls(SETUP, indexStatus([]), ROOMS, 'r205')).map((a) => a.id)).toEqual(['a4', 'a1']);
+    expect(wallsToAdd(SETUP, r205, roomWalls(SETUP, indexStatus([]), ROOMS, 'r205')).map((a) => a.id)).toEqual(['a4']);
   });
 });

@@ -6,7 +6,7 @@
 import type { Tables } from '../database.types';
 import { parseArea, WALL_DETAIL_MAX, type RevArea, type WallDetailKey, type WallDetails } from '../revs.types';
 import type { RevSignoff, SignoffValues } from '../revs.walls';
-import { bump, checkVersion, clean, fail, must, newId, read, stamp, write, type RevMockState } from './revs';
+import { bump, checkVersion, clean, fail, has, must, newId, read, stamp, write, type RevMockState } from './revs';
 import { delay } from './store';
 
 const WHAT: Record<WallDetailKey, string> = {
@@ -88,4 +88,13 @@ export function signoffOf(s: RevMockState, areaId: string, itemId: string, asked
   if (!live) return undefined;
   const newer = asked.some((at) => (live.signed_on === null ? at > live.updated_at : at.slice(0, 10) > live.signed_on));
   return newer ? undefined : live;
+}
+
+/** rev_signoffs as revs.read reads them: the live ones of the job with their OFS IR on file. */
+export async function signoffFiles(projectId: string): Promise<{ area_id: string; item_id: string; file_id: string }[]> {
+  await delay();
+  if (!has('revs.read')) return [];
+  return read().signoffs.flatMap((so) =>
+    so.project_id === projectId && so.deleted_at === null && so.file_id !== null ? [{ area_id: so.area_id, item_id: so.item_id, file_id: so.file_id }] : [],
+  );
 }

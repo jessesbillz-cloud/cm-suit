@@ -1,11 +1,13 @@
-// A room's own page (0083; Jesse, Oct 5: "you click on the room and it breaks it down into the walls"): its number,
-// name and one bar of its walls' items, the room's image larger with each wall's line in its state's color (a tap on a
-// line opens the wall; pinch, wheel or + / - to zoom; full screen), then its walls as tiles. A manager renames or
-// removes the room (Undo), adds a wall of the list or takes one out (Undo), and draws a wall's line on the image (tap
-// its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
+// A room's own page (0083; Jesse, Oct 5: "you click on the room and it breaks it down into the walls"; Oct 6: "rooms
+// then walls with the revs"): its number, name and one bar of its walls' items, the room's picture (compact) with each
+// wall's line in its state's color (a tap on a line opens the wall; pinch, wheel or + / - to zoom; full screen), then
+// its walls as rows, each with its rev strip. No picture: nothing for readers, a slim place for a manager's (RoomImage).
+// A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
+// line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronLeft, Pencil, PenLine, Trash2 } from 'lucide-react';
+import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
 import { useCapability } from '../../../data/queries';
+import { useSignoffFiles } from '../../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../../data/revs.queries';
 import { useRevRooms, type RevRoom, type RevRooms } from '../../../data/revs.rooms';
 import type { RevSetup } from '../../../data/revs.types';
@@ -14,15 +16,17 @@ import { Card } from '../../../ui/Card';
 import { Icon } from '../../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../../ui/States';
 import { indexStatus, type StatusIndex } from '../model';
+import { indexSignoffFiles, type SignoffFiles } from '../revStrip';
 import { DrawBar } from '../plan/DrawBar';
 import { isLine } from '../plan/planGeom';
 import { roomCount, roomLabel, roomWalls } from '../rooms';
 import { useRevsNav } from '../useRevsNav';
 import { useSetupActions } from '../useSetupActions';
+import { useOpenRevFile } from '../useOpenRevFile';
 import { WallProgress } from '../WallProgress';
-import { WallTile } from '../WallsView';
 import { AddRoomWall, RoomForm } from './RoomForms';
 import { RoomImage } from './RoomImage';
+import { RoomWallRow } from './RoomWallRow';
 import { useRoomActions } from './useRoomActions';
 
 interface RoomPageProps {
@@ -37,22 +41,25 @@ interface BodyProps {
   setup: RevSetup;
   index: StatusIndex;
   rooms: RevRooms;
+  files: SignoffFiles;
   canManage: boolean;
   isPhone: boolean;
 }
 
-/** The image on the page: most of a phone's width, on a desktop the window less the header and the bars. */
-const FRAME = 'relative flex min-h-[260px] flex-col overflow-hidden rounded-lg border border-line bg-page';
-const FRAME_SIZE = `${FRAME} h-[44dvh] sm:h-[calc(100dvh-360px)] sm:max-h-[640px]`;
+/** The picture on the page: compact, the walls under it in view; with none, a slim place for a manager's. */
+const FRAME = 'relative flex flex-col overflow-hidden rounded-lg border border-line bg-page';
+const FRAME_SIZE = `${FRAME} h-[32dvh] min-h-[200px] sm:h-[320px]`;
+// Full screen of nothing is no use: the slim place has none.
+const FRAME_NONE = `${FRAME} h-16 [&_div:has(>[data-testid=sheet-full])]:hidden`;
 
-const LINK = 'min-h-8 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3/50';
-
-function RoomBody({ projectId, room, setup, index, rooms, canManage, isPhone }: BodyProps) {
+function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const walls = useMemo(() => roomWalls(setup, index, rooms, room.id), [setup, index, rooms, room.id]);
   const count = roomCount(walls);
   const act = useRoomActions(projectId, room, walls);
   const setupActions = useSetupActions(projectId);
+  const openFile = useOpenRevFile(projectId);
+  const hasPicture = room.image_file_id !== null;
   const [full, setFull] = useState(false);
   const [editing, setEditing] = useState(false);
   const list = setup.lists.find((l) => l.id === room.list_id);
@@ -103,7 +110,7 @@ function RoomBody({ projectId, room, setup, index, rooms, canManage, isPhone }: 
                 data-testid="rev-room-remove"
                 onClick={() => {
                   void setupActions.remove('room', room, roomLabel(room)).then((gone) => {
-                    if (gone) nav.close();
+                    if (gone) nav.close(room.level.trim());
                   });
                 }}
               />
@@ -114,51 +121,51 @@ function RoomBody({ projectId, room, setup, index, rooms, canManage, isPhone }: 
       </header>
       {editing ? <RoomForm room={room} onSave={act.rename} onCancel={() => { setEditing(false); }} /> : null}
       {full ? null : drawBar}
-      <RoomImage
-        projectId={projectId}
-        room={room}
-        walls={lines}
-        focusId={act.drawing?.area.id ?? null}
-        onOpen={(id) => {
-          setFull(false);
-          nav.openFromRoom(id, room.id);
-        }}
-        draft={act.drawing ? act.points : null}
-        onPoint={act.drawing ? act.tap : undefined}
-        full={full}
-        onFull={setFull}
-        bar={drawBar}
-        className={FRAME_SIZE}
-      />
-      <section className="flex flex-col gap-2">
+      {hasPicture || canManage ? (
+        <RoomImage
+          projectId={projectId}
+          room={room}
+          walls={lines}
+          focusId={act.drawing?.area.id ?? null}
+          onOpen={(id) => {
+            setFull(false);
+            nav.openFromRoom(id, room.id);
+          }}
+          draft={act.drawing ? act.points : null}
+          onPoint={act.drawing ? act.tap : undefined}
+          full={full}
+          onFull={setFull}
+          bar={drawBar}
+          className={hasPicture ? FRAME_SIZE : FRAME_NONE}
+        />
+      ) : null}
+      <section className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="flex-1 px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">Walls</h2>
           {canManage ? <AddRoomWall setup={setup} room={room} walls={walls} busy={act.busy} onAdd={act.add} /> : null}
         </div>
         {walls.length === 0 ? <EmptyState title="No walls in this room yet." /> : null}
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ul className="flex flex-col divide-y divide-line" data-testid="rev-room-walls">
           {walls.map((w) => (
-            <WallTile
+            <RoomWallRow
               key={w.area.id}
-              area={w.area}
+              wall={w}
               setup={setup}
               index={index}
-              onOpen={(id) => {
-                nav.openFromRoom(id, room.id);
-              }}
-              footer={
-                canManage ? (
-                  <span className="flex justify-end gap-1">
-                    <button type="button" className={LINK} disabled={act.busy || room.image_file_id === null} data-testid={`rev-room-draw-${w.area.id}`} onClick={() => { act.draw(w.area.id); }}>
-                      <Icon icon={PenLine} size={14} className="mr-1 inline" />
-                      {w.link.line ? 'Redraw' : 'Draw'}
-                    </button>
-                    <button type="button" className={LINK} disabled={act.busy} data-testid={`rev-room-out-${w.area.id}`} onClick={() => { act.takeOut(w.area); }}>
-                      Take out
-                    </button>
-                  </span>
-                ) : null
+              files={files}
+              isPhone={isPhone}
+              manage={
+                canManage
+                  ? { canDraw: hasPicture, busy: act.busy, onDraw: () => { act.draw(w.area.id); }, onTakeOut: () => { act.takeOut(w.area); } }
+                  : null
               }
+              onOpen={() => {
+                nav.openFromRoom(w.area.id, room.id);
+              }}
+              onChip={(chip) => {
+                if (chip.fileId !== null) openFile(chip.fileId);
+                else nav.openFromRoom(w.area.id, room.id);
+              }}
             />
           ))}
         </ul>
@@ -167,12 +174,19 @@ function RoomBody({ projectId, room, setup, index, rooms, canManage, isPhone }: 
   );
 }
 
-function BackToRevs({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+function BackToRevs({ projectId, canManage, level }: { projectId: string; canManage: boolean; level: string | undefined }) {
   const nav = useRevsNav(projectId, canManage);
   return (
-    <button type="button" className="-ml-1 flex h-8 items-center gap-0.5 self-start text-sm font-medium text-accent" data-testid="rev-room-back" onClick={nav.close}>
+    <button
+      type="button"
+      className="-ml-1 flex h-8 items-center gap-0.5 self-start text-sm font-medium text-accent"
+      data-testid="rev-room-back"
+      onClick={() => {
+        nav.close(level);
+      }}
+    >
       <Icon icon={ChevronLeft} size={16} />
-      Revs
+      OFS required
     </button>
   );
 }
@@ -182,10 +196,12 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const manage = useCapability(projectId, 'revs.manage');
+  const signoffs = useSignoffFiles(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
+  const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
 
   let body: ReactNode;
-  const failed = [setup, status, rooms, manage].find((q) => q.isError);
+  const failed = [setup, status, rooms, manage, signoffs].find((q) => q.isError);
   const room = rooms.data?.rooms.find((r) => r.id === roomId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
   else if (!setup.data || !status.data || !rooms.data || manage.isPending) body = <LoadingState label="Loading the room" />;
@@ -199,6 +215,7 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
         setup={setup.data}
         index={index}
         rooms={rooms.data}
+        files={files}
         canManage={manage.data === true}
         isPhone={isPhone}
       />
@@ -208,7 +225,7 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   if (isPhone) return <div className="px-4 pt-3">{body}</div>;
   return (
     <div className="flex flex-col gap-2">
-      <BackToRevs projectId={projectId} canManage={manage.data === true} />
+      <BackToRevs projectId={projectId} canManage={manage.data === true} level={room?.level.trim()} />
       <Card>{body}</Card>
     </div>
   );

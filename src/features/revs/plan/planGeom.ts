@@ -184,18 +184,6 @@ export function levelTargets(areas: readonly Pick<RevArea, 'sheet_file_id' | 'sh
   return out;
 }
 
-/** The levels of the job's walls, in natural order (Level 2 before Level 10), each once. */
-export function levelNames(areas: readonly Pick<RevArea, 'level'>[]): string[] {
-  const seen = new Map<string, string>();
-  for (const a of areas) {
-    const k = a.level.trim().toLowerCase();
-    if (!seen.has(k)) seen.set(k, a.level.trim());
-  }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-}
-
-export const sameLevel = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-
 /** Every corner of these walls' lines (where a new wall's end may land). */
 export function cornersOf(lines: readonly WallLine[]): Pt[] {
   return lines.flat().map(([x, y]): Pt => [x, y]);

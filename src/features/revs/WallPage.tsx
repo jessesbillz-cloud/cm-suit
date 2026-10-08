@@ -7,25 +7,27 @@
 // A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app (0082: the
 // form opens over the items). At the top, the wall highlighted on its room's image (0083, the little picker: a tap
 // opens it full screen) beside where it is on the plan; at the bottom its history, every inspection per item (a tap
-// opens the request or the OFS IR beside the page on a desktop). Opened from a room, Back goes to the room. In its own
-// window (?window=1) there is no "Revs" to go back to.
+// opens the request or the OFS IR beside the page on a desktop). Under the callout, its rev strip (RevStrip, as on its
+// room's rows): a done chip with its OFS IR on file opens it, any other shows that rev's first item. Opened from a room,
+// Back goes to the room, else to its level. In its own window (?window=1) there is no "Revs" to go back to.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
-import { useRevFileFetch } from '../../data/revs.history';
+import { useSignoffFiles, useWallHistory } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { useFileViewer } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { indexStatus, wallRevs, type StatusIndex } from './model';
+import { indexSignoffFiles, revStrip, type StripChip } from './revStrip';
+import { RevStrip } from './RevStrip';
 import { WallThumb } from './plan/WallThumb';
-import { revFileItem } from './room/revFileItem';
+import { useOpenRevFile } from './useOpenRevFile';
 import { WallRoomPick } from './room/WallRoomPick';
 import { roomLabel } from './rooms';
 import { useRevsNav } from './useRevsNav';
@@ -80,11 +82,12 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   const nav = useRevsNav(projectId, canManage);
   const toast = useToast();
   const rooms = useRevRooms(projectId);
-  const viewer = useFileViewer();
-  const fetchFile = useRevFileFetch();
   // Beside the page on a desktop; on a phone (or alone in a window) the request is its own screen, a file the viewer.
   const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
+  const signoffs = useSignoffFiles(projectId);
+  const history = useWallHistory(projectId, area.id);
+  const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
   const revs = useMemo(() => wallRevs(setup, index, area), [setup, index, area]);
   const items = useMemo(() => wallItems(revs), [revs]);
   const states = useMemo(() => partStates(items), [items]);
@@ -107,6 +110,15 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
     setPick(next);
     if (full) toast.show({ message: `${String(MAX_PICK)} items at most on one request.` });
   };
+  const openFile = useOpenRevFile(projectId, beside ? (fileId) => { nav.openBeside(area.id, { fileId }); } : undefined);
+  // A done rev's OFS IR on file opens; any other chip shows the rev's first item on the drawing.
+  const onChip = (chip: StripChip) => {
+    const first = items.find((i) => i.rev.id === chip.rev.id);
+    if (chip.fileId !== null) openFile(chip.fileId);
+    else if (first) setPick({ ...pick, focus: first.item.id, part: first.part });
+  };
+  // The decided request opens only for those who may read it (rev_wall_history's can_open).
+  const canOpen = (requestId: string) => history.data?.some((r) => r.request_id === requestId && r.can_open) ?? false;
   const onPart = (part: WallPart) => {
     setPick(tapPart(pick, part, items));
   };
@@ -115,7 +127,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
     nav.request([area.id], items.filter((i) => pick.picked.includes(i.item.id)).map((i) => i.item));
   };
   const button = canRequest && askable ? <RequestButton picked={pick.picked.length} onRequest={request} wide={isPhone} /> : null;
-  const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: nav.close });
+  const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: () => { nav.close(area.level.trim()); } });
   // Where it is in its room, and on the plan: a tap opens the room full screen, or the plan there; a manager places or
   // redraws it.
   const roomPick = rooms.data ? (
@@ -166,6 +178,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
         }}
         manage={canManage ? manage.buttons : null}
       />
+      <RevStrip chips={revStrip(setup, index, area, files)} onChip={onChip} withNames testId="rev-wall-strip" />
       {manage.form}
       {isPhone ? thumb : null}
       <div className={wide ? 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>
@@ -186,6 +199,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
             timeZone={timeZone}
             canManage={canManage}
             onOpenRequest={nav.openRequest}
+            canOpen={canOpen}
             onSignBefore={(i) => { setSigning({ itemIds: [i.item.id], label: i.item.name }); }}
             onClearBefore={(i) => { before.clear({ itemIds: [i.item.id], label: i.item.name }); }}
           />
@@ -218,8 +232,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
           else nav.openRequest(requestId);
         }}
         onFile={(row) => {
-          if (beside) nav.openBeside(area.id, { fileId: row.file_id });
-          else viewer.open([revFileItem(projectId, row.file_id, row.file_name ?? 'OFS IR', fetchFile)]);
+          openFile(row.file_id);
         }}
       />
       {isPhone && button ? <div className="sticky bottom-0 z-10 -mx-4 border-t border-line bg-card px-4 py-3">{button}</div> : null}
@@ -228,7 +241,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
 }
 
 /** Back to Revs, or to the room the wall was opened from (by its name). */
-function BackToRevs({ projectId, canManage }: { projectId: string; canManage: boolean }) {
+function BackToRevs({ projectId, canManage, level }: { projectId: string; canManage: boolean; level: string | undefined }) {
   const nav = useRevsNav(projectId, canManage);
   const rooms = useRevRooms(projectId);
   const from = nav.fromRoom === undefined ? undefined : rooms.data?.rooms.find((r) => r.id === nav.fromRoom);
@@ -239,7 +252,7 @@ function BackToRevs({ projectId, canManage }: { projectId: string; canManage: bo
       data-testid="rev-wall-back"
       onClick={() => {
         if (from) nav.openRoom(from.id);
-        else nav.close();
+        else nav.close(level);
       }}
     >
       <Icon icon={ChevronLeft} size={16} />
@@ -255,11 +268,12 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
   const manage = useCapability(projectId, 'revs.manage');
   const ask = useCapability(projectId, 'ir.request');
   const jobs = useMyProjects();
+  const signoffs = useSignoffFiles(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const zone = jobs.data?.find((p) => p.project_id === projectId)?.timezone;
 
   let body: ReactNode;
-  const failed = [setup, status, manage, ask, jobs].find((q) => q.isError);
+  const failed = [setup, status, manage, ask, jobs, signoffs].find((q) => q.isError);
   const area = setup.data?.areas.find((a) => a.id === areaId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
   else if (!setup.data || !status.data || manage.isPending || ask.isPending || zone === undefined) body = <LoadingState label="Loading the wall" />;
@@ -284,14 +298,14 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
   if (isPhone) {
     return (
       <div className="flex flex-col gap-1 px-4 pt-3">
-        {own.window !== '1' && own.room !== undefined ? <BackToRevs projectId={projectId} canManage={manage.data === true} /> : null}
+        {own.window !== '1' && own.room !== undefined ? <BackToRevs projectId={projectId} canManage={manage.data === true} level={area?.level.trim()} /> : null}
         {body}
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-2">
-      {own.window === '1' ? null : <BackToRevs projectId={projectId} canManage={manage.data === true} />}
+      {own.window === '1' ? null : <BackToRevs projectId={projectId} canManage={manage.data === true} level={area?.level.trim()} />}
       <Card>{body}</Card>
     </div>
   );

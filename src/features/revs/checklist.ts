@@ -7,7 +7,7 @@ import type { Rev, RevArea, RevList, RevSetup } from '../../data/revs.types';
 import type { StatusKey } from '../../lib/status';
 import { cellOf, levelsOf, type StatusIndex } from './model';
 
-type CheckMark = 'done' | 'failed' | 'requested' | 'open' | 'na';
+export type CheckMark = 'done' | 'failed' | 'requested' | 'open' | 'na';
 
 export interface CheckCell {
   rev: Rev;
@@ -40,7 +40,8 @@ export interface CheckLevel {
   wallsDone: number;
 }
 
-function cellFor(setup: RevSetup, index: StatusIndex, area: RevArea, rev: Rev): CheckCell {
+/** A wall's items of one rev rolled up into one mark (the checklist's cell, and a chip of the rev strip). */
+export function revCell(setup: RevSetup, index: StatusIndex, area: RevArea, rev: Rev): CheckCell {
   const statuses = setup.items.filter((i) => i.rev_id === rev.id).map((i) => cellOf(index, area.id, i.id).status).filter((s) => s !== 'na');
   const passed = statuses.filter((s) => s === 'passed').length;
   const needed = statuses.length;
@@ -58,7 +59,7 @@ export function checklistOf(setup: RevSetup, index: StatusIndex): CheckLevel[] {
     const revs = setup.revs.filter((r) => r.list_id === list.id);
     return levelsOf(setup, list.id).map(({ level, areas }) => {
       const rows = areas.map((area) => {
-        const cells = revs.map((rev) => cellFor(setup, index, area, rev));
+        const cells = revs.map((rev) => revCell(setup, index, area, rev));
         return { area, cells, done: cells.every((c) => c.mark === 'done' || c.mark === 'na') };
       });
       const totals = revs.map((rev, k) => {

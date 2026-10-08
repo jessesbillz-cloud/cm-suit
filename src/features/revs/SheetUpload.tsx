@@ -1,9 +1,12 @@
 // "No PDFs on this job yet." is not a dead end: Upload (the shared upload queue: progress, Stop, Remove) into the
 // job's Plans folder when I may write there, else Files, where the plans go. The picker's list refreshes itself when
-// an upload lands (data/UploadQueue).
+// an upload lands (data/UploadQueue). A sheet named by its number ("A201A Floor Plan.pdf") goes to the walls waiting for
+// it as soon as it is stored and scanned (0094, in the database), so the job's walls are read again after each one.
 import { useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { FolderOpen, Upload } from 'lucide-react';
+import { qk } from '../../data/keys';
 import { useCanWriteFolder, useFolders } from '../../data/queries';
 import { useUploadQueue } from '../../data/UploadQueue';
 import { Button } from '../../ui/Button';
@@ -14,6 +17,7 @@ export function SheetUpload({ projectId }: { projectId: string }) {
   const plans = folders.data?.find((f) => f.kind === 'plans' && f.parent_id === null) ?? null;
   const canWrite = useCanWriteFolder(plans?.id ?? null);
   const queue = useUploadQueue();
+  const qc = useQueryClient();
   const navigate = useNavigate();
   const input = useRef<HTMLInputElement>(null);
   const toFiles = () => {
@@ -37,7 +41,12 @@ export function SheetUpload({ projectId }: { projectId: string }) {
               onChange={(e) => {
                 const files = [...(e.target.files ?? [])];
                 e.target.value = '';
-                if (files.length > 0) queue.enqueue(files, projectId, plans.id);
+                if (files.length > 0) {
+                  queue.enqueue(files, projectId, plans.id, async () => {
+                    await qc.invalidateQueries({ queryKey: qk.revs(projectId) });
+                    return null;
+                  });
+                }
               }}
             />
           </>

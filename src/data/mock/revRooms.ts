@@ -1,17 +1,18 @@
 // e2e mock of rooms (0083), with the database's rules in short form: revs.read reads, revs.manage writes; a room's
 // number once per level (version-checked rename), a wall of the room's list in or out (the line kept), a line of 2 to 8
-// points; Link files links each room's image by its name and each sign-off's OFS IR by its number; a wall's history
+// points; a wall's history
 // (the in-app requests from mock/inspections, the sign-offs from mock/revs); the gate for a room's image or a
 // sign-off's file (synthetic pictures and the synthetic plan set, nothing real). Rooms of Sample Science Building
 // (mock/revSeeds' walls): Level 01 room 110 Corridor (the corridor's north wall and the stair shaftwall), Level 02 room
 // 205 Electrical (its east wall and the corridor's north wall, shared) whose image is in Files but not linked yet, room
-// 210 Corridor and shaft S2 Stair 2. Level 01's elevator shaft is in no room ("Other walls"). State lives in
-// sessionStorage (its own key), never module state.
-import type { Linked, RevRoom, RevRoomWall } from '../revs.rooms';
+// 210 Corridor and shaft S2 Stair 2. Level 01's elevator shaft is in no room ("Other walls"). Link files and the
+// pictures and IRs added from Revs are in mock/revFiles. State lives in sessionStorage (its own key), never module state.
+import type { RevRoom, RevRoomWall } from '../revs.rooms';
 import type { RevFile, HistoryRow } from '../revs.history';
 import type { RevRemoved, WallLine } from '../revs.types';
+import * as mockApi from './api';
 import * as mockIr from './inspections';
-import { bump, checkVersion, clean, fail, has, must, newId, read as readRevs, write as writeRevs } from './revs';
+import { bump, checkVersion, clean, fail, has, must, newId, read as readRevs } from './revs';
 import { sheetUrl } from './sheet';
 import { delay } from './store';
 
@@ -20,12 +21,12 @@ const JOB = 'job-s';
 const LIST = 'mock-rev-list-1';
 
 interface State {
-  rooms: (RevRoom & { image_name: string | null })[];
+  rooms: RevRoom[];
   walls: RevRoomWall[];
 }
 
 /** The synthetic room images "in Files": id, name, the room's number drawn on it. */
-const IMAGES: [id: string, name: string, label: string][] = [
+export const IMAGES: [id: string, name: string, label: string][] = [
   ['mock-room-img-110', 'Sample Room 110.png', '110'],
   ['mock-room-img-205', 'Sample Room 205.png', '205'],
   ['mock-room-img-210', 'Sample Room 210.png', '210'],
@@ -33,7 +34,7 @@ const IMAGES: [id: string, name: string, label: string][] = [
 ];
 
 /** The synthetic OFS IRs "in Files", by OFS number. */
-const OFS_FILES: [id: string, name: string, ofs: number][] = [
+export const OFS_FILES: [id: string, name: string, ofs: number][] = [
   ['mock-ofs-ir-0041', 'OFS_IR_0041_Attachment.pdf', 41],
   ['mock-ofs-ir-0042', 'OFS_IR_0042_Attachment.pdf', 42],
 ];
@@ -65,12 +66,12 @@ function seed(): State {
   };
 }
 
-function read(): State {
+export function read(): State {
   const raw = window.sessionStorage.getItem(KEY);
   return raw === null ? seed() : (JSON.parse(raw) as State);
 }
 
-function write(update: (s: State) => State): State {
+export function write(update: (s: State) => State): State {
   const next = update(read());
   window.sessionStorage.setItem(KEY, JSON.stringify(next));
   return next;
@@ -86,7 +87,7 @@ export async function rooms(projectId: string): Promise<{ rooms: RevRoom[]; wall
   return { rooms: live, walls: s.walls.filter((w) => ids.has(w.room_id)) };
 }
 
-function roomOf(s: State, id: string): State['rooms'][number] {
+export function roomOf(s: State, id: string): State['rooms'][number] {
   must('revs.manage');
   const r = s.rooms.find((x) => x.id === id);
   if (!r) throw fail('That item no longer exists.', 'P0002');
@@ -154,33 +155,6 @@ export async function toggleRoom(id: string, version: number, removing: boolean)
   return { id: next.id, version: next.version, deleted_at: next.deleted_at };
 }
 
-/** Link files: each room's image by its name, then each sign-off's OFS IR by its number. */
-export async function linkFiles(projectId: string): Promise<Linked> {
-  await delay();
-  must('revs.manage');
-  let images = 0;
-  write((x) => ({
-    ...x,
-    rooms: x.rooms.map((r) => {
-      const img = IMAGES.find(([, name]) => name.toLowerCase() === (r.image_name ?? '').toLowerCase());
-      if (r.project_id !== projectId || !img || img[0] === r.image_file_id) return r;
-      images += 1;
-      return bump(r, { image_file_id: img[0] });
-    }),
-  }));
-  let files = 0;
-  writeRevs((x) => ({
-    ...x,
-    signoffs: x.signoffs.map((so) => {
-      const f = OFS_FILES.find(([, , ofs]) => ofs === so.ofs_number);
-      if (so.project_id !== projectId || so.deleted_at !== null || !f || f[0] === so.file_id) return so;
-      files += 1;
-      return bump(so, { file_id: f[0] });
-    }),
-  }));
-  return { images, files };
-}
-
 /** A synthetic room picture: the room's four walls, a door, its number. 4:3. */
 function roomPicture(label: string): string {
   const svg =
@@ -205,6 +179,12 @@ export async function file(fileId: string): Promise<RevFile> {
   if (ofs && readRevs().signoffs.some((so) => so.file_id === fileId && so.deleted_at === null)) {
     return { url: sheetUrl(), filename: ofs[1], mime: 'application/pdf' };
   }
+  // One added from Revs (0094): a room's picture, or a sign-off's IR.
+  const room = read().rooms.find((r) => r.image_file_id === fileId && r.deleted_at === null);
+  const signed = readRevs().signoffs.some((so) => so.file_id === fileId && so.deleted_at === null);
+  const f = room || signed ? await mockApi.file(fileId) : null;
+  if (f && room) return { url: roomPicture(room.number), filename: f.original_name, mime: f.mime };
+  if (f) return { url: sheetUrl(), filename: f.original_name, mime: f.mime };
   throw fail("You don't have access to that.", '42501');
 }
 
@@ -228,7 +208,9 @@ export async function history(projectId: string, areaId: string): Promise<Histor
     });
   }
   for (const so of s.signoffs.filter((x) => x.area_id === areaId && x.deleted_at === null)) {
-    const f = OFS_FILES.find(([id]) => id === so.file_id);
+    const known = OFS_FILES.find(([id]) => id === so.file_id);
+    const up = known || so.file_id === null ? null : await mockApi.file(so.file_id);
+    const f = known ?? (up ? ([up.id, up.original_name] as const) : undefined);
     rows.push({
       item_id: so.item_id, kind: 'before', request_id: null, ir_number: null, ofs_number: so.ofs_number, day: so.signed_on,
       result: 'passed', note: so.note, file_id: f ? f[0] : null, file_name: f ? f[1] : null, can_open: f !== undefined,

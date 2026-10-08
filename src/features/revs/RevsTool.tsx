@@ -1,12 +1,16 @@
-// Revs (0056): a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2: "anyone can see what's left
-// on each wall at any time"). Walls: the rooms by level, each a tile that opens the room's page and its walls (Rooms,
-// 0083, first), every wall by level as a callout tile with its tally (List), or the level's plan sheet with its walls
-// drawn on it (Plan, 0059); a tap opens the wall's own page (the main area; its own screen on the phone). Open: the end-of-job check, what is still open and where. Checklist: the fire marshal's sheet, every wall by
-// rev, printed letter landscape (0082). Setup (revs.manage): the lists, pasted from OSFM's
-// legend, and the walls. What shows is decided by has_capability, never role names.
+// Revs (0056), "OFS required" on the rail: a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2:
+// "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls, Plan, Open, Checklist, and
+// Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to filter from there"): the level
+// picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the whole printable sheet. Rooms:
+// a tile per room that opens its page and its walls (0083); Walls: every wall as a callout tile with its rev strip;
+// Plan: the level's sheet with its walls drawn on it (0059); a tap opens the wall's own page (the main area; its own
+// screen on the phone). Open: what is still open and where. Checklist: the fire marshal's sheet, printed letter
+// landscape (0082). The header says, per list, how many and how many are complete. What shows is decided by
+// has_capability, never role names.
 import { useMemo, type ReactNode } from 'react';
 import { Plus, Printer } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
+import { useSignoffFiles } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
 import { NEW_ITEM, opensInMain, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
@@ -17,13 +21,16 @@ import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { ChecklistView } from './ChecklistView';
-import { VIEWS, VIEW_LABELS, indexStatus, metaLine, type RevView } from './model';
+import { LevelChips } from './LevelChips';
+import { jobLevels, onLevel, pickedLevel, planLevel } from './levels';
+import { VIEWS, VIEW_LABELS, indexStatus, listLines, type RevView } from './model';
 import { OpenView } from './OpenView';
 import { PlanView } from './plan/PlanView';
-import { LinkFiles } from './room/LinkFiles';
+import { indexSignoffFiles, type StripChip } from './revStrip';
 import { RoomPage } from './room/RoomPage';
 import { RoomsView } from './RoomsView';
 import { SetupView } from './SetupView';
+import { useOpenRevFile } from './useOpenRevFile';
 import { useRevsNav, type WallsMode } from './useRevsNav';
 import { WallPage } from './WallPage';
 import { WallsView } from './WallsView';
@@ -47,7 +54,7 @@ interface RevsToolProps {
 }
 
 interface ShellProps {
-  meta?: string | undefined;
+  meta?: ReactNode;
   actions?: ReactNode;
   below?: ReactNode;
   children: ReactNode;
@@ -62,22 +69,32 @@ function Shell({ meta, actions, below, children }: ShellProps) {
   );
 }
 
+/** Per list: "Rated walls 48 · 3 complete". */
+function Meta({ lines }: { lines: readonly string[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <span className="flex flex-wrap gap-x-4" data-testid="rev-meta">
+      {lines.map((l) => (
+        <span key={l}>{l}</span>
+      ))}
+    </span>
+  );
+}
+
 interface MainProps extends RevsToolProps {
   canManage: boolean;
 }
 
 interface SetupActionsProps {
-  projectId: string;
   listIds: string[];
   onOpen: (id: string) => void;
   isPhone: boolean;
 }
 
-function SetupActions({ projectId, listIds, onOpen, isPhone }: SetupActionsProps) {
+function SetupActions({ listIds, onOpen, isPhone }: SetupActionsProps) {
   const hasLists = listIds.length > 0;
   return (
     <>
-      {hasLists ? <LinkFiles projectId={projectId} listIds={listIds} isPhone={isPhone} /> : null}
       {hasLists ? (
         <Button icon={Plus} className={isPhone ? 'h-10' : ''} data-testid="rev-add-walls" onClick={() => { onOpen(WALLS_ITEM); }}>
           Add walls
@@ -95,17 +112,33 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
+  const signoffs = useSignoffFiles(projectId);
   const jobs = useMyProjects();
+  const openFile = useOpenRevFile(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
+  const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
+  const levels = useMemo(() => jobLevels([...(setup.data?.areas ?? []), ...(rooms.data?.rooms ?? [])]), [setup.data, rooms.data]);
   const tabs: { value: RevTab; label: string }[] = [
     ...WALLS_TABS,
     ...VIEWS.filter((v): v is Exclude<RevView, 'walls'> => v !== 'walls' && (v !== 'setup' || canManage)).map((v) => ({ value: v, label: VIEW_LABELS[v] })),
   ];
   const view = nav.view;
   const tab: RevTab = view === 'walls' ? nav.mode : view;
-  const meta = setup.data && status.data && setup.data.areas.length > 0 ? metaLine(setup.data, index) : undefined;
+  const level = pickedLevel(nav.level, levels);
+  const onPlan = planLevel(nav.level, levels, canManage);
+  const inRoom = new Set((rooms.data?.walls ?? []).map((w) => w.area_id));
+  const meta = setup.data && status.data ? <Meta lines={listLines(setup.data, index, inRoom)} /> : undefined;
   const needsStatus = view !== 'setup';
   const needsRooms = view === 'walls' && nav.mode === 'rooms';
+  // The level chips filter the walls, the plan and Open; the checklist is the whole sheet. Placing a wall keeps its level.
+  const filtered = view === 'walls' || view === 'open';
+  const placing = nav.plan && canManage && nav.planAt.place !== undefined;
+  const chipLevels = nav.plan && onPlan !== null && !levels.includes(onPlan) ? [...levels, onPlan] : levels;
+  const toSetup = canManage ? () => { nav.setView('setup'); } : undefined;
+  const onChip = (areaId: string, chip: StripChip) => {
+    if (chip.fileId !== null) openFile(chip.fileId);
+    else nav.open(areaId);
+  };
 
   let body: ReactNode;
   if (setup.isError || (needsStatus && status.isError) || (needsRooms && rooms.isError)) {
@@ -127,9 +160,9 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
     const jobName = jobs.data?.find((p) => p.project_id === projectId)?.name ?? '';
     body = <ChecklistView setup={setup.data} index={index} jobName={jobName} onOpen={nav.open} />;
   } else if (view === 'open') {
-    body = <OpenView setup={setup.data} index={index} selectedId={itemId} onOpen={nav.open} />;
+    body = <OpenView setup={{ ...setup.data, areas: onLevel(setup.data.areas, level) }} index={index} selectedId={itemId} onOpen={nav.open} />;
   } else if (nav.plan) {
-    body = <PlanView projectId={projectId} setup={setup.data} index={index} canManage={canManage} isPhone={isPhone} />;
+    body = <PlanView projectId={projectId} setup={setup.data} index={index} level={onPlan} canManage={canManage} isPhone={isPhone} />;
   } else if (needsRooms && rooms.data) {
     body = (
       <RoomsView
@@ -137,20 +170,16 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
         setup={setup.data}
         index={index}
         rooms={rooms.data}
+        files={files}
+        level={level}
         onOpenRoom={nav.openRoom}
         onOpenWall={nav.open}
-        onSetup={canManage ? () => { nav.setView('setup'); } : undefined}
+        onChip={onChip}
+        onSetup={toSetup}
       />
     );
   } else {
-    body = (
-      <WallsView
-        setup={setup.data}
-        index={index}
-        onOpen={nav.open}
-        onSetup={canManage ? () => { nav.setView('setup'); } : undefined}
-      />
-    );
+    body = <WallsView setup={setup.data} index={index} files={files} level={level} onOpen={nav.open} onChip={onChip} onSetup={toSetup} />;
   }
 
   return (
@@ -158,7 +187,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
       meta={meta}
       actions={
         view === 'setup' ? (
-          <SetupActions projectId={projectId} listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
+          <SetupActions listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
         ) : view === 'checklist' ? (
           <Button
             icon={Printer}
@@ -174,19 +203,27 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
         ) : undefined
       }
       below={
-        <Segments<RevTab>
-          label="View"
-          options={tabs}
-          value={tab}
-          onPick={(t) => {
-            if (t === 'plan') nav.showPlan({});
-            else if (t === 'rooms' || t === 'list') nav.setMode(t);
-            else nav.setView(t);
-          }}
-          testId="rev-view"
-        />
+        <div className="flex flex-col gap-2.5">
+          <Segments<RevTab>
+            label="View"
+            options={tabs}
+            value={tab}
+            onPick={(t) => {
+              if (t === 'plan') nav.showPlan({});
+              else if (t === 'rooms' || t === 'list') nav.setMode(t);
+              else nav.setView(t);
+            }}
+            testId="rev-view"
+          />
+          {filtered && !placing ? (
+            <LevelChips levels={chipLevels} level={nav.plan ? onPlan : level} withAll={!nav.plan} onLevel={nav.setLevel} />
+          ) : null}
+        </div>
       }
     >
+      {signoffs.isError && filtered ? (
+        <ErrorState className="mb-3" error={signoffs.error} title="The OFS IR files did not load." onRetry={() => void signoffs.refetch()} />
+      ) : null}
       {body}
     </Shell>
   );
