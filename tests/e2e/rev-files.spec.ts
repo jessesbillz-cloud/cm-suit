@@ -18,7 +18,7 @@ async function openAs(page: Page, who: string, path: string): Promise<void> {
     await page.goto(path);
   } catch (e) {
     // The first page of a test can reload itself once (a new build taking over) while this navigation starts.
-    if (!String(e).includes('interrupted by another navigation')) throw e;
+    if (!/interrupted by another navigation|Frame load interrupted/.test(String(e))) throw e;
     await page.waitForLoadState();
     await page.goto(path);
   }
@@ -54,7 +54,7 @@ test.describe('revs files', () => {
     await expect(page.getByTestId('room-picture-replace')).toHaveCount(0);
   });
 
-  test("a manager adds a room's picture on its page (Undo takes it off) and replaces one", async ({ page }) => {
+  test("a manager adds a room's picture on its page; Undo takes it off", async ({ page }) => {
     await openAs(page, 'inspector', '/p/job-s/revs/room-mock-room-205');
     const image = page.getByTestId('room-image');
     await expect(image.getByTestId('room-no-image')).toBeVisible();
@@ -63,7 +63,9 @@ test.describe('revs files', () => {
     await expect(image.getByTestId('sheet-image')).toBeVisible();
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(image.getByTestId('room-picture-add')).toBeVisible();
+  });
 
+  test('a manager replaces a picture from the picture', async ({ page }) => {
     await openAs(page, 'inspector', '/p/job-s/revs/room-mock-room-110');
     const corridor = page.getByTestId('room-image');
     await expect(corridor.getByTestId('sheet-image')).toBeVisible();
@@ -71,9 +73,5 @@ test.describe('revs files', () => {
     await corridor.getByTestId('room-picture-input').setInputFiles(file('Sample Corridor 110 new.png', 'image/png'));
     await expect(page.getByText('Picture replaced.')).toBeVisible();
     await expect(corridor.getByTestId('room-download')).toHaveAttribute('aria-label', 'Download Sample Corridor 110 new.png');
-
-    await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-210');
-    await expect(page.getByTestId('room-image').getByTestId('sheet-image')).toBeVisible();
-    await expect(page.getByTestId('room-picture-replace')).toHaveCount(0);
   });
 });
