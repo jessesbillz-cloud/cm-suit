@@ -7,7 +7,7 @@ import {
   indexStatus,
   irLine,
   levelsOf,
-  metaLine,
+  listLines,
   naToggle,
   openRollup,
   parseView,
@@ -76,12 +76,17 @@ describe('revs model', () => {
     expect(openRollup(SETUP, allDone)).toEqual([]);
   });
 
-  it("the header's line: walls, those done (every item passed or N/A), those with an item failed", () => {
-    expect(metaLine(SETUP, STATUS)).toBe('4 walls · 0 done · 1 failed');
-    const one = { ...SETUP, areas: [wall(1, 'L1', 'W')] };
-    expect(metaLine(one, indexStatus([]))).toBe('1 wall · 0 done');
+  it("the header's line: per list, its count and those complete (every item passed or N/A)", () => {
+    const none = new Set<string>();
+    // The name says walls.
+    expect(listLines(SETUP, STATUS, none)).toEqual(['Sample Rated Walls 4 · 0 complete']);
+    // No details, no line, no room: areas (the fire & life safety sheet's levels).
+    const sheet: RevSetup = { ...SETUP, lists: [{ ...list, name: 'Fire & life safety' }], areas: [wall(1, 'Site', 'Site')] };
+    expect(listLines(sheet, indexStatus([]), none)).toEqual(['Fire & life safety 1 area · 0 complete']);
+    expect(listLines(sheet, indexStatus([]), new Set(['a1']))).toEqual(['Fire & life safety 1 wall · 0 complete']);
     const passed = indexStatus(SETUP.items.map((i) => row('a1', i.id, i.id === 'i13' ? 'na' : 'passed')));
-    expect(metaLine(one, passed)).toBe('1 wall · 1 done');
+    expect(listLines({ ...SETUP, areas: [{ ...wall(1, 'L1', 'W'), wall_tag: 'F6a' }] }, passed, none)).toEqual(['Sample Rated Walls 1 · 1 complete']);
+    expect(listLines({ ...SETUP, areas: [] }, STATUS, none)).toEqual([]);
   });
 
   it('chips use lib/status keys, each with its own word', () => {

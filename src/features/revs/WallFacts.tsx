@@ -18,6 +18,8 @@ interface WallFactsProps {
   timeZone: string;
   canManage: boolean;
   onOpenRequest: (requestId: string) => void;
+  /** May I open that request (rev_wall_history's can_open)? Else its line is plain text, not a link to nowhere. */
+  canOpen: (requestId: string) => boolean;
   /** A manager: sign the shown item off before the app, or clear that. */
   onSignBefore?: ((item: WallItem) => void) | undefined;
   onClearBefore?: ((item: WallItem) => void) | undefined;
@@ -64,7 +66,7 @@ function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea
   );
 }
 
-export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenRequest, onSignBefore, onClearBefore }: WallFactsProps) {
+export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenRequest, canOpen, onSignBefore, onClearBefore }: WallFactsProps) {
   if (!shown) return <div className="min-h-8" data-testid="rev-facts" />;
   const { cell, item } = shown;
   const chip = chipOf(cell.status);
@@ -101,16 +103,22 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
       {ir !== null && requestId !== null ? (
         <>
           <Dot />
-          <button
-            type="button"
-            className="font-medium tabular-nums text-accent hover:underline"
-            data-testid="rev-ir-link"
-            onClick={() => {
-              onOpenRequest(requestId);
-            }}
-          >
-            {ir}
-          </button>
+          {canOpen(requestId) ? (
+            <button
+              type="button"
+              className="font-medium tabular-nums text-accent hover:underline"
+              data-testid="rev-ir-link"
+              onClick={() => {
+                onOpenRequest(requestId);
+              }}
+            >
+              {ir}
+            </button>
+          ) : (
+            <span className="font-medium tabular-nums text-ink-2" data-testid="rev-ir-line">
+              {ir}
+            </span>
+          )}
         </>
       ) : null}
       {item.company ? (

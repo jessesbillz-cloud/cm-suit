@@ -5,13 +5,12 @@
 // colors, planGeom). Pure; tested in rooms.test.ts.
 import type { RevRoom, RevRoomWall, RevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevList, RevSetup, WallLine } from '../../data/revs.types';
+import { sameLevel } from './levels';
 import { wallRevs, type StatusIndex } from './model';
 import { toneColor, wallTone } from './plan/planGeom';
 import { calloutOf, countOf, type WallCount } from './wallPage';
 
 const KIND_ORDER: Record<RevRoom['kind'], number> = { room: 0, exterior: 1, shaft: 2 };
-
-const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 interface RoomLevel {
   level: string;
@@ -34,15 +33,15 @@ export function roomsByList(setup: RevSetup, rooms: RevRooms): RoomList[] {
       const areas = setup.areas.filter((a) => a.list_id === list.id);
       const names: string[] = [];
       for (const l of [...listRooms.map((r) => r.level), ...areas.map((a) => a.level)]) {
-        if (!names.some((n) => same(n, l))) names.push(l.trim());
+        if (!names.some((n) => sameLevel(n, l))) names.push(l.trim());
       }
       names.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
       const levels = names.map((level) => ({
         level,
         rooms: listRooms
-          .filter((r) => same(r.level, level))
+          .filter((r) => sameLevel(r.level, level))
           .sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.position - b.position),
-        others: areas.filter((a) => same(a.level, level) && !inRoom.has(a.id)),
+        others: areas.filter((a) => sameLevel(a.level, level) && !inRoom.has(a.id)),
       }));
       return { list, levels };
     })
@@ -95,10 +94,9 @@ export function roomsOfWall(rooms: RevRooms, areaId: string): { room: RevRoom; l
   });
 }
 
-/** Walls of the room's list that are not in it yet: what Add wall offers, on the room's level first. */
+/** Walls of the room's list on its level that are not in it yet: what Add wall offers (Jesse, Oct 6: not every wall
+ *  of the job). */
 export function wallsToAdd(setup: RevSetup, room: RevRoom, walls: readonly RoomWall[]): RevArea[] {
   const inIt = new Set(walls.map((w) => w.area.id));
-  return setup.areas
-    .filter((a) => a.list_id === room.list_id && !inIt.has(a.id))
-    .sort((a, b) => Number(!same(a.level, room.level)) - Number(!same(b.level, room.level)));
+  return setup.areas.filter((a) => a.list_id === room.list_id && sameLevel(a.level, room.level) && !inIt.has(a.id));
 }

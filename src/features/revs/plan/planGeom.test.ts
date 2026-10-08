@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  boxOf, cornersOf, cropAround, distanceTo, isLine, levelNames, levelTargets, midpoint, placePoint, toneColor, wallAt, wallTone,
+  boxOf, cornersOf, cropAround, distanceTo, isLine, levelTargets, midpoint, placePoint, toneColor, wallAt, wallTone,
 } from './planGeom';
 
 const count = (needed: number, passed: number, requested: number, failed: number) => ({ needed, passed, requested, failed });
@@ -85,9 +85,6 @@ describe('cropAround', () => {
 describe('levels and their sheets', () => {
   const a = (level: string, sheet: string | null, page: number, drawn: boolean) => ({
     level, sheet_file_id: sheet, sheet_page: page, geom: drawn ? ([[0, 0], [1, 1]] as [number, number][]) : null,
-  });
-  it('levels in natural order, each once', () => {
-    expect(levelNames([a('Level 10', null, 1, false), a('Level 2', null, 1, false), a(' level 2 ', null, 1, false)])).toEqual(['Level 2', 'Level 10']);
   });
   it('the sheets its walls are drawn on (most walls first); none drawn: those its walls name', () => {
     const out = levelTargets([a('L', 'b', 1, true), a('L', 'a', 2, true), a('L', 'a', 2, true), a('L', 'c', 1, false), a('L', 'a', 2, false)]);

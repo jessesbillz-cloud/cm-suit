@@ -5,6 +5,7 @@
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
+import { levelKey } from './levels';
 
 type CellStatus = RevStatusRow['status'];
 
@@ -102,19 +103,31 @@ export function openRollup(setup: RevSetup, index: StatusIndex): OpenRev[] {
   return out;
 }
 
-/** "6 walls · 2 done · 1 failed": the header's one line. Done: every item passed or N/A; failed: an item failed. */
-export function metaLine(setup: RevSetup, index: StatusIndex): string {
-  let done = 0;
-  let failed = 0;
-  for (const area of setup.areas) {
-    const statuses = wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status));
-    if (!statuses.some(stillOpen)) done += 1;
-    if (statuses.includes('failed')) failed += 1;
-  }
-  const walls = setup.areas.length;
-  const parts = [`${String(walls)} ${walls === 1 ? 'wall' : 'walls'}`, `${String(done)} done`];
-  if (failed > 0) parts.push(`${String(failed)} failed`);
-  return parts.join(' · ');
+/** Done: every item of the wall passed or N/A. */
+function complete(setup: RevSetup, index: StatusIndex, area: RevArea): boolean {
+  return !wallRevs(setup, index, area).some((r) => r.cells.some((c) => stillOpen(c.cell.status)));
+}
+
+/** A list of walls (its walls have details, a line on the plan or a room), or of areas (the fire & life safety sheet's
+ *  levels and site). */
+function isWalls(setup: RevSetup, listId: string, inRoom: ReadonlySet<string>): boolean {
+  return setup.areas.some(
+    (a) => a.list_id === listId && (a.wall_tag !== null || a.rating !== null || a.ul_design !== null || a.geom !== null || inRoom.has(a.id)),
+  );
+}
+
+/** The header's line, one part per list: "Rated walls 48 · 3 complete", "Fire & life safety 4 areas · 0 complete"
+ *  (complete: every item passed or N/A). The noun is left out when the list's name ends with one. */
+export function listLines(setup: RevSetup, index: StatusIndex, inRoom: ReadonlySet<string>): string[] {
+  return setup.lists.flatMap((list) => {
+    const areas = setup.areas.filter((a) => a.list_id === list.id);
+    if (areas.length === 0) return [];
+    const n = areas.length;
+    const said = /\b(walls?|areas?)$/i.test(list.name.trim());
+    const noun = said ? '' : isWalls(setup, list.id, inRoom) ? (n === 1 ? ' wall' : ' walls') : n === 1 ? ' area' : ' areas';
+    const done = areas.filter((a) => complete(setup, index, a)).length;
+    return [`${list.name.trim()} ${String(n)}${noun} · ${String(done)} complete`];
+  });
 }
 
 /** Each status's chip: its lib/status colors and its own word. */
@@ -180,8 +193,6 @@ interface ListGroup {
   list: RevList;
   levels: LevelGroup[];
 }
-
-const levelKey = (level: string) => level.trim().toLowerCase();
 
 /** A list's walls by level (levels in natural order: Level 2 before Level 10), each level's walls in their order. */
 export function levelsOf(setup: RevSetup, listId: string): LevelGroup[] {

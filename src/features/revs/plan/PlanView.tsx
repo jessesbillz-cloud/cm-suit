@@ -3,8 +3,9 @@
 // line in its state's color (all passed green, any failed red, any requested gold, else grey) with its callout; a tap
 // on a wall opens its page. Pinch or wheel to zoom, drag to pan, as on a map. Managers add walls on the plan (tap the
 // start, the end, corners, Done, name it), one after another around the building, and place a wall from its page
-// (?place=). A level with no sheet yet: a manager picks one (a plan set's page too). The level, the wall to center on
-// and the wall being placed live in the URL (useRevsNav), so a wall opened from here comes back here. Full screen puts
+// (?place=). A level with no sheet yet: a manager picks one (a plan set's page too), or starts a new level (+ Level).
+// The level is the one row of level chips above (RevsTool, levels.ts planLevel); it, the wall to center on and the wall
+// being placed live in the URL (useRevsNav), so a wall opened from here comes back here. Full screen puts
 // the sheet over the window (drawing too: the bar goes with it); Escape or Exit comes back.
 import { useCallback, useState } from 'react';
 import { Plus, Settings2 } from 'lucide-react';
@@ -19,7 +20,8 @@ import { useRevsNav } from '../useRevsNav';
 import { calloutOf, countOf } from '../wallPage';
 import { DrawBar } from './DrawBar';
 import { PlanControls } from './PlanControls';
-import { boxOf, cornersOf, isLine, levelNames, levelTargets, sameLevel, targetKey, toneColor, wallAt, wallTone, type Box, type PlanTarget } from './planGeom';
+import { sameLevel } from '../levels';
+import { boxOf, cornersOf, isLine, levelTargets, targetKey, toneColor, wallAt, wallTone, type Box, type PlanTarget } from './planGeom';
 import { PlanSheet } from './PlanSheet';
 import { PlanWalls, type PlanWall } from './PlanWalls';
 import { usePlanDraw } from './usePlanDraw';
@@ -28,6 +30,8 @@ interface PlanViewProps {
   projectId: string;
   setup: RevSetup;
   index: StatusIndex;
+  /** The level shown (levels.ts planLevel); a wall being placed or centered on brings its own. */
+  level: string | null;
   canManage: boolean;
   isPhone: boolean;
 }
@@ -35,18 +39,14 @@ interface PlanViewProps {
 /** A tap this close to a wall's line (screen pixels) opens it. */
 const REACH_PX = 22;
 
-export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanViewProps) {
+export function PlanView({ projectId, setup, index, level: picked, canManage, isPhone }: PlanViewProps) {
   const nav = useRevsNav(projectId, canManage);
   const at = nav.planAt;
   const sheets = useRevSheets(projectId);
   const placing = canManage && at.place ? (setup.areas.find((a) => a.id === at.place) ?? null) : null;
   const focusWall = at.wall ? (setup.areas.find((a) => a.id === at.wall) ?? null) : null;
 
-  const known = levelNames(setup.areas);
-  const typed = canManage && at.level && !known.some((l) => sameLevel(l, at.level ?? '')) ? [at.level.trim()] : [];
-  const levels = [...known, ...typed];
-  const firstDrawn = setup.areas.find((a) => a.geom !== null)?.level.trim();
-  const level = placing?.level.trim() ?? focusWall?.level.trim() ?? levels.find((l) => sameLevel(l, at.level ?? '')) ?? firstDrawn ?? levels[0] ?? null;
+  const level = placing?.level.trim() ?? focusWall?.level.trim() ?? picked;
   const levelAreas = level === null ? [] : setup.areas.filter((a) => sameLevel(a.level, level));
   const targets = levelTargets(levelAreas);
 
@@ -115,7 +115,7 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
     if (level !== null) setChosen({ level, t });
   };
 
-  if (setup.lists.length === 0 || (levels.length === 0 && !canManage)) {
+  if (setup.lists.length === 0 || (level === null && !canManage)) {
     return (
       <Card>
         <EmptyState
@@ -163,7 +163,7 @@ export function PlanView({ projectId, setup, index, canManage, isPhone }: PlanVi
           <div className="min-w-0 flex-1">
             <PlanControls
               projectId={projectId}
-              levels={placing ? [] : levels}
+              levels={[]}
               level={level}
               onLevel={pickLevel}
               targets={targets}

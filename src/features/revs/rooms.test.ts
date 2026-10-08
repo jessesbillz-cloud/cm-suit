@@ -63,10 +63,10 @@ describe('a room', () => {
     expect(walls[1]?.color).toBe('var(--status-not_approved-solid)');
     expect(roomCount(walls)).toEqual({ needed: 4, passed: 2, requested: 0, failed: 1 });
   });
-  it('a shared wall is in both rooms; Add wall offers the rest, its level first', () => {
+  it('a shared wall is in both rooms; Add wall offers the rest of its level only', () => {
     expect(roomsOfWall(ROOMS, 'a3').map((r) => r.room.id)).toEqual(['ext', 'r205']);
     const r205 = ROOMS.rooms[2];
     if (!r205) throw new Error('no room');
-    expect(wallsToAdd(SETUP, r205, roomWalls(SETUP, indexStatus([]), ROOMS, 'r205')).map((a) => a.id)).toEqual(['a4', 'a1']);
+    expect(wallsToAdd(SETUP, r205, roomWalls(SETUP, indexStatus([]), ROOMS, 'r205')).map((a) => a.id)).toEqual(['a4']);
   });
 });
