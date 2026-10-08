@@ -1,5 +1,5 @@
 // A wall's items on its room's row and its tile (Jesse, Oct 8: "each of those inspectable items should be on that
-// first page ... the numbers just confuse people"): one line per rev of its list, the rev's short name, then its items
+// first page ... the numbers just confuse people"): one line per rev of its list, the rev written out, then its items
 // as chips, each with its own state (the wall page's: rev_status), a passed one with its OFS number and, when signed off
 // before the app with its IR on file (rev_signoffs.file_id), that file. Item names drop the words they repeat from
 // their rev's ("HOW Cavity Stuff" under "HOW - Cavity" reads "Stuff"), worked out from the data, never a word list.
@@ -10,14 +10,14 @@ import type { SignoffFiles } from './revStrip';
 
 type CellStatus = RevStatusRow['status'];
 
-/** A separator between parts of a name: " - ", " – ", " · ", " : " (a hyphen inside a word like "In-Wall" is not). */
-const SPACED_SEP = /\s+[-–—·:|]\s+/g;
+/** Separators left in front of what remains of a name once its rev's words are cut: " - ", " · ", " : ". */
 const LEAD_SEP = /^[\s\-–—·:|]+/;
 const PUNCT_END = /[:·,]+$/;
 
-/** "HOW - Cavity" reads "HOW Cavity". */
-export function shortRev(name: string): string {
-  return name.replace(SPACED_SEP, ' ').trim();
+/** The rev written out, as Setup shows it: "Rev 1 · HOW - Cavity" (Jesse, Oct 8: "you can put literally the rev
+ *  in it"). */
+export function revLabel(rev: Pick<Rev, 'number' | 'name'>): string {
+  return `Rev ${String(rev.number)} · ${rev.name.trim()}`;
 }
 
 /** A name's words (separators left out), each lower case without trailing punctuation, and where it ends. */
@@ -53,7 +53,7 @@ export interface ItemChip {
 
 export interface ItemLine {
   rev: Rev;
-  /** The rev's short name. */
+  /** The rev written out: "Rev 1 · HOW - Cavity". */
   label: string;
   chips: ItemChip[];
 }
@@ -64,7 +64,7 @@ export function itemLines(setup: RevSetup, index: StatusIndex, area: RevArea, fi
     .filter((r) => r.cells.length > 0)
     .map(({ rev, cells }) => ({
       rev,
-      label: shortRev(rev.name),
+      label: revLabel(rev),
       chips: cells.map(({ item, cell }) => {
         const passed = cell.status === 'passed';
         return {

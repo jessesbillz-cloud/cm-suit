@@ -24,7 +24,8 @@
 // header's per-list line), rev-wall-open (a tile's open button), rev-wall-strip (the wall page's revs), each chip
 // rev-chip-<rev number> (data-mark done|requested|failed|open|na; data-file when its OFS IR is on file), rev-ir-line (an
 // IR the reader may not open: plain text). Oct 8: a tile's rev-items, a rev-line-<rev number> per rev with its
-// rev-item-chip-<item> (data-status passed|requested|failed|open|na; data-file when its OFS IR is on file).
+// rev-line-label (the rev written out) and rev-item-chip-<item> (data-status passed|requested|failed|open|na;
+// data-file when its OFS IR is on file).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -85,9 +86,10 @@ test.describe('revs', () => {
     // Its items by rev, each in its own state: TOW's speed plugs passed (IR 5, OFS 0005), HOW cavity stuff passed (IR 6)
     // and its spray failed, the rest open, in the list's order, by their short names.
     const items = corridor.getByTestId('rev-items');
-    await expect(items.locator('[data-testid^="rev-line-"]')).toHaveCount(8);
+    await expect(items.getByTestId('rev-line-label')).toHaveCount(8);
     await expect(items.locator('[data-status]')).toHaveCount(21);
-    await expect(items.getByTestId('rev-line-0')).toContainText('TOW');
+    await expect(items.getByTestId('rev-line-0').getByTestId('rev-line-label')).toHaveText('Rev 0 · TOW');
+    await expect(items.getByTestId('rev-line-5').getByTestId('rev-line-label')).toHaveText('Rev 5 · In-Wall Final');
     const plugs = items.getByTestId('rev-item-chip-mock-rev-item-0-1');
     await expect(plugs).toHaveAttribute('data-status', 'passed');
     await expect(plugs).toHaveText('Speed Plugs · 0005');

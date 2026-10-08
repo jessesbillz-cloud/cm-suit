@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type Rev, type RevArea, type RevItem, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import { indexStatus } from './model';
-import { itemChipName, itemChipText, itemLines, shortItem, shortRev } from './itemLines';
+import { itemChipName, itemChipText, itemLines, revLabel, shortItem } from './itemLines';
 import { indexSignoffFiles } from './revStrip';
 
 const base = { project_id: 'job', version: 1, deleted_at: null };
@@ -13,10 +13,9 @@ const AREA: RevArea = {
 };
 
 describe('short names', () => {
-  it("a rev's separators read as a space", () => {
-    expect(shortRev('HOW - Cavity')).toBe('HOW Cavity');
-    expect(shortRev('In-Wall Final')).toBe('In-Wall Final');
-    expect(shortRev(' HOW · Surface ')).toBe('HOW Surface');
+  it('a rev is written out, as Setup shows it', () => {
+    expect(revLabel({ number: 1, name: 'HOW - Cavity' })).toBe('Rev 1 · HOW - Cavity');
+    expect(revLabel({ number: 5, name: ' In-Wall Final ' })).toBe('Rev 5 · In-Wall Final');
   });
 
   it('an item drops the leading words it shares with its rev', () => {
@@ -75,8 +74,8 @@ describe("a wall's item lines", () => {
     return c;
   };
 
-  it("one line per rev of the wall's list that has items, in order, with its short name", () => {
-    expect(lines.map((l) => l.label)).toEqual(['TOW', 'HOW Cavity', 'Drywall']);
+  it("one line per rev of the wall's list that has items, in order, the rev written out", () => {
+    expect(lines.map((l) => l.label)).toEqual(['Rev 0 · TOW', 'Rev 1 · HOW - Cavity', 'Rev 3 · Drywall']);
     expect(lines.map((l) => l.chips.map((c) => c.short))).toEqual([
       ['Speed Plugs'],
       ['Stuff', 'Spray', 'Beam Pockets'],

@@ -11,7 +11,8 @@
 // room), rev-history, rev-history-<item>, rev-history-row (data-kind), rev-history-open, rev-file-pane,
 // rev-link-files, file-viewer, viewer-zoom. Oct 6: rev-level-<level> (the level chips), rev-room-walls (the room's
 // rows, each rev-wall-<area> with rev-wall-open). Oct 8: each row's rev-items, a rev-line-<rev number> per rev with
-// its rev-item-chip-<item> (data-status passed|requested|failed|open|na; data-file when its OFS IR is on file).
+// its rev-line-label and rev-item-chip-<item> (data-status passed|requested|failed|open|na; data-file when its OFS IR
+// is on file).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -264,10 +265,10 @@ test.describe('revs rooms', () => {
 
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
     const row = page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
-    // One line per rev, its short name, then its items by their short names; no rev numbers.
+    // Per rev, the rev written out, then its items by their short names.
     const items = row.getByTestId('rev-items');
-    await expect(items.locator('[data-testid^="rev-line-"]')).toHaveCount(8);
-    await expect(items.getByTestId('rev-line-1')).toContainText('HOW Cavity');
+    await expect(items.getByTestId('rev-line-label')).toHaveCount(8);
+    await expect(items.getByTestId('rev-line-1').getByTestId('rev-line-label')).toHaveText('Rev 1 · HOW - Cavity');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveText('Beam Pockets');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveAttribute('aria-label', 'HOW Beam Pockets: Open');
     const stuffing = items.getByTestId('rev-item-chip-mock-rev-item-2-1');
