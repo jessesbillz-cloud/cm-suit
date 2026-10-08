@@ -43,7 +43,7 @@ async function tapFrame(page: Page, fx: number, fy: number, phone: boolean): Pro
   else await page.mouse.click(x, y);
 }
 
-/** Link files from Setup (a manager): the room images by name, the OFS IRs by number. */
+/** Link files from Setup (a manager): the room pictures by name, the OFS IRs by number. */
 async function linkFiles(page: Page, said: string): Promise<void> {
   await openAs(page, 'inspector', '/p/job-s/revs?view=setup');
   await page.getByTestId('rev-link-files').click();
@@ -115,7 +115,7 @@ test.describe('revs rooms', () => {
   });
 
   test('a shared wall shows its rooms with a switch; the picker opens the room full screen with zoom', async ({ page }) => {
-    await linkFiles(page, '1 image linked.');
+    await linkFiles(page, '1 picture linked.');
     await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-5');
     const picker = page.getByTestId('rev-room-picker');
     await expect(picker.getByTestId('rev-room-switch-mock-room-205')).toHaveAttribute('aria-pressed', 'true');
@@ -149,7 +149,7 @@ test.describe('revs rooms', () => {
     await wall.getByTestId('rev-before-date').fill('2026-08-20');
     await wall.getByTestId('rev-form-save').click();
     await expect(wall.getByTestId('rev-before-line')).toBeVisible();
-    await linkFiles(page, '1 image and 1 OFS IR linked.');
+    await linkFiles(page, '1 picture and 1 IR linked.');
 
     await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-2');
     const history = page.getByTestId('rev-history');

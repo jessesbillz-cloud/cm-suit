@@ -111,7 +111,7 @@ function mockAppOnly(f: FolderRow): boolean {
   return (
     APP_KINDS.has(f.kind) ||
     f.person !== null ||
-    (f.parent_id === null && f.kind === 'general' && f.name === 'Inspection requests') ||
+    (f.parent_id === null && f.kind === 'general' && (f.name === 'Inspection requests' || f.name === 'Room pictures')) ||
     (f.kind === 'photos' && (f.name === 'Corrections' || f.name === 'Delivery tickets'))
   );
 }
@@ -152,6 +152,30 @@ export async function createFolder(projectId: string, parentId: string | null, n
   };
   writeMock((m) => ({ ...m, folders: [...m.folders, row] }));
   return row;
+}
+
+/** A folder the app makes on first use (rev_files_folder and the like): the one of that name there, else a new one. */
+export async function appFolder(projectId: string, parentId: string | null, name: string, kind: string): Promise<string> {
+  await delay();
+  const found = allFolders().find((f) => f.project_id === projectId && f.parent_id === parentId && f.name === name);
+  if (found) return found.id;
+  const row: FolderRow = {
+    id: `mock-folder-${String(readMock().folders.length + 1)}`,
+    project_id: projectId,
+    parent_id: parentId,
+    name,
+    kind,
+    view_only: false,
+    proprietary: false,
+    sort: 100,
+    ai_reads: false,
+    version: 1,
+    file_count: null,
+    app_only: false,
+    person: null,
+  };
+  writeMock((m) => ({ ...m, folders: [...m.folders, row] }));
+  return row.id;
 }
 
 async function changeFolder(folderId: string, version: number, patch: Partial<FolderRow>): Promise<FolderRow> {
