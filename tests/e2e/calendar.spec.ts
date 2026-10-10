@@ -1,6 +1,7 @@
-// Calendar (SPEC §7.6; MDR's schedule calendar) against the mock data layer. The month shows each day's inspections
-// as banners; a day shows underneath with its requests by state, its other lines and the week's look-ahead; a request
-// opens in the right column with the inspector's steps while the calendar stays; a person with calendar.manage adds a
+// Calendar (SPEC §7.6; MDR's schedule calendar; Jesse Oct 10) against the mock data layer. The month fits on one screen
+// with a dot per item; a tapped day opens right under its week with its requests by state, its other lines and the
+// week's look-ahead, and the same tap (or Back) closes it; a request opens in the right column with the inspector's
+// steps while the calendar stays; a person with calendar.manage adds a
 // line from the day, sees it, deletes it and Undo brings it back; the type toggles hide and show a kind; the week view
 // still lists the week. Runs on desktop and phone (the right column parts on desktop only).
 // Contract with the mock: 'pm' manages the calendar and decides inspections on both sample jobs; the inspections mock
@@ -10,8 +11,8 @@
 // (0061; the mock seeds IR 3 six days out, sent, and IR 4 eight days out, still with the inspector). Deliveries: a
 // Standby "Sample rebar delivery" on job-a this Tuesday, an ordinary "Sample drywall delivery" three days before this
 // Monday, and the deliveries mock's own (mirrored as the database does): a Time TBD Sample Lumber one today. Job-a has
-// blocked time today (weekly, noon to one). A bidder manages no job's calendar. Test ids: calendar, cal-day-<day>,
-// cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request, cal-others, cal-kind-<kind>,
+// blocked time today (weekly, noon to one). A bidder manages no job's calendar. Test ids: calendar, cal-month,
+// cal-open, cal-day-<day>, cal-day-detail, cal-add-<day>, cal-title, cal-date, cal-save, cal-delete, cal-request, cal-others, cal-kind-<kind>,
 // cal-line, cal-block, cal-type-<kind>, cal-view-week, cal-subscribe, cal-subscribe-panel, cal-block-time, ir-pane.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
@@ -32,6 +33,30 @@ function fromToday(n: number): string {
   const d = new Date(`${today}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/** Whether the page (or the frame's scrolling main area) has to scroll to show what's on it. */
+async function scrolls(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const main = document.querySelector('[data-testid="main-area"]');
+    if (!main) throw new Error('No main area');
+    const scroller = getComputedStyle(main).overflowY === 'visible' ? main.parentElement : main;
+    if (!scroller) throw new Error('No scroller');
+    const doc = document.documentElement;
+    return scroller.scrollHeight > scroller.clientHeight + 1 || doc.scrollHeight > doc.clientHeight + 1;
+  });
+}
+
+/** Whether the open day's row comes right after the week row that holds that day. */
+async function openUnderWeekOf(page: Page, prefix: string, day: string): Promise<boolean> {
+  return page.evaluate(
+    ([p, d]) => {
+      const open = document.querySelector(`[data-testid="${p}-open"]`);
+      const cell = document.querySelector(`[data-testid="${p}-day-${d}"]`);
+      return open !== null && cell !== null && open.previousElementSibling?.contains(cell) === true;
+    },
+    [prefix, day] as const,
+  );
 }
 
 /** Special inspections are off in the default layout; turn them on (saved to the mock layout). */
@@ -118,10 +143,10 @@ test.describe('calendar (SPEC §7.6)', () => {
     await expect(detail.getByTestId('cal-request')).toContainText('IR 3');
     await expect(detail.getByTestId('cal-request')).toContainText('Pending');
     await expect(page.getByTestId('cal-block-time')).toHaveCount(0);
+    // Nothing of his that day and nothing for him to add there: the day is only picked, nothing opens under it.
     await page.goto(`/p/job-s/calendar?day=${fromToday(8)}`);
     await expect(page.getByTestId(`cal-day-${fromToday(8)}`)).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('cal-day-title')).toBeVisible();
-    await expect(detail.getByTestId('cal-request')).toHaveCount(0);
+    await expect(page.getByTestId('cal-request')).toHaveCount(0);
   });
 
   test('the type toggles hide and show a kind', async ({ page }) => {
@@ -152,7 +177,7 @@ test.describe('calendar (SPEC §7.6)', () => {
     const ordinary = detail.getByTestId('cal-line').filter({ hasText: 'Sample drywall delivery' });
     await expect(ordinary).toBeVisible();
     await expect(ordinary).not.toContainText('Confirmed');
-    await page.goto('/p/job-a/calendar');
+    await page.goto(`/p/job-a/calendar?day=${fromToday(0)}`);
     const tbd = detail.getByTestId('cal-line').filter({ hasText: 'Sample Lumber' });
     await expect(tbd).toContainText('Time TBD');
     await expect(tbd).not.toContainText('All day');
@@ -167,23 +192,112 @@ test.describe('calendar (SPEC §7.6)', () => {
   });
 
   test('All my jobs: Add only for someone who may add lines on some job', async ({ page }) => {
+    const today = fromToday(0);
     await page.goto('/all/calendar');
+    // Today on "All my jobs" is this device's.
+    await page.getByTestId('cal-today').click();
+    await expect(page).toHaveURL(/day=\d{4}-\d{2}-\d{2}/);
     await expect(page.locator('[data-testid^="cal-add-"]')).toBeVisible();
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'bidder');
     });
-    await page.goto('/all/calendar');
-    await expect(page.getByTestId('cal-day-title')).toBeVisible();
+    await page.goto(`/all/calendar?day=${today}`);
+    await expect(page.getByTestId(`cal-day-${today}`)).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('[data-testid^="cal-add-"]')).toHaveCount(0);
   });
 
   test('removed blocked time leaves at once; Undo brings it back', async ({ page }) => {
-    await page.goto('/p/job-a/calendar');
+    await page.goto(`/p/job-a/calendar?day=${fromToday(0)}`);
     const block = page.getByTestId('cal-day-detail').getByTestId('cal-block');
     await expect(block).toHaveCount(1);
     await block.getByRole('button', { name: 'Remove blocked time' }).click();
     await expect(page.getByTestId('cal-day-detail').getByTestId('cal-block')).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByTestId('cal-day-detail').getByTestId('cal-block')).toHaveCount(1);
+  });
+
+  test('the month fits on one screen; nothing is open until a day is tapped', async ({ page }) => {
+    await page.goto('/p/job-a/calendar');
+    await expect(page.getByTestId('cal-month')).toBeVisible();
+    await expect(page.getByTestId('cal-mark').first()).toBeVisible();
+    await expect(page.getByTestId('cal-open')).toHaveCount(0);
+    expect(await scrolls(page)).toBe(false);
+    // Every day of the month is on screen, the last one too.
+    await expect(page.getByTestId('cal-month').locator('[data-testid^="cal-day-"]').last()).toBeInViewport();
+  });
+
+  test('a tapped day opens right under its week; the same tap closes it; Back closes it too', async ({ page }) => {
+    const wed = thisWeek(2);
+    await page.goto(`/p/job-a/calendar?at=${wed}`);
+    const day = page.getByTestId(`cal-day-${wed}`);
+    await day.click();
+    await expect(page).toHaveURL(new RegExp(`day=${wed}`));
+    await expect(day).toHaveAttribute('aria-pressed', 'true');
+    const open = page.getByTestId('cal-open');
+    await expect(open.getByTestId('cal-others')).toContainText('Sample OAC meeting');
+    expect(await openUnderWeekOf(page, 'cal', wed)).toBe(true);
+
+    // The same day again closes it; the month stays.
+    await day.click();
+    await expect(open).toHaveCount(0);
+    await expect(day).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId(`cal-day-${wed}`)).toBeVisible();
+
+    // Open it again, open the meeting (beside it, or full screen on a phone); Back, Back: the day closes.
+    await day.click();
+    await open.getByRole('button', { name: /Sample OAC meeting/ }).click();
+    await expect(page).toHaveURL(/\/calendar\/[^?]+\?/);
+    await page.goBack();
+    await expect(page.getByTestId('cal-open')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId('cal-open')).toHaveCount(0);
+    await expect(page.getByTestId(`cal-day-${wed}`)).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+// The Inspections tool's month is the same calendar (ui/MonthCalendar): its bookings under the tapped day.
+test.describe('inspections month (Jesse Oct 10)', () => {
+  test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'pm');
+    });
+  });
+
+  test('fits on one screen; a tapped day opens its requests under its week; a request opens; Back closes', async ({ page }) => {
+    const wed = thisWeek(2);
+    await page.goto(`/p/job-a/inspections?view=month&at=${wed}`);
+    await expect(page.getByTestId('ir-view-month')).toHaveAttribute('aria-selected', 'true');
+    const day = page.getByTestId(`ir-day-${wed}`);
+    await expect(day.getByTestId('ir-mark').first()).toBeVisible();
+    await expect(page.getByTestId('ir-open')).toHaveCount(0);
+    expect(await scrolls(page)).toBe(false);
+
+    await day.click();
+    await expect(page).toHaveURL(new RegExp(`day=${wed}`));
+    const openRow = page.getByTestId('ir-open');
+    await expect(openRow.getByTestId('ir-entry').first()).toBeVisible();
+    expect(await openUnderWeekOf(page, 'ir', wed)).toBe(true);
+
+    // A request opens as it always has (beside the month, or full screen on a phone); Back, Back: the day closes.
+    await openRow.locator('button[data-testid="ir-entry"]').first().click();
+    await expect(page.getByTestId('ir-pane')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId('ir-open')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId('ir-open')).toHaveCount(0);
+
+    // The same tap opens and closes it.
+    await day.click();
+    await expect(openRow).toBeVisible();
+    await day.click();
+    await expect(openRow).toHaveCount(0);
+    await expect(day).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('a link from before the month (?view=week) opens the month', async ({ page }) => {
+    await page.goto('/p/job-a/inspections?view=week');
+    await expect(page.getByTestId('ir-month')).toBeVisible();
   });
 });

@@ -150,11 +150,15 @@ describe('tracker', () => {
 
 describe('views and the log', () => {
   it('inspectors start on the day; the GC review list only with the GC step', () => {
-    expect(viewsFor({ decide: true, review: false })).toEqual(['day', 'week', 'log']);
-    expect(viewsFor({ decide: false, review: true })).toEqual(['week', 'log', 'review']);
-    expect(viewsFor({ decide: true, review: true })).toEqual(['day', 'week', 'log', 'review']);
-    expect(parseView('day', ['week', 'log'])).toBe('week');
-    expect(parseView('log', ['week', 'log'])).toBe('log');
+    expect(viewsFor({ decide: true, review: false })).toEqual(['day', 'month', 'log']);
+    expect(viewsFor({ decide: false, review: true })).toEqual(['month', 'log', 'review']);
+    expect(viewsFor({ decide: true, review: true })).toEqual(['day', 'month', 'log', 'review']);
+    expect(parseView('day', ['month', 'log'])).toBe('month');
+    expect(parseView('log', ['month', 'log'])).toBe('log');
+  });
+  it('a link from before the month (?view=week) opens the month', () => {
+    expect(parseView('week', ['day', 'month', 'log'])).toBe('month');
+    expect(parseView(undefined, ['day', 'month', 'log'])).toBe('day');
   });
   it('titles and counts', () => {
     const r = { kind: 'special', company: 'Sample Co', items: '\nSlab pour\nmore', status: 'complete', result: 'approved', ir_special_kinds: { name: 'Concrete' } };

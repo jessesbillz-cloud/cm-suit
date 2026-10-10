@@ -1,5 +1,5 @@
 // The week: seven columns, Monday first, every entry in full as a banner with its time (and job on "All my jobs").
-// A request opens in the right column; a line opens where it lives; a column's date shows that day below.
+// A request opens in the right column; a line opens where it lives; a column's date opens that day below (again: closes).
 import { formatDay } from '../../lib/dates';
 import { clockLabel } from '../inspections/time';
 import { Banner } from './Banner';
@@ -10,7 +10,8 @@ interface WeekGridProps {
   days: readonly string[];
   byDay: Map<string, Entry[]>;
   today: string;
-  selected: string;
+  /** The open day, or null. */
+  selected: string | null;
   showJob: boolean;
   onSelect: (day: string) => void;
   onOpen: (entry: Entry) => void;

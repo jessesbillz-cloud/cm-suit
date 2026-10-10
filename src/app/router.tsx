@@ -40,8 +40,11 @@ interface ToolSearch {
   view?: string;
   /** Bids leveling: the package whose grid is showing. */
   pkg?: string;
-  /** Calendar, inspections, deliveries: the day being looked at (yyyy-MM-dd, the job's calendar day); absent = today. */
+  /** Calendar, inspections, deliveries: the day being looked at (yyyy-MM-dd, the job's calendar day); absent = today.
+   *  In a month calendar (ui/MonthCalendar): the open day; absent = none open. */
   day?: string;
+  /** Month calendars (lib/monthGrid): a day of the month or week shown; absent = the open day's, else today's. */
+  at?: string;
   /** Logs: the sort ("column.asc|desc") and the search box, shared by the list and the reading pane's arrow keys. */
   sort?: string;
   q?: string;
@@ -81,6 +84,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const day = str(s['day']);
+  const at = str(s['at']);
   const win = s['window'] === '1' || s['window'] === 1;
   const back = s['back'] === 'board';
   const sort = str(s['sort']);
@@ -100,6 +104,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(win ? { window: '1' as const } : {}),
     ...(back ? { back: 'board' as const } : {}),
     ...(day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? { day } : {}),
+    ...(at && /^\d{4}-\d{2}-\d{2}$/.test(at) ? { at } : {}),
     ...(sort ? { sort } : {}),
     ...(q ? { q } : {}),
     ...(areas ? { areas } : {}),

@@ -1,4 +1,4 @@
-// Inspections (SPEC §13.2, §18.4 P1). Requesters see the job's week and their log; inspectors start on their day, and
+// Inspections (SPEC §13.2, §18.4 P1). Requesters see the job's month (ui/MonthCalendar) and their log; inspectors start on their day, and
 // so does the deputy, on the OFS requests sent to OFS (the database gives him nothing else); the GC review list shows
 // when the job has the GC step on or takes OFS requests. What shows is decided by has_capability, never role names.
 import { CalendarOff, Plus, QrCode } from 'lucide-react';
@@ -12,11 +12,11 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { DayView } from './DayView';
 import { LogView } from './LogView';
+import { MonthView } from './MonthView';
 import { BLOCK_ITEM, NEW_ITEM, SHARE_ITEM, VIEW_LABELS, dayMeta, viewsFor, type IrView } from './model';
 import { ReviewView } from './ReviewView';
 import { useInspectionsNav } from './useInspectionsNav';
 import { seesInspections, useIrAccess, type IrCan, type IrJob } from './useIrAccess';
-import { WeekView } from './WeekView';
 
 const META = TOOL_META.inspections;
 
@@ -101,18 +101,8 @@ function InspectionsMain({ projectId, itemId, isPhone, can, job }: MainProps) {
         }
       />
       {nav.view === 'day' ? <DayView {...common} can={can} day={nav.day} today={today} onDay={nav.setDay} onRequest={request} /> : null}
-      {nav.view === 'week' ? (
-        <WeekView
-          {...common}
-          day={nav.day}
-          today={today}
-          isPhone={isPhone}
-          ofsDecide={can.ofsDecide}
-          onDay={nav.setDay}
-          onPickDay={(d) => {
-            nav.showDay(d, inspects ? 'day' : 'week');
-          }}
-        />
+      {nav.view === 'month' ? (
+        <MonthView {...common} at={nav.at} openDay={nav.openDay} today={today} ofsDecide={can.ofsDecide} onMove={nav.moveTo} />
       ) : null}
       {nav.view === 'log' ? <LogView {...common} tz={job.tz} day={nav.day} isPhone={isPhone} ofsDecide={can.ofsDecide} /> : null}
       {nav.view === 'review' ? <ReviewView {...common} /> : null}

@@ -211,6 +211,7 @@ test.describe('deliveries (SPEC §13.3)', () => {
 
   test('a new post is on the Calendar at once (no stale cache)', async ({ page }) => {
     await page.goto('/p/job-a/calendar');
+    await page.getByTestId('cal-today').click();
     const detail = page.getByTestId('cal-day-detail');
     await expect(detail.getByTestId('cal-kind-deliveries')).toContainText('Sample Concrete Co');
     await expect(detail).not.toContainText('Sample cache check');
@@ -226,6 +227,7 @@ test.describe('deliveries (SPEC §13.3)', () => {
     await expect(page.getByTestId('right-column').getByTestId('delivery-receipt')).toBeVisible();
 
     await page.getByTestId('rail-calendar').click();
+    await page.getByTestId('cal-today').click();
     await expect(page.getByTestId('cal-day-detail').getByTestId('cal-kind-deliveries')).toContainText('Sample Steel Co: Sample cache check');
   });
 

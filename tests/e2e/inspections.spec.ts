@@ -40,7 +40,7 @@ test.describe('inspections (SPEC §13.2)', () => {
   test('request -> receipt; the inspector confirms and records a result', async ({ page }) => {
     // The sample job is under construction, so Inspections is already on its rail.
     // Requester: the form is prefilled; that day is open; the receipt carries the number the database gave.
-    await page.goto('/p/job-a/inspections?view=week');
+    await page.goto('/p/job-a/inspections?view=month');
     await expect(page.getByTestId('rail-inspections')).toBeVisible();
     await page.getByTestId('ir-new').click();
     await expect(page.getByTestId('ir-company')).toHaveValue('Sample Concrete Co');
@@ -56,7 +56,9 @@ test.describe('inspections (SPEC §13.2)', () => {
     await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
     const n = ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
     await expect(page.getByTestId('ir-receipt')).toContainText('Waiting on the inspector.');
-    await expect(page.getByTestId('ir-entry').filter({ hasText: new RegExp(`IR ${n} ·`) })).toBeVisible();
+    // On the month: today opens under its week with the new request.
+    await page.getByTestId('ir-today').click();
+    await expect(page.getByTestId('ir-open').getByTestId('ir-entry').filter({ hasText: new RegExp(`IR ${n} ·`) })).toBeVisible();
 
     // Inspector: the day's queue; Confirm is one tap.
     await page.goto('/p/job-a/inspections?view=day');
