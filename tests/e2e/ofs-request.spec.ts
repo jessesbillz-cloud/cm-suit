@@ -85,7 +85,9 @@ test.describe('OFS request with revs', () => {
     await expect(page.getByTestId('rev-picker')).toBeVisible();
     await expect(page.getByTestId('ir-kind-ofs')).toHaveAttribute('aria-checked', 'true');
     for (const w of WALLS) await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('rev-wall-mock-rev-area-1')).toHaveAttribute('aria-pressed', 'false');
+    // Only the walls the link came with, until Add walls.
+    await expect(page.getByTestId('rev-wall-mock-rev-area-1')).toHaveCount(0);
+    await expect(page.getByTestId('rev-walls-more')).toBeVisible();
 
     // The first three items in list order; a fourth (in any rev) can't be picked until one comes off.
     for (const i of ITEMS.slice(0, 3)) await expect(page.getByTestId(`rev-item-${i}`)).toHaveAttribute('aria-pressed', 'true');
