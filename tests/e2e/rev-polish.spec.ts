@@ -44,6 +44,9 @@ test.describe('revs polish', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
   test('done lines, walls and rooms fold to one quiet line; a tap opens them, Fold closes them', async ({ page }, testInfo) => {
+    // Eight sign-offs to set the wall up, then three pages: past 30 s on the phone's WebKit (it timed out mid-loop on
+    // main, every element found and clickable). More time, nothing loosened.
+    test.slow();
     const phone = testInfo.project.name === 'phone';
     const size = page.viewportSize();
     // Corridor 210's north wall (room 210's only wall) signed off before the app, rev by rev, on its page at desktop
