@@ -1,4 +1,6 @@
-// The ONE toast (CLAUDE.md rule 11). Undo instead of "are you sure?" (rule 16): pass an action.
+// The ONE toast (CLAUDE.md rule 11). Undo instead of "are you sure?" (rule 16): pass an action. At most MAX_SHOWN at
+// once, the newest: a run of quick moves (a manager signing off rev after rev on a phone) must not stack toasts over
+// the very buttons they tap next. A toast pushed out goes as if its time ran out (its onCommit runs).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Icon } from './Icon';
@@ -25,6 +27,9 @@ interface ToastValue {
 }
 
 const ToastContext = createContext<ToastValue | null>(null);
+
+/** The most toasts on screen at once. */
+const MAX_SHOWN = 3;
 
 export function useToast(): ToastValue {
   const v = useContext(ToastContext);
@@ -102,6 +107,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((list) => list.filter((x) => x.id !== id));
     if (commit && onCommit) onCommit();
   }, []);
+
+  // More than MAX_SHOWN: the oldest go, committed as if their time ran out.
+  useEffect(() => {
+    for (const t of toasts.slice(0, Math.max(0, toasts.length - MAX_SHOWN))) dismiss(t.id, true);
+  }, [toasts, dismiss]);
 
   const close = useCallback((id: number) => {
     dismiss(id, false);

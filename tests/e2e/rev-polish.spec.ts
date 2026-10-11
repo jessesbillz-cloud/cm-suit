@@ -45,10 +45,8 @@ test.describe('revs polish', () => {
 
   test('done lines, walls and rooms fold to one quiet line; a tap opens them, Fold closes them', async ({ page }, testInfo) => {
     const phone = testInfo.project.name === 'phone';
-    const size = page.viewportSize();
-    // Corridor 210's north wall (room 210's only wall) signed off before the app, rev by rev, on its page at desktop
-    // width; the form keeps the number last used (OFS 44).
-    await page.setViewportSize({ width: 1280, height: 900 });
+    // Corridor 210's north wall (room 210's only wall) signed off before the app, rev by rev, on its own page as each
+    // project shows it (a phone at its own size, as Jesse backfills on the job); the form keeps the number last used.
     await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-5');
     const wall = page.getByTestId('rev-wall-page');
     for (let n = 0; n <= 7; n += 1) {
@@ -59,7 +57,6 @@ test.describe('revs polish', () => {
       await wall.getByTestId('rev-form-save').click();
       await expect(rev.getByTestId('rev-before-rev')).toHaveCount(0);
     }
-    if (size) await page.setViewportSize(size);
 
     // The Rooms grid: room 210 is done (a check and "Done", no bar); room 205 is not.
     await openAs(page, 'pm', '/p/job-s/revs?level=Level%2002');
