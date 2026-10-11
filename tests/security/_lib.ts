@@ -368,11 +368,17 @@ export const OUTSIDE_SCOPE_RPCS: [string, Record<string, unknown>][] = [
   ['my_calendar_kinds', {}],
 ];
 
-/** Files' Delete, Undo and Rename and the viewer's keep rule (0074). */
+/** Files' Delete, Undo and Rename and the viewer's keep rule (0074), Move and its list answers (0096). */
 export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   ['file_remove', { p_file_id: ZERO_UUID, p_version: 1 }],
   ['file_restore', { p_file_id: ZERO_UUID }],
   ['file_rename', { p_file_id: ZERO_UUID, p_version: 1, p_name: 'probe.pdf' }],
   ['file_can_change', { p_file_id: ZERO_UUID }],
   ['file_kept', { p_file_id: ZERO_UUID }],
+  // Move, and what a list may offer (0096).
+  ['file_move', { p_file_id: ZERO_UUID, p_version: 1, p_folder_id: ZERO_UUID }],
+  ['files_changeable', { p_file_ids: [ZERO_UUID] }],
+  ['my_writable_folders', { p_project_id: ZERO_UUID }],
+  ['folder_app_only', { p_folder_id: ZERO_UUID }],
+  ['folder_by_app', { p_kind: 'general', p_parent_id: null, p_name: 'probe' }],
 ];

@@ -59,3 +59,13 @@ export function messageOf(e: unknown): string {
   if (e instanceof Error) return e.message;
   return 'Something went wrong.';
 }
+
+/**
+ * A refusal the database words for people ("A signed record stays on file.", "Only the app adds to that folder."):
+ * that sentence; any other error: messageOf. Codes like "forbidden" or "not_found" are not sentences and stay short.
+ */
+export function refusalOf(e: unknown): string {
+  const said = e instanceof DataError ? e.serverMessage : null;
+  if (said !== null && /^[A-Z][^\n]{3,200}\.$/.test(said)) return said;
+  return messageOf(e);
+}

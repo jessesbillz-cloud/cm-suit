@@ -7972,6 +7972,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      file_move: {
+        Args: { p_file_id: string; p_folder_id: string; p_version: number }
+        Returns: number
+      }
       file_on_visible_request: {
         Args: { p_file_id: string; p_project_id: string }
         Returns: boolean
@@ -7993,6 +7997,13 @@ export type Database = {
           p_project_id: string
         }
         Returns: string
+      }
+      files_changeable: {
+        Args: { p_file_ids: string[] }
+        Returns: {
+          file_id: string
+          version: number
+        }[]
       }
       finish_daily_submit: {
         Args: {
@@ -8080,6 +8091,11 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      folder_app_only: { Args: { p_folder_id: string }; Returns: boolean }
+      folder_by_app: {
+        Args: { p_kind: string; p_name: string; p_parent_id: string }
+        Returns: boolean
       }
       folder_can_read: { Args: { p_folder_id: string }; Returns: boolean }
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
@@ -11106,6 +11122,12 @@ export type Database = {
         Returns: {
           entity_type: string
           n: number
+        }[]
+      }
+      my_writable_folders: {
+        Args: { p_project_id: string }
+        Returns: {
+          folder_id: string
         }[]
       }
       next_author_number: {

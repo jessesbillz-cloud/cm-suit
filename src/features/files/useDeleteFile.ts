@@ -1,8 +1,10 @@
-// Delete in Files: the file goes at once (file_remove), the pane closes, and the toast offers Undo (file_restore) instead
-// of asking "are you sure?" (CLAUDE.md rule 16). Signed records never get here (the database refuses them too).
-import { messageOf } from '../../data/errors';
-import { useRemoveFile, useRestoreFile } from '../../data/files';
+// Delete in Files, from a file's pane, its row, or the checked rows: the files go at once (file_remove) and one toast
+// offers Undo for all of them (file_restore) instead of asking "are you sure?" (CLAUDE.md rule 16). A file the database
+// keeps (a signed record) stays, and a toast says why in the database's words.
+import { refusalOf } from '../../data/errors';
+import { useRemoveFiles, useRestoreFiles } from '../../data/files';
 import { useToast } from '../../ui/Toast';
+import { done, howMany, refusedLine } from './outcomes';
 
 interface Target {
   id: string;
@@ -11,36 +13,58 @@ interface Target {
   original_name: string;
 }
 
-export function useDeleteFile(onDeleted: () => void) {
-  const remove = useRemoveFile();
-  const restore = useRestoreFile();
-  const toast = useToast();
+export interface PickedFile {
+  file: Target;
+  version: number;
+}
 
-  function undo(file: Target) {
-    restore.mutateAsync(file).catch((e: unknown) => {
-      toast.show({ tone: 'error', message: `Not brought back: ${messageOf(e)}` });
-    });
+export function useDeleteFile(onDeleted: (ids: string[]) => void) {
+  const remove = useRemoveFiles();
+  const restore = useRestoreFiles();
+  const toast = useToast();
+  const showError = (message: string | null) => {
+    if (message !== null) toast.show({ tone: 'error', message });
+  };
+
+  function undo(files: Target[]) {
+    restore.mutateAsync(files).then(
+      (results) => {
+        showError(refusedLine(results, (f) => files.find((x) => x.id === f.id)?.original_name ?? 'A file', 'brought back'));
+      },
+      (e: unknown) => {
+        showError(`Not brought back: ${refusalOf(e)}`);
+      },
+    );
   }
 
-  function run(file: Target, version: number) {
-    remove.mutateAsync({ file, version }).then(
-      () => {
-        onDeleted();
+  function runMany(picked: readonly PickedFile[]) {
+    if (picked.length === 0) return;
+    const nameOf = (v: { file: { id: string } }) => picked.find((p) => p.file.id === v.file.id)?.file.original_name ?? 'A file';
+    remove.mutateAsync(picked).then(
+      (results) => {
+        showError(refusedLine(results, nameOf, 'deleted'));
+        const gone = done(results).flatMap(({ item }) => picked.filter((p) => p.file.id === item.file.id).map((p) => p.file));
+        if (gone.length === 0) return;
+        onDeleted(gone.map((f) => f.id));
         toast.show({
-          message: `${file.original_name} deleted.`,
+          message: `${howMany(gone.map((f) => f.original_name))} deleted.`,
           action: {
             label: 'Undo',
             onClick: () => {
-              undo(file);
+              undo(gone);
             },
           },
         });
       },
       (e: unknown) => {
-        toast.show({ tone: 'error', message: `Not deleted: ${messageOf(e)}` });
+        showError(`Not deleted: ${refusalOf(e)}`);
       },
     );
   }
 
-  return { run, pending: remove.isPending };
+  function run(file: Target, version: number) {
+    runMany([{ file, version }]);
+  }
+
+  return { run, runMany, pending: remove.isPending };
 }

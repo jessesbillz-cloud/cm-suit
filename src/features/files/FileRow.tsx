@@ -1,8 +1,11 @@
-// One file on one tight row: a tap on its name opens the file's pane; two buttons at its end, each one click (Jesse,
-// Oct 5: "a download button right from it, maybe an open full screen right from that"): Full screen (photos and PDFs,
-// data-testid="file-row-view") and Download (data-testid="file-row-download"). The name is never cut off: it wraps, even a long name with no spaces. Desktop: size and
-// date sit on the name's line, right-aligned in columns. Phone: scan state, size and date make one short line under it.
-import { Download, Maximize2 } from 'lucide-react';
+// One file on one tight row: a tap on its name opens the file's pane; buttons at its end, each one click (Jesse, Oct 5:
+// "a download button right from it, maybe an open full screen right from that"; Oct 11: "definitely need a way to delete
+// files out of here"): Full screen (photos and PDFs, data-testid="file-row-view"), Download ("file-row-download") and, on
+// a file I may change, Delete ("file-row-delete", Undo in the toast). A file I may change also has a checkbox at its
+// start, for Move to and Delete on many (ListHead). The name is never cut off: it wraps, even a long name with no spaces.
+// Desktop: size and date sit on the name's line, right-aligned in columns. Phone: scan state, size and date make one
+// short line under it, and the file's icon gives the checkbox its room.
+import { Download, Maximize2, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
@@ -11,7 +14,7 @@ import { Button } from '../../ui/Button';
 import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
-import { TH } from '../../ui/Table';
+import { CHECK, CheckBox, type RowCheck } from './CheckBox';
 import { canOpenNow, scanChip } from './scanStatus';
 
 interface FileRowProps {
@@ -24,31 +27,29 @@ interface FileRowProps {
   /** Full screen (photos and PDFs that may be opened now); left out, the row has no Full screen button. */
   onView?: (() => void) | undefined;
   onDownload: (file: File) => void;
+  /**
+   * The row's checkbox. Left out: the list has none. Null: a file I can't change in a list that has them (a blank of the
+   * same width, so the names line up).
+   */
+  check?: RowCheck | null | undefined;
+  /** Delete (a file I may change); left out, no Delete button. */
+  onDelete?: (() => void) | undefined;
 }
 
-const SIZE = 'w-16 shrink-0 text-right';
-const DATE = 'w-[5.75rem] shrink-0 text-right';
-/** The two buttons' column (Full screen, Download): 32px each on a desktop, 40px (a thumb's tap) on a phone. */
-const ACTION = 'w-[5.25rem] shrink-0 sm:w-[4.25rem]';
+export const SIZE = 'w-16 shrink-0 text-right';
+export const DATE = 'w-[5.75rem] shrink-0 text-right';
+/** The buttons' column (Full screen, Download, Delete): 32px each on a desktop, 40px (a thumb's tap) on a phone. */
+export const ACTION = 'w-[7.75rem] shrink-0 sm:w-[6.5rem]';
+const ROW_BUTTON = 'h-10 w-10 sm:h-8 sm:w-8';
 
-/** The column names over the rows (desktop only). */
-export function FileRowsHead() {
-  return (
-    <div aria-hidden className={`hidden h-9 items-center gap-3 border-b border-line bg-card-head px-4 sm:flex ${TH}`}>
-      <span className="min-w-0 flex-1 pl-11">Name</span>
-      <span className={SIZE}>Size</span>
-      <span className={DATE}>Added</span>
-      <span className={ACTION} />
-    </div>
-  );
-}
-
-export function FileRow({ file, timeZone, selected, downloading, onOpen, onView, onDownload }: FileRowProps) {
+export function FileRow({ file, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete }: FileRowProps) {
   const user = useUser();
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
   // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
   const blocked = !canOpenNow(file, user.id);
-  const iconBox = `flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${selected ? 'bg-card text-accent' : 'bg-page text-ink-2'}`;
+  const iconBox = `${check === undefined ? 'flex' : 'hidden sm:flex'} h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+    selected ? 'bg-card text-accent' : 'bg-page text-ink-2'
+  }`;
   const added = timeZone === null ? '' : formatInZone(file.created_at, timeZone, 'MMM d, yyyy');
   const size = formatBytes(file.size);
   return (
@@ -59,6 +60,11 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
         selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
       }`}
     >
+      {check === undefined ? null : check === null ? (
+        <span aria-hidden className={CHECK} />
+      ) : (
+        <CheckBox label={`Select ${file.original_name}`} testId="file-row-check" check={check} />
+      )}
       <button
         type="button"
         data-testid="file-row-open"
@@ -96,7 +102,7 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
             data-testid="file-row-view"
             aria-label={`Full screen ${file.original_name}`}
             title="Full screen"
-            className="h-10 w-10 sm:h-8 sm:w-8"
+            className={ROW_BUTTON}
             onClick={onView}
           />
         ) : null}
@@ -107,13 +113,25 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
           data-testid="file-row-download"
           aria-label={`Download ${file.original_name}`}
           title="Download"
-          className="h-10 w-10 sm:h-8 sm:w-8"
+          className={ROW_BUTTON}
           loading={downloading}
           disabled={blocked}
           onClick={() => {
             onDownload(file);
           }}
         />
+        {onDelete ? (
+          <Button
+            size="sm"
+            variant="quiet"
+            icon={Trash2}
+            data-testid="file-row-delete"
+            aria-label={`Delete ${file.original_name}`}
+            title="Delete"
+            className={ROW_BUTTON}
+            onClick={onDelete}
+          />
+        ) : null}
       </span>
     </li>
   );

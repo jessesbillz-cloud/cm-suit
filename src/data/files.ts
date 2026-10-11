@@ -1,12 +1,14 @@
-// Files: a file's facts for its pane (its version, whether I may delete or rename it, its earlier versions), and the
-// file and folder writes in Files: Delete (file_remove) with Undo (file_restore), Rename (file_rename), and a folder's
-// Rename. The database decides who may (migration 0074: the uploader or files.manage, never a signed record) and checks
-// the version; every write refreshes the lists it changes.
+// Files: a file's facts for its pane (its version, whether I may delete or rename it, its earlier versions), which rows
+// of a list I may change and the folders I may add to (0096), and the file and folder writes in Files: Delete
+// (file_remove) with Undo (file_restore), Move (file_move, Undo is the move back), Rename (file_rename), and a folder's
+// Rename. The database decides who may (0074: the uploader or files.manage, never a signed record, 0096: and adds to the
+// folder it goes to) and checks the version; every write refreshes the lists it changes.
 import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from './client';
 import { conflictError, throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
+import { runPool } from '../lib/pool';
 import { isMock } from './mock';
 import * as mock from './mock/files';
 import { FOLDER_COLS } from './queries';
@@ -22,6 +24,8 @@ const earlierSchema = z.object({
 });
 export type EarlierVersion = z.infer<typeof earlierSchema>;
 const rowSchema = z.object({ version: z.number(), version_group_id: z.string() });
+const changeableSchema = z.array(z.object({ file_id: z.string(), version: z.number() }));
+const writableSchema = z.array(z.object({ folder_id: z.string() }));
 
 export interface FileFacts {
   /** The row's version: what Delete and Rename check. */
@@ -55,6 +59,37 @@ export function useFileFacts(fileId: string | null) {
   return useQuery({ queryKey: qk.fileFacts(fileId ?? ''), queryFn: fileId ? () => fetchFacts(fileId) : skipToken });
 }
 
+async function fetchChangeable(ids: readonly string[]): Promise<Map<string, number>> {
+  if (isMock()) return mock.changeable(ids);
+  if (ids.length === 0) return new Map();
+  const rows = changeableSchema.parse(throwIfError(await supabase.rpc('files_changeable', { p_file_ids: [...ids] })));
+  return new Map(rows.map((r) => [r.file_id, r.version]));
+}
+
+/**
+ * The rows of a list I may change (Delete, Move, a checkbox), each with its version: one call for the whole list.
+ * `listKey` is the list's own key (a folder id), so the list's refresh reaches it.
+ */
+export function useChangeable(listKey: string, ids: readonly string[]) {
+  return useQuery({
+    queryKey: qk.fileChangeable(listKey, ids),
+    queryFn: () => fetchChangeable(ids),
+    // A file just added asks again: the rows keep their checkboxes meanwhile.
+    placeholderData: (previous) => previous,
+  });
+}
+
+async function fetchWritable(projectId: string): Promise<Set<string>> {
+  if (isMock()) return mock.writableFolders(projectId);
+  const rows = writableSchema.parse(throwIfError(await supabase.rpc('my_writable_folders', { p_project_id: projectId })));
+  return new Set(rows.map((r) => r.folder_id));
+}
+
+/** The folders of a job I may add to (folder_can_write), for Move to. */
+export function useWritableFolders(projectId: string) {
+  return useQuery({ queryKey: qk.writableFolders(projectId), queryFn: () => fetchWritable(projectId), staleTime: 60_000 });
+}
+
 interface FileRef {
   id: string;
   folder_id: string;
@@ -63,11 +98,37 @@ interface FileRef {
 
 /** Everything that shows this file: its pane, its folder's list, the folder counts. */
 async function refresh(qc: ReturnType<typeof useQueryClient>, f: FileRef): Promise<void> {
+  await refreshMany(qc, [f]);
+}
+
+/** The same for many files at once: each pane, each folder's list once, the folder counts once (plus `alsoFolders`). */
+async function refreshMany(qc: ReturnType<typeof useQueryClient>, files: readonly FileRef[], alsoFolders: readonly string[] = []) {
+  const folders = new Set([...files.map((f) => f.folder_id), ...alsoFolders]);
+  const projects = new Set(files.map((f) => f.project_id));
   await Promise.all([
-    qc.invalidateQueries({ queryKey: qk.file(f.id) }),
-    qc.invalidateQueries({ queryKey: qk.files(f.folder_id) }),
-    qc.invalidateQueries({ queryKey: qk.folders(f.project_id) }),
+    ...files.map((f) => qc.invalidateQueries({ queryKey: qk.file(f.id) })),
+    ...[...folders].map((id) => qc.invalidateQueries({ queryKey: qk.files(id) })),
+    ...[...projects].map((id) => qc.invalidateQueries({ queryKey: qk.folders(id) })),
   ]);
+}
+
+/** One write of a batch: what it answered, or why it did not happen. */
+export type Outcome<T, R> = { ok: true; item: T; value: R } | { ok: false; item: T; error: unknown };
+
+/** Runs one write per item, a few at a time; one refused write never stops the others (each answers for itself). */
+async function eachOf<T, R>(items: readonly T[], write: (item: T) => Promise<R>): Promise<Outcome<T, R>[]> {
+  const out: Outcome<T, R>[] = [];
+  await runPool(
+    items,
+    6,
+    async (item) => {
+      out.push({ ok: true, item, value: await write(item) });
+    },
+    (item, error) => {
+      out.push({ ok: false, item, error });
+    },
+  );
+  return out;
 }
 
 async function removeFile(id: string, version: number): Promise<void> {
@@ -86,21 +147,52 @@ async function restoreFile(id: string): Promise<void> {
   throwIfErrorMaybe(await supabase.rpc('file_restore', { p_file_id: id }));
 }
 
-/** Delete (soft): the file leaves its folder at once; `useRestoreFile` is the toast's Undo. */
-export function useRemoveFile() {
+interface FileVersion {
+  file: FileRef;
+  version: number;
+}
+
+/** Delete (soft), one file or many: each leaves its folder at once; `useRestoreFiles` is the toast's Undo. */
+export function useRemoveFiles() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { file: FileRef; version: number }) => removeFile(v.file.id, v.version),
-    onSuccess: (_d, v) => refresh(qc, v.file),
+    mutationFn: (items: readonly FileVersion[]) => eachOf(items, (v) => removeFile(v.file.id, v.version)),
+    onSettled: (_d, _e, items) => refreshMany(qc, items.map((v) => v.file)),
   });
 }
 
-/** Undo of a Delete, by the person who deleted it (within the hour). */
-export function useRestoreFile() {
+/** Undo of a Delete, by the person who deleted them (within the hour). */
+export function useRestoreFiles() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file: FileRef) => restoreFile(file.id),
-    onSuccess: (_d, file) => refresh(qc, file),
+    mutationFn: (files: readonly FileRef[]) => eachOf(files, (f) => restoreFile(f.id)),
+    onSettled: (_d, _e, files) => refreshMany(qc, files),
+  });
+}
+
+async function moveFile(id: string, version: number, folderId: string): Promise<number> {
+  if (isMock()) return mock.move(id, version, folderId);
+  return throwIfError(await supabase.rpc('file_move', { p_file_id: id, p_version: version, p_folder_id: folderId }));
+}
+
+interface FileMove extends FileVersion {
+  folderId: string;
+}
+
+/**
+ * Moves files to other folders and answers each one (its new version, or why it stayed). Undo is the same call with
+ * each file's new version, back to its old folder.
+ */
+export function useMoveFiles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (moves: readonly FileMove[]) => eachOf(moves, (m) => moveFile(m.file.id, m.version, m.folderId)),
+    onSettled: (_d, _e, moves) =>
+      refreshMany(
+        qc,
+        moves.map((m) => m.file),
+        moves.map((m) => m.folderId),
+      ),
   });
 }
 
