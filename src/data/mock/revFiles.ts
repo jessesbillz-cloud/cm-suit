@@ -3,7 +3,7 @@
 // / OFS history), a file just added linked at once (the newest of its name or number), and a room's picture from its
 // page, and the job's OFS IRs a sign-off form offers by number. The rooms' state is mock/revRooms', the files are
 // mock/api's (and the synthetic OFS IRs "in Files", OFS_FILES). Nothing real.
-import type { OfsFileRow } from '../revs.ofsFiles';
+import type { OfsFileRow } from '../revs.types';
 import type { FileLink, Linked, RevFolder, RevRoom } from '../revs.rooms';
 import type { FileRow } from '../types';
 import * as mockApi from './api';

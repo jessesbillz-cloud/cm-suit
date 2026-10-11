@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { OfsFile } from '../../data/revs.ofsFiles';
+import type { OfsFile } from '../../data/revs.types';
 import { draftOf, fileFor, ofsOf, shortList, valuesOf } from './signoffForm';
 
 const f = (ofs: number): OfsFile => ({ ofs, fileId: `f${String(ofs)}`, name: `OFS_IR_${String(ofs).padStart(4, '0')}.pdf` });

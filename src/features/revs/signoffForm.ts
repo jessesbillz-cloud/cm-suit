@@ -4,7 +4,7 @@
 // (data/revs.ofsFiles) make a short list under the number: the ones starting with what is typed, else the newest; a
 // tap fills the number, and the IR of the number given is linked with it (0094's rule). Pure; tested in
 // signoffForm.test.ts.
-import type { OfsFile } from '../../data/revs.ofsFiles';
+import type { OfsFile } from '../../data/revs.types';
 import type { RevSignoff, SignoffValues } from '../../data/revs.walls';
 
 /** What the form holds, as typed. */
