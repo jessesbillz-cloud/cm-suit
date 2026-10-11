@@ -62,6 +62,8 @@ describe('a room', () => {
     expect(walls[0]?.color).toBe('var(--status-approved-solid)');
     expect(walls[1]?.color).toBe('var(--status-not_approved-solid)');
     expect(roomCount(walls)).toEqual({ needed: 4, passed: 2, requested: 0, failed: 1 });
+    // Done: every item passed or N/A (the east wall); the south wall failed one.
+    expect(walls.map((w) => w.done)).toEqual([true, false]);
   });
   it('a shared wall is in both rooms; Add wall offers the rest of its level only', () => {
     expect(roomsOfWall(ROOMS, 'a3').map((r) => r.room.id)).toEqual(['ext', 'r205']);

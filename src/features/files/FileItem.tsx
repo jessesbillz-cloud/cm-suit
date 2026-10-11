@@ -1,7 +1,9 @@
-// A file opened in the right column (or its own window): the file itself (a photo, or a PDF's pages, with Full screen),
-// its scan state, Rename and Delete (with Undo) when this person may, its earlier versions, Download, Open in new
-// window. A signed record (a daily or IR PDF, an RFI PDF, a stamped sheet) never offers Rename or Delete. A sheet in
-// Plans or a spec book in Specs is not drawn in the pane (too small to read): Full screen opens it.
+// A file opened in the right column (or its own window): the file itself (a photo, or a PDF's pages), its scan state,
+// Rename and Delete (with Undo) when this person may, its earlier versions, Download, Open in new window. A signed
+// record (a daily or IR PDF, an RFI PDF, a stamped sheet) never offers Rename or Delete. A sheet in Plans or a spec
+// book in Specs is not drawn in a small pane (too small to read). In the right column the column's Full screen is the
+// one way to enlarge the file (Jesse, Oct 10): there a sheet is drawn once the column is full. On a phone or in its own
+// window the file has its own Full screen (a sheet's opens it, a spec book in the spec reader).
 import { useState } from 'react';
 import { Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
@@ -13,6 +15,7 @@ import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { FilePreview, useFileViewer } from '../../ui/FileViewer';
+import { useRightColumn } from '../../ui/RightColumn';
 import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { ReadingPane } from '../../ui/ReadingPane';
@@ -80,7 +83,9 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
   const item = fileViewerItem(f, preview, remove);
   const shows = openable && item.kind !== 'other';
   const folderKind = folders.data?.find((x) => x.id === f.folder_id)?.kind;
-  const big = item.kind === 'pdf' && (folderKind === 'plans' || folderKind === 'specs');
+  const column = useRightColumn();
+  // Too small to read in a pane: drawn only in the full column; elsewhere its own Full screen opens it.
+  const big = item.kind === 'pdf' && (folderKind === 'plans' || folderKind === 'specs') && column?.full !== true;
   const fullScreen = () => {
     if (folderKind === 'specs') openSpec({ fileId: f.id, page: 1 });
     else viewer.open([item]);
@@ -161,7 +166,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
             {notice}
           </p>
         ) : null}
-        {shows && big ? (
+        {shows && big && column === null ? (
           <Button variant="primary" icon={Maximize2} className="self-start" data-testid="file-full-screen" onClick={fullScreen}>
             Full screen
           </Button>
@@ -169,7 +174,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
         {shows && !big ? (
           <FilePreview
             item={item}
-            className="h-[min(60vh,32rem)]"
+            className={column?.full ? 'h-[calc(100dvh-14rem)] min-h-80' : 'h-[min(60vh,32rem)]'}
             onFullScreen={() => {
               viewer.open([item]);
             }}

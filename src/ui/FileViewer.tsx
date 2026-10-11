@@ -19,6 +19,7 @@
 //   <button onClick={() => { viewer.open(items, index); }}>...</button>     // a photo strip: arrows walk the list
 //   <Button onClick={() => { viewer.open([item]); }}>Full screen</Button>   // one PDF
 //   <FilePreview item={item} onFullScreen={() => { viewer.open([item]); }} />  // inline, in a pane
+//   In the right column a preview has no Full screen of its own: the column's one button enlarges it (Jesse, Oct 10).
 //   A PDF may open at a page (`startPage`) and carry its own bar over the pages (`pageBar`: the spec book's sections),
 //   which gets where the reader is (PageNav) and moves them.
 //
@@ -28,6 +29,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { Button } from './Button';
+import { useRightColumn } from './RightColumn';
 import { FileViewerOverlay } from './viewer/FileViewerOverlay';
 import { ViewerBody } from './viewer/ViewerBody';
 import { useViewerDownload } from './viewer/useViewerDownload';
@@ -120,15 +122,17 @@ export function FileViewerProvider({ children }: { children: ReactNode }) {
 
 interface FilePreviewProps {
   item: ViewerItem;
-  /** Opens the full-screen viewer (usually `() => viewer.open(list, i)`). */
+  /** Opens the full-screen viewer (usually `() => viewer.open(list, i)`). In the right column there is none: the
+   *  column's own Full screen is the one way to enlarge it. */
   onFullScreen: () => void;
   /** The box's size, e.g. 'h-80' (default) or 'aspect-[4/3]'. */
   className?: string | undefined;
 }
 
-/** The viewer's rendering in a box (a pane's preview), with Full screen. */
+/** The viewer's rendering in a box (a pane's preview), with Full screen unless it sits in the right column. */
 export function FilePreview({ item, onFullScreen, className = 'h-80' }: FilePreviewProps) {
   const download = useViewerDownload();
+  const inColumn = useRightColumn() !== null;
   return (
     <div data-testid="file-preview" className={`relative overflow-hidden rounded-lg border border-line bg-page ${className}`}>
       <ViewerBody
@@ -140,16 +144,18 @@ export function FilePreview({ item, onFullScreen, className = 'h-80' }: FilePrev
         }}
         downloading={download.pendingId === item.id}
       />
-      <Button
-        size="sm"
-        variant="secondary"
-        icon={Maximize2}
-        className="absolute right-2 top-2 z-10"
-        data-testid="file-preview-full"
-        onClick={onFullScreen}
-      >
-        Full screen
-      </Button>
+      {inColumn ? null : (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={Maximize2}
+          className="absolute right-2 top-2 z-10"
+          data-testid="file-preview-full"
+          onClick={onFullScreen}
+        >
+          Full screen
+        </Button>
+      )}
     </div>
   );
 }

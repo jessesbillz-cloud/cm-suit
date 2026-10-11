@@ -83,16 +83,23 @@ test.describe('revs', () => {
     const corridor = page.getByTestId('rev-wall-mock-rev-area-2');
     await expect(corridor).toContainText('Corridor 110 north wall');
     await expect(corridor).toHaveAttribute('data-failed', 'true');
-    // Its items by rev, each in its own state: TOW's speed plugs passed (IR 5, OFS 0005), HOW cavity stuff passed (IR 6)
-    // and its spray failed, the rest open, in the list's order, by their short names.
+    // Its items by rev, each in its own state: TOW's speed plugs passed (IR 5, OFS 0005: the rev is done, folded to one
+    // line), HOW cavity stuff passed (IR 6) and its spray failed, the rest open, in the list's order, by their short names.
     const items = corridor.getByTestId('rev-items');
     await expect(items.getByTestId('rev-line-label')).toHaveCount(8);
-    await expect(items.locator('[data-status]')).toHaveCount(21);
-    await expect(items.getByTestId('rev-line-0').getByTestId('rev-line-label')).toHaveText('Rev 0 · TOW');
+    await expect(items.locator('[data-status]')).toHaveCount(20);
+    const tow = items.getByTestId('rev-line-0');
+    await expect(tow).toHaveAttribute('data-done', 'true');
+    await expect(tow.getByTestId('rev-line-label')).toHaveText('Rev 0 · TOW');
+    await expect(tow.getByTestId('rev-done-text')).toHaveText('Done · 0005');
     await expect(items.getByTestId('rev-line-5').getByTestId('rev-line-label')).toHaveText('Rev 5 · In-Wall Final');
+    // A tap opens it to its item; Fold closes it again.
+    await tow.getByTestId('rev-line-open').click();
     const plugs = items.getByTestId('rev-item-chip-mock-rev-item-0-1');
     await expect(plugs).toHaveAttribute('data-status', 'passed');
     await expect(plugs).toHaveText('Speed Plugs · 0005');
+    await tow.getByTestId('rev-line-fold').click();
+    await expect(plugs).toHaveCount(0);
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-1')).toHaveText('Stuff · 0006');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveAttribute('data-status', 'failed');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveText('Spray');
@@ -519,11 +526,13 @@ test.describe('revs', () => {
     await expect(caulking.locator('[data-status]')).toHaveAttribute('data-status', 'open');
 
     // Signed off again, then Clear on the item, and its Undo puts the same sign-off back.
+    // The form opens with the number and day last used (52, Sep 21).
     await wall.getByTestId('rev-section-2').getByTestId('rev-before-rev').click();
-    await wall.getByTestId('rev-before-ofs').fill('52');
+    await expect(wall.getByTestId('rev-before-ofs')).toHaveValue('52');
+    await expect(wall.getByTestId('rev-before-date')).toHaveValue('2026-09-21');
     await wall.getByTestId('rev-form-save').click();
     await stuffing.click();
-    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052');
+    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052 · Sep 21');
     await wall.getByTestId('rev-before-clear').click();
     await expect(stuffing.locator('[data-status]')).toHaveAttribute('data-status', 'open');
     // Clear's own toast: its Undo comes once the wall has refreshed, after the re-sign's toast still on screen.
@@ -534,8 +543,9 @@ test.describe('revs', () => {
     await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-2');
     await wall.getByTestId('rev-item-mock-rev-item-2-1').click();
     await expect(wall.getByTestId('rev-facts')).toContainText('Done');
-    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052');
+    await expect(wall.getByTestId('rev-before-line')).toHaveText('OFS #0052 · Sep 21');
     await expect(wall.getByTestId('rev-before')).toHaveCount(0);
+    await expect(wall.getByTestId('rev-before-change')).toHaveCount(0);
     await expect(wall.getByTestId('rev-before-clear')).toHaveCount(0);
     await expect(wall.getByTestId('rev-before-rev')).toHaveCount(0);
   });

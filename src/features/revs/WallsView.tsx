@@ -1,8 +1,9 @@
 // Walls: every wall of the level picked (all of them under All) as a callout tile, by level under All and by list when
 // a job has more than one: its tag (F6a) small, the wall's name big (it wraps, never cut), its grid or room small, and
 // its items by rev (WallItemChips). A tap on the tile opens the wall's own page; a passed item with its OFS IR on file
-// opens that, any other item the wall at that item.
-import { Settings2 } from 'lucide-react';
+// opens that, any other item the wall at that item. A wall whose every item passed or is N/A is a quiet done tile
+// (Jesse, Oct 10): a green edge and check, "Done" with its OFS numbers, no chips; a tap still opens it.
+import { CircleCheck, Settings2 } from 'lucide-react';
 import type { RevArea, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
@@ -10,6 +11,9 @@ import { EmptyState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { onLevel } from './levels';
 import { wallRevs, wallsByList, type StatusIndex } from './model';
+import { Icon } from '../../ui/Icon';
+import { DONE_TEXT } from './DoneLine';
+import { doneText, wallDone } from './done';
 import { itemLines, type ItemChip } from './itemLines';
 import type { SignoffFiles } from './revStrip';
 import { WallItemChips } from './WallItemChips';
@@ -40,11 +44,14 @@ interface WallTileProps {
 export function WallTile({ area, setup, index, files, onOpen, onChip }: WallTileProps) {
   const count = countOf(wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status)));
   const { title, sub } = calloutOf(area.name, area.wall_tag);
+  const lines = itemLines(setup, index, area, files);
+  const done = wallDone(lines);
   return (
     <li
-      className="relative flex flex-col gap-2.5 rounded-card bg-card px-4 pb-3.5 pt-3 shadow-card transition-shadow hover:shadow-pop"
+      className={`relative flex flex-col gap-2.5 rounded-card bg-card px-4 pb-3.5 pt-3 shadow-card transition-shadow hover:shadow-pop ${done ? DONE_EDGE : ''}`}
       data-testid={`rev-wall-${area.id}`}
       data-failed={count.failed > 0 ? 'true' : undefined}
+      data-done={done ? 'true' : undefined}
     >
       <button
         type="button"
@@ -62,14 +69,31 @@ export function WallTile({ area, setup, index, files, onOpen, onChip }: WallTile
         <span className="break-words text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">{title}</span>
         {sub ? <span className="break-words text-[13px] font-medium text-ink-2">{sub}</span> : null}
       </button>
-      <WallItemChips
-        className="mt-auto"
-        lines={itemLines(setup, index, area, files)}
-        onChip={(chip) => {
-          onChip(area.id, chip);
-        }}
-      />
+      {done ? (
+        <DoneMark text={doneText(lines.flatMap((l) => l.chips))} />
+      ) : (
+        <WallItemChips
+          className="mt-auto"
+          lines={lines}
+          onChip={(chip) => {
+            onChip(area.id, chip);
+          }}
+        />
+      )}
     </li>
+  );
+}
+
+/** A done tile's edge: lib/status's approved green down its left side. */
+export const DONE_EDGE = 'border-l-4 border-l-[color:var(--status-approved-solid)]';
+
+/** A done tile's line: the check and "Done", with its OFS numbers when there are any. */
+export function DoneMark({ text }: { text: string }) {
+  return (
+    <span className={`mt-auto flex items-center gap-1.5 text-[13.5px] font-semibold tabular-nums ${DONE_TEXT}`} data-testid="rev-done">
+      <Icon icon={CircleCheck} size={16} className="shrink-0" />
+      <span className="min-w-0 break-words">{text}</span>
+    </span>
   );
 }
 

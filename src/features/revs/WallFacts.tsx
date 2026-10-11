@@ -2,7 +2,7 @@
 // request in Inspections), "Failed: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. Managers mark
 // the item N/A for this wall, or clear it, at once; the toast offers Undo (no "are you sure"). An item signed off
 // before the app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens
-// over the items) or clears it.
+// over the items), changes it (the same form, with its values) or clears it.
 import { messageOf } from '../../data/errors';
 import { useMarkRevNa } from '../../data/revs.mutations';
 import type { RevArea } from '../../data/revs.types';
@@ -20,8 +20,9 @@ interface WallFactsProps {
   onOpenRequest: (requestId: string) => void;
   /** May I open that request (rev_wall_history's can_open)? Else its line is plain text, not a link to nowhere. */
   canOpen: (requestId: string) => boolean;
-  /** A manager: sign the shown item off before the app, or clear that. */
+  /** A manager: sign the shown item off before the app, change that, or clear it. */
   onSignBefore?: ((item: WallItem) => void) | undefined;
+  onChangeBefore?: ((item: WallItem) => void) | undefined;
   onClearBefore?: ((item: WallItem) => void) | undefined;
 }
 
@@ -66,7 +67,8 @@ function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea
   );
 }
 
-export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenRequest, canOpen, onSignBefore, onClearBefore }: WallFactsProps) {
+export function WallFacts(props: WallFactsProps) {
+  const { projectId, area, shown, timeZone, canManage, onOpenRequest, canOpen, onSignBefore, onChangeBefore, onClearBefore } = props;
   if (!shown) return <div className="min-h-8" data-testid="rev-facts" />;
   const { cell, item } = shown;
   const chip = chipOf(cell.status);
@@ -129,6 +131,11 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
       ) : null}
       {canManage ? (
         <span className="ml-auto flex shrink-0 items-center">
+          {before && onChangeBefore ? (
+            <button type="button" className={LINK} data-testid="rev-before-change" onClick={() => { onChangeBefore(shown); }}>
+              Change
+            </button>
+          ) : null}
           {before && onClearBefore ? (
             <button type="button" className={LINK} data-testid="rev-before-clear" onClick={() => { onClearBefore(shown); }}>
               Clear

@@ -15,9 +15,11 @@ interface EditFormProps {
   onCancel: () => void;
   saveLabel?: string | undefined;
   testId?: string | undefined;
+  /** Another move, at the start of the buttons (a sign-off's Take off). */
+  extra?: ReactNode | undefined;
 }
 
-export function EditForm({ children, ready, onSave, onCancel, saveLabel = 'Save', testId }: EditFormProps) {
+export function EditForm({ children, ready, onSave, onCancel, saveLabel = 'Save', testId, extra }: EditFormProps) {
   const [saving, setSaving] = useState(false);
   return (
     <form
@@ -34,7 +36,8 @@ export function EditForm({ children, ready, onSave, onCancel, saveLabel = 'Save'
       }}
     >
       {children}
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        {extra ? <span className="mr-auto">{extra}</span> : null}
         <Button variant="quiet" disabled={saving} onClick={onCancel}>
           Cancel
         </Button>
