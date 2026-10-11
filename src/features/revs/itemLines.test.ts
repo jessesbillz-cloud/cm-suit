@@ -85,8 +85,8 @@ describe("a wall's item lines", () => {
 
   it('each item its own state; passed ones with their OFS number and a sign-off file only before the app', () => {
     expect(lines.flatMap((l) => l.chips.map((c) => c.status))).toEqual(['passed', 'passed', 'failed', 'requested', 'open', 'na']);
-    expect(chip(0, 0)).toMatchObject({ ofsNumber: 40, before: true, fileId: 'f40' });
-    expect(chip(1, 0)).toMatchObject({ ofsNumber: 42, before: false, fileId: null });
+    expect(chip(0, 0)).toMatchObject({ ofsNumber: 40, fileId: 'f40' });
+    expect(chip(1, 0)).toMatchObject({ ofsNumber: 42, fileId: null });
     expect(chip(1, 1)).toMatchObject({ ofsNumber: null, fileId: null });
   });
 

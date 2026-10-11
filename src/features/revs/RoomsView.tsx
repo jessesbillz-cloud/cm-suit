@@ -3,20 +3,18 @@
 // the level picked (every level under All), a tile per room with its small image, its number and name, and one bar of
 // its walls' items (passed, requested, failed), then the level's exterior walls and its shafts. A tap opens the room's
 // page. Walls in no room stay under "Other walls", so nothing is lost; a list with no rooms at all (the fire & life
-// safety sheet) shows its areas as tiles. A job with no rooms shows its walls as the list does. A room whose every wall
-// is done (Jesse, Oct 10) shows a green edge and check and "Done" in place of its bar; a tap still opens it.
+// safety sheet) shows its areas as tiles. A job with no rooms shows its walls as the list does.
 import type { RevRoom, RevRooms } from '../../data/revs.rooms';
 import { useRevFile } from '../../data/revs.history';
 import type { RevSetup } from '../../data/revs.types';
 import type { StatusIndex } from './model';
-import { roomDone } from './done';
 import { roomCount, roomsByList, roomWalls } from './rooms';
 import { countLine } from './wallPage';
 import { WallProgress } from './WallProgress';
 import { sameLevel } from './levels';
 import type { ItemChip } from './itemLines';
 import type { SignoffFiles } from './revStrip';
-import { countOfThings, DONE_EDGE, DoneMark, LevelHead, ListHead, NothingHere, NoWalls, TILE_GRID, WallTile, WallsView } from './WallsView';
+import { countOfThings, LevelHead, ListHead, NothingHere, NoWalls, TILE_GRID, WallTile, WallsView } from './WallsView';
 
 interface RoomsViewProps {
   projectId: string;
@@ -56,7 +54,7 @@ interface RoomTileProps {
 function RoomTile({ projectId, room, setup, index, rooms, onOpen }: RoomTileProps) {
   const walls = roomWalls(setup, index, rooms, room.id);
   const count = roomCount(walls);
-  const done = roomDone(walls);
+  const done = count.needed > 0 && count.passed === count.needed;
   const small = room.kind === 'room' ? room.number : KIND_WORD[room.kind];
   return (
     <li>
@@ -65,8 +63,7 @@ function RoomTile({ projectId, room, setup, index, rooms, onOpen }: RoomTileProp
         data-testid={`rev-room-${room.id}`}
         data-kind={room.kind}
         data-failed={count.failed > 0 ? 'true' : undefined}
-        data-done={done ? 'true' : undefined}
-        className={`flex h-full w-full flex-col gap-2.5 rounded-card bg-card px-4 pb-3.5 pt-3 text-left shadow-card transition-shadow hover:shadow-pop focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${done ? DONE_EDGE : ''}`}
+        className="flex h-full w-full flex-col gap-2.5 rounded-card bg-card px-4 pb-3.5 pt-3 text-left shadow-card transition-shadow hover:shadow-pop focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={() => {
           onOpen(room.id);
         }}
@@ -79,17 +76,13 @@ function RoomTile({ projectId, room, setup, index, rooms, onOpen }: RoomTileProp
             <span className="text-[13px] font-medium text-ink-2">{countOfThings(walls.length, 'wall', 'walls')}</span>
           </span>
         </span>
-        {done ? (
-          <DoneMark text="Done" />
-        ) : (
-          <span className="mt-auto flex flex-col gap-1">
-            <WallProgress count={count} />
-            <span className="text-[12.5px] font-medium tabular-nums text-ink-3">
-              {countLine(count)}
-              {count.failed > 0 ? <span className="text-danger">{` · ${String(count.failed)} failed`}</span> : null}
-            </span>
+        <span className="mt-auto flex flex-col gap-1">
+          <WallProgress count={count} />
+          <span className={`text-[12.5px] font-medium tabular-nums ${done ? 'text-[color:var(--status-approved-fg)]' : 'text-ink-3'}`}>
+            {countLine(count)}
+            {count.failed > 0 ? <span className="text-danger">{` · ${String(count.failed)} failed`}</span> : null}
           </span>
-        )}
+        </span>
       </button>
     </li>
   );

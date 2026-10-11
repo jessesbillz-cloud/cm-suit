@@ -47,8 +47,6 @@ export interface ItemChip {
   short: string;
   /** Passed: the OFS IR number that passed it, when known. */
   ofsNumber: number | null;
-  /** Signed off before the app (a manager changes or takes it off from the room page). */
-  before: boolean;
   /** Signed off before the app with its OFS IR on file: that file. */
   fileId: string | null;
 }
@@ -69,14 +67,12 @@ export function itemLines(setup: RevSetup, index: StatusIndex, area: RevArea, fi
       label: revLabel(rev),
       chips: cells.map(({ item, cell }) => {
         const passed = cell.status === 'passed';
-        const before = signedBefore(cell);
         return {
           item,
           status: cell.status,
           short: shortItem(item.name, rev.name),
           ofsNumber: passed ? cell.ofs_number : null,
-          before,
-          fileId: before ? (files.get(`${area.id}:${item.id}`) ?? null) : null,
+          fileId: signedBefore(cell) ? (files.get(`${area.id}:${item.id}`) ?? null) : null,
         };
       }),
     }));

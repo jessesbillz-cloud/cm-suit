@@ -1,12 +1,10 @@
 // e2e mock of a wall's details and the walls signed off before the app (0082), with the database's rules in short form:
 // revs.manage only; details tidied (empty = none, too long refused), version-checked; sign-offs one live row per wall
-// and item, items of the wall's list, an OFS number of 1 or more, a day not ahead, a changed number drops the old
-// number's IR (0095); clear answers what it cleared. The
+// and item, items of the wall's list, an OFS number of 1 or more, a day not ahead; clear answers what it cleared. The
 // rule that decides a cell (a newer in-app request wins) is signoffOf, used by mock/revRequests' status. State is
 // mock/revs'.
 import type { Tables } from '../database.types';
 import { parseArea, WALL_DETAIL_MAX, type RevArea, type WallDetailKey, type WallDetails } from '../revs.types';
-import type { SignoffRow } from '../revs.history';
 import type { RevSignoff, SignoffValues } from '../revs.walls';
 import { bump, checkVersion, clean, fail, has, must, newId, read, stamp, write, type RevMockState } from './revs';
 import { delay } from './store';
@@ -63,7 +61,7 @@ export async function setSignoff(areaId: string, itemIds: string[], v: SignoffVa
   const out: Signoff[] = itemIds.map((itemId) => {
     const live = s.signoffs.find((x) => x.area_id === areaId && x.item_id === itemId && x.deleted_at === null);
     const values = { ofs_number: v.ofsNumber, signed_on: v.signedOn, note };
-    if (live) return bump(live, live.ofs_number === v.ofsNumber ? values : { ...values, file_id: null });
+    if (live) return bump(live, values);
     return { ...stamp(), org_id: area.org_id, project_id: area.project_id, id: newId('mock-rev-signoff'), area_id: areaId, item_id: itemId, file_id: null, ...values };
   });
   const ids = new Set(out.map((x) => x.id));
@@ -92,13 +90,11 @@ export function signoffOf(s: RevMockState, areaId: string, itemId: string, asked
   return newer ? undefined : live;
 }
 
-/** rev_signoffs as revs.read reads them: the live ones of the job, what each says and its OFS IR when on file. */
-export async function signoffs(projectId: string): Promise<SignoffRow[]> {
+/** rev_signoffs as revs.read reads them: the live ones of the job with their OFS IR on file. */
+export async function signoffFiles(projectId: string): Promise<{ area_id: string; item_id: string; file_id: string }[]> {
   await delay();
   if (!has('revs.read')) return [];
   return read().signoffs.flatMap((so) =>
-    so.project_id === projectId && so.deleted_at === null
-      ? [{ id: so.id, area_id: so.area_id, item_id: so.item_id, ofs_number: so.ofs_number, signed_on: so.signed_on, note: so.note, file_id: so.file_id }]
-      : [],
+    so.project_id === projectId && so.deleted_at === null && so.file_id !== null ? [{ area_id: so.area_id, item_id: so.item_id, file_id: so.file_id }] : [],
   );
 }

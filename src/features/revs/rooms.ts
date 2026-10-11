@@ -1,11 +1,10 @@
 // Rooms worked out for the screens (0083; Jesse, Oct 5: "Room and then you click on the room and it breaks it down
 // into the walls ... All the exterior walls would come together"). Per list and level: the rooms (rooms first, then the
 // exterior and the shafts, each in its place), and the walls in no room ("Other walls", so nothing is lost). A room's
-// tally is every item of its walls; its walls in their order, each with its line on the image, its color (the plan's
-// colors, planGeom) and whether it is done (done.ts). Pure; tested in rooms.test.ts.
+// tally is every item of its walls; its walls in their order, each with its line on the image and its color (the plan's
+// colors, planGeom). Pure; tested in rooms.test.ts.
 import type { RevRoom, RevRoomWall, RevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevList, RevSetup, WallLine } from '../../data/revs.types';
-import { allDone } from './done';
 import { sameLevel } from './levels';
 import { wallRevs, type StatusIndex } from './model';
 import { toneColor, wallTone } from './plan/planGeom';
@@ -58,8 +57,6 @@ export interface RoomWall {
   link: RevRoomWall;
   area: RevArea;
   count: WallCount;
-  /** Every item passed or N/A (done.ts). */
-  done: boolean;
   color: string;
   title: string;
 }
@@ -70,9 +67,8 @@ export function roomWalls(setup: RevSetup, index: StatusIndex, rooms: RevRooms, 
   for (const link of rooms.walls.filter((w) => w.room_id === roomId)) {
     const area = setup.areas.find((a) => a.id === link.area_id);
     if (!area) continue;
-    const statuses = wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status));
-    const count = countOf(statuses);
-    out.push({ link, area, count, done: allDone(statuses), color: toneColor(wallTone(count)), title: calloutOf(area.name).title });
+    const count = countOf(wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status)));
+    out.push({ link, area, count, color: toneColor(wallTone(count)), title: calloutOf(area.name).title });
   }
   return out;
 }
