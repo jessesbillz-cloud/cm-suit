@@ -12,6 +12,8 @@ const LABEL = FIELD_LABEL;
 /** Field screens on a phone (the public request page): 48px controls and 16px text, which phones don't zoom into. */
 const CONTROL_LARGE = FIELD_CONTROL.replace('h-10', 'h-12').replace('text-sm', 'text-base');
 export const FIELD_AREA_LARGE = FIELD_AREA.replace('text-sm', 'text-base');
+/** A part of a form still missing an answer, jumped to from its submit bar: ringed in red until answered. */
+export const FIELD_MISSING = 'rounded-lg ring-2 ring-danger ring-offset-4 ring-offset-card';
 
 const PICKER_TYPES: readonly string[] = ['date', 'time', 'datetime-local', 'month', 'week'];
 
