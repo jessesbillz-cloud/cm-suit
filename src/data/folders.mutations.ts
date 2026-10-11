@@ -44,8 +44,8 @@ async function findFolder(projectId: string, parentId: string | null, name: stri
   if (isMock()) return mock.findFolder(projectId, parentId, name);
   const base = supabase.from('folders').select('id').eq('project_id', projectId).eq('name', name).is('deleted_at', null);
   const scoped = parentId === null ? base.is('parent_id', null) : base.eq('parent_id', parentId);
-  const row = throwIfErrorMaybe(await scoped.maybeSingle());
-  return row?.id ?? null;
+  const row: unknown = throwIfErrorMaybe(await scoped.maybeSingle());
+  return z.object({ id: z.string() }).nullable().parse(row)?.id ?? null;
 }
 
 /**
