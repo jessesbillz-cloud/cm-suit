@@ -43,6 +43,8 @@ test.describe('phone width', () => {
 
   test('no page is wider than the phone', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'Phone only.');
+    // One test walks every page in the list: 30 s for all of them ran out on slow runners (Oct 11, twice).
+    test.setTimeout(30_000 + PAGES.length * 3_000);
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'pm');
     });
