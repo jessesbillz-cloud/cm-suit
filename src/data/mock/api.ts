@@ -154,6 +154,12 @@ export async function createFolder(projectId: string, parentId: string | null, n
   return row;
 }
 
+/** The live folder of that name under that parent, if there is one. */
+export function findFolder(projectId: string, parentId: string | null, name: string): string | null {
+  const found = allFolders().find((f) => f.project_id === projectId && f.parent_id === parentId && f.name === name);
+  return found?.id ?? null;
+}
+
 /** A folder the app makes on first use (rev_files_folder and the like): the one of that name there, else a new one. */
 export async function appFolder(projectId: string, parentId: string | null, name: string, kind: string): Promise<string> {
   await delay();

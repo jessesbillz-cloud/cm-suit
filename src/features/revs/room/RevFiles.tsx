@@ -16,7 +16,9 @@ interface RevFilesProps {
 
 export function RevFiles({ projectId, listIds }: RevFilesProps) {
   const files = useAddRevFiles(projectId);
-  const drop = useFileDrop(true, files.add);
+  const drop = useFileDrop(true, (dropped) => {
+    files.add(dropped.map((d) => d.file));
+  });
   const input = useRef<HTMLInputElement>(null);
   return (
     <section

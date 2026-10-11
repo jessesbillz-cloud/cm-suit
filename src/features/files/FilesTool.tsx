@@ -5,7 +5,7 @@
 // row's name opens the file's pane (the file itself, Full screen, Rename, Delete); its icon opens it full screen. In
 // Plans and Specs the name opens the file full screen at once (Jesse, Oct 5: the right column is too small for a sheet
 // or a spec), its pane under it for Rename, Delete and versions; a spec book carries its section bar.
-// The whole file list is the drop target (useFileDrop). An upload that never finished is a line to remove, never a
+// The whole file list is the drop target (useFileDrop); a dropped folder keeps its folders (usePlaceDrop). An upload that never finished is a line to remove, never a
 // file row (leftovers).
 import { useEffect, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +23,7 @@ import { TOOL_META } from '../../ui/tools';
 import { specViewerItem } from '../specs/specItem';
 import { FileRow, FileRowsHead } from './FileRow';
 import { FolderAiToggle } from './FolderAiToggle';
-import { defaultFolderId, folderPath, visibleFolders } from './folderOrder';
+import { defaultFolderId, folderDescendants, folderPath, visibleFolders } from './folderOrder';
 import { FolderTree } from './FolderTree';
 import { leftoverUploads, storedFiles } from './leftovers';
 import { canOpenNow } from './scanStatus';
@@ -33,6 +33,8 @@ import { UploadButtons } from './UploadButtons';
 import { UploadList } from './UploadList';
 import { useDownload } from './useDownload';
 import { useFileDrop } from './useFileDrop';
+import { usePlaceDrop } from './usePlaceDrop';
+import type { DroppedFile } from './collectDrop';
 import { fileViewerItem } from './viewerItems';
 
 interface FilesToolProps {
@@ -68,15 +70,17 @@ interface FolderFilesProps {
   writable: boolean;
   timeZone: string | null;
   selectedFileId: string | null;
-  onFiles: (files: File[]) => void;
+  /** The folders inside this one, for the one line of uploads going into them. */
+  under: ReadonlySet<string>;
+  onDropped: (dropped: DroppedFile[]) => void;
   onOpenFile: (fileId: string) => void;
 }
 
-function FolderFiles({ folder, writable, timeZone, selectedFileId, onFiles, onOpenFile }: FolderFilesProps) {
+function FolderFiles({ folder, writable, timeZone, selectedFileId, under, onDropped, onOpenFile }: FolderFilesProps) {
   const files = useFiles(folder.id);
   const queue = useUploadQueue();
   const download = useDownload();
-  const drop = useFileDrop(writable, onFiles);
+  const drop = useFileDrop(writable, onDropped);
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   const user = useUser();
@@ -120,7 +124,7 @@ function FolderFiles({ folder, writable, timeZone, selectedFileId, onFiles, onOp
           </div>
         ) : null}
         <div className="overflow-hidden rounded-card">
-          <UploadList folderId={folder.id} leftovers={leftovers} />
+          <UploadList folderId={folder.id} under={under} leftovers={leftovers} />
           {files.isPending ? <LoadingState label="Loading files" /> : null}
           {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
           {rows?.length === 0 ? (
@@ -180,6 +184,7 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
   const enqueue = (picked: File[]) => {
     if (picked.length > 0) queue.enqueue(picked, projectId, current.id);
   };
+  const placeDrop = usePlaceDrop(projectId, current, manager);
   const list = visibleFolders(folders);
   // Desktop: the folder's AI switch sits beside Upload. Phone: under the header, so Camera and Upload keep one row.
   const aiToggle = <FolderAiToggle key={current.id} folder={current} canManage={manager} />;
@@ -213,7 +218,8 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
             writable={writable}
             timeZone={project.data?.timezone ?? null}
             selectedFileId={selectedFileId}
-            onFiles={enqueue}
+            under={folderDescendants(folders, current.id)}
+            onDropped={placeDrop}
             onOpenFile={onOpenFile}
           />
         </div>
