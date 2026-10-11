@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultFolderId, folderLabel, folderPath, treeOrder, visibleFolders } from './folderOrder';
+import { defaultFolderId, folderDescendants, folderLabel, folderPath, treeOrder, visibleFolders } from './folderOrder';
 
 type F = {
   id: string;
@@ -103,5 +103,18 @@ describe('folder path', () => {
     expect(folderPath(list, 'reports')).toBe('Reports');
     expect(folderPath(list, 'orphan')).toBe('Shared with me');
     expect(folderPath(list, 'missing')).toBe('');
+  });
+});
+
+describe('folderDescendants', () => {
+  it('lists the folders inside one at any depth, not itself or its neighbours', () => {
+    const list = [
+      folder('a', 'Submittals', 1),
+      folder('b', '03 Concrete', 1, { parent_id: 'a' }),
+      folder('c', 'Rebar', 1, { parent_id: 'b' }),
+      folder('d', 'Plans', 2),
+    ];
+    expect([...folderDescendants(list, 'a')].sort()).toEqual(['b', 'c']);
+    expect(folderDescendants(list, 'd').size).toBe(0);
   });
 });

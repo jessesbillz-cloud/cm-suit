@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useUser } from './auth';
 import { supabase } from './client';
-import { conflictError, throwIfError } from './errors';
+import { conflictError, DataError, throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
 import * as mock from './mock/api';
 import { isMock } from './mock';
@@ -38,6 +38,54 @@ async function insertFolder(userId: string, v: NewFolderInput): Promise<FolderRo
       .single(),
   );
   return { ...row, file_count: null, app_only: false, person: null };
+}
+
+async function findFolder(projectId: string, parentId: string | null, name: string): Promise<string | null> {
+  if (isMock()) return mock.findFolder(projectId, parentId, name);
+  const base = supabase.from('folders').select('id').eq('project_id', projectId).eq('name', name).is('deleted_at', null);
+  const scoped = parentId === null ? base.is('parent_id', null) : base.eq('parent_id', parentId);
+  const row = throwIfErrorMaybe(await scoped.maybeSingle());
+  return row?.id ?? null;
+}
+
+/**
+ * The folder of that name under that parent: the one there, else a new one. The database keeps names unique per
+ * parent, so two drops racing end on the same folder (the loser finds the winner's).
+ */
+async function ensureFolder(userId: string, v: NewFolderInput): Promise<string> {
+  const name = v.name.trim();
+  const found = await findFolder(v.projectId, v.parentId, name);
+  if (found !== null) return found;
+  try {
+    return (await insertFolder(userId, { ...v, name })).id;
+  } catch (e) {
+    if (!(e instanceof DataError) || e.code !== '23505') throw e;
+    const again = await findFolder(v.projectId, v.parentId, name);
+    if (again === null) throw e;
+    return again;
+  }
+}
+
+/**
+ * Finds or makes each folder of a dropped folder tree under `parentId` (parents first), and returns each path's
+ * folder id by its key ("a/b"). The folder list reloads once at the end.
+ */
+export function useEnsureFolders() {
+  const qc = useQueryClient();
+  const user = useUser();
+  return useMutation({
+    mutationFn: async (v: { projectId: string; parentId: string; aiReads: boolean; dirs: readonly (readonly string[])[] }) => {
+      const ids = new Map<string, string>([['', v.parentId]]);
+      for (const dir of v.dirs) {
+        const parent = ids.get(dir.slice(0, -1).join('/'));
+        const name = dir[dir.length - 1];
+        if (parent === undefined || name === undefined) throw new Error('A dropped folder came before its parent.');
+        ids.set(dir.join('/'), await ensureFolder(user.id, { projectId: v.projectId, parentId: parent, name, aiReads: v.aiReads }));
+      }
+      return ids;
+    },
+    onSettled: (_d, _e, v) => qc.invalidateQueries({ queryKey: qk.folders(v.projectId) }),
+  });
 }
 
 export function useCreateFolder() {

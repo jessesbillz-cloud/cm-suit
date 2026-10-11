@@ -82,3 +82,15 @@ export function folderPath(folders: readonly Pick<FolderRow, 'id' | 'parent_id' 
 export function defaultFolderId(folders: readonly TreeFolder[]): string | null {
   return treeOrder(visibleFolders(folders))[0]?.folder.id ?? null;
 }
+
+/** The folders inside this one, at any depth (where a dropped folder tree's uploads are going). */
+export function folderDescendants(folders: readonly Pick<FolderRow, 'id' | 'parent_id'>[], id: string): Set<string> {
+  const out = new Set<string>();
+  let frontier = [id];
+  while (frontier.length > 0) {
+    const next = folders.filter((f) => f.parent_id !== null && frontier.includes(f.parent_id) && !out.has(f.id)).map((f) => f.id);
+    for (const n of next) out.add(n);
+    frontier = next;
+  }
+  return out;
+}
