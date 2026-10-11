@@ -135,10 +135,6 @@ export function monthOf(day: string): { from: string; to: string } {
   return { from: format(startOfMonth(d), 'yyyy-MM-dd'), to: format(endOfMonth(d), 'yyyy-MM-dd') };
 }
 
-export function daysFrom(from: string, count: number): string[] {
-  return Array.from({ length: count }, (_, i) => addDaysTo(from, i));
-}
-
 /** The day, time and length fields as picked (select values). */
 export interface WhenPick {
   date: string;

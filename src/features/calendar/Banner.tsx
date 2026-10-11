@@ -1,6 +1,6 @@
-// One banner in a calendar cell (MDR's month grid): the inspection type or the line's title on a solid fill in its
-// status colors (lib/status solid / onSolid), postponed with MDR's pause mark. A line with no state is a quiet neutral
-// banner with its kind's icon. On a phone the grid shows only the color: a thin bar (the day below has the words).
+// One banner in a week column (MDR's grid): the inspection type or the line's title on a solid fill in its status
+// colors (lib/status solid / onSolid), postponed with MDR's pause mark. A line with no state is a quiet neutral banner
+// with its kind's icon. The month shows only dots (ui/MonthCalendar); the open day has the words.
 import { Pause } from 'lucide-react';
 import { CALENDAR_KINDS, isCalendarKind } from '../../lib/calendarKinds';
 import { STATUS } from '../../lib/status';
@@ -34,15 +34,5 @@ export function Banner({ banner, time, job }: BannerProps) {
       {job ? <span className="break-words text-[11px] leading-4 opacity-85">{job}</span> : null}
       {banner.tone ? <span className="sr-only">{STATUS[banner.tone].label}</span> : null}
     </span>
-  );
-}
-
-/** The phone's bar: the color only. */
-export function BannerBar({ banner }: { banner: BannerData }) {
-  return (
-    <span
-      className={`block h-[5px] w-full rounded-full ${banner.tone ? '' : 'ring-1 ring-inset ring-ink-3/70'}`}
-      style={banner.tone ? { background: `var(--status-${banner.tone}-solid)` } : undefined}
-    />
   );
 }

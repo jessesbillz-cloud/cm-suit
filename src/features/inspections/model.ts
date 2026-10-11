@@ -2,19 +2,22 @@
 // the request tracker and log titles. Pure functions, unit-tested in model.test.ts.
 import { STATUS, type StatusKey } from '../../lib/status';
 
-export type IrView = 'day' | 'week' | 'log' | 'review';
+export type IrView = 'day' | 'month' | 'log' | 'review';
 
-export const VIEW_LABELS: Record<IrView, string> = { day: 'Day', week: 'Week', log: 'Log', review: 'GC review' };
+export const VIEW_LABELS: Record<IrView, string> = { day: 'Day', month: 'Month', log: 'Log', review: 'GC review' };
 
-/** Whoever inspects starts on their day (the inspector; the deputy on his OFS requests); everyone else on the week.
- *  The GC review list is the GC's, on a job with the GC step on or one that takes OFS requests (always reviewed). */
+/** Whoever inspects starts on their day (the inspector; the deputy on his OFS requests); everyone else on the month
+ *  (ui/MonthCalendar, Jesse Oct 10; it replaced the week). The GC review list is the GC's, on a job with the GC step on
+ *  or one that takes OFS requests (always reviewed). */
 export function viewsFor(p: { decide: boolean; review: boolean }): IrView[] {
-  return [...(p.decide ? (['day'] as const) : []), 'week', 'log', ...(p.review ? (['review'] as const) : [])];
+  return [...(p.decide ? (['day'] as const) : []), 'month', 'log', ...(p.review ? (['review'] as const) : [])];
 }
 
+/** The view in the URL if allowed, else the first one. A link from before the month ("?view=week") opens the month. */
 export function parseView(v: string | undefined, allowed: readonly IrView[]): IrView {
-  const hit = allowed.find((x) => x === v);
-  return hit ?? allowed[0] ?? 'week';
+  const wanted = v === 'week' ? 'month' : v;
+  const hit = allowed.find((x) => x === wanted);
+  return hit ?? allowed[0] ?? 'month';
 }
 
 /** Right-column items that are forms, not requests (requests are uuids); SHARE_ITEM is the request link and QR sheet. */

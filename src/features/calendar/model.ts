@@ -1,12 +1,15 @@
 // Calendar views (SPEC §7.6; MDR's schedule calendar): which days show, the time range to load, and the day each line
 // falls on in its OWN job's time zone (SPEC §8.8). Days are calendar days (yyyy-MM-dd); weeks start on Monday. The day
 // view became the selected day's detail under the grid (MDR), so the views are Month (the default) and Week.
-import { addDays, addMonths, endOfMonth, endOfWeek, format, isValid, isWeekend, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
 import type { CalendarLine, CalendarRange } from '../../data/calendar.types';
 import { formatDay, formatInZone, startOfDayInZone } from '../../lib/dates';
 import { REQUEST_ITEM_PREFIX } from '../../lib/itemIds';
+import { monthDays, stepMonth } from '../../lib/monthGrid';
 import { toolIsOn } from '../../lib/jobs';
 import { STATUS, type StatusKey } from '../../lib/status';
+
+export { isWeekendDay, parseDay } from '../../lib/monthGrid';
 
 export const CAL_VIEWS = ['month', 'week'] as const;
 export type CalView = (typeof CAL_VIEWS)[number];
@@ -35,13 +38,6 @@ export function parseCalView(v: string | undefined): CalView {
 const WEEK = { weekStartsOn: 1 } as const;
 const ymd = (d: Date): string => format(d, 'yyyy-MM-dd');
 
-/** The ?day= of the URL when it is a real calendar day, else null (today). */
-export function parseDay(v: string | undefined): string | null {
-  if (v === undefined || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
-  const d = parseISO(v);
-  return isValid(d) && ymd(d) === v ? v : null;
-}
-
 function shiftDay(day: string, n: number): string {
   return ymd(addDays(parseISO(day), n));
 }
@@ -52,22 +48,17 @@ function daysBetween(first: Date, last: Date): string[] {
   return out;
 }
 
-/** The days a view shows around the anchor day. Month: whole weeks covering the month. */
+/** The days a view shows around the anchor day. Month: whole weeks covering the month (lib/monthGrid). */
 export function visibleDays(view: CalView, anchor: string): string[] {
+  if (view === 'month') return monthDays(anchor);
   const a = parseISO(anchor);
-  if (view === 'week') return daysBetween(startOfWeek(a, WEEK), endOfWeek(a, WEEK));
-  return daysBetween(startOfWeek(startOfMonth(a), WEEK), endOfWeek(endOfMonth(a), WEEK));
-}
-
-/** Saturday or Sunday: the grids draw those days lighter. */
-export function isWeekendDay(day: string): boolean {
-  return isWeekend(parseISO(day));
+  return daysBetween(startOfWeek(a, WEEK), endOfWeek(a, WEEK));
 }
 
 /** Prev / Next. */
 export function step(view: CalView, anchor: string, dir: 1 | -1): string {
   if (view === 'week') return shiftDay(anchor, 7 * dir);
-  return ymd(addMonths(parseISO(anchor), dir));
+  return stepMonth(anchor, dir);
 }
 
 /**
@@ -177,5 +168,5 @@ export function inspectionJobs(jobs: readonly CalendarJob[], projectId: string |
 
 /** Share: the job's scheduling page, where its people request inspections (they sign in through their invite link). */
 export function schedulingLink(origin: string, basePath: string, projectId: string): string {
-  return `${origin}${basePath.replace(/\/+$/, '')}/p/${encodeURIComponent(projectId)}/inspections?view=week`;
+  return `${origin}${basePath.replace(/\/+$/, '')}/p/${encodeURIComponent(projectId)}/inspections?view=month`;
 }

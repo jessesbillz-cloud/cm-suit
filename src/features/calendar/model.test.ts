@@ -108,8 +108,8 @@ describe('calendar days', () => {
   });
 
   it('share: the job\'s scheduling page under the app base path', () => {
-    expect(schedulingLink('https://app.example.test', '/', 'job-a')).toBe('https://app.example.test/p/job-a/inspections?view=week');
-    expect(schedulingLink('https://app.example.test', '/suite/', 'job-a')).toBe('https://app.example.test/suite/p/job-a/inspections?view=week');
+    expect(schedulingLink('https://app.example.test', '/', 'job-a')).toBe('https://app.example.test/p/job-a/inspections?view=month');
+    expect(schedulingLink('https://app.example.test', '/suite/', 'job-a')).toBe('https://app.example.test/suite/p/job-a/inspections?view=month');
   });
 
   it('only lib/status keys get a dot', () => {

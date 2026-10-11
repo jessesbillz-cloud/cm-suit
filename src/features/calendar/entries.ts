@@ -8,6 +8,7 @@
 import type { CalendarInspection, CalendarLine } from '../../data/calendar.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
+import type { DayMark } from '../../ui/MonthCalendar';
 import { rowChip } from '../inspections/model';
 import { lineChip, lineDay } from './model';
 
@@ -108,6 +109,13 @@ export function bannerOf(e: Entry): Banner {
     return { label: shortType(e.row), tone, paused: tone === 'postponed', kind: null };
   }
   return { label: e.line.title, tone: lineChip(e.line)?.status ?? null, paused: false, kind: e.line.kind };
+}
+
+/** The month's dots (ui/MonthCalendar): each day's entries but the look-ahead, in their banners' colors. */
+export function dayMarks(byDay: ReadonlyMap<string, readonly Entry[]>): Map<string, DayMark[]> {
+  return new Map(
+    [...byDay].map(([day, list]) => [day, list.filter((e) => !isLookahead(e)).map((e) => ({ key: e.key, tone: bannerOf(e).tone }))]),
+  );
 }
 
 type RequestGroup = 'pending' | 'postponed' | 'confirmed' | 'done' | 'blocked';

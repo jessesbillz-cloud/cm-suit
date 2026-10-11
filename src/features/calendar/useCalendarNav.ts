@@ -1,4 +1,5 @@
-// Where the calendar is: the view (?view=) and the selected day (?day=) live in the URL; the open item is the frame's.
+// Where the calendar is: the view (?view=), the month or week shown (?at=) and the open day (?day=) live in the URL
+// (lib/monthGrid), so Back closes a day; the open item is the frame's.
 // A request opens in the calendar's right column (the inspections RequestPane), as does a manual line, blocked time
 // and the feed link; a mirrored line of another module opens its module item (lib/calendarKinds). Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
@@ -9,19 +10,23 @@ import { BLOCK_ITEM, NEW_LINE, parseCalView, parseDay, requestItemId, SUBSCRIBE_
 
 interface Where {
   view: CalView;
-  /** null = today. */
+  /** A day of the month (or week) shown; null = the open day's, else today's (lib/monthGrid). */
+  at: string | null;
+  /** The open day; null = none. */
   day: string | null;
 }
 
 export function useCalendarNav(projectId: string | null) {
   const navigate = useNavigate();
   const openTarget = useOpenTarget();
-  const search: { view?: string | undefined; day?: string | undefined } = useSearch({ strict: false });
+  const search: { view?: string | undefined; at?: string | undefined; day?: string | undefined } = useSearch({ strict: false });
   const view = parseCalView(search.view);
+  const at = parseDay(search.at);
   const day = parseDay(search.day);
+  const here: Where = { view, at, day };
 
   function go(to: Where, itemId: string | null = null) {
-    const s = { view: to.view, ...(to.day !== null ? { day: to.day } : {}) };
+    const s = { view: to.view, ...(to.at !== null ? { at: to.at } : {}), ...(to.day !== null ? { day: to.day } : {}) };
     if (projectId === null) {
       if (itemId === null) void navigate({ to: '/all/calendar', search: s });
       else void navigate({ to: '/all/calendar/$itemId', params: { itemId }, search: s });
@@ -35,7 +40,7 @@ export function useCalendarNav(projectId: string | null) {
     const target = lineTarget(line);
     if (target === null) return;
     if (target.tool === 'calendar') {
-      go({ view, day }, line.id);
+      go(here, line.id);
       return;
     }
     openTarget(line.project_id, target);
@@ -43,38 +48,35 @@ export function useCalendarNav(projectId: string | null) {
 
   return {
     view,
+    at,
     day,
     setView: (v: CalView) => {
-      go({ view: v, day });
+      go({ ...here, view: v });
     },
-    /** Prev / Next / Today (null). */
-    setDay: (d: string | null) => {
-      go({ view, day: d });
-    },
-    /** A day of the grid: shown under it. */
-    selectDay: (d: string) => {
-      go({ view, day: d });
+    /** Prev / Next / Today / a tapped day: where the calendar is (lib/monthGrid placeSearch). */
+    moveTo: (place: { at?: string; day?: string }) => {
+      go({ view, at: place.at ?? null, day: place.day ?? null });
     },
     /** The add form in the right column, prefilled with this day. */
     add: (d: string) => {
-      go({ view, day: d }, NEW_LINE);
+      go({ ...here, day: d }, NEW_LINE);
     },
-    /** Blocked time for the selected day, in the right column. */
+    /** Blocked time for the open day, in the right column. */
     block: () => {
-      go({ view, day }, BLOCK_ITEM);
+      go(here, BLOCK_ITEM);
     },
     /** My calendar feed link, in the right column. */
     subscribe: () => {
-      go({ view, day }, SUBSCRIBE_ITEM);
+      go(here, SUBSCRIBE_ITEM);
     },
     /** A request with its steps, in the right column; the calendar stays. */
     openRequest: (requestProjectId: string, requestId: string) => {
-      go({ view, day }, requestItemId(requestProjectId, requestId));
+      go(here, requestItemId(requestProjectId, requestId));
     },
     openLine,
-    /** Closes the right column and shows the given day (e.g. the day a line was just saved on). */
+    /** Closes the right column and opens the given day (e.g. the day a line was just saved on: its month shows). */
     closeTo: (d: string | null) => {
-      go({ view, day: d ?? day });
+      go(d === null ? here : { view, at: null, day: d });
     },
   };
 }
