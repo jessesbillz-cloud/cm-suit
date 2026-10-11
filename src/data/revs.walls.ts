@@ -2,7 +2,9 @@
 // design, fire area, sheet number, what to check) are one version-checked save (rev_area_details_save). A wall's items
 // signed off on paper before the app (OFS IR number, day, note) are set many at once, a whole rev too
 // (rev_signoff_set), and cleared for the Undo (rev_signoff_clear, which answers what it cleared so its own Undo can put
-// it back). Sign-offs change the walls' status and so the permits' open inspections: both refresh.
+// it back). A changed OFS number drops the old number's IR (0095), and an IR picked from the job's OFS IRs is linked
+// at once by 0094's rule (rev_file_link: the file of that number). Sign-offs change the walls' status and so the
+// permits' open inspections: both refresh.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Tables } from './database.types';
 import { supabase } from './client';
@@ -10,10 +12,11 @@ import { throwIfError } from './errors';
 import { qk } from './keys';
 import { isMock } from './mock';
 import * as mockWalls from './mock/revWalls';
+import { linkRevFile } from './revs.rooms';
 import { parseArea, type RevArea, type WallDetails } from './revs.types';
 
 /** A sign-off made before the app: what rev_signoff_set and rev_signoff_clear answer. */
-export type RevSignoff = Pick<Tables<'rev_signoffs'>, 'id' | 'area_id' | 'item_id' | 'ofs_number' | 'signed_on' | 'note'>;
+export type RevSignoff = Pick<Tables<'rev_signoffs'>, 'id' | 'area_id' | 'item_id' | 'ofs_number' | 'signed_on' | 'note' | 'file_id'>;
 
 /** What a sign-off says: the OFS IR number, the day ("yyyy-MM-dd") and a note, each optional. */
 export interface SignoffValues {
@@ -68,21 +71,27 @@ interface SignoffTarget {
   itemIds: string[];
 }
 
-/** Signed off before the app: these items of a wall (one, or a whole rev), with what the sign-off says. */
+/** Signed off before the app: these items of a wall (one, or a whole rev), with what the sign-off says, and the OFS IR
+ *  picked for its number (linked by rev_file_link once they are saved). */
 export function useSetSignoff() {
   const refresh = useRefresh();
   return useMutation({
-    mutationFn: async (v: SignoffTarget & SignoffValues): Promise<RevSignoff[]> => {
-      if (isMock()) return mockWalls.setSignoff(v.areaId, v.itemIds, v);
-      return throwIfError(
-        await supabase.rpc('rev_signoff_set', {
-          p_area_id: v.areaId,
-          p_item_ids: v.itemIds,
-          p_ofs_number: sqlNull(v.ofsNumber),
-          p_signed_on: sqlNull(v.signedOn),
-          p_note: sqlNull(v.note),
-        }),
-      );
+    mutationFn: async (v: SignoffTarget & SignoffValues & { fileId?: string | null | undefined }): Promise<RevSignoff[]> => {
+      const rows = isMock()
+        ? await mockWalls.setSignoff(v.areaId, v.itemIds, v)
+        : throwIfError(
+            await supabase.rpc('rev_signoff_set', {
+              p_area_id: v.areaId,
+              p_item_ids: v.itemIds,
+              p_ofs_number: sqlNull(v.ofsNumber),
+              p_signed_on: sqlNull(v.signedOn),
+              p_note: sqlNull(v.note),
+            }),
+          );
+      const fileId = v.fileId ?? null;
+      if (fileId === null || v.ofsNumber === null || rows.every((r) => r.file_id === fileId)) return rows;
+      const linked = await linkRevFile(v.projectId, fileId);
+      return linked.signoffs > 0 ? rows.map((r) => ({ ...r, file_id: fileId })) : rows;
     },
     onSettled: (_r, _e, v) => refresh(v.projectId),
   });

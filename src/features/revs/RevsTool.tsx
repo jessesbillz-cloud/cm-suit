@@ -10,7 +10,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { Plus, Printer } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
-import { useSignoffFiles } from '../../data/revs.history';
+import { useSignoffs } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
 import { NEW_ITEM, opensInMain, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
@@ -113,7 +113,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
-  const signoffs = useSignoffFiles(projectId);
+  const signoffs = useSignoffs(projectId);
   const jobs = useMyProjects();
   const openFile = useOpenRevFile(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);

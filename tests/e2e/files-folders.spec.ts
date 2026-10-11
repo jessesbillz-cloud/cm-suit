@@ -207,7 +207,7 @@ test.describe('files: uploads', () => {
 test.describe('files: the viewer, Delete and Rename', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test('in Plans a sheet opens full screen at once; Escape shows its pane, which has Full screen and no small copy', async ({ page }) => {
+  test('in Plans a sheet opens full screen at once; Escape shows its pane, with one Full screen and no small copy', async ({ page }, testInfo) => {
     await openPlans(page);
     await fileNamed(page, 'Sample Plan Set A.pdf').click();
     const viewer = page.getByTestId('file-viewer');
@@ -219,6 +219,19 @@ test.describe('files: the viewer, Delete and Rename', () => {
     await page.keyboard.press('Escape');
     await expect(viewer).toHaveCount(0);
     await expect(page.getByTestId('file-preview')).toHaveCount(0);
+    if (testInfo.project.name === 'desktop') {
+      // In the right column its Full screen is the one way to enlarge it (Jesse, Oct 10): the sheet draws there.
+      const right = page.getByTestId('right-column');
+      await expect(page.getByTestId('file-full-screen')).toHaveCount(0);
+      await right.getByTestId('right-full').click();
+      await expect(right).toHaveAttribute('data-full', 'true');
+      await expect(right.getByTestId('file-preview').getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+      await expect(right.getByTestId('file-preview-full')).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(right).toHaveAttribute('data-full', 'false');
+      await expect(page.getByTestId('file-preview')).toHaveCount(0);
+      return;
+    }
     await page.getByTestId('file-full-screen').click();
     await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample Plan Set A.pdf');
     await page.keyboard.press('Escape');
@@ -242,10 +255,21 @@ test.describe('files: the viewer, Delete and Rename', () => {
     await expect(viewer).toHaveCount(0);
   });
 
-  test('a photo shows whole in its pane and full screen, and a tap zooms it', async ({ page }) => {
+  test('a photo shows whole in its pane and full screen, and a tap zooms it', async ({ page }, testInfo) => {
     await signIn(page, 'pm', '/p/job-b/files?folder=job-b-photos');
     await fileNamed(page, 'Sample corridor photo.jpg').click();
     await expect(page.getByTestId('file-preview').getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
+    if (testInfo.project.name === 'desktop') {
+      // In the right column: the column's Full screen only; Escape comes back.
+      const right = page.getByTestId('right-column');
+      await expect(right.getByTestId('file-preview-full')).toHaveCount(0);
+      await right.getByTestId('right-full').click();
+      await expect(right).toHaveAttribute('data-full', 'true');
+      await expect(right.getByTestId('file-preview').getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(right).toHaveAttribute('data-full', 'false');
+      return;
+    }
     await page.getByTestId('file-preview-full').click();
     const viewer = page.getByTestId('file-viewer');
     await expect(viewer.getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
