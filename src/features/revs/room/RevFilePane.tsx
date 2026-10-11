@@ -1,5 +1,6 @@
 // A sign-off's OFS IR beside its wall's page, in the right column (0083: a wall's history row, ?side=revs:file-<id>):
-// the file in the viewer's box (zoom, a PDF's pages), Full screen and Download, through Revs' own gate.
+// the file in the viewer's box (zoom, a PDF's pages) and Download, through Revs' own gate. The column's own Full screen
+// (Back, Escape) is the one way to enlarge it there (Jesse, Oct 10); in its own window the box has Full screen.
 import { useRevFile, useRevFileFetch } from '../../../data/revs.history';
 import { FilePreview, useFileViewer } from '../../../ui/FileViewer';
 import { ErrorState, LoadingState } from '../../../ui/States';
@@ -20,13 +21,7 @@ export function RevFilePane({ projectId, fileId }: RevFilePaneProps) {
   return (
     <div className="flex h-full flex-col gap-2 p-3" data-testid="rev-file-pane">
       <p className="break-words text-[14px] font-medium text-ink">{file.data.filename}</p>
-      <FilePreview
-        item={item}
-        className="min-h-[360px] flex-1"
-        onFullScreen={() => {
-          viewer.open([item]);
-        }}
-      />
+      <FilePreview item={item} className="min-h-[360px] flex-1" onFullScreen={() => { viewer.open([item]); }} />
     </div>
   );
 }

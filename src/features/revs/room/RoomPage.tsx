@@ -1,13 +1,16 @@
 // A room's own page (0083; Jesse, Oct 5: "you click on the room and it breaks it down into the walls"; Oct 6: "rooms
 // then walls with the revs"): its number, name and one bar of its walls' items, the room's picture (compact) with each
 // wall's line in its state's color (a tap on a line opens the wall; pinch, wheel or + / - to zoom; full screen), then
-// its walls as rows, each with its items by rev. No picture: nothing for readers, a slim place for a manager's (RoomImage).
-// A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
-// line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
+// its walls as rows, each with its items by rev (a done wall, a done rev, folds to one line). No picture: nothing for
+// readers, a slim place for a manager's (RoomImage). A manager's moves wait behind one Edit toggle (Jesse, Oct 10), so a
+// tap does what it does for everyone (an item's IR, the wall): editing, they rename or remove the room (Undo), add a
+// wall of its level or take one out (Undo), draw a wall's line on the picture (tap its points, Done), and sign an item
+// off before the app, change that or take it off (a tap on the item). On a desktop it fills the main area; on a phone
+// it is its own screen.
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, Pencil, SquarePen, Trash2 } from 'lucide-react';
 import { useCapability } from '../../../data/queries';
-import { useSignoffFiles } from '../../../data/revs.history';
+import { useSignoffs, type SignoffRow } from '../../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../../data/revs.queries';
 import { useRevRooms, type RevRoom, type RevRooms } from '../../../data/revs.rooms';
 import type { RevSetup } from '../../../data/revs.types';
@@ -42,6 +45,7 @@ interface BodyProps {
   index: StatusIndex;
   rooms: RevRooms;
   files: SignoffFiles;
+  signoffs: readonly SignoffRow[] | undefined;
   canManage: boolean;
   isPhone: boolean;
 }
@@ -52,7 +56,33 @@ const FRAME_SIZE = `${FRAME} h-[32dvh] min-h-[200px] sm:h-[320px]`;
 // Full screen of nothing is no use: the slim place has none.
 const FRAME_NONE = `${FRAME} h-16 [&_div:has(>[data-testid=sheet-full])]:hidden`;
 
-function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPhone }: BodyProps) {
+interface RoomToolsProps {
+  editing: boolean;
+  size: 'sm' | 'md';
+  busy: boolean;
+  onRename: () => void;
+  onRemove: () => void;
+  onToggle: () => void;
+}
+
+/** A manager's Edit toggle; while editing, Rename and Remove beside it. */
+function RoomTools({ editing, size, busy, onRename, onRemove, onToggle }: RoomToolsProps) {
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      {editing ? (
+        <>
+          <Button size={size} variant="quiet" icon={Pencil} aria-label="Rename the room" title="Rename" data-testid="rev-room-edit" onClick={onRename} />
+          <Button size={size} variant="quiet" icon={Trash2} aria-label="Remove the room" title="Remove" disabled={busy} data-testid="rev-room-remove" onClick={onRemove} />
+        </>
+      ) : null}
+      <Button size={size} variant={editing ? 'primary' : 'secondary'} icon={SquarePen} aria-pressed={editing} data-testid="rev-room-edit-mode" onClick={onToggle}>
+        Edit
+      </Button>
+    </span>
+  );
+}
+
+function RoomBody({ projectId, room, setup, index, rooms, files, signoffs, canManage, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const walls = useMemo(() => roomWalls(setup, index, rooms, room.id), [setup, index, rooms, room.id]);
   const count = roomCount(walls);
@@ -61,7 +91,10 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPh
   const openFile = useOpenRevFile(projectId);
   const hasPicture = room.image_file_id !== null;
   const [full, setFull] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  // A manager's moves wait behind Edit; readers never see it.
+  const [editMode, setEditMode] = useState(false);
+  const editing = canManage && editMode;
   const list = setup.lists.find((l) => l.id === room.list_id);
   const meta = [room.level.trim(), list?.name, list?.phase].filter((x): x is string => Boolean(x));
   const lines = walls.flatMap((w) => (w.link.line && w.area.id !== act.drawing?.area.id ? [{ id: w.area.id, line: w.link.line, color: w.color, title: w.title }] : []));
@@ -98,28 +131,26 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPh
             {roomLabel(room)}
           </h1>
           {canManage ? (
-            <span className="flex shrink-0 items-center">
-              <Button size={size} variant="quiet" icon={Pencil} aria-label="Edit the room" title="Edit" data-testid="rev-room-edit" onClick={() => { setEditing(true); }} />
-              <Button
-                size={size}
-                variant="quiet"
-                icon={Trash2}
-                aria-label="Remove the room"
-                title="Remove"
-                disabled={setupActions.busy}
-                data-testid="rev-room-remove"
-                onClick={() => {
-                  void setupActions.remove('room', room, roomLabel(room)).then((gone) => {
-                    if (gone) nav.close(room.level.trim());
-                  });
-                }}
-              />
-            </span>
+            <RoomTools
+              editing={editing}
+              size={size}
+              busy={setupActions.busy}
+              onRename={() => { setRenaming(true); }}
+              onRemove={() => {
+                void setupActions.remove('room', room, roomLabel(room)).then((gone) => {
+                  if (gone) nav.close(room.level.trim());
+                });
+              }}
+              onToggle={() => {
+                setEditMode(!editing);
+                setRenaming(false);
+              }}
+            />
           ) : null}
         </div>
         <WallProgress count={count} withLine testId="rev-room-progress" />
       </header>
-      {editing ? <RoomForm room={room} onSave={act.rename} onCancel={() => { setEditing(false); }} /> : null}
+      {editing && renaming ? <RoomForm room={room} onSave={act.rename} onCancel={() => { setRenaming(false); }} /> : null}
       {full ? null : drawBar}
       {hasPicture || canManage ? (
         <RoomImage
@@ -142,20 +173,22 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPh
       <section className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="flex-1 px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">Walls</h2>
-          {canManage ? <AddRoomWall setup={setup} room={room} walls={walls} busy={act.busy} onAdd={act.add} /> : null}
+          {editing ? <AddRoomWall setup={setup} room={room} walls={walls} busy={act.busy} onAdd={act.add} /> : null}
         </div>
         {walls.length === 0 ? <EmptyState title="No walls in this room yet." /> : null}
         <ul className="flex flex-col divide-y divide-line" data-testid="rev-room-walls">
           {walls.map((w) => (
             <RoomWallRow
               key={w.area.id}
+              projectId={projectId}
               wall={w}
               setup={setup}
               index={index}
               files={files}
+              signoffs={signoffs}
               isPhone={isPhone}
-              manage={
-                canManage
+              edit={
+                editing
                   ? { canDraw: hasPicture, busy: act.busy, onDraw: () => { act.draw(w.area.id); }, onTakeOut: () => { act.takeOut(w.area); } }
                   : null
               }
@@ -196,7 +229,7 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const manage = useCapability(projectId, 'revs.manage');
-  const signoffs = useSignoffFiles(projectId);
+  const signoffs = useSignoffs(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
 
@@ -216,6 +249,7 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
         index={index}
         rooms={rooms.data}
         files={files}
+        signoffs={signoffs.data}
         canManage={manage.data === true}
         isPhone={isPhone}
       />

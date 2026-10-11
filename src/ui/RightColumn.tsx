@@ -1,7 +1,10 @@
 // The right column (SPEC §7.2): one docked panel, or the opened item. Fixed width (wider on a wide screen, never
 // dragged); it can go full screen or collapse. Full screen is ONE labelled button at the top right (Jesse, Oct 5: "the
-// arrows ... make that more prevalent"); at full screen the same spot is Back, and Escape does the same.
-import { useEffect, useRef, type ReactNode } from 'react';
+// arrows ... make that more prevalent"); at full screen the same spot is Back, and Escape does the same. It is the only
+// way to enlarge what the column shows (Jesse, Oct 10: "There's two different ways though to expand the screen, so I
+// don't like that"): a file in it (FilePreview) has no Full screen of its own, and reads whether the column is full
+// (useRightColumn) to draw a sheet only once there is room.
+import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { ArrowLeft, ChevronsLeft, ExternalLink, Maximize2, PanelRightClose, X } from 'lucide-react';
 import { Button } from './Button';
 import { Icon } from './Icon';
@@ -17,6 +20,13 @@ interface RightColumnProps {
   /** "Open in new window" for an item whose own pane has no such button. */
   onOpenWindow?: (() => void) | undefined;
   children: ReactNode;
+}
+
+const InRightColumn = createContext<{ full: boolean } | null>(null);
+
+/** Inside the right column: whether it is full screen. Null anywhere else (a phone's screen, an item's own window). */
+export function useRightColumn(): { full: boolean } | null {
+  return useContext(InRightColumn);
 }
 
 /** Escape leaves full screen, unless something on top (the file viewer, a dialog, a menu) took it first. */
@@ -43,6 +53,7 @@ function useEscapeBack(full: boolean, onBack: () => void) {
 export function RightColumn(props: RightColumnProps) {
   const { title, collapsed, full, onToggleCollapsed, onToggleFull, onCloseItem, onOpenWindow, children } = props;
   useEscapeBack(full && !collapsed, onToggleFull);
+  const inside = useMemo(() => ({ full }), [full]);
   if (collapsed) {
     return (
       <aside aria-label={title} className="flex w-8 shrink-0 flex-col items-center border-l border-line bg-card pt-2">
@@ -107,7 +118,9 @@ export function RightColumn(props: RightColumnProps) {
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <InRightColumn.Provider value={inside}>{children}</InRightColumn.Provider>
+      </div>
     </aside>
   );
 }
