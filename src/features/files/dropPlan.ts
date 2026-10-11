@@ -1,7 +1,7 @@
 // What a drop needs: the folders to find or make (parents before children) and the files for each folder.
 import type { DroppedFile } from './collectDrop';
 
-export interface DropGroup {
+interface DropGroup {
   /** The folders under the one being viewed, from the dropped folder down; empty for loose files. */
   dir: string[];
   files: File[];
