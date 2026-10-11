@@ -4,7 +4,7 @@
 // sign-off before the app when one is on file (rev_signoffs.file_id), which a tap opens. Pure; tested in
 // revStrip.test.ts.
 import type { Rev, RevArea, RevSetup } from '../../data/revs.types';
-import type { SignoffRow } from '../../data/revs.history';
+import type { SignoffFile } from '../../data/revs.history';
 import type { StatusKey } from '../../lib/status';
 import { MARKS, revCell, type CheckMark } from './checklist';
 import { cellOf, signedBefore, type StatusIndex } from './model';
@@ -14,9 +14,8 @@ export type SignoffFiles = ReadonlyMap<string, string>;
 
 const key = (areaId: string, itemId: string) => `${areaId}:${itemId}`;
 
-/** The sign-offs with their OFS IR on file, by wall and item. */
-export function indexSignoffFiles(rows: readonly Pick<SignoffRow, 'area_id' | 'item_id' | 'file_id'>[]): SignoffFiles {
-  return new Map(rows.flatMap((r) => (r.file_id !== null ? [[key(r.area_id, r.item_id), r.file_id] as const] : [])));
+export function indexSignoffFiles(rows: readonly SignoffFile[]): SignoffFiles {
+  return new Map(rows.map((r) => [key(r.area_id, r.item_id), r.file_id]));
 }
 
 export interface StripChip {

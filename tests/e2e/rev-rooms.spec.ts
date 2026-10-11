@@ -12,9 +12,7 @@
 // rev-link-files, file-viewer, viewer-zoom. Oct 6: rev-level-<level> (the level chips), rev-room-walls (the room's
 // rows, each rev-wall-<area> with rev-wall-open). Oct 8: each row's rev-items, a rev-line-<rev number> per rev with
 // its rev-line-label and rev-item-chip-<item> (data-status passed|requested|failed|open|na; data-file when its OFS IR
-// is on file). Oct 10: a done rev line (rev-line-<n> data-done) folds to rev-line-open (its rev-done-text), opened
-// it has rev-line-fold; a done wall (data-done) folds to rev-wall-unfold, opened rev-wall-fold; a manager's moves wait
-// behind rev-room-edit-mode (Edit).
+// is on file).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -97,15 +95,12 @@ test.describe('revs rooms', () => {
     // Corridor 110's north wall failed an item: red.
     await expect(image.locator('[data-wall="mock-rev-area-2"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-not_approved-solid)');
     await expect(image.getByTestId('sheet-zoom')).toBeVisible();
-    // Then its walls, each with its items by rev: TOW passed (folded to one done line), HOW cavity spray failed on the
-    // north wall.
+    // Then its walls, each with its items by rev: TOW's speed plugs passed, HOW cavity spray failed on the north wall.
     await expect(room.getByTestId('rev-wall-mock-rev-area-1')).toBeVisible();
     const north = room.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
-    await expect(north.getByTestId('rev-line-0')).toHaveAttribute('data-done', 'true');
-    await expect(north.getByTestId('rev-line-0').getByTestId('rev-done-text')).toHaveText('Done · 0005');
+    await expect(north.getByTestId('rev-item-chip-mock-rev-item-0-1')).toHaveAttribute('data-status', 'passed');
     await expect(north.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveAttribute('data-status', 'failed');
-    // A reader has no manager's buttons, not even Edit.
-    await expect(room.getByTestId('rev-room-edit-mode')).toHaveCount(0);
+    // A reader has no manager's buttons.
     await expect(room.getByTestId('rev-room-edit')).toHaveCount(0);
     await expect(room.getByTestId('rev-room-add-pick')).toHaveCount(0);
     await expect(room.getByTestId('rev-room-out-mock-rev-area-2')).toHaveCount(0);
@@ -154,11 +149,9 @@ test.describe('revs rooms', () => {
     await wall.getByTestId('rev-before').click();
     await wall.getByTestId('rev-before-ofs').fill('41');
     await wall.getByTestId('rev-before-date').fill('2026-08-20');
-    // OFS IR 41 is on file: linked as the sign-off is saved.
-    await expect(wall.getByTestId('rev-before-ir-41')).toHaveAttribute('aria-pressed', 'true');
     await wall.getByTestId('rev-form-save').click();
     await expect(wall.getByTestId('rev-before-line')).toBeVisible();
-    await linkFiles(page, '1 picture linked.');
+    await linkFiles(page, '1 picture and 1 IR linked.');
 
     await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-2');
     const history = page.getByTestId('rev-history');
@@ -195,13 +188,9 @@ test.describe('revs rooms', () => {
     const pane = right.getByTestId('rev-file-pane');
     await expect(pane).toContainText('OFS_IR_0041_Attachment.pdf');
     await expect(pane.getByTestId('viewer-zoom')).toBeVisible();
-    // One way to enlarge it: the column's own Full screen (the box has none); Escape comes back.
-    await expect(pane.getByTestId('file-preview-full')).toHaveCount(0);
-    await right.getByTestId('right-full').click();
-    await expect(right).toHaveAttribute('data-full', 'true');
-    await expect(pane.getByTestId('viewer-zoom')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(right).toHaveAttribute('data-full', 'false');
+    await pane.getByTestId('file-preview-full').click();
+    await expect(page.getByTestId('file-viewer').getByTestId('viewer-zoom')).toBeVisible();
+    await page.getByTestId('file-viewer').getByTestId('viewer-close').click();
     await right.getByRole('button', { name: 'Close' }).click();
     await expect(page).not.toHaveURL(/side=/);
     await expect(page.getByTestId('main-area').getByTestId('rev-wall-page')).toBeVisible();
@@ -211,11 +200,6 @@ test.describe('revs rooms', () => {
     const phone = testInfo.project.name === 'phone';
     await openAs(page, 'inspector', '/p/job-s/revs/room-mock-room-110');
     const room = page.getByTestId('rev-room-page');
-    // A manager's moves wait behind Edit.
-    await expect(room.getByTestId('rev-room-edit')).toHaveCount(0);
-    await expect(room.getByTestId('rev-room-out-mock-rev-area-1')).toHaveCount(0);
-    await room.getByTestId('rev-room-edit-mode').click();
-    await expect(room.getByTestId('rev-room-edit-mode')).toHaveAttribute('aria-pressed', 'true');
     await room.getByTestId('rev-room-edit').click();
     await room.getByTestId('rev-room-number').fill('111');
     await room.getByTestId('rev-room-name-input').fill('Hall');
@@ -254,7 +238,6 @@ test.describe('revs rooms', () => {
     await openAs(page, 'ahj', '/p/job-s/revs/room-mock-room-205?level=Level%2002');
     await expect(room.getByTestId('room-image')).toBeVisible();
     await expect(room.getByTestId('room-image').getByTestId('sheet-full')).toBeHidden();
-    await room.getByTestId('rev-room-edit-mode').click();
     await expect(room.getByTestId('rev-room-draw-mock-rev-area-6')).toHaveCount(0);
     await expect(room.getByTestId('rev-room-add-pick').locator('option')).toHaveText(['Add wall', 'Shaftwall at Stair 2 (C–D / 3–4)']);
     await room.getByTestId('rev-room-out-mock-rev-area-6').click();
@@ -276,10 +259,9 @@ test.describe('revs rooms', () => {
     const wall = page.getByTestId('rev-wall-page');
     await wall.getByTestId('rev-section-2').getByTestId('rev-before-rev').click();
     await wall.getByTestId('rev-before-ofs').fill('41');
-    await expect(wall.getByTestId('rev-before-ir-41')).toHaveAttribute('aria-pressed', 'true');
     await wall.getByTestId('rev-form-save').click();
     await expect(wall.getByTestId('rev-wall-strip').getByTestId('rev-chip-2')).toHaveAttribute('data-mark', 'done');
-    await linkFiles(page, '1 picture linked.');
+    await linkFiles(page, '1 picture and 2 IRs linked.');
 
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
     const row = page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
@@ -289,12 +271,6 @@ test.describe('revs rooms', () => {
     await expect(items.getByTestId('rev-line-1').getByTestId('rev-line-label')).toHaveText('Rev 1 · HOW - Cavity');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveText('Beam Pockets');
     await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveAttribute('aria-label', 'HOW Beam Pockets: Open');
-    // CJ is done: one quiet line with its OFS number; a tap opens it.
-    const cj = items.getByTestId('rev-line-2');
-    await expect(cj).toHaveAttribute('data-done', 'true');
-    await expect(cj.getByTestId('rev-done-text')).toHaveText('Done · 0041');
-    await expect(cj.getByTestId('rev-item-chip-mock-rev-item-2-1')).toHaveCount(0);
-    await cj.getByTestId('rev-line-open').click();
     const stuffing = items.getByTestId('rev-item-chip-mock-rev-item-2-1');
     await expect(stuffing).toHaveAttribute('data-status', 'passed');
     await expect(stuffing).toHaveAttribute('data-file', 'true');

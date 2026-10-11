@@ -3,8 +3,7 @@
 //   * rev_wall_history: every inspection of a wall, per item, newest first: the in-app requests (IR and OFS numbers, the
 //     day, the result, whether I may open the request) and the sign-offs before the app (OFS number, day, note, and the
 //     OFS IR on file when it was linked).
-//   * The job's sign-offs before the app (rev_signoffs, read as me): what each says (OFS number, day, note), for a
-//     manager's change and its Undo, and the OFS IR on file, which a done chip opens.
+//   * The job's sign-offs whose OFS IR is on file (rev_signoffs, read as me): a rev strip's done chip opens it.
 //   * A room's cropped plan image, or a sign-off's OFS IR: the ir-map function's 'rev_file' action, authorize_rev_file as
 //     me (whoever reads revs on the job, those files only, the scan rules), logged as a preview, a 10-minute URL. Its
 //     Download ('rev_file_download') asks the same gate, logged as a download, with the original filename.
@@ -46,33 +45,21 @@ export function useWallHistory(projectId: string, areaId: string) {
   return useQuery({ queryKey: qk.revsPart(projectId, `history:${areaId}`), queryFn: () => fetchHistory(projectId, areaId) });
 }
 
-const signoffSchema = z.object({
-  id: z.string(),
-  area_id: z.string(),
-  item_id: z.string(),
-  ofs_number: z.number().int().nullable(),
-  signed_on: z.string().nullable(),
-  note: z.string().nullable(),
-  file_id: z.string().nullable(),
-});
-/** A live sign-off before the app: what it says, and its OFS IR when on file (rev_signoffs.file_id). */
-export type SignoffRow = z.infer<typeof signoffSchema>;
+const signoffFileSchema = z.object({ area_id: z.string(), item_id: z.string(), file_id: z.string() });
+/** A sign-off before the app whose OFS IR is on file (rev_signoffs.file_id, linked by Link files). */
+export type SignoffFile = z.infer<typeof signoffFileSchema>;
 
-async function fetchSignoffs(projectId: string): Promise<SignoffRow[]> {
-  if (isMock()) return mockWalls.signoffs(projectId);
+async function fetchSignoffFiles(projectId: string): Promise<SignoffFile[]> {
+  if (isMock()) return mockWalls.signoffFiles(projectId);
   const rows = throwIfError(
-    await supabase
-      .from('rev_signoffs')
-      .select('id, area_id, item_id, ofs_number, signed_on, note, file_id')
-      .eq('project_id', projectId)
-      .is('deleted_at', null),
+    await supabase.from('rev_signoffs').select('area_id, item_id, file_id').eq('project_id', projectId).is('deleted_at', null).not('file_id', 'is', null),
   );
-  return z.array(signoffSchema).parse(rows);
+  return z.array(signoffFileSchema).parse(rows);
 }
 
-/** The job's live sign-offs before the app (RLS: revs.read). Refreshes with the job's revs. */
-export function useSignoffs(projectId: string) {
-  return useQuery({ queryKey: qk.revsPart(projectId, 'signoffs'), queryFn: () => fetchSignoffs(projectId) });
+/** The job's sign-offs before the app with their OFS IR on file (RLS: revs.read). Refreshes with the job's revs. */
+export function useSignoffFiles(projectId: string) {
+  return useQuery({ queryKey: qk.revsPart(projectId, 'signoff-files'), queryFn: () => fetchSignoffFiles(projectId) });
 }
 
 const fileSchema = z.object({ url: z.string().url(), filename: z.string().min(1), mime: z.string().min(1) });

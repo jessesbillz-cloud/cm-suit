@@ -1,9 +1,7 @@
 // e2e mock of Revs' files (0083, 0094), the database's rules in short form: Link files (each room's picture by its
 // name, each sign-off's OFS IR by its number, each wall's sheet by its number), the app's folders (Room pictures, Reports
 // / OFS history), a file just added linked at once (the newest of its name or number), and a room's picture from its
-// page, and the job's OFS IRs a sign-off form offers by number. The rooms' state is mock/revRooms', the files are
-// mock/api's (and the synthetic OFS IRs "in Files", OFS_FILES). Nothing real.
-import type { OfsFileRow } from '../revs.types';
+// page. The rooms' state is mock/revRooms', the files are mock/api's. Nothing real.
 import type { FileLink, Linked, RevFolder, RevRoom } from '../revs.rooms';
 import type { FileRow } from '../types';
 import * as mockApi from './api';
@@ -38,23 +36,6 @@ async function sheetOf(projectId: string, ref: string): Promise<string | null> {
   return hit?.id ?? null;
 }
 
-/** rev_signoff_file_of: a number's OFS IR, one added from Revs (the newest) before the synthetic ones in Files. */
-function irOf(mine: readonly FileRow[], ofs: number): string | undefined {
-  return mine.find((f) => nameHas(f.original_name, ofs))?.id ?? OFS_FILES.find(([, , n]) => n === ofs)?.[0];
-}
-
-/** The job's files whose name carries an OFS number, as the sign-off form reads them (the synthetic ones are old). */
-export async function ofsFileRows(projectId: string): Promise<OfsFileRow[]> {
-  await delay();
-  must('revs.manage');
-  const mine = (await added(projectId)).filter((f) => /OFS/i.test(f.original_name));
-  const old = '2026-09-01T16:00:00Z';
-  return [
-    ...OFS_FILES.map(([id, name]) => ({ id, original_name: name, mime: 'application/pdf', created_at: old, upload_complete: true, scan_status: 'clean' })),
-    ...mine.map((f) => ({ id: f.id, original_name: f.original_name, mime: f.mime, created_at: f.created_at, upload_complete: f.upload_complete, scan_status: f.scan_status })),
-  ];
-}
-
 /** Link files: each room's picture by its name, each sign-off's OFS IR by its number, each wall's sheet by its number. */
 export async function linkFiles(projectId: string): Promise<Linked> {
   await delay();
@@ -73,11 +54,12 @@ export async function linkFiles(projectId: string): Promise<Linked> {
       return bump(r, { image_file_id: img });
     }),
   }));
+  const irOf = (ofs: number) => mine.find((f) => nameHas(f.original_name, ofs))?.id ?? OFS_FILES.find(([, , n]) => n === ofs)?.[0];
   let files = 0;
   writeRevs((x) => ({
     ...x,
     signoffs: x.signoffs.map((so) => {
-      const f = so.ofs_number === null ? undefined : irOf(mine, so.ofs_number);
+      const f = so.ofs_number === null ? undefined : irOf(so.ofs_number);
       if (so.project_id !== projectId || so.deleted_at !== null || f === undefined || f === so.file_id) return so;
       files += 1;
       return bump(so, { file_id: f });
@@ -108,8 +90,7 @@ export async function filesFolder(projectId: string, which: RevFolder): Promise<
 export async function linkFile(projectId: string, fileId: string): Promise<FileLink> {
   await delay();
   must('revs.manage');
-  const known = OFS_FILES.find(([id]) => id === fileId);
-  const f = known ? { id: known[0], original_name: known[1], mime: 'application/pdf', project_id: projectId } : await mockApi.file(fileId);
+  const f = await mockApi.file(fileId);
   if (!f || f.project_id !== projectId) throw fail('That item no longer exists.', 'P0002');
   const mine = await added(projectId);
   const newest = (match: (x: FileRow) => boolean) => mine.find(match)?.id === f.id;
@@ -129,7 +110,7 @@ export async function linkFile(projectId: string, fileId: string): Promise<FileL
     ...x,
     signoffs: x.signoffs.map((so) => {
       const n = so.ofs_number;
-      if (so.project_id !== projectId || so.deleted_at !== null || n === null || !nameHas(f.original_name, n) || irOf(mine, n) !== f.id) return so;
+      if (so.project_id !== projectId || so.deleted_at !== null || n === null || !nameHas(f.original_name, n) || !newest((y) => nameHas(y.original_name, n))) return so;
       signoffs += 1;
       return so.file_id === f.id ? so : bump(so, { file_id: f.id });
     }),

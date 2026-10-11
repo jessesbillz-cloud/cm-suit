@@ -4,9 +4,9 @@
 // and its facts under the drawing; a tap on the wall shows that part's item. Up to three items still to ask for are
 // picked for Request (Inspections > new, prefilled). On a desktop it fills the main area (the drawing beside the
 // items when there is room); on a phone it is its own screen with the drawing held at the top while the items scroll.
-// A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app, or changes one
-// (0082, 0095: the form opens over the items). At the top, the wall highlighted on its room's image (0083, the little
-// picker: a tap opens it full screen) beside where it is on the plan; at the bottom its history, every inspection per item (a tap
+// A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app (0082: the
+// form opens over the items). At the top, the wall highlighted on its room's image (0083, the little picker: a tap
+// opens it full screen) beside where it is on the plan; at the bottom its history, every inspection per item (a tap
 // opens the request or the OFS IR beside the page on a desktop). Under the callout, its rev strip (RevStrip): a done
 // chip with its OFS IR on file opens it, any other shows that rev's first item. Opened from an item's chip on its room's
 // row or tile (?item=), that item is shown. Opened from a room, Back goes to the room, else to its level. In its own
@@ -15,7 +15,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
-import { useSignoffs, useWallHistory } from '../../data/revs.history';
+import { useSignoffFiles, useWallHistory } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevSetup } from '../../data/revs.types';
@@ -38,7 +38,7 @@ import { WallFacts } from './WallFacts';
 import { WallHeader } from './WallHeader';
 import { WallHistory } from './WallHistory';
 import { WallItems } from './WallItems';
-import { useWallSigning } from './WallBefore';
+import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
 import { useWallManage } from './WallManage';
 import { countOf, firstPick, keepAskable, MAX_PICK, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
 import type { WallPart } from './wallParts';
@@ -88,7 +88,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   // Beside the page on a desktop; on a phone (or alone in a window) the request is its own screen, a file the viewer.
   const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
-  const signoffs = useSignoffs(projectId);
+  const signoffs = useSignoffFiles(projectId);
   const history = useWallHistory(projectId, area.id);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
   const revs = useMemo(() => wallRevs(setup, index, area), [setup, index, area]);
@@ -102,7 +102,8 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
     const at = pickAt(items, focusItem);
     if (at) setPick(at);
   }
-  const signing = useWallSigning(projectId, area.id, signoffs.data);
+  const [signing, setSigning] = useState<SignTarget | null>(null);
+  const before = useSignoffActions(projectId, area.id);
   // A picked item that passed or went N/A meanwhile is no longer picked.
   const pick = keepAskable(chosen, items);
   const shown = items.find((i) => i.item.id === pick.focus) ?? null;
@@ -209,20 +210,26 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
             canManage={canManage}
             onOpenRequest={nav.openRequest}
             canOpen={canOpen}
-            onSignBefore={(i) => { signing.sign([i.item.id], i.item.name); }}
-            onChangeBefore={(i) => { signing.change(i.item.id, i.item.name); }}
-            onClearBefore={(i) => { signing.clear(i.item.id, i.item.name); }}
+            onSignBefore={(i) => { setSigning({ itemIds: [i.item.id], label: i.item.name }); }}
+            onClearBefore={(i) => { before.clear({ itemIds: [i.item.id], label: i.item.name }); }}
           />
         </div>
         {/* On a phone, an item scrolled to (or focused) lands clear of the drawing held at the top and the bar below. */}
         <div className={isPhone ? '[&_button]:scroll-mb-24 [&_button]:scroll-mt-[calc(36dvh+7rem)]' : undefined}>
-          {signing.form}
+          {signing ? (
+            <SignoffForm
+              key={signing.itemIds.join(',')}
+              target={signing}
+              onSave={(v) => before.set(signing, v)}
+              onCancel={() => { setSigning(null); }}
+            />
+          ) : null}
           <WallItems
             revs={revs}
             items={items}
             pick={pick}
             onTap={onTap}
-            onSignRev={canManage ? (rev, itemIds) => { signing.sign(itemIds, `Rev ${String(rev.number)} · ${rev.name}`); } : undefined}
+            onSignRev={canManage ? (rev, itemIds) => { setSigning({ itemIds, label: `Rev ${String(rev.number)} · ${rev.name}` }); } : undefined}
           />
         </div>
       </div>
@@ -271,7 +278,7 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
   const manage = useCapability(projectId, 'revs.manage');
   const ask = useCapability(projectId, 'ir.request');
   const jobs = useMyProjects();
-  const signoffs = useSignoffs(projectId);
+  const signoffs = useSignoffFiles(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const zone = jobs.data?.find((p) => p.project_id === projectId)?.timezone;
 
