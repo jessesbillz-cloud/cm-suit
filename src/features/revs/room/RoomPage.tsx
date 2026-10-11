@@ -4,8 +4,10 @@
 // its walls as rows, each with its items by rev. No picture: nothing for readers, a slim place for a manager's (RoomImage).
 // A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
 // line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
+// Request inspection (those who may ask, ir.request; Jesse, Oct 10: "do it for the whole room very easily") opens a new
+// OFS request with every wall of the room picked, the items to pick first.
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useCapability } from '../../../data/queries';
 import { useSignoffFiles } from '../../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../../data/revs.queries';
@@ -43,6 +45,8 @@ interface BodyProps {
   rooms: RevRooms;
   files: SignoffFiles;
   canManage: boolean;
+  /** May ask for inspections (ir.request). */
+  canRequest: boolean;
   isPhone: boolean;
 }
 
@@ -52,7 +56,7 @@ const FRAME_SIZE = `${FRAME} h-[32dvh] min-h-[200px] sm:h-[320px]`;
 // Full screen of nothing is no use: the slim place has none.
 const FRAME_NONE = `${FRAME} h-16 [&_div:has(>[data-testid=sheet-full])]:hidden`;
 
-function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPhone }: BodyProps) {
+function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canRequest, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const walls = useMemo(() => roomWalls(setup, index, rooms, room.id), [setup, index, rooms, room.id]);
   const count = roomCount(walls);
@@ -118,6 +122,20 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, isPh
           ) : null}
         </div>
         <WallProgress count={count} withLine testId="rev-room-progress" />
+        {canRequest && count.needed > count.passed + count.requested ? (
+          <Button
+            variant="primary"
+            icon={Plus}
+            size={isPhone ? 'lg' : 'md'}
+            className={isPhone ? 'w-full' : 'self-start'}
+            data-testid="rev-room-request"
+            onClick={() => {
+              nav.request(walls.map((w) => w.area.id), []);
+            }}
+          >
+            Request inspection
+          </Button>
+        ) : null}
       </header>
       {editing ? <RoomForm room={room} onSave={act.rename} onCancel={() => { setEditing(false); }} /> : null}
       {full ? null : drawBar}
@@ -196,15 +214,16 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const manage = useCapability(projectId, 'revs.manage');
+  const ask = useCapability(projectId, 'ir.request');
   const signoffs = useSignoffFiles(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
 
   let body: ReactNode;
-  const failed = [setup, status, rooms, manage, signoffs].find((q) => q.isError);
+  const failed = [setup, status, rooms, manage, ask, signoffs].find((q) => q.isError);
   const room = rooms.data?.rooms.find((r) => r.id === roomId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
-  else if (!setup.data || !status.data || !rooms.data || manage.isPending) body = <LoadingState label="Loading the room" />;
+  else if (!setup.data || !status.data || !rooms.data || manage.isPending || ask.isPending) body = <LoadingState label="Loading the room" />;
   else if (!room) body = <EmptyState title="This room is no longer on the job." />;
   else {
     body = (
@@ -217,6 +236,7 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
         rooms={rooms.data}
         files={files}
         canManage={manage.data === true}
+        canRequest={ask.data === true}
         isPhone={isPhone}
       />
     );

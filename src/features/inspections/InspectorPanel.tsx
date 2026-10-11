@@ -1,6 +1,6 @@
 // The steps of whoever decides one request (the inspector; the deputy on an OFS request sent to OFS), each small,
 // redoable and silent unless noted: Confirm, Attendance, Approved / Not approved (wall by wall on an OFS request with
-// walls), Generate IR, Send results; then Move and Postpone, and the helper (never on an OFS request: it is the
+// walls; the fire marshal may record it without confirming first, model resultsNow), Generate IR, Send results; then Move and Postpone, and the helper (never on an OFS request: it is the
 // deputy's alone). Each step is a card; the one to do now stands out. The database checks every one. Signing a passed
 // OFS request makes its map again, with the signature on it.
 import { useState } from 'react';
@@ -46,8 +46,9 @@ export function InspectorPanel({ row, me, jobName, revs, helper = true }: Inspec
   const movable = row.status !== 'complete' && row.result === null;
   const postponable = canPostpone(row.status);
   const steps = inspectorSteps(row);
-  // Confirm has controls while waiting, and "Back to pending" until there is a result.
-  const confirmControls = steps.confirm === 'current' || (row.status === 'confirmed' && row.result === null);
+  // Confirm has controls while waiting (beside the result on an OFS request with OFS), and "Back to pending" until
+  // there is a result.
+  const confirmControls = steps.confirm !== 'done' || (row.status === 'confirmed' && row.result === null);
 
   return (
     <section className="flex flex-col gap-2" aria-label="Inspector" data-testid="ir-inspector">

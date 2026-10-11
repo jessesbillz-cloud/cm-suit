@@ -27,7 +27,7 @@ import { InspectorPanel } from './InspectorPanel';
 import { irPdfItem } from './irItems';
 import { OfsChecks } from './OfsChecks';
 import { IrMap } from './IrMap';
-import { decidesRequest, ownsSteps, requestChip, resultOpen, routesOnly, trackerSteps, typeLabel } from './model';
+import { decidesRequest, ownsSteps, requestChip, resultsNow, routesOnly, trackerSteps, typeLabel } from './model';
 import { OfsRoute } from './OfsRoute';
 import { RequestDetails } from './RequestDetails';
 import { RequesterActions } from './RequesterActions';
@@ -84,10 +84,10 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const duties = useDuties(row.project_id, ofs);
   const duty = duties.data?.[0];
   const holder = duty !== undefined && duty.person_id === user.id;
-  // My step cards show on this request (InspectorPanel). The deputy records each wall in his Result step once it is
-  // confirmed; everyone else (and he, before that) sees the walls with their results here.
+  // My step cards show on this request (InspectorPanel). The deputy records each wall in his Result step as soon as
+  // it is with OFS (no Confirm first); everyone else (and he, while it is postponed) sees the walls with their results here.
   const mySteps = decides && !routesOnly(row) && ownsSteps(row, user.id);
-  const deciding = mySteps && resultOpen(row.status);
+  const deciding = mySteps && resultsNow(row);
 
   function save(fileId?: string) {
     download.mutate(

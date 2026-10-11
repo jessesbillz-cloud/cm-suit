@@ -40,7 +40,6 @@ test.describe('OFS request flow', () => {
     await page.goto('/p/job-s/inspections/new?areas=mock-rev-area-4&items=mock-rev-item-3-1');
     await expect(page.getByTestId('rev-picker')).toBeVisible();
     await page.getByTestId('ir-special-required-yes').click();
-    await page.getByTestId('ir-ack').check();
     await page.getByTestId('ir-submit').click();
     await expect(page.getByTestId('ir-attest-text')).toHaveText(WORDING);
     await page.getByTestId('ir-attest-back').click();

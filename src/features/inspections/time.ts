@@ -1,7 +1,7 @@
 // Times, lengths, days and slot conflicts for inspection requests. Pure; tested in time.test.ts.
 // Days are calendar days (yyyy-MM-dd) in the job's zone; "today" comes from lib/dates. Date math only: every label
 // that shows a date goes through lib/dates.
-import { addDays, endOfMonth, format, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, endOfMonth, format, isWeekend, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import type { DurationKind } from '../../data/inspections.types';
 
 export const FLEXIBLE = 'flexible';
@@ -154,4 +154,16 @@ export function whenOf(p: WhenPick): { date: string; startTime: string | null; d
 /** The date a new request starts with: the day I'm looking at, unless it's already past. */
 export function requestDay(selected: string, today: string): string {
   return selected >= today ? selected : today;
+}
+
+/** The first Monday to Friday after a day. */
+export function nextWorkingDay(day: string): string {
+  let next = addDays(parseISO(day), 1);
+  while (isWeekend(next)) next = addDays(next, 1);
+  return format(next, 'yyyy-MM-dd');
+}
+
+/** An OFS request's date to start with (24 hours notice): a later day I'm looking at, else the next working day. */
+export function ofsRequestDay(selected: string, today: string): string {
+  return selected > today ? selected : nextWorkingDay(today);
 }

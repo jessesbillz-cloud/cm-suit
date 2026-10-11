@@ -243,3 +243,34 @@ test.describe('setup: first company and job, new job (SPEC §5.1)', () => {
     expect(await taps(page)).toBe(3);
   });
 });
+
+// Jesse, Oct 10 (the fire marshal's demo): a whole room, two items, from the room in Revs. Before: open a wall, its
+// items, Request, then each other wall of the room, the notice box, the question, Request, I confirm (12 for a room of
+// four walls). Now: room, Request inspection, 2 items, No, Request, I confirm = 7, on the desktop and the phone.
+test.describe('tap budgets, OFS request from a room', () => {
+  test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
+
+  test('whole room, 2 items = 7 taps', async ({ page }) => {
+    await installTapCounter(page, 'sub');
+    await page.goto('/p/job-s/revs'); // setup: Revs, the rooms of Level 01
+    const room = page.getByTestId('rev-rooms').getByTestId('rev-room-mock-room-110');
+    await expect(room).toBeVisible();
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(room, counter);
+    await tap(page.getByTestId('rev-room-request'), counter);
+    for (const w of ['mock-rev-area-1', 'mock-rev-area-2']) {
+      await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
+    }
+    await tap(page.getByTestId('rev-item-mock-rev-item-3-1'), counter);
+    await tap(page.getByTestId('rev-item-mock-rev-item-3-2'), counter);
+    await tap(page.getByTestId('ir-special-required-no'), counter);
+    await tap(page.getByTestId('ir-submit'), counter);
+    await tap(page.getByTestId('ir-attest-confirm'), counter);
+
+    await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
+    expect(counter.n).toBe(7);
+    expect(await taps(page)).toBe(7);
+  });
+});

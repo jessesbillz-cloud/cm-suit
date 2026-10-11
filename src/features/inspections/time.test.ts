@@ -7,6 +7,8 @@ import {
   durationOf,
   durationValue,
   monthOf,
+  nextWorkingDay,
+  ofsRequestDay,
   requestDay,
   spanOf,
   timeValue,
@@ -88,5 +90,15 @@ describe('days', () => {
   it('a new request starts on the day being viewed, never in the past', () => {
     expect(requestDay('2026-10-05', '2026-10-01')).toBe('2026-10-05');
     expect(requestDay('2026-09-20', '2026-10-01')).toBe('2026-10-01');
+  });
+  it('starts an OFS request on the next working day, or on a later day being looked at', () => {
+    // 2026-10-09 is a Friday.
+    expect(nextWorkingDay('2026-10-08')).toBe('2026-10-09');
+    expect(nextWorkingDay('2026-10-09')).toBe('2026-10-12');
+    expect(nextWorkingDay('2026-10-10')).toBe('2026-10-12');
+    expect(nextWorkingDay('2026-12-31')).toBe('2027-01-01');
+    expect(ofsRequestDay('2026-10-09', '2026-10-09')).toBe('2026-10-12');
+    expect(ofsRequestDay('2026-10-01', '2026-10-09')).toBe('2026-10-12');
+    expect(ofsRequestDay('2026-10-14', '2026-10-09')).toBe('2026-10-14');
   });
 });

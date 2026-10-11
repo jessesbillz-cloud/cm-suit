@@ -1,8 +1,9 @@
 // After a request is sent: the IR number the database gave it (and its OFS IR number), what was asked, and who has it
 // now (the GC only when the request is with the GC; OFS when the inspector filed an OFS request himself). An OFS
-// request with walls shows its map right here (children), to draw while on the spot.
+// request with walls shows its map right here (children), to draw while on the spot. File another like this (MDR's
+// repeat): the same request again, the next working day, in one tap.
 import type { ReactNode } from 'react';
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck, Copy } from 'lucide-react';
 import type { IrRowRaw } from '../../data/inspections.types';
 import { formatDay } from '../../lib/dates';
 import { ofsIrLabel } from '../../lib/markup';
@@ -17,10 +18,12 @@ interface ReceiptProps {
   specialName: string | null;
   onTrack: () => void;
   onAnother: () => void;
+  /** The same request again, the next working day. */
+  onAgain: () => void;
   children?: ReactNode | undefined;
 }
 
-export function Receipt({ row, specialName, onTrack, onAnother, children }: ReceiptProps) {
+export function Receipt({ row, specialName, onTrack, onAnother, onAgain, children }: ReceiptProps) {
   const chip = requestChip(row);
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="ir-receipt">
@@ -47,9 +50,12 @@ export function Receipt({ row, specialName, onTrack, onAnother, children }: Rece
         {waitingOn(row)}
       </p>
       {children}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant={children ? 'secondary' : 'primary'} onClick={onTrack}>
           Track it
+        </Button>
+        <Button icon={Copy} onClick={onAgain} data-testid="ir-again">
+          File another like this
         </Button>
         <Button onClick={onAnother}>New request</Button>
       </div>
