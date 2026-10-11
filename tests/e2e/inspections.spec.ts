@@ -50,8 +50,10 @@ test.describe('inspections (SPEC §13.2)', () => {
     const conflicts = page.getByTestId('ir-conflicts');
     await expect(conflicts.getByRole('listitem').first().or(conflicts.getByText('Open day.'))).toBeVisible();
     await expect(conflicts).not.toContainText('Overlaps');
-    await expect(page.getByTestId('ir-submit')).toBeDisabled();
+    // Never a silent grey button: the bar says what is still missing (Jesse, Oct 10).
+    await expect(page.getByTestId('ir-submit-hint')).toHaveText('Tick the notice');
     await page.getByTestId('ir-ack').check();
+    await expect(page.getByTestId('ir-submit-hint')).toHaveText('A request, not a booking.');
     await page.getByTestId('ir-submit').click();
     await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
     const n = ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');

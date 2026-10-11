@@ -1,7 +1,8 @@
 // What an OFS request asks beyond any other (SPEC §18.4 P1; the route is the readiness check, so no box per item): one
 // question, "Special inspection required?", nothing preselected, with a notice on Yes (the member form and the no-login
-// page); and, when the inspector files the request himself, his one statement (the member form). The notice box is
-// every other request's (an OFS one from anyone else states it in the attestation's I confirm).
+// page); and, when the inspector files the request himself, his one statement, which states the notice too (the member
+// form; Jesse, Oct 10: one box, not two). The notice box is every other request's (an OFS one from anyone else states it
+// in the attestation's I confirm).
 import { ChoiceRow } from './ChoiceRow';
 import { INSPECTOR_STATEMENT, NOTICE_STATEMENT, SPECIAL_NOTICE, SPECIAL_QUESTION } from './model';
 
@@ -80,7 +81,10 @@ export function InspectorStatement({ checked, onChange }: InspectorStatementProp
           onChange(e.target.checked);
         }}
       />
-      <span>{INSPECTOR_STATEMENT}</span>
+      <span className="flex flex-col gap-1">
+        <span>{INSPECTOR_STATEMENT}</span>
+        <span>{NOTICE_STATEMENT}</span>
+      </span>
     </label>
   );
 }

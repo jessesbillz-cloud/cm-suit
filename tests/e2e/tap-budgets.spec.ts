@@ -260,9 +260,7 @@ test.describe('tap budgets, OFS request from a room', () => {
     const counter = { n: 0 };
     await tap(room, counter);
     await tap(page.getByTestId('rev-room-request'), counter);
-    for (const w of ['mock-rev-area-1', 'mock-rev-area-2']) {
-      await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
-    }
+    await expect(page.getByTestId('rev-pick-room-mock-room-110')).toHaveAttribute('aria-pressed', 'true');
     await tap(page.getByTestId('rev-item-mock-rev-item-3-1'), counter);
     await tap(page.getByTestId('rev-item-mock-rev-item-3-2'), counter);
     await tap(page.getByTestId('ir-special-required-no'), counter);

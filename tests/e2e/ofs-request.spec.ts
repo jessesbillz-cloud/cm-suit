@@ -1,6 +1,6 @@
 // The OFS request on a job with revs (0056) and its route (0061; SPEC §18.4 P1) against the e2e mock (job-s, Sample
-// Science Building, whose own GC step is off): a link from Revs prefills the wall and item buttons (ui/ChipPick:
-// aria-pressed), three items at most (OSFM: three colors on a sheet), one question (special inspection required?), the
+// Science Building, whose own GC step is off): a link from Revs prefills the item buttons (ui/ChipPick: aria-pressed)
+// and the rooms holding its walls (rev-pick-room-<room>: aria-pressed true, or mixed while only some walls are picked), three items at most (OSFM: three colors on a sheet), one question (special inspection required?), the
 // map opens right after sending and one stroke saves itself. Then the route: the request waits on the GC (always, on an
 // OFS request); the inspector sends it to OFS or postpones it, and never confirms it; once sent it is read only for him
 // (Undo until the deputy acts) and the deputy's to confirm and decide wall by wall. The deputy reads the OFS requests
@@ -84,9 +84,13 @@ test.describe('OFS request with revs', () => {
     await page.goto(`/p/job-s/inspections/new?areas=${WALLS.join(',')}&items=${ITEMS.join(',')}`);
     await expect(page.getByTestId('rev-picker')).toBeVisible();
     await expect(page.getByTestId('ir-kind-ofs')).toHaveAttribute('aria-checked', 'true');
-    for (const w of WALLS) await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
-    // Only the walls the link came with, until Add walls.
-    await expect(page.getByTestId('rev-wall-mock-rev-area-1')).toHaveCount(0);
+    // Room first: the rooms holding the walls the link came with (Stair 2 and 210 whole, 205 one of its two walls),
+    // only those until Add walls.
+    await expect(page.getByTestId('rev-pick-room-mock-room-s2')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('rev-pick-room-mock-room-210')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('rev-pick-room-mock-room-205')).toHaveAttribute('aria-pressed', 'mixed');
+    await expect(page.getByTestId('rev-pick-room-mock-room-205')).toContainText('1 of 2 walls');
+    await expect(page.getByTestId('rev-pick-room-mock-room-110')).toHaveCount(0);
     await expect(page.getByTestId('rev-walls-more')).toBeVisible();
 
     // The first three items in list order; a fourth (in any rev) can't be picked until one comes off.
@@ -107,7 +111,7 @@ test.describe('OFS request with revs', () => {
     // One question, nothing preselected, needed to send; Yes shows the notice. A sub has no box to check: the notice
     // is in the attestation's one I confirm.
     await expect(page.getByTestId('ir-ack')).toHaveCount(0);
-    await expect(page.getByTestId('ir-submit')).toBeDisabled();
+    await expect(page.getByTestId('ir-submit-hint')).toHaveText('Special inspection? Yes or No');
     await expect(page.getByTestId('ir-inspector-ack')).toHaveCount(0);
     await page.getByTestId('ir-special-required-yes').click();
     await expect(page.getByTestId('ir-special-required-notice')).toHaveText(NOTICE);
@@ -254,8 +258,10 @@ test.describe('OFS request with revs', () => {
     await openAs(page, 'inspector', '/p/job-s/inspections/new?areas=mock-rev-area-4&items=mock-rev-item-3-1');
     await expect(page.getByTestId('rev-picker')).toBeVisible();
     await page.getByTestId('ir-special-required-no').click();
-    await page.getByTestId('ir-ack').check();
-    await expect(page.getByTestId('ir-submit')).toBeDisabled();
+    // One box: his statement states the notice too (Jesse, Oct 10).
+    await expect(page.getByTestId('ir-ack')).toHaveCount(0);
+    await expect(page.getByTestId('ir-inspector-ack').locator('..')).toContainText('24 hours notice');
+    await expect(page.getByTestId('ir-submit-hint')).toHaveText('Tick the statement');
     await page.getByTestId('ir-inspector-ack').check();
     await page.getByTestId('ir-submit').click();
     const n = await receiptNumber(page);

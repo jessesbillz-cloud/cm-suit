@@ -2,11 +2,13 @@
 // Building; src/data/mock/revRooms.ts: room 110 Corridor on Level 01 holds the corridor's north wall, mock-rev-area-2,
 // and the stair shaftwall, mock-rev-area-1). The room's Request inspection opens the form with every wall of the room
 // picked; what to inspect comes first, items with their short names under "Rev N · name", the limit said once; the
-// walls below, a tap takes one off, Add walls shows the rest of the list. An OFS request starts on the next working day,
+// room below, already picked (room first), its Walls show its walls, a tap takes one off, Add walls shows the rest of
+// the list. An OFS request starts on the next working day,
 // and the sub's one I confirm states the job's attestation and the notice (no box). The receipt files another like this
 // in one tap: same walls, items, time and answer, the next working day. The fire marshal records All passed without
 // Confirm first. Mock users: 'sub' asks, 'pm' is the GC, 'inspector' routes, 'ahj' is the fire marshal's deputy.
-// Test ids: rev-room-request (the room page's button), rev-items-pick, rev-items-max, rev-walls-pick, rev-walls-more,
+// Test ids: rev-room-request (the room page's button), rev-items-pick, rev-items-max, rev-rooms-pick, rev-pick-room-<room>
+// (and -walls, its Walls), rev-walls-more,
 // ir-attest-notice, ir-again (the receipt's File another like this).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
@@ -70,13 +72,16 @@ test.describe('OFS request from a room', () => {
     await requestRoom(page);
     await expect(page).toHaveURL(new RegExp(`areas=${NORTH}(%2C|,)${SHAFT}`));
     await expect(page.getByTestId('ir-kind-ofs')).toHaveAttribute('aria-checked', 'true');
-    for (const w of [NORTH, SHAFT]) await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
-    // Only the room's walls until Add walls.
+    // The room, picked whole; only the room until Add walls.
+    const room = page.getByTestId('rev-pick-room-mock-room-110');
+    await expect(room).toHaveAttribute('aria-pressed', 'true');
+    await expect(room).toContainText('110 Corridor');
+    await expect(room).toContainText('2 walls');
     await expect(page.getByTestId('rev-wall-mock-rev-area-3')).toHaveCount(0);
 
     // What to inspect comes first, the limit said once; short names; passed on every picked wall: done, greyed.
     const items = await page.getByTestId('rev-items-pick').boundingBox();
-    const walls = await page.getByTestId('rev-walls-pick').boundingBox();
+    const walls = await page.getByTestId('rev-rooms-pick').boundingBox();
     expect(items && walls && items.y < walls.y).toBe(true);
     await expect(page.getByTestId('rev-items-max')).toHaveText('Pick up to 3');
     const stuff = page.getByTestId('rev-item-mock-rev-item-1-1');
@@ -93,9 +98,13 @@ test.describe('OFS request from a room', () => {
     await expect(page.getByTestId('ir-ack')).toHaveCount(0);
 
     for (const i of ITEMS) await page.getByTestId(`rev-item-${i}`).click();
-    // Wall by wall: the shaftwall off. Add walls shows the rest of the list.
+    // The room's Walls: the shaftwall off. Add walls shows the rest of the list.
+    await page.getByTestId('rev-pick-room-mock-room-110-walls').click();
+    for (const w of [NORTH, SHAFT]) await expect(page.getByTestId(`rev-wall-${w}`)).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId(`rev-wall-${SHAFT}`).click();
     await expect(page.getByTestId(`rev-wall-${SHAFT}`)).toHaveAttribute('aria-pressed', 'false');
+    await expect(room).toHaveAttribute('aria-pressed', 'mixed');
+    await expect(room).toContainText('1 of 2 walls');
     await page.getByTestId('rev-walls-more').click();
     await expect(page.getByTestId('rev-wall-mock-rev-area-3')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByTestId('rev-walls-more')).toHaveCount(0);
@@ -110,6 +119,8 @@ test.describe('OFS request from a room', () => {
 
     // File another like this: the same walls, items and answer, the next working day; Request, I confirm.
     await page.getByTestId('ir-again').click();
+    await expect(room).toHaveAttribute('aria-pressed', 'mixed');
+    await page.getByTestId('rev-pick-room-mock-room-110-walls').click();
     await expect(page.getByTestId(`rev-wall-${NORTH}`)).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId(`rev-wall-${SHAFT}`)).toHaveAttribute('aria-pressed', 'false');
     for (const i of ITEMS) await expect(page.getByTestId(`rev-item-${i}`)).toHaveAttribute('aria-pressed', 'true');
