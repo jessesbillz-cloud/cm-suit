@@ -11,6 +11,7 @@ import {
   requestChip,
   requestCount,
   resultOpen,
+  resultsNow,
   routesOnly,
   rowChip,
   trackerSteps,
@@ -171,6 +172,16 @@ describe('inspector step cards', () => {
       confirm: 'current', attendance: 'done', result: 'todo', pdf: 'todo', send: 'todo',
     });
     expect([resultOpen('pending'), resultOpen('postponed'), resultOpen('confirmed'), resultOpen('complete')]).toEqual([false, false, true, true]);
+  });
+  it('the fire marshal records an OFS request with OFS straight away; Confirm stays open beside it', () => {
+    const sent = { ...row, kind: 'ofs', ofs_sent_at: '2026-10-09T16:00:00Z' };
+    expect(resultsNow(sent)).toBe(true);
+    expect(inspectorSteps(sent)).toMatchObject({ confirm: 'open', result: 'current' });
+    expect(resultsNow({ ...sent, status: 'postponed' })).toBe(false);
+    expect(inspectorSteps({ ...sent, status: 'postponed' })).toMatchObject({ confirm: 'current', result: 'todo' });
+    expect(resultsNow({ ...sent, ofs_sent_at: null })).toBe(false);
+    expect(resultsNow({ ...row, kind: 'ior' })).toBe(false);
+    expect(inspectorSteps({ ...sent, status: 'confirmed', result: 'approved' })).toMatchObject({ confirm: 'done', result: 'done' });
   });
   it('moves to Result, then the IR, then Send results', () => {
     expect(inspectorSteps({ ...row, status: 'confirmed', attendance: 'alone' })).toEqual({

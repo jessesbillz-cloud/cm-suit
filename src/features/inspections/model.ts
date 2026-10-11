@@ -88,6 +88,9 @@ export function requestChip(r: ChipInput, ofsDecide = false): Chip {
 export const SPECIAL_QUESTION = 'Special inspection required?';
 export const SPECIAL_NOTICE = "Have the special inspector's reports on site for the fire marshal.";
 
+/** The notice a request states (MDR's words). On an OFS request it is said in the attestation's one I confirm. */
+export const NOTICE_STATEMENT = "24 hours notice (48 for special). I'll be present, with safe access and plans on site.";
+
 /** The inspector's one statement when he files an OFS request himself (it goes straight to OFS). */
 export const INSPECTOR_STATEMENT =
   'Submitting as the inspector, I state that the earlier required inspections (trade, GC, IOR and any special inspection) are complete.';
@@ -234,7 +237,7 @@ export function ownsSteps(r: OwnerInput, me: string): boolean {
 /** An inspector step card: done, the one to do now, open (can be done any time), or not reached yet. */
 export type CardState = 'done' | 'current' | 'open' | 'todo';
 
-interface StepsInput {
+interface StepsInput extends RouteInput {
   status: string;
   result: string | null;
   attendance: string | null;
@@ -249,14 +252,21 @@ export function resultOpen(status: string): boolean {
   return status === 'confirmed' || status === 'complete';
 }
 
+/** The fire marshal records an OFS request's result straight away (Jesse, Oct 10): pending with OFS, Pass / Fail or
+ *  All passed confirms it in the same step (ir_rev_results, ir_set_result). Confirm stays, to set a time first. */
+export function resultsNow(r: StepsInput): boolean {
+  return resultOpen(r.status) || (r.status === 'pending' && withOfs(r));
+}
+
 /** Where the inspector is on one request: Confirm → Attendance → Result → IR → Send results. */
 export function inspectorSteps(r: StepsInput): Record<'confirm' | 'attendance' | 'result' | 'pdf' | 'send', CardState> {
   const waiting = r.status === 'pending' || r.status === 'postponed';
   const hasPdf = r.ir_file_id !== null && !r.pdf_stale;
+  const direct = r.status === 'pending' && resultsNow(r);
   return {
-    confirm: waiting ? 'current' : 'done',
+    confirm: direct ? 'open' : waiting ? 'current' : 'done',
     attendance: r.attendance !== null ? 'done' : 'open',
-    result: !resultOpen(r.status) ? 'todo' : r.result !== null ? 'done' : 'current',
+    result: !resultsNow(r) ? 'todo' : r.result !== null ? 'done' : 'current',
     pdf: r.result === null || (r.status === 'postponed' && r.ir_file_id === null) ? 'todo' : hasPdf ? 'done' : 'current',
     send: r.status !== 'complete' || !hasPdf ? 'todo' : r.results_sent_at !== null ? 'done' : 'current',
   };

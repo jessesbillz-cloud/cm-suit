@@ -1,5 +1,5 @@
-// The request picker's items: one button per item that just says what it is, in rev order under a thin "Rev 3 · Drywall"
-// label. Three at most (OSFM: three colors on a sheet); a picked one carries its map color, so the picked buttons are
+// The request picker's items: one button per item that just says what it is (the room page's short name, itemLines:
+// "Stuff" under "HOW - Cavity"), in rev order under a thin "Rev 3 · Drywall" label. Three at most (OSFM: three colors on a sheet); a picked one carries its map color, so the picked buttons are
 // the legend. An item passed or N/A on every picked wall is done: shown with a check, not pickable. One already asked
 // for, or failed last time, has a small status dot.
 import { Check } from 'lucide-react';
@@ -7,6 +7,7 @@ import type { MarkupColor } from '../../lib/markup';
 import { ChipPick, type Chip } from '../../ui/ChipPick';
 import { Icon } from '../../ui/Icon';
 import { Swatch } from './map/MarkupBar';
+import { shortItem } from './itemLines';
 import { GROUP_LABEL } from './RevWalls';
 import { MAX_ITEMS, itemState, type ItemState, type RevGroup, type RevPick, type StatusIndex } from './revPick';
 
@@ -55,7 +56,7 @@ export function RevItems({ groups, index, pick, colors, onToggle }: RevItemsProp
           const on = picked.includes(item.id);
           return {
             value: item.id,
-            label: item.name,
+            label: shortItem(item.name, g.name),
             mark: <Mark state={state} color={on ? colors.get(item.id) : undefined} />,
             // One that became done while picked can still be dropped.
             done: state === 'done' && !on,

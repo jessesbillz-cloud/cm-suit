@@ -1,5 +1,5 @@
-// "What to inspect" on an OFS request of a job with revs: the walls and items (RevPicker), then the sheet the map starts
-// on: the first picked wall's, or one picked from the job's PDFs (the one SheetPicker). Walls on two sheets get a short
+// "What to inspect" on an OFS request of a job with revs: the items and walls (RevPicker; the walls it came with shown
+// on their own), then the sheet the map starts on: the first picked wall's, or one picked from the job's PDFs (the one SheetPicker). Walls on two sheets get a short
 // note: one map shows one sheet (OSFM).
 import { useMemo } from 'react';
 import type { RevSetup, RevStatusRow } from '../../data/revs.types';
@@ -31,7 +31,7 @@ export function OfsFields({ projectId, revs, pick, onPick, sheet, onSheet, date 
   const sheets = sheetCount(walls);
   return (
     <>
-      <RevPicker setup={revs.setup} status={revs.status} value={pick} onChange={onPick} date={date} />
+      <RevPicker setup={revs.setup} status={revs.status} value={pick} onChange={onPick} date={date} near={revs.start.areaIds} />
       {walls.length > 0 ? (
         <div className="flex flex-col gap-1">
           <SheetPicker

@@ -1,5 +1,5 @@
 begin;
-select plan(142);
+select plan(143);
 -- Migration 0061, the OFS route (SPEC §18.4 P1; Jesse, Oct 3): sub -> GC -> inspector -> OFS, and the two sides kept apart.
 --   * The matrix: the fire marshal holds the OFS pair only; the inspector files requests.
 --   * Where a new request starts, by who files it and its kind. IOR and special requests start where they always did.
@@ -337,10 +337,13 @@ select throws_ok($$ select public.create_transmittal('c0000000-0000-0000-0000-00
 select throws_ok($$ insert into public.share_links (created_by, org_id, project_id, target_type, target_id, recipient_email)
   values (auth.uid(), 'b0000000-0000-0000-0000-000000000541', 'c0000000-0000-0000-0000-000000000541', 'file',
           'e0000000-0000-0000-0000-000000000545', 'probe+rt-sub@example.test') $$, '42501', null, '... nor link to it');
-select is((select (r).result from (select public.ir_rev_results(pg_temp.rid('W'), pg_temp.ver('W'),
+-- Oct 10: no Confirm first. The deputy records the walls of a request still pending, and that one step confirms it.
+select is((pg_temp.req('W')).status, 'pending', 'never confirmed: still pending with OFS');
+select is((select array[(r).result, (r).status, ((r).owner_id = auth.uid())::text]
+             from (select public.ir_rev_results(pg_temp.rid('W'), pg_temp.ver('W'),
              (select jsonb_agg(jsonb_build_object('area_id', c.area_id, 'item_id', c.item_id, 'result', 'passed'))
-                from public.ir_rev_items c where c.request_id = pg_temp.rid('W'))) as r) x), 'approved',
-  'the deputy passes each wall');
+                from public.ir_rev_items c where c.request_id = pg_temp.rid('W'))) as r) x), array['approved', 'confirmed', 'true'],
+  'the deputy passes each wall without confirming first: confirmed and his in the same step');
 select is((public.ir_map_context(pg_temp.rid('W')) ->> 'can_edit'), 'true', 'the deputy may draw on its map');
 select pg_temp.login('a0000000-0000-0000-0000-000000000548');
 select is((pg_temp.sees('a0000000-0000-0000-0000-000000000548', 'A'))[1], 1, 'the owner''s rep (ir.view_all) reads it as before');

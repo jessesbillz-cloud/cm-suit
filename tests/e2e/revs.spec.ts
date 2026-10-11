@@ -451,7 +451,6 @@ test.describe('revs', () => {
     test.skip(testInfo.project.name !== 'desktop', 'The map opens in the right column.');
     await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-4,mock-rev-area-5&items=mock-rev-item-3-1,mock-rev-item-3-2');
     await page.getByTestId('ir-special-required-no').click();
-    await page.getByTestId('ir-ack').check();
     await page.getByTestId('ir-submit').click();
     await page.getByTestId('ir-attest-confirm').click();
     await expect(page.getByTestId('sheet-frame')).toBeVisible({ timeout: 15_000 });

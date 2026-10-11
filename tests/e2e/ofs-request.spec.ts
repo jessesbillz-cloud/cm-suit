@@ -36,18 +36,24 @@ async function openAs(page: Page, who: string, path: string): Promise<void> {
   }
 }
 
+/** Today on the job's clock (Sample Science Building is on Pacific time), as the date field takes it. */
+function jobToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
 /** The number on the receipt of the request just sent. */
 async function receiptNumber(page: Page): Promise<string> {
   await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
   return ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
 }
 
-/** A sub's OFS request on one wall and one item, sent with the question answered No. Answers its IR number. */
+/** A sub's OFS request on one wall and one item, today (it starts on the next working day), sent with the question
+ *  answered No. Answers its IR number. */
 async function subAsks(page: Page): Promise<string> {
   await page.goto('/p/job-s/inspections/new?areas=mock-rev-area-4&items=mock-rev-item-3-1');
   await expect(page.getByTestId('rev-picker')).toBeVisible();
+  await page.getByTestId('ir-date').fill(jobToday());
   await page.getByTestId('ir-special-required-no').click();
-  await page.getByTestId('ir-ack').check();
   await page.getByTestId('ir-submit').click();
   await page.getByTestId('ir-attest-confirm').click();
   return receiptNumber(page);
@@ -96,8 +102,9 @@ test.describe('OFS request with revs', () => {
     );
     await expect(page.getByTestId('sheet-name')).toHaveText('Sample A-102 Level 02 Floor Plan.pdf');
 
-    // One question, nothing preselected, needed to send; Yes shows the notice. A sub states nothing more.
-    await page.getByTestId('ir-ack').check();
+    // One question, nothing preselected, needed to send; Yes shows the notice. A sub has no box to check: the notice
+    // is in the attestation's one I confirm.
+    await expect(page.getByTestId('ir-ack')).toHaveCount(0);
     await expect(page.getByTestId('ir-submit')).toBeDisabled();
     await expect(page.getByTestId('ir-inspector-ack')).toHaveCount(0);
     await page.getByTestId('ir-special-required-yes').click();
@@ -135,9 +142,8 @@ test.describe('OFS request with revs', () => {
     await expect(pane.getByTestId('ir-confirm')).toBeVisible();
     await expect(pane.getByLabel('Helper')).toHaveCount(0);
     await expect(pane.getByTestId('ir-special')).toContainText(NOTICE);
-    // Results wait for Confirm (its own step): the walls are read only until then.
-    await expect(page.getByTestId('rev-results')).toHaveCount(0);
-    await expect(pane.getByTestId('rev-cells')).toBeVisible();
+    // He may record the walls straight away (Oct 10); Confirm stays, to set a time first.
+    await expect(page.getByTestId('rev-results')).toBeVisible();
     await pane.getByTestId('ir-confirm').click();
     await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
     await expect(page.getByTestId('rev-results')).toBeVisible();

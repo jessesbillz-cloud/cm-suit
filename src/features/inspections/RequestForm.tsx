@@ -4,10 +4,11 @@
 // instead of typing them (prefilled from the Revs link: ?areas=&items=), and its map is drawn right after sending.
 // Every OFS request answers one question (special inspection required?); the inspector filing one himself states,
 // once, that the earlier inspections are complete (SPEC §18.4 P1: no box per item). Anyone else confirms the job's
-// attestation wording in one small dialog before an OFS request goes (0091).
+// attestation wording in one small dialog before an OFS request goes (0091), and that same I confirm states the notice
+// (Jesse, Oct 10: one statement, not two). Fewer taps (MDR): an OFS request starts on the next working day, the time and
+// length last used here are remembered on the device, and the receipt files another like this in one tap.
 import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
-import { Send } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useSubmitIr, type IrUpload } from '../../data/inspections.mutations';
 import { useOfsAttestText } from '../../data/inspections.ofs';
@@ -16,7 +17,6 @@ import type { FormContext, IrKind, IrRowRaw } from '../../data/inspections.types
 import { useSubmitOfs } from '../../data/revs.mutations';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { todayInZone } from '../../lib/dates';
-import { Button } from '../../ui/Button';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { listsWithWalls, prefillPick, requestPlan, statusIndex, type RevPick } from '../revs/revPick';
 import { AttachmentsField } from './AttachmentsField';
@@ -24,17 +24,17 @@ import { AttestDialog } from './AttestDialog';
 import { ChoiceRow } from './ChoiceRow';
 import { ConflictPreview } from './ConflictPreview';
 import { IrMap } from './IrMap';
-import { InspectorStatement, SpecialQuestion } from './OfsAsk';
+import { NOTICE_STATEMENT } from './model';
+import { InspectorStatement, NoticeBox, SpecialQuestion } from './OfsAsk';
 import { OfsFields, type OfsRevs } from './OfsFields';
 import { Receipt } from './Receipt';
+import { CompanyField, ItemsText, SubmitBar } from './RequestParts';
 import { SpecialPick } from './SpecialPick';
 import { useOpenRequest, useSelectedDay } from './useInspectionsNav';
+import { againWhen, dayFor, recallWhen, rememberWhen, startWhen } from './requestStart';
 import { useIrAccess, type IrJob } from './useIrAccess';
-import { DEFAULT_DURATION, FLEXIBLE, isDay, requestDay, whenOf, type WhenPick } from './time';
+import { isDay, whenOf, type WhenPick } from './time';
 import { WhenFields } from './WhenFields';
-
-const LABEL = 'flex flex-col gap-1 text-xs font-medium text-ink-2';
-const INPUT = 'rounded-md border border-line-strong bg-card px-2.5 text-sm font-normal text-ink outline-none focus:border-accent';
 
 interface BodyProps {
   projectId: string;
@@ -51,6 +51,8 @@ interface Sent {
   row: IrRowRaw;
   /** Sent with walls: it has a map to draw. */
   map: boolean;
+  /** The day, time and length it went with (File another like this). */
+  when: WhenPick;
 }
 
 /** The link from Revs: the walls and items to start from. */
@@ -68,9 +70,11 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
   const submitOfs = useSubmitOfs();
   const track = useOpenRequest(projectId);
   const linked = revs !== null && (revs.start.areaIds.length > 0 || revs.start.itemIds.length > 0);
-  const [when, setWhen] = useState<WhenPick>({ date: requestDay(day, ctx.today), time: FLEXIBLE, duration: DEFAULT_DURATION });
-  const [company, setCompany] = useState(ctx.my_company ?? ctx.companies[0] ?? '');
   const [kind, setKind] = useState<IrKind>(linked ? 'ofs' : 'ior');
+  const [when, setWhen] = useState<WhenPick>(() => startWhen(kind, day, ctx.today, recallWhen(projectId)));
+  // A day picked by hand stays when the type changes; else the day follows the type.
+  const [dayPicked, setDayPicked] = useState(false);
+  const [company, setCompany] = useState(ctx.my_company ?? ctx.companies[0] ?? '');
   const [special, setSpecial] = useState('');
   const [items, setItems] = useState('');
   const [pick, setPick] = useState<RevPick>(revs?.start ?? { listId: null, areaIds: [], itemIds: [] });
@@ -84,6 +88,7 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
   const [sent, setSent] = useState<Sent | null>(null);
   // The sub's attestation (0091): the dialog is open, the request goes on I confirm.
   const [attesting, setAttesting] = useState(false);
+  // The sub's I confirm also states the notice: no box for it.
   const attests = kind === 'ofs' && !inspector;
   const wording = useOfsAttestText(projectId, attests);
   const plan = kind === 'ofs' && revs !== null ? requestPlan(revs.setup, statusIndex(revs.status), pick) : null;
@@ -108,6 +113,16 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
           setStated(false);
           setAttesting(false);
         }}
+        onAgain={() => {
+          // The same walls, items, time and answers, the next working day; the statements are made again.
+          setWhen(againWhen(sent.when));
+          setDayPicked(true);
+          setSent(null);
+          setFiles([]);
+          setAck(false);
+          setStated(false);
+          setAttesting(false);
+        }}
       >
         {sent.map ? <IrMap requestId={sent.row.id} projectId={projectId} editing /> : null}
       </Receipt>
@@ -116,7 +131,7 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
 
   const what = plan !== null ? plan.items.length > 0 && plan.walls.length > 0 : items.trim() !== '';
   const ofsReady = kind !== 'ofs' || (specialRequired !== null && (!inspector || stated));
-  const ready = isDay(when.date) && company.trim() !== '' && what && ack && ofsReady && !uploading && (kind !== 'special' || special !== '');
+  const ready = isDay(when.date) && company.trim() !== '' && what && (attests || ack) && ofsReady && !uploading && (kind !== 'special' || special !== '');
   const whenValue = whenOf(when);
   const back = {
     onError: () => {
@@ -125,7 +140,11 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
   };
 
   function send() {
-    const common = { projectId, company: company.trim(), attachmentIds: files.map((f) => f.id), noticeAck: ack, ...whenValue };
+    const common = { projectId, company: company.trim(), attachmentIds: files.map((f) => f.id), noticeAck: attests || ack, ...whenValue };
+    const done = (row: IrRowRaw, map: boolean) => {
+      rememberWhen(projectId, when);
+      setSent({ row, map, when });
+    };
     const inspectorAck = kind === 'ofs' && inspector && stated;
     if (plan !== null) {
       if (specialRequired === null) return;
@@ -136,7 +155,7 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
         {
           ...back,
           onSuccess: (row) => {
-            setSent({ row, map: true });
+            done(row, true);
           },
         },
       );
@@ -154,11 +173,30 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
       {
         ...back,
         onSuccess: (row) => {
-          setSent({ row, map: false });
+          done(row, false);
         },
       },
     );
   }
+
+  const typeRow = (
+    <ChoiceRow
+      label="Type"
+      options={kindOptions(ctx.ofs)}
+      value={kind}
+      onPick={(next) => {
+        setKind(next);
+        if (!dayPicked) setWhen({ ...when, date: dayFor(next, day, ctx.today) });
+      }}
+      testId="ir-kind"
+      large
+    />
+  );
+  // An OFS request with walls to pick: what to inspect comes first (Jesse, Oct 10), under the type.
+  const ofsFields =
+    plan !== null && revs !== null ? (
+      <OfsFields projectId={projectId} revs={revs} pick={pick} onPick={setPick} sheet={sheet} onSheet={setSheet} date={when.date} />
+    ) : null;
 
   return (
     <form
@@ -174,6 +212,7 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
       {attesting ? (
         <AttestDialog
           text={wording.data}
+          notice={NOTICE_STATEMENT}
           error={wording.isError ? wording.error : null}
           onRetry={() => void wording.refetch()}
           sending={sending.isPending}
@@ -189,74 +228,28 @@ function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProp
           {ctx.gc ? ` · GC ${ctx.gc}` : ''}
           {ctx.inspectors.length > 0 ? ` · Inspector ${ctx.inspectors.join(', ')}` : ''}
         </p>
-        <label className={LABEL}>
-          Company
-          <input
-            className={`h-9 ${INPUT}`}
-            list="ir-companies"
-            value={company}
-            data-testid="ir-company"
-            onChange={(e) => {
-              setCompany(e.target.value);
-            }}
-          />
-          <datalist id="ir-companies">
-            {ctx.companies.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
-        </label>
-        <WhenFields value={when} onChange={setWhen} testId="ir" />
-        <ChoiceRow label="Type" options={kindOptions(ctx.ofs)} value={kind} onPick={setKind} testId="ir-kind" large />
+        {ofsFields ? typeRow : null}
+        {ofsFields}
+        <CompanyField value={company} companies={ctx.companies} onChange={setCompany} />
+        <WhenFields
+          value={when}
+          onChange={(next) => {
+            if (next.date !== when.date) setDayPicked(true);
+            setWhen(next);
+          }}
+          testId="ir"
+        />
+        {ofsFields ? null : typeRow}
         {kind === 'special' ? <SpecialPick kinds={ctx.kinds} value={special} onChange={setSpecial} testId="ir-special" /> : null}
-        {plan !== null && revs !== null ? (
-          <OfsFields projectId={projectId} revs={revs} pick={pick} onPick={setPick} sheet={sheet} onSheet={setSheet} date={when.date} />
-        ) : (
-          <label className={LABEL}>
-            Items to inspect
-            <textarea
-              rows={4}
-              className={`py-2 ${INPUT}`}
-              value={items}
-              data-testid="ir-items"
-              onChange={(e) => {
-                setItems(e.target.value);
-              }}
-            />
-          </label>
-        )}
+        {ofsFields ? null : <ItemsText value={items} onChange={setItems} />}
         {kind === 'ofs' ? <SpecialQuestion value={specialRequired} onChange={setSpecialRequired} testId="ir-special-required" /> : null}
         <AttachmentsField projectId={projectId} label="Photos or PDFs" files={files} onChange={setFiles} onBusy={setUploading} />
         <ConflictPreview projectId={projectId} when={whenValue} ownId={null} />
-        <label className="flex items-start gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            className="mt-0.5 h-4 w-4 accent-accent"
-            checked={ack}
-            data-testid="ir-ack"
-            onChange={(e) => {
-              setAck(e.target.checked);
-            }}
-          />
-          <span>24 hours notice (48 for special). I&apos;ll be present, with safe access and plans on site.</span>
-        </label>
+        {attests ? null : <NoticeBox checked={ack} onChange={setAck} />}
         {kind === 'ofs' && inspector ? <InspectorStatement checked={stated} onChange={setStated} /> : null}
         {sending.isError ? <p className="text-sm text-danger">{messageOf(sending.error)}</p> : null}
       </div>
-      <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-line bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_16px_-12px_rgba(16,24,40,.25)]">
-        <span className="text-sm text-ink-2">A request, not a booking.</span>
-        <Button
-          type="submit"
-          variant="primary"
-          icon={Send}
-          className="h-11 px-6 text-base"
-          disabled={!ready}
-          loading={sending.isPending}
-          data-testid="ir-submit"
-        >
-          Request
-        </Button>
-      </div>
+      <SubmitBar ready={ready} sending={sending.isPending} />
     </form>
   );
 }

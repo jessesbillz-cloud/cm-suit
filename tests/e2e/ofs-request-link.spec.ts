@@ -44,9 +44,10 @@ test.describe('OFS request with revs from the link, no login', () => {
     await expect(page.getByTestId('public-kind-ofs')).toHaveAttribute('aria-checked', 'true');
     await expect(page.getByTestId('public-items')).toHaveCount(0);
 
-    // Nothing picked: the items wait for walls. Two walls on Level 02 (one sheet: nothing to pick), then one on
-    // Level 01 too: the sheet is one of theirs.
-    await expect(page.getByTestId('rev-item-mock-rev-item-3-1')).toHaveCount(0);
+    // What to inspect comes first (Oct 10): the items before any wall. Two walls on Level 02 (one sheet: nothing to
+    // pick), then one on Level 01 too: the sheet is one of theirs.
+    await expect(page.getByTestId('rev-items-max')).toHaveText('Pick up to 3');
+    await expect(page.getByTestId('rev-item-mock-rev-item-3-1')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByTestId('rev-title')).toHaveCount(0);
     await page.getByTestId('rev-wall-mock-rev-area-4').click();
     await page.getByTestId('rev-wall-mock-rev-area-5').click();
