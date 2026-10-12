@@ -76,6 +76,7 @@ export const SEED_CORRECTION: CorrectionRow & { request_key: string; deleted: bo
   spec_tags: [],
   notice_file_id: null,
   notice_ref: '',
+  company_org_id: null,
   created_by: INSPECTOR,
   created_at: '2026-09-25T17:30:00Z',
   closed_at: null,

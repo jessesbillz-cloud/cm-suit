@@ -43,6 +43,8 @@ export const correctionSchema = z.object({
   spec_tags: z.array(z.string()),
   notice_file_id: z.string().nullable(),
   notice_ref: z.string(),
+  /** The company on the job the item goes to (0098); null: nobody. */
+  company_org_id: z.string().nullable(),
   created_by: z.string(),
   created_at: z.string(),
   closed_at: z.string().nullable(),
@@ -51,7 +53,7 @@ export const correctionSchema = z.object({
 export type CorrectionRow = z.infer<typeof correctionSchema>;
 
 export const CORRECTION_COLS =
-  'id, project_id, number, title, description, photo_ids, status, trade, location, spec_tags, notice_file_id, notice_ref, created_by, created_at, closed_at, version';
+  'id, project_id, number, title, description, photo_ids, status, trade, location, spec_tags, notice_file_id, notice_ref, company_org_id, created_by, created_at, closed_at, version';
 
 const HISTORY_ACTIONS = ['created', 'edited', 'ready', 'corrected', 'signed_off', 'reopened', 'undone'] as const;
 export type HistoryAction = (typeof HISTORY_ACTIONS)[number];
@@ -80,7 +82,13 @@ export interface CorrectionFields {
   description: string;
   trade: string;
   location: string;
+  /** "To": a company on the job, or null. */
+  company_org_id: string | null;
 }
+
+/** A company for the "To" picker and the names (correction_companies, 0098). on_job: may be picked. */
+export const correctionCompanySchema = z.object({ org_id: z.string(), name: z.string(), on_job: z.boolean() });
+export type CorrectionCompany = z.infer<typeof correctionCompanySchema>;
 
 export interface NewCorrectionInput extends CorrectionFields {
   projectId: string;
