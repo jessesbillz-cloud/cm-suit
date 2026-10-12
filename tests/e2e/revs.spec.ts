@@ -21,7 +21,7 @@
 // -note, rev-before-line, rev-before-clear, rev-view-checklist, rev-checklist, rev-check-table, rev-check-row-<area>,
 // rev-check-<rev number> (data-mark), rev-check-total-<rev number>, rev-print.
 // Oct 6 (level first, rev strips): rev-level-<level> / rev-level-all (the level chips; aria-pressed), rev-meta (the
-// header's per-list line), rev-wall-open (a tile's open button), rev-wall-strip (the wall page's revs), each chip
+// header's per-list line), rev-wall-open (a tile's open button), rev-wall-strip (gone Oct 12: the items by rev instead), each chip
 // rev-chip-<rev number> (data-mark done|requested|failed|open|na; data-file when its OFS IR is on file), rev-ir-line (an
 // IR the reader may not open: plain text). Oct 8: a tile's rev-items, a rev-line-<rev number> per rev with its
 // rev-line-label (the rev written out) and rev-item-chip-<item> (data-status passed|requested|failed|open|na;

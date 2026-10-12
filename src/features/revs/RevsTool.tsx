@@ -1,12 +1,12 @@
-// Revs (0056), "OFS required" on the rail: a fire marshal job's rated walls and the revs each must pass (Jesse, Oct 2:
-// "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls, Plan, Open, Checklist, and
-// Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to filter from there"): the level
-// picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the whole printable sheet. Rooms:
-// a tile per room that opens its page and its walls (0083); Walls: every wall as a callout tile with its items by rev;
-// Plan: the level's sheet with its walls drawn on it (0059); a tap opens the wall's own page (the main area; its own
-// screen on the phone). Open: what is still open and where. Checklist: the fire marshal's sheet, printed letter
-// landscape (0082). The header says, per list, how many and how many are complete. What shows is decided by
-// has_capability, never role names.
+// Revs (0056), "OFS inspection card" on the rail (Jesse, Oct 12): a fire marshal job's rated walls and the revs each
+// must pass (Jesse, Oct 2: "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls,
+// Plan, Open, Checklist, and Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to
+// filter from there"): the level picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the
+// whole printable sheet. Rooms: a tile per room that opens its page and its walls (0083); Walls: every wall as a
+// callout tile with its items by rev; Plan: the level's sheet with its walls drawn on it (0059); a tap opens the wall's
+// own page (the main area; its own screen on the phone). Open: what is still open and where. Checklist: the fire
+// marshal's sheet, printed letter landscape (0082). The header says, per list, how many and how many are complete. What
+// shows is decided by has_capability, never role names.
 import { useMemo, type ReactNode } from 'react';
 import { Plus, Printer } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';

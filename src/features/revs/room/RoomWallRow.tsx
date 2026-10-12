@@ -1,9 +1,9 @@
 // One wall on its room's page (Jesse, Oct 6: "rooms then walls with the revs"; Oct 11: one row of bubbles you click,
-// not every item written out): its tag once and its name, then one bubble per rev by the rev's name in its state's
-// color (RevStrip). A tap on the row opens the wall; a done rev with its OFS IR on file opens that, any other rev the
-// wall at that rev's first item. A manager
-// draws the wall's line on the room's picture (only when the room has one) and takes the wall out of the room (a quiet
-// icon; Undo in the toast).
+// not every item written out; Oct 12: the wall's bubble from the room's picture leads its row, so the two match): its
+// bubble (BubbleFace, its state's dot and its short name), its tag and grid small, then one bubble per rev by the rev's
+// name in its state's color (RevStrip). A tap on the row opens the wall; a done rev with its OFS IR on file opens that,
+// any other rev the wall at that rev's first item. A manager draws the wall's line on the room's picture (only when the
+// room has one) and takes the wall out of the room (a quiet icon; Undo in the toast).
 import { PenLine, X } from 'lucide-react';
 import type { RevSetup } from '../../../data/revs.types';
 import { Button } from '../../../ui/Button';
@@ -12,6 +12,7 @@ import type { RoomWall } from '../rooms';
 import { revStrip, type SignoffFiles, type StripChip } from '../revStrip';
 import { RevStrip } from '../RevStrip';
 import { calloutOf } from '../wallPage';
+import { BUBBLE, BubbleFace } from '../plan/BubbleFace';
 
 interface RoomWallRowProps {
   wall: RoomWall;
@@ -26,8 +27,8 @@ interface RoomWallRowProps {
 }
 
 export function RoomWallRow({ wall, setup, index, files, manage, isPhone, onOpen, onChip }: RoomWallRowProps) {
-  const { area } = wall;
-  const { title, sub } = calloutOf(area.name, area.wall_tag);
+  const { area, title } = wall;
+  const { sub } = calloutOf(area.name, area.wall_tag);
   const size = isPhone ? 'md' : 'sm';
   return (
     <li
@@ -38,16 +39,18 @@ export function RoomWallRow({ wall, setup, index, files, manage, isPhone, onOpen
       <div className="flex items-start gap-3">
         <button
           type="button"
-          className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 self-center text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-accent"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 self-center text-left after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-accent"
           data-testid="rev-wall-open"
           onClick={onOpen}
         >
+          <span className={BUBBLE} data-testid="rev-wall-bubble">
+            <BubbleFace color={wall.color} name={title} />
+          </span>
           {area.wall_tag ? (
             <span className="text-[13px] font-semibold text-ink-3" data-testid="rev-wall-tag">
               {area.wall_tag}
             </span>
           ) : null}
-          <span className="break-words text-[15.5px] font-semibold leading-6 text-ink">{title}</span>
           {sub ? <span className="break-words text-[13px] font-medium text-ink-2">{sub}</span> : null}
         </button>
         {manage ? (

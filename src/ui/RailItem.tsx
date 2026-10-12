@@ -25,7 +25,7 @@ interface RailItemProps {
   onPreload?: (() => void) | undefined;
 }
 
-/** Icon over a short name (or the icon alone), the count at the icon's corner, an accent bar when it's open. */
+/** Icon over a short name (a longer one wraps and the item grows; or the icon alone), the count at the icon's corner, an accent bar when it's open. */
 export function RailItem({ testId, label, icon, count, badgeId, active, compact, onClick, expanded, onPreload }: RailItemProps) {
   return (
     <button
@@ -38,7 +38,7 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
       aria-expanded={expanded}
       className={`relative flex shrink-0 items-center justify-center rounded-lg transition-colors ${
-        compact ? 'h-10 w-10' : 'h-[60px] w-[80px] flex-col gap-1 [@media(max-height:820px)]:h-12 [@media(max-height:820px)]:gap-0.5'
+        compact ? 'h-10 w-10' : 'min-h-[60px] w-[80px] flex-col gap-1 [@media(max-height:820px)]:min-h-12 [@media(max-height:820px)]:gap-0.5'
       } ${active || expanded ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'}`}
       onClick={onClick}
     >
@@ -46,7 +46,7 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
         <span aria-hidden="true" className={`absolute left-0 w-[3px] rounded-r bg-accent ${compact ? 'top-2 h-6' : 'top-3 h-9'}`} />
       ) : null}
       <Icon icon={icon} size={compact ? 20 : 22} />
-      <span className={compact ? 'sr-only' : 'text-[12px] font-semibold leading-4'}>{label}</span>
+      <span className={compact ? 'sr-only' : 'text-center text-[12px] font-semibold leading-4'}>{label}</span>
       <CountBadge
         n={count}
         testId={badgeId}
