@@ -1,29 +1,33 @@
 // /s/<share-link-id>: a permanent share link (SPEC §6.4 #2). Access is checked on every click: the recipient names
-// their address and signs in as it with an email code. Then the file downloads (and can be viewed), or the folder lists
-// its files; a tap on one opens it in the file viewer. Every look goes through the share endpoint and is logged as a
-// download there. A view-only folder lists names only: the endpoint hands out no URL for it (its page images are
-// server-rendered, not built yet).
-import { useState } from 'react';
+// their address and signs in as it with an email code; someone already signed in on this device goes straight on.
+// Then a file opens on the page itself, with Download one click on it (Jesse, Oct 12: no download step, no pop-ups),
+// or a folder lists its files and a tap on one opens it in the file viewer. Every look goes through the share endpoint
+// and is logged as a download there. A view-only folder lists names only: the endpoint hands out no URL for it (its
+// page images are server-rendered, not built yet).
+import { useEffect, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { z } from 'zod';
-import { Download, Eye } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { sendCode, useSession } from '../../data/auth';
 import { saveSignedUrl } from '../../data/download';
 import { messageOf } from '../../data/errors';
-import { openShare, type ShareFolder } from '../../data/links';
+import { FunctionError } from '../../data/functions';
+import { openShare, type SharedFile, type ShareFolder } from '../../data/links';
 import { fileKind } from '../../lib/fileKind';
 import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
 import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { fileIcon } from '../../ui/fileIcon';
+import { LoadingState } from '../../ui/States';
 import { CodeForm, INPUT } from './CodeForm';
 import { PublicPage } from './PublicPage';
+import { ShareFileView } from './ShareFileView';
 
 const route = getRouteApi('/s/$shareLinkId');
 const emailSchema = z.string().trim().toLowerCase().email('Enter the email address this link was sent to.');
 
-type Step = { kind: 'email' } | { kind: 'code'; masked: string } | { kind: 'file'; filename: string } | { kind: 'folder'; folder: ShareFolder };
+type Step = { kind: 'email' } | { kind: 'code'; masked: string } | { kind: 'file'; file: SharedFile } | { kind: 'folder'; folder: ShareFolder };
 
 interface FolderListProps {
   folder: ShareFolder;
@@ -78,32 +82,46 @@ export function ShareLink() {
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const viewer = useFileViewer();
+  // Asked once per visit: signed in already, or the email typed. Signing in by code later doesn't ask again on its own.
+  const asked = useRef(false);
+  // The URL the file step came with: the first look uses it instead of asking (and logging) again.
+  const firstUrl = useRef<string | null>(null);
 
   async function open(address: string, fileId?: string): Promise<void> {
+    asked.current = true;
+    setEmail(address);
     const res = await openShare(shareLinkId, address, fileId);
     if (res.kind === 'needs_code') {
       await sendCode(address);
       setStep({ kind: 'code', masked: res.email_masked });
     } else if (res.kind === 'file') {
-      await saveSignedUrl(res.url, res.filename);
-      setStep({ kind: 'file', filename: res.filename });
+      firstUrl.current = res.url;
+      setStep({ kind: 'file', file: res });
     } else {
       setStep({ kind: 'folder', folder: res });
     }
   }
 
-  function run(task: () => Promise<void>) {
+  function run(task: () => Promise<void>, quietIfNotMine = false) {
     setBusy(true);
     setProblem(null);
     task()
       .catch((e: unknown) => {
+        // Signed in as someone the link wasn't sent to: the email form, as if nobody were signed in.
+        if (quietIfNotMine && e instanceof FunctionError && e.status === 404) return;
         setProblem(messageOf(e));
       })
       .finally(() => {
         setBusy(false);
       });
   }
+
+  // Already signed in on this device: open it as that address at once.
+  const signedIn = session.status === 'signed_in' ? (session.user?.email.toLowerCase() ?? null) : null;
+  useEffect(() => {
+    if (asked.current || signedIn === null) return;
+    run(() => open(signedIn), true);
+  });
 
   const address = email.trim().toLowerCase();
 
@@ -119,7 +137,11 @@ export function ShareLink() {
       id: id ?? shareLinkId,
       name,
       kind: fileKind(name),
-      url: async () => (await fileUrl(id)).url,
+      url: async () => {
+        const have = id === undefined ? firstUrl.current : null;
+        firstUrl.current = null;
+        return have ?? (await fileUrl(id)).url;
+      },
       download: async () => {
         const res = await fileUrl(id);
         await saveSignedUrl(res.url, res.filename);
@@ -132,6 +154,13 @@ export function ShareLink() {
     </p>
   ) : null;
 
+  if (step.kind === 'email' && (session.status === 'loading' || (signedIn !== null && (busy || !asked.current)))) {
+    return (
+      <PublicPage title="Shared with you">
+        <LoadingState label="Opening" />
+      </PublicPage>
+    );
+  }
   if (step.kind === 'code') {
     return (
       <PublicPage title="Enter your code">
@@ -142,31 +171,7 @@ export function ShareLink() {
     );
   }
   if (step.kind === 'file') {
-    return (
-      <PublicPage title="Your download started">
-        <div className="flex flex-col gap-3">
-          <p className="flex items-center gap-3 rounded-lg bg-page px-3 py-2.5 text-sm font-medium text-ink">
-            <Icon icon={fileIcon(step.filename)} size={18} className="shrink-0 text-ink-2" />
-            <span className="min-w-0 break-words">{step.filename}</span>
-          </p>
-          {error}
-          {fileKind(step.filename) === 'other' ? null : (
-            <Button icon={Eye} className="h-11" data-testid="share-view" onClick={() => {
-                viewer.open([shareItem(undefined, step.filename)]);
-              }}
-            >
-              View
-            </Button>
-          )}
-          <Button variant="primary" icon={Download} loading={busy} className="h-11" onClick={() => {
-              run(() => open(address));
-            }}
-          >
-            Download again
-          </Button>
-        </div>
-      </PublicPage>
-    );
+    return <ShareFileView item={shareItem(undefined, step.file.filename)} projectId={step.file.project_id ?? null} />;
   }
   if (step.kind === 'folder') {
     return (

@@ -1,5 +1,5 @@
 // A board line about a file: its name, folder, size and scan state, with View (a photo or a PDF, full screen), Download
-// (one click) and Open in Files.
+// (one click) and Open in Files. A submittal whose section is in the job's spec book links to it there (Jesse, Oct 12).
 import { useUser } from '../../../data/auth';
 import { usePreviewFetch } from '../../../data/preview';
 import { useFile, useFolders } from '../../../data/queries';
@@ -12,6 +12,9 @@ import { folderLabel } from '../../files/folderOrder';
 import { canOpenNow, scanChip } from '../../files/scanStatus';
 import { useDownload } from '../../files/useDownload';
 import { fileViewerItem } from '../../files/viewerItems';
+import { SpecViewerBar } from '../../specs/SpecButton';
+import { SpecLink } from '../../specs/SpecLink';
+import { useSpecFor } from '../../specs/useSpecFor';
 import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
 export function FileEntity({ frame, id }: KindProps) {
@@ -21,6 +24,7 @@ export function FileEntity({ frame, id }: KindProps) {
   const user = useUser();
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
+  const specFor = useSpecFor(frame.projectId);
 
   if (file.isPending) return <LoadingState label="Loading the file" />;
   if (file.isError) return <ErrorState error={file.error} onRetry={() => void file.refetch()} />;
@@ -31,7 +35,9 @@ export function FileEntity({ frame, id }: KindProps) {
   const folder = inFolder ? folderLabel(inFolder) : null;
   const chip = scanChip(f.scan_status, f.upload_complete);
   const canDownload = f.upload_complete && f.scan_status !== 'infected';
-  const item = fileViewerItem(f, preview);
+  const section = inFolder && inFolder.kind !== 'specs' ? specFor(f.original_name) : null;
+  const plain = fileViewerItem(f, preview);
+  const item = section === null ? plain : { ...plain, pageBar: () => <SpecViewerBar projectId={f.project_id} section={section} /> };
   return (
     <EntityPane
       frame={frame}
@@ -60,6 +66,7 @@ export function FileEntity({ frame, id }: KindProps) {
       <Facts
         rows={[
           ['Folder', folder],
+          ['Spec', section === null ? null : <SpecLink key="spec" projectId={f.project_id} section={section} />],
           ['Size', formatBytes(f.size)],
           ['Added', formatInZone(f.created_at, frame.zone, 'MMM d, yyyy h:mm a')],
           f.scan_status === 'clean' && f.upload_complete ? null : ['Scan', <StatusChip key="scan" status={chip.status} label={chip.label} />],

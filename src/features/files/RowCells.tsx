@@ -118,6 +118,26 @@ export function TitleCell({ view, file, added, chip }: TitleProps) {
   );
 }
 
+/** A submittal's Section cell as a link to that section in the spec book (desktop), when the book has it (Jesse, Oct 12). */
+export function SpecSectionCell({ view, spec }: { view: RowView; spec: { section: string; onOpen: () => void } }) {
+  if (view.kind !== 'submittal') return null;
+  return (
+    <span className={`${CELL} ${SECTION}`}>
+      <button
+        type="button"
+        data-testid="file-row-spec"
+        aria-label={`Spec ${spec.section}`}
+        title={`Spec ${spec.section}`}
+        className="font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+        onClick={spec.onOpen}
+      >
+        {view.sub?.section ?? spec.section}
+      </button>
+      {view.sub?.no ? <span className="block text-ink-3">{view.sub.no}</span> : null}
+    </span>
+  );
+}
+
 /** The cells after the title (desktop). */
 export function TrailCells({ view, file, timeZone }: { view: RowView; file: FileRow; timeZone: string | null }) {
   const added = timeZone === null ? '' : formatInZone(file.created_at, timeZone, 'MMM d, yyyy');

@@ -2,7 +2,8 @@
 // with New window on it; its scan state, Rename and Delete (with Undo) when this person may, its earlier versions (above
 // the file, so nothing under it makes the pane scroll), Download. A signed record (a daily or IR PDF, an RFI PDF, a
 // stamped sheet) never offers Rename or Delete. A sheet in Plans or a spec book in Specs is not drawn in the pane (too
-// small to read): Full screen opens it, and the footer has Open in new window.
+// small to read): Full screen opens it, and the footer has Open in new window. A submittal whose section is in the job's
+// spec book has "Spec 09 29 00" in the footer, which opens the book there (Jesse, Oct 12).
 import { useState } from 'react';
 import { Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
@@ -20,7 +21,9 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useProjectZones } from '../board/zones';
+import { SpecButton } from '../specs/SpecButton';
 import { useOpenSpec } from '../specs/useOpenSpec';
+import { useSpecFor } from '../specs/useSpecFor';
 import { EarlierVersions } from './EarlierVersions';
 import { RenameForm } from './RenameForm';
 import { canOpenNow, opensBeforeScan, scanChip } from './scanStatus';
@@ -62,6 +65,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
   const preview = usePreviewFetch();
   const folders = useFolders(f.project_id);
   const openSpec = useOpenSpec(f.project_id);
+  const specFor = useSpecFor(f.project_id);
   const [renaming, setRenaming] = useState(false);
   const del = useDeleteFile(() => {
     onClose?.();
@@ -89,22 +93,28 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
     else viewer.open([item]);
   };
 
+  const section = folderKind !== undefined && folderKind !== 'specs' ? specFor(f.original_name) : null;
   const actions =
-    remove !== undefined ? (
+    remove !== undefined || section !== null ? (
       <>
-        <Button
-          variant="quiet"
-          icon={Pencil}
-          data-testid="file-rename"
-          onClick={() => {
-            setRenaming(true);
-          }}
-        >
-          Rename
-        </Button>
-        <Button variant="danger" icon={Trash2} data-testid="file-delete" loading={del.pending} onClick={remove}>
-          Delete
-        </Button>
+        {section !== null ? <SpecButton projectId={f.project_id} section={section} /> : null}
+        {remove !== undefined ? (
+          <>
+            <Button
+              variant="quiet"
+              icon={Pencil}
+              data-testid="file-rename"
+              onClick={() => {
+                setRenaming(true);
+              }}
+            >
+              Rename
+            </Button>
+            <Button variant="danger" icon={Trash2} data-testid="file-delete" loading={del.pending} onClick={remove}>
+              Delete
+            </Button>
+          </>
+        ) : null}
       </>
     ) : undefined;
 

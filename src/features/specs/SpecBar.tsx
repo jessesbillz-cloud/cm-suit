@@ -1,20 +1,18 @@
-// The spec book's bar over its pages in the full-screen viewer (Jesse, Oct 5: "a dropdown box that you scroll through
-// and look for the spec that you want, would have the title in it too ... way easier way to get to the pages"). One
-// list of every section ("09 21 16  Gypsum Board Assemblies", following the page in view; picking one jumps to its
-// first page), previous / next section, previous / next page and the page number box. A book the server has not read
-// yet is read here, in the background, by someone who may add files to Specs, and its sections appear when done.
+// The spec book's bar over its pages in the full-screen viewer: previous / next section, previous / next page and the
+// page number box. The sections themselves are found and picked in the panel left of the pages (SpecSide), on a phone in
+// a sheet opened from the bar, which names the section in view (Jesse, Oct 12: the search box and boxes replace the
+// Oct 5 dropdown). A book the server has not read yet is read here, in the background, by someone who may add files to
+// Specs, and its sections appear when done.
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, type LucideIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, type LucideIcon } from 'lucide-react';
 import { messageOf } from '../../data/errors';
-import { specBooksQuery, useSaveSpecPages, type SpecBook } from '../../data/specs';
+import { useSaveSpecPages, type SpecBook } from '../../data/specs';
 import type { PageNav } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
 import { sectionAt } from './sections';
-
-/** Between a section's number and its title in the list (a select shows plain text only). */
-const GAP = '\u00a0\u00a0';
+import { SpecSheet } from './SpecSheet';
+import { useLiveBook } from './useLiveBook';
 
 /** Pages read and sent per call (the server takes at most 50). */
 const CHUNK = 25;
@@ -103,42 +101,46 @@ interface SpecBarProps {
 }
 
 export function SpecBar({ projectId, book: opened, nav }: SpecBarProps) {
-  const books = useQuery(specBooksQuery(projectId));
-  const book = books.data?.find((b) => b.file_id === opened.file_id) ?? opened;
+  const book = useLiveBook(projectId, opened);
   const sending = useSendText(projectId, book, nav);
+  const [sheet, setSheet] = useState(false);
   const { page, pages, goTo } = nav;
   const sections = book.sections;
   const at = sectionAt(sections, page);
+  const current = sections[at];
   const prevSection = at >= 1 ? sections[at - 1] : undefined;
   const nextSection = sections[at + 1];
   const status = sending ?? (book.text_ready ? 'No sections found' : 'Sections not found yet');
 
   return (
-    <div data-testid="spec-bar" className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-white/10 px-2 py-2 text-white sm:px-4">
+    <div data-testid="spec-bar" className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-white/10 px-2 py-2 text-white md:px-4">
       {sections.length > 0 ? (
-        <select
-          aria-label="Section"
-          data-testid="spec-section"
-          value={String(at)}
-          className="h-10 min-w-0 flex-1 basis-full rounded-lg bg-white/10 px-3 text-[15px] font-semibold text-white outline-none focus:bg-white/20 sm:basis-0"
-          onChange={(e) => {
-            const s = sections[Number(e.target.value)];
-            if (s) goTo(s.first_page);
-          }}
-        >
-          {at < 0 ? (
-            <option value="-1" className="bg-card text-ink">
-              Sections
-            </option>
-          ) : null}
-          {sections.map((s, i) => (
-            <option key={`${s.section}-${String(s.first_page)}`} value={String(i)} className="bg-card text-ink">
-              {`${s.section}${GAP}${s.title}`}
-            </option>
-          ))}
-        </select>
+        <>
+          <button
+            type="button"
+            data-testid="spec-sections-open"
+            aria-haspopup="dialog"
+            className="flex min-h-10 min-w-0 flex-1 basis-full items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-left text-[15px] font-semibold hover:bg-white/15 md:hidden"
+            onClick={() => {
+              setSheet(true);
+            }}
+          >
+            <Icon icon={Search} size={18} className="shrink-0 text-white/80" />
+            <span className="min-w-0 flex-1 wrap-anywhere">
+              {current ? (
+                <>
+                  <span className="mr-2 tabular-nums">{current.section}</span>
+                  {current.title}
+                </>
+              ) : (
+                'Sections'
+              )}
+            </span>
+          </button>
+          <span aria-hidden className="hidden flex-1 md:block" />
+        </>
       ) : (
-        <p data-testid="spec-status" className="min-w-0 flex-1 basis-full text-sm font-medium text-white/80 sm:basis-0">
+        <p data-testid="spec-status" className="min-w-0 flex-1 basis-full text-sm font-medium text-white/80 md:basis-0">
           {status}
         </p>
       )}
@@ -149,6 +151,16 @@ export function SpecBar({ projectId, book: opened, nav }: SpecBarProps) {
         <NavButton icon={ChevronRight} label="Next page" testId="spec-next-page" onClick={page < pages ? () => { goTo(page + 1); } : undefined} />
         <NavButton icon={ChevronsRight} label="Next section" testId="spec-next-section" onClick={nextSection ? () => { goTo(nextSection.first_page); } : undefined} />
       </div>
+      {sheet ? (
+        <SpecSheet
+          sections={sections}
+          at={at}
+          onPick={goTo}
+          onClose={() => {
+            setSheet(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

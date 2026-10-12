@@ -1,9 +1,10 @@
 // A spec book as an item of the full-screen viewer: its pages through its folder's gate, one-click download, opened
-// at a page, with the section bar over the pages.
+// at a page, with the section bar over the pages and the sections left of them.
 import { downloadFile } from '../../data/download';
 import type { SpecBook } from '../../data/specs';
 import type { ViewerItem } from '../../ui/FileViewer';
 import { SpecBar } from './SpecBar';
+import { SpecSide } from './SpecSide';
 
 type Preview = (fileId: string) => Promise<string>;
 
@@ -17,5 +18,6 @@ export function specViewerItem(projectId: string, book: SpecBook, preview: Previ
     remove,
     startPage,
     pageBar: (nav) => <SpecBar projectId={projectId} book={book} nav={nav} />,
+    pageSide: (nav) => <SpecSide projectId={projectId} book={book} nav={nav} />,
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findSection, sectionAt, sectionDigits, sectionRefs } from './sections';
+import { bookWith, findSection, sectionAt, sectionDigits, sectionOfName, sectionRefs } from './sections';
 
 const BOOK = [
   { section: '09 21 16', first_page: 4 },
@@ -39,5 +39,28 @@ describe('spec sections', () => {
     ]);
     expect(sectionRefs('Detail 5/A-501')).toEqual([{ text: 'Detail 5/A-501' }]);
     expect(sectionRefs('PO 991234')).toEqual([{ text: 'PO 991234' }]);
+  });
+
+  it("reads a submittal's section from its file name", () => {
+    expect(sectionOfName('092900_04.0_Gypsum Board_PD_Acoustic Sealant_NET.pdf')).toBe('09 29 00');
+    expect(sectionOfName('S-0147.0-079200-Joint Sealants- PD - XYZ - AAN.pdf')).toBe('07 92 00');
+    expect(sectionOfName('A201A Floor Plan Level 01 Area A.pdf')).toBeNull();
+  });
+
+  it('picks the newest book that has the section', () => {
+    const book = (id: string, sections: string[]) => ({
+      file_id: id,
+      file_name: `${id}.pdf`,
+      size: 1,
+      page_count: 3,
+      text_ready: true,
+      can_send: false,
+      sections: sections.map((section, i) => ({ section, title: '', first_page: i + 1, last_page: i + 1 })),
+    });
+    const older = book('old', ['09 29 00', '10 28 00']);
+    const newer = book('new', ['09 29 00']);
+    expect(bookWith([older, newer], '092900')?.book.file_id).toBe('new');
+    expect(bookWith([older, newer], '10 28 00')?.section.first_page).toBe(2);
+    expect(bookWith([older, newer], '07 92 00')).toBeNull();
   });
 });
