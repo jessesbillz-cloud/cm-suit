@@ -1,10 +1,11 @@
 begin;
-select plan(31);
+select plan(33);
 -- Migration 0099 (Jesse, Oct 11 and 12): "the entirety of the work product and everything associated with the
--- administrative portion of construction should be available". Every role that reads Plans and Specs reads Submittals
--- and the RFI documents uploaded in Files: the sub, the architect, the viewer and the fire marshal. Someone not on the job
--- reads nothing. The RFI tool's own folder keeps its list (a draft's photos stay with the draft), and the fire marshal
--- still reads nothing past Plans and Specs' level: no Reports, no Photos. Writing is unchanged.
+-- administrative portion of construction should be available". Every role that reads Plans and Specs reads Submittals:
+-- the sub, the architect, the viewer and the fire marshal. The RFI documents uploaded in Files: the inside roles, the sub
+-- and the architect, never the fire marshal ("the fire marshal does not see every RFI"). Someone not on the job reads
+-- nothing. The RFI tool's own folder keeps its list (a draft's photos stay with the draft), and the fire marshal reads
+-- no Reports or Photos. Writing is unchanged.
 \ir _helpers.psql
 
 create temp table ids (k text primary key, v uuid);
@@ -99,8 +100,8 @@ insert into ids values
 -- ---------------------------------------------------------------------------------------------------------------------
 select is(pg_temp.uploaded_count(), 1, 'RFIs has an Uploaded folder');
 select is(pg_temp.access_of(pg_temp.rid('uploaded')),
-  '{files.manage:true:true,files.read_project:true:false,files.read_records:true:false,files.write_project:true:true}'::text[],
-  'its list: the job''s readers read it, files writers add to it');
+  '{files.manage:true:true,files.read_records:true:false,files.write_project:true:true,rfi.answer:true:false,rfi.create_draft:true:false}'::text[],
+  'its list: the inside roles and the RFI writers and answerers read it, files writers add to it');
 select is(pg_temp.access_of(pg_temp.rid('s_rfis')),
   '{rfi.answer:false:true,rfi.create_draft:false:true,rfi.sign_issue:true:false}'::text[],
   'the RFI tool''s own folder keeps its list');
@@ -127,7 +128,7 @@ select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000864'),
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000865'),
   '{ccd,photo,plan,report,rfi_doc,submittal,submittal_top}'::text[], 'viewer: the same as Plans');
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000866'),
-  '{ccd,plan,rfi_doc,submittal,submittal_top}'::text[], 'fire marshal: what Plans and Specs give him, no Reports or Photos');
+  '{ccd,plan,submittal,submittal_top}'::text[], 'fire marshal: Plans, Submittals, CCDs, no RFI documents, Reports or Photos');
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000867'), '{}'::text[], 'someone not on the job: nothing');
 
 select ok(pg_temp.can_read_as('a0000000-0000-0000-0000-000000000863', pg_temp.rid('trade'))
@@ -151,8 +152,14 @@ select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000866', pg_tem
 -- ---------------------------------------------------------------------------------------------------------------------
 select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000863'), '{plans,specs,submittals,rfis,ccd}'::text[],
   'sub: Plans, Specs, Submittals, RFIs and CCDs');
-select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000866'), '{plans,specs,submittals,rfis,ccd}'::text[],
-  'fire marshal: the same, nothing more');
+select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000866'), '{plans,specs,submittals,ccd}'::text[],
+  'fire marshal: no RFIs section');
+select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000866', pg_temp.rid('uploaded')),
+  'fire marshal: an uploaded RFI document''s folder stays closed');
+select ok(pg_temp.can_read_as('a0000000-0000-0000-0000-000000000863', pg_temp.rid('uploaded'))
+          and pg_temp.can_read_as('a0000000-0000-0000-0000-000000000864', pg_temp.rid('uploaded'))
+          and pg_temp.can_read_as('a0000000-0000-0000-0000-000000000865', pg_temp.rid('uploaded')),
+  'the sub, the architect and the viewer read it');
 select is(pg_temp.sec_of('a0000000-0000-0000-0000-000000000863', 'rfis'), pg_temp.rid('uploaded'),
   'sub: RFIs is its Uploaded folder');
 select is(pg_temp.sec_of('a0000000-0000-0000-0000-000000000862', 'rfis'), pg_temp.rid('s_rfis'),

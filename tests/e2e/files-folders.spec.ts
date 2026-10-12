@@ -171,7 +171,8 @@ test.describe('files: sections', () => {
       window.localStorage.setItem('e2e-mock-user', 'ahj');
     });
     await page.goto('/p/job-s/files');
-    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    // He doesn't see every RFI (Jesse, Oct 12): no RFIs section.
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'CCDs']);
     await section(page, 'Submittals').click();
     await expect(stamp('Sample Board')).toHaveText('Approved');
     await expect(stamp('Sample Plaster')).toHaveText('Not approved');

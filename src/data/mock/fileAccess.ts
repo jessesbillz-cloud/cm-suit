@@ -35,8 +35,9 @@ export function fileReadable(file: FileRow, all: readonly FolderRow[]): boolean 
 }
 
 // Files' sections (0090, 0099): files.read_project reads the job's documents (Plans, Specs, Submittals, CCDs ... and the
-// folders under them) and RFIs' Uploaded folder. files.read_records reads every folder but the RFI tool's own, which
-// rfi.sign_issue browses. role_permissions' files rows for the mock personas: the outside ones read documents only.
+// folders under them). files.read_records reads every folder but the RFI tool's own, which rfi.sign_issue browses. RFIs'
+// Uploaded folder: files.read_records, rfi.create_draft and rfi.answer, never the fire marshal. role_permissions' files
+// rows for the mock personas: the outside ones read documents only.
 const DOC_KINDS = ['plans', 'specs', 'addenda', 'dsa_103', 'ccd', 'approved_plans', 'submittals'];
 const DOCS_ONLY: Record<string, true> = { sub: true, foreman: true, special_inspector: true, ahj: true };
 
@@ -57,16 +58,22 @@ function isRfiUploads(folder: FolderRow, all: readonly FolderRow[]): boolean {
   return folder.kind === 'general' && folder.name === 'Uploaded' && parent?.kind === 'rfis' && parent.parent_id === null;
 }
 
+/** The mock user's RFI rights that open folders: browses the tool's folder, writes or answers RFIs. */
+interface RfiRights {
+  signs: boolean;
+  writesOrAnswers: boolean;
+}
+
 /** May the mock user read this folder in Files' sections (folder_row_can_read)? */
-export function sectionFolderReadable(folder: FolderRow, all: readonly FolderRow[], signsRfis: boolean): boolean {
+export function sectionFolderReadable(folder: FolderRow, all: readonly FolderRow[], rfi: RfiRights): boolean {
   if (!folderReadable(folder, all)) return false;
+  const docsOnly = DOCS_ONLY[mockUser().id.replace(/^mock-user-/, '')] === true;
   let at: FolderRow | undefined = folder;
   for (let depth = 0; at && depth < 32; depth += 1) {
-    if (isRfiUploads(at, all)) return true;
-    if (at.kind === 'rfis') return signsRfis;
+    if (isRfiUploads(at, all)) return !docsOnly || rfi.writesOrAnswers;
+    if (at.kind === 'rfis') return rfi.signs;
     const parent: string | null = at.parent_id;
     at = parent === null ? undefined : all.find((f) => f.id === parent);
   }
-  const who = mockUser().id.replace(/^mock-user-/, '');
-  return DOCS_ONLY[who] !== true || DOC_KINDS.includes(nearestKind(folder, all));
+  return !docsOnly || DOC_KINDS.includes(nearestKind(folder, all));
 }

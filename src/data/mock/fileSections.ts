@@ -60,10 +60,10 @@ export async function sections(projectId: string): Promise<FileSection[]> {
   const roots = KINDS.flatMap((k) => rootOf(k)?.id ?? []);
   const loose = top.filter((f) => !roots.includes(f.id) && !f.app_only && !TOOL_KINDS.has(f.kind));
   const files = await sectionFiles(list.map((f) => f.id));
-  const signsRfis = mockRfis.has('rfi.sign_issue');
+  const rfi = { signs: mockRfis.has('rfi.sign_issue'), writesOrAnswers: mockRfis.has('rfi.create_draft') || mockRfis.has('rfi.answer') };
   const reads = (id: string) => {
     const f = list.find((x) => x.id === id);
-    return f !== undefined && sectionFolderReadable(f, list, signsRfis);
+    return f !== undefined && sectionFolderReadable(f, list, rfi);
   };
   return KINDS.flatMap((kind) => {
     const root = rootOf(kind);

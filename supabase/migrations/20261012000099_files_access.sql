@@ -9,12 +9,14 @@
 --     document already.
 --   * RFIs: the RFI tool's own folder keeps its access list (0038: rfi.sign_issue browses it, a draft's photos stay with
 --     the draft, everyone else opens an RFI's files through the RFI). files_sections now also finds or makes an
---     "Uploaded" folder in it with its own access list: files.read_project and files.read_records read it,
---     files.write_project and files.manage add to it. Files puts RFI documents uploaded there. The RFIs section shows to
---     whoever reads either folder, and its folder is the first of the two the caller reads, so a reader who doesn't
---     browse the tool's folder sees the uploaded documents only. The tool's own signed records stay read-only.
---   * The fire marshal reads what Plans and Specs give him (files.read_project), so Submittals and RFI documents, and
---     nothing more: Reports, Photos, the OFS reports folder and other requests stay closed (0090 unchanged).
+--     "Uploaded" folder in it with its own access list: files.read_records (the inside roles), rfi.create_draft (the
+--     sub, the foreman) and rfi.answer (the architect) read it, files.write_project and files.manage add to it. Files
+--     puts RFI documents uploaded there. The RFIs section shows to whoever reads either folder, and its folder is the
+--     first of the two the caller reads, so a reader who doesn't browse the tool's folder sees the uploaded documents
+--     only. The tool's own signed records stay read-only.
+--   * The fire marshal does not see every RFI (Jesse, Oct 12): no RFIs section for him. He reads Submittals with Plans
+--     and Specs and nothing more: Reports, Photos, the OFS reports folder and other requests stay closed (0090
+--     unchanged).
 -- No role_permissions rows change. No table changes, so nothing new for the server key (rule 1).
 
 -- =====================================================================================================================
@@ -113,8 +115,9 @@ begin
   end if;
   if not exists (select 1 from public.folder_access fa where fa.folder_id = v_id) then
     insert into public.folder_access (folder_id, capability, can_read, can_write, created_by) values
-      (v_id, 'files.read_project', true, false, auth.uid()),
       (v_id, 'files.read_records', true, false, auth.uid()),
+      (v_id, 'rfi.create_draft', true, false, auth.uid()),
+      (v_id, 'rfi.answer', true, false, auth.uid()),
       (v_id, 'files.write_project', true, true, auth.uid()),
       (v_id, 'files.manage', true, true, auth.uid());
   end if;
