@@ -4,7 +4,8 @@
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
 // be removed (migration 0065). The file viewer (migration 0074): a sheet in Plans straight to full screen, a photo in
 // the file's pane, Full screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
-// mock data layer.
+// mock data layer. Delete and Move on the rows (migration 0096): a row's Delete with Undo, checked rows moved to another
+// folder or deleted together, one toast with Undo for all.
 import process from 'node:process';
 import { expect, test, type JSHandle, type Page } from '@playwright/test';
 
@@ -289,5 +290,65 @@ test.describe('files: the viewer, Delete and Rename', () => {
     await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeEnabled();
     await expect(page.getByTestId('file-delete')).toHaveCount(0);
     await expect(page.getByTestId('file-rename')).toHaveCount(0);
+  });
+});
+
+test.describe('files: Delete and Move on the rows', () => {
+  test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
+
+  const row = (page: Page, name: string) => page.getByTestId('file-row').filter({ hasText: name });
+
+  test("a row's Delete takes the file away at once, and Undo brings it back", async ({ page }) => {
+    await openPlans(page);
+    await row(page, 'Sample Plan Set A.pdf').getByRole('button', { name: 'Delete Sample Plan Set A.pdf' }).click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(0);
+    const toast = page.getByRole('status').filter({ hasText: 'Sample Plan Set A.pdf deleted.' });
+    await toast.getByRole('button', { name: 'Undo' }).click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(1);
+  });
+
+  test('two checked files move to another folder and show there; Undo moves them back', async ({ page }) => {
+    await openPlans(page);
+    const long = 'Sample_Level_2_Mechanical_Coordination_Drawing_Set_Rev_14_Combined_For_Review.pdf';
+    const pickTwo = async () => {
+      await page.getByRole('checkbox', { name: 'Select Sample Plan Set A.pdf' }).check();
+      await page.getByRole('checkbox', { name: `Select ${long}` }).check();
+      await expect(page.getByTestId('files-selected-count')).toHaveText('2 selected');
+      await page.getByTestId('files-move-to').selectOption({ label: 'Specs' });
+      await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(0);
+      await expect(fileNamed(page, long)).toHaveCount(0);
+      await expect(page.getByTestId('files-selected-count')).toHaveCount(0);
+    };
+
+    await pickTwo();
+    await page.getByRole('status').filter({ hasText: '2 files moved to Specs.' }).getByRole('button', { name: 'Undo' }).click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(1);
+    await expect(fileNamed(page, long)).toHaveCount(1);
+
+    await pickTwo();
+    await page.getByTestId('folder').filter({ hasText: 'Specs' }).click();
+    await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(1);
+    await expect(fileNamed(page, long)).toHaveCount(1);
+  });
+
+  test('select all, Delete: one toast for all of them, and one Undo', async ({ page }) => {
+    await openPlans(page);
+    const count = await page.getByTestId('file-row').count();
+    await page.getByTestId('files-select-all').check();
+    await expect(page.getByTestId('files-selected-count')).toHaveText(`${String(count)} selected`);
+    await page.getByTestId('files-delete-selected').click();
+    await expect(page.getByTestId('file-row')).toHaveCount(0);
+    const toast = page.getByRole('status').filter({ hasText: `${String(count)} files deleted.` });
+    await toast.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('file-row')).toHaveCount(count);
+  });
+
+  test('a signed record has no Delete or checkbox on its row', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files?folder=job-b-reports');
+    const signed = row(page, 'Sample Daily Report 7.pdf');
+    await expect(signed).toHaveCount(1);
+    await expect(signed.getByTestId('file-row-download')).toBeVisible();
+    await expect(signed.getByTestId('file-row-delete')).toHaveCount(0);
+    await expect(signed.getByTestId('file-row-check')).toHaveCount(0);
   });
 });

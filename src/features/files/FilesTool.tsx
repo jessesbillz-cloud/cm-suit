@@ -1,41 +1,28 @@
 // Files (SPEC §8.1, Phase 0 core): folder tree, file rows with one-click download, drag-and-drop and button upload
 // through the single uploader with per-file progress, and folder create and rename for files.manage. The tree lists
 // folders by sort then name (each job opens with what its kind of user uses most) and hides the app's folders while they
-// are empty (0092), with a lock on them and no Upload there. A
-// row's name opens the file's pane (the file itself, Full screen, Rename, Delete); its icon opens it full screen. In
-// Plans and Specs the name opens the file full screen at once (Jesse, Oct 5: the right column is too small for a sheet
-// or a spec), its pane under it for Rename, Delete and versions; a spec book carries its section bar.
-// The whole file list is the drop target (useFileDrop); a dropped folder keeps its folders (usePlaceDrop). An upload that never finished is a line to remove, never a
-// file row (leftovers).
-import { useEffect, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useUser } from '../../data/auth';
-import { usePreviewFetch } from '../../data/preview';
-import { useCanWriteFolder, useCapability, useFiles, useFolders, useProject } from '../../data/queries';
-import { specBooksQuery } from '../../data/specs';
+// are empty (0092), with a lock on them and no Upload there. The list is FolderFiles: a row's name opens the file's pane
+// (the file itself, Full screen, Rename, Delete), Delete and a checkbox sit on every row I may change, and checked rows
+// move to any folder I may add to that the app doesn't fill (0096). The whole file list is the drop target; a dropped
+// folder keeps its folders (usePlaceDrop).
+import type { ReactNode } from 'react';
+import { useWritableFolders } from '../../data/files';
+import { useCanWriteFolder, useCapability, useFolders, useProject } from '../../data/queries';
 import { useUploadQueue } from '../../data/UploadQueue';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
-import { useFileViewer } from '../../ui/FileViewer';
 import { PageHeader } from '../../ui/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { specViewerItem } from '../specs/specItem';
-import { FileRow, FileRowsHead } from './FileRow';
 import { FolderAiToggle } from './FolderAiToggle';
-import { defaultFolderId, folderDescendants, folderPath, visibleFolders } from './folderOrder';
+import { FolderFiles } from './FolderFiles';
+import { defaultFolderId, folderDescendants, folderPath, treeOrder, visibleFolders } from './folderOrder';
 import { FolderTree } from './FolderTree';
-import { leftoverUploads, storedFiles } from './leftovers';
-import { canOpenNow } from './scanStatus';
 import { NewFolderForm } from './NewFolderForm';
 import { RenameFolder } from './RenameFolder';
 import { UploadButtons } from './UploadButtons';
-import { UploadList } from './UploadList';
-import { useDownload } from './useDownload';
-import { useFileDrop } from './useFileDrop';
 import { usePlaceDrop } from './usePlaceDrop';
-import type { DroppedFile } from './collectDrop';
-import { fileViewerItem } from './viewerItems';
+import type { MoveTarget } from './useMoveRows';
 
 interface FilesToolProps {
   projectId: string;
@@ -65,107 +52,6 @@ function Frame({ meta, actions, below, children }: FrameProps) {
   );
 }
 
-interface FolderFilesProps {
-  folder: FolderRow;
-  writable: boolean;
-  timeZone: string | null;
-  selectedFileId: string | null;
-  /** The folders inside this one, for the one line of uploads going into them. */
-  under: ReadonlySet<string>;
-  onDropped: (dropped: DroppedFile[]) => void;
-  onOpenFile: (fileId: string) => void;
-}
-
-function FolderFiles({ folder, writable, timeZone, selectedFileId, under, onDropped, onOpenFile }: FolderFilesProps) {
-  const files = useFiles(folder.id);
-  const queue = useUploadQueue();
-  const download = useDownload();
-  const drop = useFileDrop(writable, onDropped);
-  const viewer = useFileViewer();
-  const preview = usePreviewFetch();
-  const user = useUser();
-  const big = folder.kind === 'plans' || folder.kind === 'specs';
-  const books = useQuery({ ...specBooksQuery(folder.project_id), enabled: folder.kind === 'specs' });
-  const rows = files.data ? storedFiles(files.data) : undefined;
-  // Full screen from a row walks the folder's photos and PDFs with the arrows; a spec book opens with its sections.
-  const list = (rows ?? [])
-    .filter((f) => canOpenNow(f, user.id))
-    .map((f) => {
-      const book = books.data?.find((b) => b.file_id === f.id);
-      return book ? specViewerItem(folder.project_id, book, preview) : fileViewerItem(f, preview);
-    })
-    .filter((i) => i.kind !== 'other');
-  const viewable = new Set(list.map((i) => i.id));
-  // A book just added is not in the answer yet: ask again once, so it opens with its bar.
-  const known = books.data;
-  const newBook = known !== undefined && list.some((i) => i.kind === 'pdf' && !known.some((b) => b.file_id === i.id));
-  const refetchBooks = books.refetch;
-  useEffect(() => {
-    if (newBook) void refetchBooks();
-  }, [newBook, refetchBooks]);
-  const view = (fileId: string) => {
-    viewer.open(list, list.findIndex((i) => i.id === fileId));
-  };
-  const leftovers = files.data ? leftoverUploads(files.data, queue.items) : [];
-
-  return (
-    <Card padded={false}>
-      <div
-        data-testid="files-drop"
-        className={`min-h-48 rounded-card ${drop.over ? 'bg-accent-soft outline-dashed outline-2 -outline-offset-4 outline-accent' : ''}`}
-        {...drop.handlers}
-      >
-        {drop.over ? (
-          // Zero height, so nothing moves; it stays in view while a long list is scrolled.
-          <div className="pointer-events-none sticky top-2 z-10 flex h-0 justify-center">
-            <p data-testid="files-drop-hint" className="mt-2 h-fit rounded-full bg-accent px-3 py-1 text-[13px] font-medium text-white shadow-pop">
-              Drop to upload
-            </p>
-          </div>
-        ) : null}
-        <div className="overflow-hidden rounded-card">
-          <UploadList folderId={folder.id} under={under} leftovers={leftovers} />
-          {files.isPending ? <LoadingState label="Loading files" /> : null}
-          {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
-          {rows?.length === 0 ? (
-            <EmptyState icon={META.icon} title="This folder is empty." />
-          ) : null}
-          {rows && rows.length > 0 ? (
-            <>
-              <FileRowsHead />
-              <ul className="divide-y divide-line">
-                {rows.map((f) => (
-                  <FileRow
-                    key={f.id}
-                    file={f}
-                    timeZone={timeZone}
-                    selected={f.id === selectedFileId}
-                    downloading={download.pendingId === f.id}
-                    onOpen={(id) => {
-                      onOpenFile(id);
-                      if (big && viewable.has(id)) view(id);
-                    }}
-                    onView={
-                      viewable.has(f.id)
-                        ? () => {
-                            view(f.id);
-                          }
-                        : undefined
-                    }
-                    onDownload={(file) => {
-                      download.start(file.id, file.size);
-                    }}
-                  />
-                ))}
-              </ul>
-            </>
-          ) : null}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 interface FolderScreenProps extends Omit<FilesToolProps, 'folderId'> {
   folders: readonly FolderRow[];
   current: FolderRow;
@@ -186,6 +72,12 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
   };
   const placeDrop = usePlaceDrop(projectId, current, manager);
   const list = visibleFolders(folders);
+  const writableIds = useWritableFolders(projectId);
+  // Move to: the folders I may add to that the app doesn't fill, in tree order, by their path.
+  const targets: MoveTarget[] = treeOrder(folders)
+    .map(({ folder }) => folder)
+    .filter((f) => f.id !== current.id && !f.app_only && writableIds.data?.has(f.id) === true)
+    .map((f) => ({ id: f.id, label: folderPath(folders, f.id) }));
   // Desktop: the folder's AI switch sits beside Upload. Phone: under the header, so Camera and Upload keep one row.
   const aiToggle = <FolderAiToggle key={current.id} folder={current} canManage={manager} />;
   const actions = (
@@ -199,9 +91,14 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
     <ErrorState error={canWrite.error} title="Upload is not available." onRetry={() => void canWrite.refetch()} className="m-0 mb-4" />
   ) : null;
 
+  const moveError = writableIds.isError ? (
+    <ErrorState error={writableIds.error} title="Move is not available." onRetry={() => void writableIds.refetch()} className="m-0 mb-4" />
+  ) : null;
+
   return (
     <Frame meta={folderPath(folders, current.id)} actions={actions} below={isPhone ? aiToggle : undefined}>
       {writeError}
+      {moveError}
       <div className={`flex gap-4 ${isPhone ? 'flex-col' : 'items-start'}`}>
         <Card title="Folders" padded={false} className={isPhone ? '' : 'w-64 shrink-0'}>
           {/* A phone keeps the files in reach: a long tree scrolls in its own box. */}
@@ -219,8 +116,13 @@ function FolderScreen({ projectId, folders, current, manager, selectedFileId, is
             timeZone={project.data?.timezone ?? null}
             selectedFileId={selectedFileId}
             under={folderDescendants(folders, current.id)}
+            targets={targets}
             onDropped={placeDrop}
             onOpenFile={onOpenFile}
+            onDeleted={(ids) => {
+              // The pane of a deleted file closes; the folder stays.
+              if (selectedFileId !== null && ids.includes(selectedFileId)) onSelectFolder(current.id);
+            }}
           />
         </div>
       </div>

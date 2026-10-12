@@ -13,6 +13,10 @@ export const qk = {
   files: (folderId: string) => ['files', folderId] as const,
   /** Every folder's file list (a file removed from somewhere other than Files). */
   filesAll: ['files'] as const,
+  /** Which rows of a list I may change, with their versions (files_changeable): under the list's own key, one refresh. */
+  fileChangeable: (listKey: string, ids: readonly string[]) => ['files', listKey, 'changeable', ids] as const,
+  /** The folders of a job I may add to (my_writable_folders): under qk.folders, one refresh. */
+  writableFolders: (projectId: string) => ['folders', projectId, 'writable'] as const,
   file: (fileId: string) => ['file', fileId] as const,
   /** A file's version, whether I may delete or rename it, and its earlier versions (under qk.file: one refresh). */
   fileFacts: (fileId: string) => ['file', fileId, 'facts'] as const,
