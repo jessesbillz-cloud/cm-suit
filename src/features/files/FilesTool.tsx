@@ -62,7 +62,10 @@ export function FilesTool({ projectId, folderId, selectedFileId, isPhone, onSele
 
   const view = resolveView(sections.data, folderId);
   const kind = view ? sectionKind(view.section) : null;
-  const current = view ? folders.data.find((f) => f.id === (view.filterId ?? view.section.folder_id)) : undefined;
+  const list = folders.data;
+  const byId = (id: string | null) => list.find((f) => f.id === id);
+  // A folder just made may not be in the list yet: the section shows whole until it is.
+  const current = view ? (byId(view.filterId) ?? byId(view.section.folder_id)) : undefined;
   if (!view || kind === null || !current) {
     return (
       <FilesFrame>
