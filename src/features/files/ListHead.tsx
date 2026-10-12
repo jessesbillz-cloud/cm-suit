@@ -64,7 +64,7 @@ export function ListHead({ section, rowMove, select, targets, busy, onMove, onDe
         </div>
       ) : (
         <div aria-hidden className={`hidden min-w-0 flex-1 items-center gap-3 sm:flex ${LABELS}`}>
-          <span className="w-8 shrink-0" />
+          {section === 'plans' || section === 'submittals' ? null : <span className="w-8 shrink-0" />}
           {cols.lead.map((c) => (
             <span key={c.label} className={c.className}>
               {c.label}

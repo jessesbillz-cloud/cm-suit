@@ -1,5 +1,5 @@
 // What a file row shows in its section (Jesse, Oct 11). Plans: Sheet, Title, Added, by sheet number. Submittals:
-// Section, No., Title, Company, Stamp. Everything else: Name, Size, Added, as before. A name that says no sheet or
+// Section (its number under it), Title (its company under it), Stamp: the title keeps its room beside the right column. Everything else: Name, Size, Added, as before. A name that says no sheet or
 // submittal shows as it is. Desktop: columns. Phone: the sheet or section in front of the title, the rest on one short
 // line under it. A stamp's color comes from lib/status only (text, never a row).
 import type { ReactNode } from 'react';
@@ -15,9 +15,7 @@ const SIZE = 'w-16 shrink-0 text-right';
 const DATE = 'w-[5.75rem] shrink-0 text-right';
 const SHEET = 'w-20 shrink-0';
 const SECTION = 'w-[4.75rem] shrink-0';
-const NO = 'w-14 shrink-0';
-const COMPANY = 'w-32 shrink-0';
-const STAMP = 'w-20 shrink-0';
+const STAMP = 'w-14 shrink-0';
 
 interface Col {
   label: string;
@@ -29,15 +27,9 @@ export function headCols(section: SectionKind): { lead: Col[]; main: string; tra
   if (section === 'plans') return { lead: [{ label: 'Sheet', className: SHEET }], main: 'Title', trail: [{ label: 'Added', className: DATE }] };
   if (section === 'submittals') {
     return {
-      lead: [
-        { label: 'Section', className: SECTION },
-        { label: 'No.', className: NO },
-      ],
+      lead: [{ label: 'Section', className: SECTION }],
       main: 'Title',
-      trail: [
-        { label: 'Company', className: COMPANY },
-        { label: 'Stamp', className: STAMP },
-      ],
+      trail: [{ label: 'Stamp', className: STAMP }],
     };
   }
   return {
@@ -69,8 +61,10 @@ export function LeadCells({ view }: { view: RowView }) {
   if (view.kind === 'submittal') {
     return (
       <>
-        <span className={`${CELL} ${SECTION} text-ink`}>{view.sub?.section ?? ''}</span>
-        <span className={`${CELL} ${NO} text-ink`}>{view.sub?.no ?? ''}</span>
+        <span className={`${CELL} ${SECTION} text-ink`}>
+          {view.sub?.section ?? ''}
+          {view.sub?.no ? <span className="block text-ink-3">{view.sub.no}</span> : null}
+        </span>
       </>
     );
   }
@@ -101,6 +95,12 @@ export function TitleCell({ view, file, added, chip }: TitleProps) {
         {title}
       </span>
       {chip ? <span className="ml-2 hidden align-middle sm:inline-block">{chip}</span> : null}
+      {/* The company under the title on a desktop too: a column of its own left the title no room beside the right column. */}
+      {view.kind === 'submittal' && view.company !== '' ? (
+        <span data-testid="file-row-company" className="mt-0.5 hidden text-xs text-ink-3 wrap-anywhere sm:block">
+          {view.company}
+        </span>
+      ) : null}
       <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-ink-3 wrap-anywhere sm:hidden">
         {chip}
         {meta.filter((s) => s !== '').join(' · ')}
@@ -116,7 +116,6 @@ export function TrailCells({ view, file, timeZone }: { view: RowView; file: File
   if (view.kind === 'submittal') {
     return (
       <>
-        <span className={`${CELL} ${COMPANY} wrap-anywhere text-ink`}>{view.company}</span>
         <span className={`${CELL} ${STAMP}`}>{view.sub?.stamp ? <StampText stamp={view.sub.stamp} testId="file-row-stamp" /> : null}</span>
       </>
     );

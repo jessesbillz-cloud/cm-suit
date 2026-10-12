@@ -54,7 +54,8 @@ export function FileRow(props: FileRowProps) {
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
   // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
   const blocked = !canOpenNow(file, user.id);
-  const iconBox = `${check === undefined ? 'flex' : 'hidden sm:flex'} h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+  // A plan's sheet or a submittal's section says what the file is: no icon there on a desktop, the title keeps the room.
+  const iconBox = `${check === undefined ? 'flex' : 'hidden'} ${view.kind === 'plain' ? 'sm:flex' : 'sm:hidden'} h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
     selected ? 'bg-card text-accent' : 'bg-page text-ink-2'
   }`;
   const added = timeZone === null ? '' : formatInZone(file.created_at, timeZone, 'MMM d, yyyy');
