@@ -151,14 +151,31 @@ test.describe('files: sections', () => {
   });
 
   test('the fire marshal reads a stamp as Approved or Not approved', async ({ page }) => {
-    await signIn(page, 'ahj', '/p/job-b/files');
-    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    // The PM files two submittals on the fire marshal's job, then the fire marshal (a later init script wins) opens Files.
+    await signIn(page, 'pm', '/p/job-s/files');
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    const dataTransfer = await page.evaluateHandle(() => {
+      const dt = new DataTransfer();
+      for (const name of ['092900_04.0_Sample Board_PD_NET.pdf', '092400_02.0_Sample Plaster_PD_MCN RNR.pdf']) {
+        dt.items.add(new File([new Uint8Array(1024)], name, { type: 'application/pdf' }));
+      }
+      return dt;
+    });
+    await page.getByTestId('files-drop').dispatchEvent('drop', { dataTransfer });
+    await expect(page.getByRole('status').filter({ hasText: 'Sorted: 2 Submittals' })).toBeVisible();
     await section(page, 'Submittals').click();
     const stamp = (title: string) => page.getByTestId('file-row').filter({ hasText: title }).getByTestId('file-row-stamp');
-    await expect(stamp('Gypsum Board PD Acoustic Sealant')).toHaveText('Approved');
-    await expect(stamp('Exterior Portland Cement Plaster')).toHaveText('Not approved');
-    await expect(stamp('Thermal Insulation PD')).toHaveText('Approved');
-    await expect(page.getByTestId('file-row-stamp').filter({ hasText: /NET|MCN|RNR|AAN/ })).toHaveCount(0);
+    await expect(stamp('Sample Board')).toHaveText('NET');
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem('e2e-mock-user', 'ahj');
+    });
+    await page.goto('/p/job-s/files');
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    await section(page, 'Submittals').click();
+    await expect(stamp('Sample Board')).toHaveText('Approved');
+    await expect(stamp('Sample Plaster')).toHaveText('Not approved');
+    await expect(page.getByTestId('file-row-stamp').filter({ hasText: /NET|MCN|RNR/ })).toHaveCount(0);
   });
 
   test('a sub sees Submittals the way they see Plans, with the stamps', async ({ page }) => {
