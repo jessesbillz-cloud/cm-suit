@@ -210,7 +210,7 @@ function BackToRevs({ projectId, canManage, level }: { projectId: string; canMan
       }}
     >
       <Icon icon={ChevronLeft} size={16} />
-      OFS inspection card
+      Inspection cards
     </button>
   );
 }
