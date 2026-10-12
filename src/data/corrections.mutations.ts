@@ -63,6 +63,7 @@ export function useCreateCorrection() {
           p_trade: v.trade,
           p_location: v.location,
           p_photo_ids: v.photoIds,
+          ...(v.company_org_id ? { p_company_org_id: v.company_org_id } : {}),
           ...(v.noticeFileId ? { p_notice_file_id: v.noticeFileId } : {}),
         }),
       );

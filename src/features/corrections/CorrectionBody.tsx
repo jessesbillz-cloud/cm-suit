@@ -1,4 +1,4 @@
-// The reading pane's one flat view: status, trade and location, photos, description, spec tags, the notice, the
+// The reading pane's one flat view: status, who it goes to, trade and location, photos, description, spec tags, the notice, the
 // latest step (what the inspector reads before deciding), and the actions this person's capabilities allow. Mark ready
 // opens its form (a note and photos for the inspector); the inspector's Corrected / Sign off / Reopen take one tap, with
 // Undo and "Add note" on the item afterwards (AfterStep), never an "are you sure?" step.
@@ -19,9 +19,10 @@ import { useDownload } from '../files/useDownload';
 import { fileViewerItem } from '../files/viewerItems';
 import { AfterStep } from './AfterStep';
 import { EditCorrection } from './EditCorrection';
-import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone, stepsFor, type Caps } from './model';
+import { HISTORY_LABELS, STEP_LABELS, canEdit, latestStep, statusChip, stepDone, stepsFor, toLabel, type Caps } from './model';
 import { PhotoStrip } from './PhotoStrip';
 import { StepForm } from './StepForm';
+import { useToName } from './useCompanies';
 import { useUndoOffer } from './useUndoOffer';
 import { SpecLink } from '../specs/SpecLink';
 import { sectionDigits } from '../specs/sections';
@@ -136,7 +137,8 @@ export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, i
   const latest = latestStep(history);
   const steps = stepsFor(row.status, caps);
   const editable = canEdit(row, userId, caps);
-  const where = [row.trade, row.location].filter((v) => v !== '').join(' · ');
+  const toName = useToName(row.project_id);
+  const where = [toLabel(toName(row.company_org_id)), row.trade, row.location].filter((v) => v !== '').join(' · ');
   const read = () => {
     setMode({ kind: 'read' });
   };
@@ -165,7 +167,11 @@ export function CorrectionBody({ row, history, caps, userId, nameOf, timeZone, i
         <span data-testid="cn-status">
           <StatusChip status={chip.status} label={chip.label} />
         </span>
-        {where !== '' ? <span className="text-sm text-ink-2">{where}</span> : null}
+        {where !== '' ? (
+          <span className="text-sm text-ink-2" data-testid="cn-where">
+            {where}
+          </span>
+        ) : null}
       </div>
 
       {mode.kind === 'edit' ? <EditCorrection row={row} isPhone={isPhone} onDone={read} /> : <Details row={row} timeZone={timeZone} />}

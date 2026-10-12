@@ -161,11 +161,11 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['delivery_link_project', { p_project_id: U, p_token_hash: 'x' }],
   // Folders by company kind (0027)
   ['add_template_folders', { p_project_id: U, p_applies: ['both'], p_created_by: U }],
-  // Corrections (0026)
+  // Corrections (0026, 0098)
   ['correction_photo_folder', { p_project_id: U }],
   ['create_correction', { p_project_id: U, p_title: 'probe', p_request_key: 'probe' }],
   ['set_correction_status', { p_id: U, p_version: 1, p_status: 'ready' }],
-  ['undo_correction', { p_id: U, p_version: 1 }],
+  ['undo_correction', { p_id: U, p_version: 1 }], ['correction_companies', { p_project_id: U }], ['correction_fix_tasks', { p_id: U }],
   // Bid forms (0034)
   ['open_bid_forms', { p_project_id: U }],
   // Testing login (0036)

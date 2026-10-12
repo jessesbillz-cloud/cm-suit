@@ -1,4 +1,4 @@
-// Edit an item's typed fields, its own photos (take one off, with Undo; add more with Camera / Upload) and the notice
+// Edit an item's typed fields and To, its own photos (take one off, with Undo; add more with Camera / Upload) and the notice
 // (the creator or an inspector; 0026 allows each). Saves carry the version it was read at.
 import { useState } from 'react';
 import { Check } from 'lucide-react';
@@ -17,6 +17,7 @@ import { CorrectionFields, draftOf, fieldsOf, type FieldsDraft } from './Correct
 import { cnLabel } from './model';
 import { NoticeFile } from './NoticeFile';
 import { PhotoPicker } from './PhotoPicker';
+import { useToPicker } from './useCompanies';
 import { usePhotoUploads } from './usePhotoUploads';
 
 interface KeptProps {
@@ -77,9 +78,10 @@ export function EditCorrection({ row, isPhone, onDone }: EditCorrectionProps) {
   const [kept, setKept] = useState<string[]>(row.photo_ids);
   const photos = usePhotoUploads(row.project_id, Math.max(0, ITEM_PHOTO_LIMIT - kept.length), useCorrectionFileUpload());
   const [problem, setProblem] = useState<string | null>(null);
+  const picker = useToPicker(row.project_id, row.company_org_id);
 
   function save() {
-    const fields = fieldsOf(draft);
+    const fields = fieldsOf(draft, picker.saved(draft.to));
     if (fields.title === '') {
       setProblem('Add a title.');
       return;
@@ -118,7 +120,7 @@ export function EditCorrection({ row, isPhone, onDone }: EditCorrectionProps) {
         }}
       />
       <PhotoPicker uploads={photos} isPhone={isPhone} />
-      <CorrectionFields value={draft} onChange={setDraft} autoFocus={!isPhone} />
+      <CorrectionFields value={draft} onChange={setDraft} companies={picker.options} companiesError={picker.error} autoFocus={!isPhone} />
       <NoticeFile projectId={row.project_id} fileId={noticeFileId} onChange={setNoticeFileId} />
       {problem ? (
         <p role="alert" className="text-sm text-danger">

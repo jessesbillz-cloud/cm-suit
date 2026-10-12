@@ -1,4 +1,4 @@
-// A new correction: photos first (on the phone the camera has already opened), then title, trade and location,
+// A new correction: photos first (on the phone the camera has already opened), then title, To, trade and location,
 // prefilled from my latest item. The database numbers it; a repeated save returns the same item (request key).
 import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
@@ -13,6 +13,7 @@ import { cnLabel, prefill } from './model';
 import { NoticeFile } from './NoticeFile';
 import { PhotoPicker } from './PhotoPicker';
 import { usePhotoUploads } from './usePhotoUploads';
+import { useToPicker } from './useCompanies';
 import { useUndoOffer } from './useUndoOffer';
 
 interface NewCorrectionProps {
@@ -30,6 +31,7 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
   const create = useCreateCorrection();
   const offerUndo = useUndoOffer(projectId, null);
   const photos = usePhotoUploads(projectId, ITEM_PHOTO_LIMIT, useCorrectionFileUpload());
+  const picker = useToPicker(projectId, null);
   const [requestKey] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<FieldsDraft>(() => ({
     title: '',
@@ -49,7 +51,7 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
   }, [add, initialFiles]);
 
   function save() {
-    const fields = fieldsOf(draft);
+    const fields = fieldsOf(draft, picker.saved(draft.to));
     if (fields.title === '') {
       setProblem('Add a title.');
       return;
@@ -80,7 +82,13 @@ export function NewCorrection({ projectId, isPhone, initialFiles, onCreated, onC
     >
       <h1 className="text-[17px] font-semibold leading-6 tracking-[-0.01em] text-ink">New correction</h1>
       <PhotoPicker uploads={photos} isPhone={isPhone} />
-      <CorrectionFields value={draft} onChange={setDraft} autoFocus={!isPhone || initialFiles.length > 0} />
+      <CorrectionFields
+        value={draft}
+        onChange={setDraft}
+        companies={picker.options}
+        companiesError={picker.error}
+        autoFocus={!isPhone || initialFiles.length > 0}
+      />
       <NoticeFile projectId={projectId} fileId={noticeFileId} onChange={setNoticeFileId} />
       {problem ? (
         <p role="alert" className="text-sm text-danger">

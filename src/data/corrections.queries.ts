@@ -9,8 +9,10 @@ import { isMock } from './mock';
 import {
   CORRECTION_COLS,
   HISTORY_COLS,
+  correctionCompanySchema,
   correctionHistorySchema,
   correctionSchema,
+  type CorrectionCompany,
   type CorrectionHistoryRow,
   type CorrectionRow,
   type PhotoFile,
@@ -71,4 +73,15 @@ export function usePhotoFiles(projectId: string, ids: readonly string[]) {
     queryKey: qk.correctionsPart(projectId, 'files', ids.join(',')),
     queryFn: ids.length > 0 ? () => fetchPhotoFiles(ids) : skipToken,
   });
+}
+
+async function fetchCompanies(projectId: string): Promise<CorrectionCompany[]> {
+  if (isMock()) return mockCn.companies(projectId);
+  const rows: unknown = throwIfError(await supabase.rpc('correction_companies', { p_project_id: projectId }));
+  return z.array(correctionCompanySchema).parse(rows);
+}
+
+/** The job's companies (the "To" picker) and the ones items already go to (their names), by name. */
+export function useCorrectionCompanies(projectId: string) {
+  return useQuery({ queryKey: qk.correctionsPart(projectId, 'companies'), queryFn: () => fetchCompanies(projectId), staleTime: 60_000 });
 }
