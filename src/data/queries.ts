@@ -19,6 +19,7 @@ import { qk } from './keys';
 import * as mock from './mock/api';
 import * as mockJobs from './mock/jobs';
 import * as mockBids from './mock/bids';
+import * as mockCn from './mock/corrections';
 import { isMock } from './mock';
 import type { ActivityRow, BoardLine, FileRow, FolderRow, MyOrg, Person, ProfileRow, ProjectRow, TaskRow } from './types';
 
@@ -144,7 +145,7 @@ export function useReadMark(projectId: string | null) {
 }
 
 async function fetchTasks(userId: string, projectId: string | null): Promise<TaskRow[]> {
-  if (isMock()) return mock.tasks(projectId);
+  if (isMock()) return [...(await mock.tasks(projectId)), ...(await mockCn.fixTasks(projectId))];
   let q = supabase
     .from('tasks')
     .select('id, project_id, kind, title, entity_type, entity_id, due_at, requires_signature, version')

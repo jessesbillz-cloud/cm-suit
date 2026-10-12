@@ -2,6 +2,7 @@
 // search, the steps a person may take, prefill, and the weekly snapshot. Pure functions, unit-tested.
 import {
   CORRECTION_STATUSES,
+  type CorrectionCompany,
   CORRECTION_STEPS,
   STEP_CAPABILITY,
   STEP_FROM,
@@ -136,16 +137,44 @@ function numberQuery(query: string): number | null {
   return m?.[1] ? Number(m[1]) : null;
 }
 
-/** One box over number, title, trade, location, description and spec tags (older items). */
-export function matches(row: CorrectionRow, query: string): boolean {
+/** The company's name for an item (none, or not loaded: ''). */
+export type ToName = (orgId: string | null) => string;
+const NO_NAME: ToName = () => '';
+
+/** One box over number, title, the company it goes to, trade, location, description and spec tags (older items). */
+export function matches(row: CorrectionRow, query: string, toName: ToName = NO_NAME): boolean {
   const q = query.trim().toLowerCase();
   if (q === '') return true;
   if (numberQuery(q) === row.number) return true;
-  return [cnLabel(row.number), row.title, row.trade, row.location, row.description, ...row.spec_tags].some((v) => v.toLowerCase().includes(q));
+  return [cnLabel(row.number), row.title, toName(row.company_org_id), row.trade, row.location, row.description, ...row.spec_tags].some((v) =>
+    v.toLowerCase().includes(q),
+  );
 }
 
-export function visibleRows(rows: readonly CorrectionRow[], query: string, sort: Sort): CorrectionRow[] {
-  return sortCorrections(rows.filter((r) => matches(r, query)), sort);
+export function visibleRows(rows: readonly CorrectionRow[], query: string, sort: Sort, toName: ToName = NO_NAME): CorrectionRow[] {
+  return sortCorrections(rows.filter((r) => matches(r, query, toName)), sort);
+}
+
+// --- "To": the company on the job an item goes to (0098) ---------------------------------------------------------
+
+/** The company's name from correction_companies ('' when none or not there). */
+export function companyName(companies: readonly CorrectionCompany[], orgId: string | null): string {
+  return orgId === null ? '' : (companies.find((c) => c.org_id === orgId)?.name ?? '');
+}
+
+/** "To NGI", short; '' when it goes to nobody. */
+export function toLabel(name: string): string {
+  return name === '' ? '' : `To ${name}`;
+}
+
+/** What the picker offers: the job's companies, plus the one the item already goes to (it may have left the job). */
+export function pickable(companies: readonly CorrectionCompany[], keep: string | null): CorrectionCompany[] {
+  return companies.filter((c) => c.on_job || c.org_id === keep);
+}
+
+/** What is saved is what the picker shows ('' or a company it does not offer: nobody). */
+export function savedTo(picked: string, companies: readonly CorrectionCompany[], keep: string | null): string | null {
+  return pickable(companies, keep).some((c) => c.org_id === picked) ? picked : null;
 }
 
 /** Enter in the search box: the exact number, else the only match. */
@@ -163,10 +192,10 @@ export function neighbors(visible: readonly CorrectionRow[], id: string): { prev
 
 // --- New item, history, progress ---------------------------------------------------------------------------------
 
-/** Trade and location from my latest item on this job: people log several items in one place. */
-export function prefill(rows: readonly CorrectionRow[], userId: string): { trade: string; location: string } {
+/** "To", trade and location from my latest item on this job: people log several items in one place. */
+export function prefill(rows: readonly CorrectionRow[], userId: string): { to: string; trade: string; location: string } {
   const mine = rows.filter((r) => r.created_by === userId).sort((a, b) => b.number - a.number)[0];
-  return { trade: mine?.trade ?? '', location: mine?.location ?? '' };
+  return { to: mine?.company_org_id ?? '', trade: mine?.trade ?? '', location: mine?.location ?? '' };
 }
 
 export const HISTORY_LABELS: Record<HistoryAction, string> = {

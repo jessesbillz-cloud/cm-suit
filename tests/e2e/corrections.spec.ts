@@ -2,7 +2,8 @@
 // the inspector signs it off in one tap and adds a note after. The mock follows the database's rule that only
 // corrections.close decides, so the sub never sees Sign off and the inspector never sees Mark ready. Also: Edit adds
 // and removes an item's photos (Undo), the notice is filed among the job's documents, Undo stays on the item after the
-// toast, the log folds under the title when narrow, and the phone's "No photo". Mock users: 'inspector' and 'sub'.
+// toast, the log folds under the title when narrow, and the phone's "No photo". An item goes to a company on the job
+// and that company's sub has it in Needs you. Mock users: 'inspector' and 'sub'.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -79,6 +80,38 @@ test.describe('corrections log (SPEC §13.4)', () => {
     await expect(page.getByTestId('pane-history-link-shown')).toBeFocused();
     await expect(page.getByTestId('cn-history').getByRole('listitem')).toHaveCount(3);
     await expect(page.getByTestId('log-row-CN-001')).toContainText('Signed off');
+  });
+
+  test('an item goes to a company on the job: the log shows it, that company\'s sub has it in Needs you', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'The right column is the desktop frame.');
+    await page.goto('/');
+    await openLogAs(page, 'inspector');
+    await page.getByTestId('cn-new').click();
+    await page.getByTestId('cn-title').fill('Submit special inspection report');
+    await page.getByTestId('cn-to').selectOption({ label: 'Sample Drywall' });
+    await page.getByTestId('cn-save').click();
+    await expect(page.getByTestId('log-row-CN-001')).toContainText('To Sample Drywall');
+    await expect(page.getByTestId('cn-where')).toContainText('To Sample Drywall');
+    // The next item starts with the same company (prefill).
+    await page.getByTestId('cn-new').click();
+    await expect(page.getByTestId('cn-to').locator('option:checked')).toHaveText('Sample Drywall');
+    await page.getByRole('button', { name: 'Cancel' }).click();
+
+    // The drywall sub: it is his to fix, in Needs you, and it opens the item.
+    await page.evaluate(() => {
+      window.localStorage.setItem('e2e-mock-user', 'sub');
+    });
+    await page.goto('/p/job-a/board');
+    const task = page.getByTestId('needs-you-task').filter({ hasText: 'CN-001: Submit special inspection report' });
+    await expect(task).toBeVisible();
+    await task.getByRole('button', { name: 'Open' }).click();
+    await expect(page).toHaveURL(/\/p\/job-a\/corrections\//);
+    // Marked ready, it leaves Needs you.
+    await page.getByTestId('cn-step-ready').click();
+    await page.getByTestId('cn-step-confirm').click();
+    await expect(page.getByTestId('cn-status')).toHaveText('Ready');
+    await page.goto('/p/job-a/board');
+    await expect(page.getByTestId('needs-you-task').filter({ hasText: 'CN-001' })).toHaveCount(0);
   });
 
   test('Edit adds and removes photos; the notice is a document; Undo stays on the item after the toast', async ({ page, isMobile }) => {

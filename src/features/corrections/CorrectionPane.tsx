@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { CorrectionBody } from './CorrectionBody';
 import { CorrectionHistory } from './CorrectionHistory';
 import { cnLabel, neighbors, visibleRows } from './model';
+import { useToName } from './useCompanies';
 import { useCorrectionCaps } from './useCorrectionCaps';
 import { useCorrectionsNav } from './useCorrectionsNav';
 
@@ -27,6 +28,7 @@ export function CorrectionPane({ projectId, itemId, isPhone, onOpenWindow }: Cor
   const project = useProject(projectId);
   const people = usePeopleDisplay(projectId);
   const { caps, error: capsError, retry } = useCorrectionCaps(projectId);
+  const toName = useToName(projectId);
 
   if (capsError) return <ErrorState error={capsError} onRetry={retry} />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
@@ -43,7 +45,7 @@ export function CorrectionPane({ projectId, itemId, isPhone, onOpenWindow }: Cor
   const tz = project.data.timezone;
   const names = new Map(people.data.map((p) => [p.user_id, p.full_name]));
   const nameOf = (id: string | null) => (id === null ? 'System' : (names.get(id) ?? 'Someone'));
-  const { prev, next } = neighbors(visibleRows(list.data, nav.query, nav.sort), row.id);
+  const { prev, next } = neighbors(visibleRows(list.data, nav.query, nav.sort, toName), row.id);
   const opened = `Opened ${formatInZone(row.created_at, tz, 'MMM d, yyyy')} by ${nameOf(row.created_by)}`;
   const closed = row.closed_at === null ? '' : ` · Closed ${formatInZone(row.closed_at, tz, 'MMM d, yyyy')}`;
 

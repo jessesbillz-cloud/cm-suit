@@ -166,6 +166,9 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['create_correction', { p_project_id: U, p_title: 'probe', p_request_key: 'probe' }],
   ['set_correction_status', { p_id: U, p_version: 1, p_status: 'ready' }],
   ['undo_correction', { p_id: U, p_version: 1 }],
+  // Corrections to a company (0098)
+  ['correction_companies', { p_project_id: U }],
+  ['correction_fix_tasks', { p_id: U }],
   // Bid forms (0034)
   ['open_bid_forms', { p_project_id: U }],
   // Testing login (0036)

@@ -8,6 +8,7 @@ import {
   STEP_FROM,
   STEP_PHOTO_LIMIT,
   correctionSchema,
+  type CorrectionCompany,
   type CorrectionFields,
   type CorrectionHistoryRow,
   type CorrectionRow,
@@ -16,9 +17,11 @@ import {
   type StepInput,
   type UndoResult,
 } from '../corrections.types';
+import type { TaskRow } from '../types';
 import * as api from './api';
 import { SEED_CORRECTION } from './boardSeeds';
 import { mockUser } from './index';
+import { MEMBER_COMPANY, jobCompanies } from './requirementsSeeds';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-corrections';
@@ -51,9 +54,19 @@ const CAPS: Record<string, readonly string[]> = {
 };
 const DEFAULT_CAPS = ['corrections.view', 'corrections.create', 'corrections.mark_ready'];
 
+function role(): string {
+  return mockUser().id.replace(/^mock-user-/, '');
+}
+
 function holds(cap: string): boolean {
-  const who = mockUser().id.replace(/^mock-user-/, '');
-  return (CAPS[who] ?? DEFAULT_CAPS).includes(cap);
+  return (CAPS[role()] ?? DEFAULT_CAPS).includes(cap);
+}
+
+/** A picked company must be on the job (0098 guard_company), checked when it is set or changed. */
+function checkCompany(projectId: string, id: string | null, was: string | null): void {
+  if (id !== null && id !== was && !jobCompanies(projectId).some((c) => c.org_id === id)) {
+    throw new DataError('Pick a company on this job.', '22023', null);
+  }
 }
 
 export async function capability(cap: string): Promise<boolean> {
@@ -101,6 +114,7 @@ export async function create(input: NewCorrectionInput): Promise<CorrectionRow> 
   const s = read();
   const again = s.rows.find((r) => r.project_id === input.projectId && r.request_key === input.requestKey);
   if (again) return strip(again);
+  checkCompany(input.projectId, input.company_org_id, null);
   const number = Math.max(0, ...s.rows.filter((r) => r.project_id === input.projectId).map((r) => r.number)) + 1;
   const row: StoredRow = {
     id: `cn-${input.projectId}-${String(number)}`,
@@ -115,6 +129,7 @@ export async function create(input: NewCorrectionInput): Promise<CorrectionRow> 
     spec_tags: [],
     notice_file_id: input.noticeFileId,
     notice_ref: '',
+    company_org_id: input.company_org_id,
     created_by: mockUser().id,
     created_at: nowIso(),
     closed_at: null,
@@ -141,6 +156,7 @@ export async function save(row: CorrectionRow, patch: CorrectionFields & { notic
   await delay();
   const was = current(row.id, row.version);
   if (!((was.created_by === mockUser().id && holds('corrections.create')) || holds('corrections.close'))) throw conflictError();
+  checkCompany(was.project_id, patch.company_org_id, was.company_org_id);
   const next: StoredRow = { ...was, ...patch, version: was.version + 1 };
   write((s) => addHistory(replaceRow(s, next), { correction_id: row.id, action: 'edited', from_status: next.status, to_status: next.status, note: '', photo_ids: [], undoes: null }));
   return strip(next);
@@ -204,4 +220,41 @@ export async function noticeFolder(projectId: string): Promise<string> {
 export async function photoFiles(ids: readonly string[]): Promise<PhotoFile[]> {
   const rows = await Promise.all(ids.map((id) => api.file(id)));
   return rows.flatMap((f) => (f ? [{ id: f.id, original_name: f.original_name, mime: f.mime, size: f.size, created_at: f.created_at }] : []));
+}
+
+/** correction_companies: the job's companies (to pick) and any an item already goes to (to show its name). */
+export async function companies(projectId: string): Promise<CorrectionCompany[]> {
+  await delay();
+  if (!holds('corrections.view')) throw forbidden();
+  const onJob = jobCompanies(projectId).map((c) => ({ ...c, on_job: true }));
+  const named = new Set(onJob.map((c) => c.org_id));
+  const gone = read()
+    .rows.filter((r) => r.project_id === projectId && !r.deleted && r.company_org_id !== null && !named.has(r.company_org_id))
+    .map((r) => ({ org_id: r.company_org_id ?? '', name: 'Sample former company', on_job: false }));
+  return [...onJob, ...gone].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The 'correction.fix' to-dos the database keeps (0098): my company's open or reopened items, not my own. */
+export async function fixTasks(projectId: string | null): Promise<TaskRow[]> {
+  await delay();
+  const company = MEMBER_COMPANY[role()];
+  if (company === undefined || !holds('corrections.view')) return [];
+  return read()
+    .rows.filter(
+      (r) =>
+        !r.deleted && r.company_org_id === company && (r.status === 'open' || r.status === 'reopened') &&
+        r.created_by !== mockUser().id && (projectId === null || r.project_id === projectId),
+    )
+    .map((r) => ({
+      id: `cn-fix-${r.id}`,
+      project_id: r.project_id,
+      kind: 'correction.fix',
+      // As correction_label(): CN-001.
+      title: `CN-${String(r.number).padStart(3, '0')}: ${r.title}`,
+      entity_type: 'correction',
+      entity_id: r.id,
+      due_at: null,
+      requires_signature: false,
+      version: 1,
+    }));
 }

@@ -1448,6 +1448,7 @@ export type Database = {
       corrections: {
         Row: {
           closed_at: string | null
+          company_org_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -1471,6 +1472,7 @@ export type Database = {
         }
         Insert: {
           closed_at?: string | null
+          company_org_id?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -1494,6 +1496,7 @@ export type Database = {
         }
         Update: {
           closed_at?: string | null
+          company_org_id?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -1516,6 +1519,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "corrections_company_org_id_fkey"
+            columns: ["company_org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "corrections_notice_file_id_fkey"
             columns: ["notice_file_id"]
@@ -7399,10 +7409,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      correction_companies: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          on_job: boolean
+          org_id: string
+        }[]
+      }
       correction_files_ok: {
         Args: { p_ids: string[]; p_images_only: boolean; p_project_id: string }
         Returns: boolean
       }
+      correction_fix_tasks: { Args: { p_id: string }; Returns: undefined }
       correction_label: { Args: { p_number: number }; Returns: string }
       correction_may_see: { Args: { p_project_id: string }; Returns: boolean }
       correction_notice_folder: {
@@ -7476,6 +7495,7 @@ export type Database = {
       }
       create_correction: {
         Args: {
+          p_company_org_id?: string
           p_description?: string
           p_location?: string
           p_notice_file_id?: string
@@ -7489,6 +7509,7 @@ export type Database = {
         }
         Returns: {
           closed_at: string | null
+          company_org_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -14891,6 +14912,7 @@ export type Database = {
         }
         Returns: {
           closed_at: string | null
+          company_org_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -15178,6 +15200,7 @@ export type Database = {
         Args: { p_id: string; p_version: number }
         Returns: {
           closed_at: string | null
+          company_org_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
