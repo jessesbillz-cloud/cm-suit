@@ -1,5 +1,5 @@
-// New top-level folder, for people with files.manage (the database checks it again). One question besides the name:
-// should search and the AI read what goes in it.
+// New folder inside the one on screen (a section's, or a folder under it), for people with files.manage (the database
+// checks it again). One question besides the name: should search and the AI read what goes in it.
 import { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
 import { useCreateFolder } from '../../data/folders.mutations';
@@ -9,10 +9,11 @@ import { CheckField, TextField } from '../../ui/Fields';
 
 interface NewFolderFormProps {
   projectId: string;
+  parentId: string;
   onCreated: (folderId: string) => void;
 }
 
-export function NewFolderForm({ projectId, onCreated }: NewFolderFormProps) {
+export function NewFolderForm({ projectId, parentId, onCreated }: NewFolderFormProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [aiReads, setAiReads] = useState(true);
@@ -47,7 +48,7 @@ export function NewFolderForm({ projectId, onCreated }: NewFolderFormProps) {
         const trimmed = name.trim();
         if (trimmed === '') return;
         create.mutate(
-          { projectId, parentId: null, name: trimmed, aiReads },
+          { projectId, parentId, name: trimmed, aiReads },
           {
             onSuccess: (folder) => {
               close();

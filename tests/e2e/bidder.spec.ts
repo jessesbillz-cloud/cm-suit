@@ -58,7 +58,12 @@ test.describe('bidder page (SPEC §11.4)', () => {
 
   test('the bidder cannot open other folders in Files', async ({ page }) => {
     await page.goto('/p/job-a/files');
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs']);
+    // A desktop lists the sections, a phone has them in one select.
+    if (test.info().project.name === 'phone') {
+      await expect(page.getByTestId('section-select').locator('option')).toHaveText([/^Plans \(/, /^Specs \(/]);
+    } else {
+      await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs']);
+    }
   });
 
   test('submit a bid: the receipt comes back and the bid downloads again', async ({ page }) => {

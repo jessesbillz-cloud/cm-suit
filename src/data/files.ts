@@ -66,13 +66,10 @@ async function fetchChangeable(ids: readonly string[]): Promise<Map<string, numb
   return new Map(rows.map((r) => [r.file_id, r.version]));
 }
 
-/**
- * The rows of a list I may change (Delete, Move, a checkbox), each with its version: one call for the whole list.
- * `listKey` is the list's own key (a folder id), so the list's refresh reaches it.
- */
-export function useChangeable(listKey: string, ids: readonly string[]) {
+/** The rows of a section's list I may change (Delete, Move, a checkbox), each with its version: one call for the list. */
+export function useChangeable(projectId: string, kind: string, ids: readonly string[]) {
   return useQuery({
-    queryKey: qk.fileChangeable(listKey, ids),
+    queryKey: qk.fileChangeable(projectId, kind, ids),
     queryFn: () => fetchChangeable(ids),
     // A file just added asks again: the rows keep their checkboxes meanwhile.
     placeholderData: (previous) => previous,

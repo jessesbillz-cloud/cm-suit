@@ -1,6 +1,7 @@
 // Synthetic e2e fixtures. Obviously fake names and ids: no job, customer or user data (CLAUDE.md rule 8).
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID, SEED_RFI_ID } from './boardSeeds';
+import { SECTION_SEED_FILES } from './fileSeeds';
 import { IR_SEED_FILES } from './irSeeds';
 import { PERMIT_JOB_FILES } from './permitJobs';
 
@@ -67,6 +68,7 @@ export const MOCK_FILES: FileRow[] = [
     created_by: 'mock-someone',
   },
   ...SEED_FILES,
+  ...SECTION_SEED_FILES,
   ...IR_SEED_FILES,
   ...PERMIT_JOB_FILES,
   // Long names prove every list wraps a title instead of cutting it (one with spaces, one with none).

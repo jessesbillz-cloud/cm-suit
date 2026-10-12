@@ -8005,6 +8005,28 @@ export type Database = {
           version: number
         }[]
       }
+      files_hidden_root: { Args: { p_folder_id: string }; Returns: boolean }
+      files_section_make: {
+        Args: {
+          p_ai: boolean
+          p_aliases: string[]
+          p_kind: string
+          p_name: string
+          p_project_id: string
+          p_sort: number
+        }
+        Returns: string
+      }
+      files_sections: {
+        Args: { p_project_id: string }
+        Returns: {
+          file_count: number
+          folder_id: string
+          folder_ids: string[]
+          kind: string
+        }[]
+      }
+      files_subtree: { Args: { p_root: string }; Returns: string[] }
       finish_daily_submit: {
         Args: {
           p_content_hash: string

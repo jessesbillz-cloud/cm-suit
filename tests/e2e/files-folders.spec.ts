@@ -1,6 +1,7 @@
-// Files: a job opens with the folders its company kind uses most, in that order (migration 0027), the folders only
-// the app fills (Reports, Bids received, Emailed in ...) stay out of the tree while empty and carry a lock (0092), and a
-// new folder asks one question. Uploads: files dropped on the list go up,
+// Files: a job's fixed sections with their counts (migration 0097: Plans, Specs, Submittals, RFIs, CCDs, Reports, Photos,
+// To sort while something waits in it), a section the app fills has no Upload, and a new folder asks one question.
+// Submittals show Section, No., Stamp and a company filter; a mixed drop lands in each section. Uploads: files dropped
+// on the list go up,
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
 // be removed (migration 0065). The file viewer (migration 0074): a sheet in Plans straight to full screen, a photo in
 // the file's pane, Full screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
@@ -44,39 +45,117 @@ async function openPlans(page: Page): Promise<void> {
 
 const fileNamed = (page: Page, name: string) => page.getByTestId('file-row-name').filter({ hasText: name });
 
-test.describe('files: folders by who uses them', () => {
+test.describe('files: sections', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test("a GC job lists Plans first and Photos last; the app's empty folders are hidden", async ({ page }) => {
-    await signIn(page, 'pm', '/p/job-a/board');
+  const section = (page: Page, name: string) => page.getByTestId('section').filter({ has: page.getByTestId('section-name').getByText(name, { exact: true }) });
+
+  test('a job lists its sections in order with their counts; To sort shows while something waits in it', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/board');
     await page.getByTestId('rail-files').click();
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Photos']);
-    await expect(page.getByTestId('folder').first()).toHaveAttribute('aria-current', 'true');
-    await expect(page.getByTestId('folder-lock')).toHaveCount(0);
+    const names = page.getByTestId('section-name');
+    await expect(names.first()).toHaveText('Plans');
+    await expect(section(page, 'To sort')).toBeVisible();
+    const shown = await names.allTextContents();
+    expect(shown.slice(0, 8)).toEqual(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs', 'Reports', 'Photos', 'To sort']);
+    await expect(page.getByTestId('section').first()).toHaveAttribute('aria-current', 'true');
+    await expect(section(page, 'Plans').getByTestId('section-count')).toHaveText('4');
+    await expect(section(page, 'Submittals').getByTestId('section-count')).toHaveText('4');
+    await expect(section(page, 'To sort').getByTestId('section-count')).toHaveText('1');
+    await expect(section(page, 'To sort').getByTestId('section-count')).toHaveClass(/text-danger/);
+    await expect(section(page, 'Reports').getByTestId('section-count')).toHaveText('2');
   });
 
-  test("a folder the app fills shows once it has something, with a lock and no Upload", async ({ page }) => {
+  test('a job with nothing to sort hides To sort', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-a/files');
+    await expect(page.getByTestId('section-name').first()).toHaveText('Plans');
+    await expect(section(page, 'Photos')).toBeVisible();
+    await expect(section(page, 'To sort')).toHaveCount(0);
+  });
+
+  test('Plans shows each sheet by number, sorted by it', async ({ page }) => {
     await signIn(page, 'pm', '/p/job-b/files');
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Reports', 'Photos']);
-    const reports = page.getByTestId('folder').filter({ hasText: 'Reports' });
-    await expect(reports.getByTestId('folder-lock')).toHaveCount(1);
+    await expect(page.getByTestId('files-list-head')).toContainText('Sheet');
+    await expect(page.getByTestId('file-row-name')).toHaveText([
+      'Sample Site Plan',
+      'Floor Plan Level 01 Area A',
+      'Sample Details',
+      'Sample Plan Set B.pdf',
+    ]);
+    await expect(page.getByTestId('file-row').first()).toContainText('A101');
+  });
+
+  test('Submittals: Section, No., Stamp and the company filter', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
+    await section(page, 'Submittals').click();
+    const head = page.getByTestId('files-list-head');
+    for (const label of ['Section', 'No.', 'Title', 'Company', 'Stamp']) await expect(head).toContainText(label);
+    const board = page.getByTestId('file-row').filter({ hasText: 'Gypsum Board PD Acoustic Sealant' });
+    await expect(board).toContainText('09 29 00');
+    await expect(board).toContainText('04.0');
+    await expect(board).toContainText('Sample Drywall Co');
+    await expect(board.getByTestId('file-row-stamp')).toHaveText('NET');
+    await expect(page.getByTestId('file-row-name').first()).toHaveText('Thermal Insulation PD');
+
+    const filter = page.getByTestId('files-filter');
+    await expect(filter.locator('option').first()).toHaveText('All companies');
+    await filter.selectOption({ label: 'Sample Insulation Co' });
+    await expect(page.getByTestId('file-row')).toHaveCount(1);
+    await expect(page.getByTestId('file-row-name')).toHaveText('Thermal Insulation PD');
+    await filter.selectOption({ label: 'All companies' });
+    await expect(page.getByTestId('file-row')).toHaveCount(4);
+    await page.getByTestId('files-search').fill('joint');
+    await expect(page.getByTestId('file-row')).toHaveCount(1);
+    await expect(page.getByTestId('file-row').first()).toContainText('07 92 00');
+  });
+
+  test('a mixed drop lands in each section, and one toast says where', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
     await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
-    await reports.click();
+    const dataTransfer = await page.evaluateHandle(() => {
+      const dt = new DataTransfer();
+      for (const name of ['A301 Sample Sections.pdf', '092900_09.0_Sample Board_PD_NET.pdf', 'Sample memo.pdf']) {
+        dt.items.add(new File([new Uint8Array(1024)], name, { type: 'application/pdf' }));
+      }
+      return dt;
+    });
+    await page.getByTestId('files-drop').dispatchEvent('drop', { dataTransfer });
+    await expect(page.getByRole('status').filter({ hasText: 'Sorted: 2 Plans, 1 Submittals' })).toBeVisible();
+    await expect(page.getByTestId('file-row').filter({ hasText: 'Sample Sections' })).toHaveCount(1);
+    await expect(page.getByTestId('file-row').filter({ hasText: 'Sample memo.pdf' })).toHaveCount(1);
+    await section(page, 'Submittals').click();
+    await expect(page.getByTestId('file-row').filter({ hasText: 'Sample Board PD' })).toHaveCount(1);
+  });
+
+  test('a file in To sort moves from its own row', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
+    await section(page, 'To sort').click();
+    const row = page.getByTestId('file-row').filter({ hasText: 'Sample meeting notes.pdf' });
+    await row.getByTestId('file-row-move').selectOption({ label: 'Specs' });
+    await expect(row).toHaveCount(0);
+    await expect(page.getByRole('status').filter({ hasText: 'Sample meeting notes.pdf moved to Specs.' })).toBeVisible();
+    await section(page, 'Specs').click();
+    await expect(page.getByTestId('file-row').filter({ hasText: 'Sample meeting notes.pdf' })).toHaveCount(1);
+  });
+
+  test('a section the app fills has no Upload', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    await section(page, 'Reports').click();
     await expect(fileNamed(page, 'Sample Daily Report 7.pdf')).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Upload', exact: true })).toHaveCount(0);
   });
 
   test('a new folder asks whether search and the AI read it (on by default), and it can change later', async ({ page }) => {
-    await signIn(page, 'pm', '/p/job-a/board');
-    await page.getByTestId('rail-files').click();
+    await signIn(page, 'pm', '/p/job-a/files');
     await page.getByRole('button', { name: 'New folder' }).click();
-    await page.getByTestId('new-folder-name').fill('Sample submittals');
+    await page.getByTestId('new-folder-name').fill('Sample sheets');
     const ask = page.getByTestId('new-folder-ai-reads');
     await expect(ask).toBeChecked();
     await ask.uncheck();
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'Photos', 'Sample submittals']);
+    await expect(page.getByTestId('files-filter').locator('option:checked')).toHaveText('Sample sheets');
     const toggle = page.getByTestId('folder-ai-reads');
     await expect(toggle).not.toBeChecked();
     await toggle.check();
@@ -84,7 +163,7 @@ test.describe('files: folders by who uses them', () => {
     await expect(toggle).toBeEnabled();
   });
 
-  test("an inspector's DSA job opens with Plans, Specs, DSA 103 and CCDs", async ({ page }) => {
+  test("an inspector's DSA job opens with its sections, CCDs among them", async ({ page }) => {
     await signIn(page, 'newcomer');
     await page.getByTestId('setup-company-name').fill('Sample Inspection Co');
     await page.getByLabel('Type').selectOption('inspector');
@@ -95,7 +174,7 @@ test.describe('files: folders by who uses them', () => {
     await expect(page.getByTestId('main-area')).toBeVisible();
 
     await page.getByTestId('rail-files').click();
-    await expect(page.getByTestId('folder')).toHaveText(['Plans', 'Specs', 'DSA 103', 'CCDs', 'Photos']);
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs', 'Reports', 'Photos']);
   });
 });
 
@@ -326,7 +405,7 @@ test.describe('files: Delete and Move on the rows', () => {
     await expect(fileNamed(page, long)).toHaveCount(1);
 
     await pickTwo();
-    await page.getByTestId('folder').filter({ hasText: 'Specs' }).click();
+    await page.getByTestId('section').filter({ hasText: 'Specs' }).click();
     await expect(fileNamed(page, 'Sample Plan Set A.pdf')).toHaveCount(1);
     await expect(fileNamed(page, long)).toHaveCount(1);
   });

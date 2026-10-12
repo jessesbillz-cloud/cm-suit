@@ -1,99 +1,91 @@
-// One folder's list in Files: the drop target (useFileDrop), the upload lines, the rows, and on the rows I may change a
-// checkbox and Delete (files_changeable, one call for the list). Checked rows get Move to and Delete in the list's head.
-// In Plans and Specs a row's name opens the file full screen at once (Jesse, Oct 5); a spec book carries its section bar.
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useUser } from '../../data/auth';
+// A section's list in Files: one flat list of every file in the section's folders (Jesse, Oct 11), narrowed by its
+// filter and search (ListTools), in its section's columns (RowCells), sorted by file name. It is the drop target
+// (useFileDrop), shows the upload lines, and on the rows I may change a checkbox and Delete (files_changeable, one call
+// for the list); checked rows get Move to and Delete in the list's head, and in To sort each row has its own Move to.
+// In Plans and Specs a row's name opens the file full screen at once (Jesse, Oct 5).
+import { useState } from 'react';
 import { useChangeable } from '../../data/files';
-import { usePreviewFetch } from '../../data/preview';
-import { useFiles } from '../../data/queries';
-import { specBooksQuery } from '../../data/specs';
+import { useSectionFiles, type FileSection } from '../../data/fileSections';
 import { useUploadQueue } from '../../data/UploadQueue';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
-import { useFileViewer } from '../../ui/FileViewer';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { specViewerItem } from '../specs/specItem';
+import type { SectionKind } from './classify';
 import type { DroppedFile } from './collectDrop';
 import { FileRow } from './FileRow';
+import { folderDescendants } from './folderOrder';
 import { leftoverUploads, storedFiles } from './leftovers';
 import { ListHead } from './ListHead';
-import { canOpenNow } from './scanStatus';
+import { ListTools } from './ListTools';
+import { sectionRows } from './sectionRows';
+import { filterOptions, type FolderOption } from './sections';
 import { UploadList } from './UploadList';
 import { useDeleteFile } from './useDeleteFile';
 import { useDownload } from './useDownload';
 import { useFileDrop } from './useFileDrop';
-import { useMoveRows, type MoveTarget } from './useMoveRows';
-import { fileViewerItem } from './viewerItems';
+import { useMoveRows } from './useMoveRows';
+import { useRowViewer } from './useRowViewer';
 
-interface FolderFilesProps {
-  folder: FolderRow;
+interface SectionFilesProps {
+  projectId: string;
+  section: FileSection;
+  kind: SectionKind;
+  filterId: string | null;
+  /** The folder on screen (the filter's, else the section's): its upload lines show one by one. */
+  viewFolderId: string;
+  folders: readonly FolderRow[];
+  /** May I add here (Upload and drop)? */
   writable: boolean;
   timeZone: string | null;
   selectedFileId: string | null;
-  /** The folders inside this one, for the one line of uploads going into them. */
-  under: ReadonlySet<string>;
-  /** Where checked rows may go (the folders I may add to, not this one). */
-  targets: readonly MoveTarget[];
+  targets: readonly FolderOption[];
   onDropped: (dropped: DroppedFile[]) => void;
   onOpenFile: (fileId: string) => void;
+  onFilter: (folderId: string | null) => void;
   /** Files deleted from here: the pane closes if one of them is open. */
   onDeleted: (ids: string[]) => void;
 }
 
 const META = TOOL_META.files;
 
-export function FolderFiles(props: FolderFilesProps) {
-  const { folder, writable, timeZone, selectedFileId, under, targets, onDropped, onOpenFile, onDeleted } = props;
-  const files = useFiles(folder.id);
+export function SectionFiles(props: SectionFilesProps) {
+  const { projectId, section, kind, filterId, viewFolderId, folders, writable, timeZone, selectedFileId, targets } = props;
+  const files = useSectionFiles(projectId, section);
   const queue = useUploadQueue();
   const download = useDownload();
-  const drop = useFileDrop(writable, onDropped);
-  const viewer = useFileViewer();
-  const preview = usePreviewFetch();
-  const user = useUser();
+  const drop = useFileDrop(writable, props.onDropped);
+  const [query, setQuery] = useState('');
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
   const del = useDeleteFile((ids) => {
     setChecked((was) => new Set([...was].filter((id) => !ids.includes(id))));
-    onDeleted(ids);
+    props.onDeleted(ids);
   });
   const mover = useMoveRows(() => {
     setChecked(new Set());
   });
-  const big = folder.kind === 'plans' || folder.kind === 'specs';
-  const books = useQuery({ ...specBooksQuery(folder.project_id), enabled: folder.kind === 'specs' });
-  const rows = files.data ? storedFiles(files.data) : undefined;
+  const stored = files.data ? storedFiles(files.data) : [];
+  const within = filterId === null ? null : new Set<string>([filterId, ...folderDescendants(folders, filterId)]);
+  const rows = sectionRows(stored, kind, section, folders, within, query);
   const changeable = useChangeable(
-    folder.id,
-    (rows ?? []).map((f) => f.id),
+    projectId,
+    kind,
+    stored.map((f) => f.id),
   );
   const versions = changeable.data ?? new Map<string, number>();
-  // Full screen from a row walks the folder's photos and PDFs with the arrows; a spec book opens with its sections.
-  const list = (rows ?? [])
-    .filter((f) => canOpenNow(f, user.id))
-    .map((f) => {
-      const book = books.data?.find((b) => b.file_id === f.id);
-      return book ? specViewerItem(folder.project_id, book, preview) : fileViewerItem(f, preview);
-    })
-    .filter((i) => i.kind !== 'other');
-  const viewable = new Set(list.map((i) => i.id));
-  // A book just added is not in the answer yet: ask again once, so it opens with its bar.
-  const known = books.data;
-  const newBook = known !== undefined && list.some((i) => i.kind === 'pdf' && !known.some((b) => b.file_id === i.id));
-  const refetchBooks = books.refetch;
-  useEffect(() => {
-    if (newBook) void refetchBooks();
-  }, [newBook, refetchBooks]);
-  const view = (fileId: string) => {
-    viewer.open(list, list.findIndex((i) => i.id === fileId));
-  };
+  const viewer = useRowViewer(
+    projectId,
+    rows.map((r) => r.file),
+    kind === 'specs',
+  );
+  const big = kind === 'plans' || kind === 'specs';
   const leftovers = files.data ? leftoverUploads(files.data, queue.items) : [];
-  const mine = (rows ?? []).filter((f) => versions.has(f.id));
+  const mine = rows.filter((r) => versions.has(r.file.id)).map((r) => r.file);
   const picked = mine.filter((f) => checked.has(f.id)).map((f) => ({ file: f, version: versions.get(f.id) ?? 1 }));
-  const pick = (id: string, on: boolean) => {
-    setChecked((was) => (on ? new Set([...was, id]) : new Set([...was].filter((x) => x !== id))));
-  };
+  const inSection = new Set<string>(section.folder_ids);
+  const elsewhere = new Set<string>(folders.filter((f) => !inSection.has(f.id)).map((f) => f.id));
+  const under = new Set<string>(section.folder_ids.filter((id) => id !== viewFolderId));
+  const filtering = filterId !== null || query.trim() !== '';
 
   return (
     <Card padded={false}>
@@ -111,16 +103,27 @@ export function FolderFiles(props: FolderFilesProps) {
           </div>
         ) : null}
         <div className="overflow-hidden rounded-card">
-          <UploadList folderId={folder.id} under={under} leftovers={leftovers} />
+          <UploadList folderId={viewFolderId} under={under} elsewhere={elsewhere} leftovers={leftovers} />
+          <ListTools
+            options={filterOptions(section, folders)}
+            all={kind === 'submittals' ? 'All companies' : 'All folders'}
+            filterId={filterId}
+            onFilter={props.onFilter}
+            onSearch={setQuery}
+          />
           {files.isPending ? <LoadingState label="Loading files" /> : null}
           {files.isError ? <ErrorState error={files.error} onRetry={() => void files.refetch()} /> : null}
           {changeable.isError ? (
             <ErrorState error={changeable.error} title="Delete and Move are not available." onRetry={() => void changeable.refetch()} className="m-0" />
           ) : null}
-          {rows?.length === 0 ? <EmptyState icon={META.icon} title="This folder is empty." /> : null}
-          {rows && rows.length > 0 ? (
+          {files.data && rows.length === 0 ? (
+            <EmptyState icon={META.icon} title={filtering ? 'No files match.' : 'Nothing here yet.'} />
+          ) : null}
+          {rows.length > 0 ? (
             <>
               <ListHead
+                section={kind}
+                rowMove={kind === 'unsorted' && mine.length > 0 && targets.length > 0}
                 select={
                   mine.length === 0
                     ? null
@@ -142,47 +145,42 @@ export function FolderFiles(props: FolderFilesProps) {
                 }}
               />
               <ul className="divide-y divide-line">
-                {rows.map((f) => {
+                {rows.map(({ file: f, view }) => {
                   const version = versions.get(f.id);
+                  const one = version === undefined ? null : [{ file: f, version }];
                   return (
                     <FileRow
                       key={f.id}
                       file={f}
+                      view={view}
                       timeZone={timeZone}
                       selected={f.id === selectedFileId}
                       downloading={download.pendingId === f.id}
                       onOpen={(id) => {
-                        onOpenFile(id);
-                        if (big && viewable.has(id)) view(id);
+                        props.onOpenFile(id);
+                        if (big && viewer.viewable.has(id)) viewer.view(id);
                       }}
-                      onView={
-                        viewable.has(f.id)
-                          ? () => {
-                              view(f.id);
-                            }
-                          : undefined
-                      }
+                      onView={viewer.viewable.has(f.id) ? () => { viewer.view(f.id); } : undefined}
                       onDownload={(file) => {
                         download.start(file.id, file.size);
                       }}
                       check={
                         mine.length === 0
                           ? undefined
-                          : version === undefined
+                          : one === null
                             ? null
                             : {
                                 checked: checked.has(f.id),
                                 onChange: (on) => {
-                                  pick(f.id, on);
+                                  setChecked((was) => (on ? new Set([...was, f.id]) : new Set([...was].filter((x) => x !== f.id))));
                                 },
                               }
                       }
-                      onDelete={
-                        version === undefined
-                          ? undefined
-                          : () => {
-                              del.run(f, version);
-                            }
+                      onDelete={one === null ? undefined : () => { del.runMany(one); }}
+                      move={
+                        kind === 'unsorted' && one !== null && targets.length > 0
+                          ? { targets, onMove: (to) => { mover.run(one, to); } }
+                          : undefined
                       }
                     />
                   );

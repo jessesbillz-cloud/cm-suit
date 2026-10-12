@@ -202,28 +202,7 @@ export function useFolders(projectId: string | null) {
   return useQuery({ queryKey: qk.folders(projectId ?? ''), queryFn: projectId ? () => fetchFolders(projectId) : skipToken });
 }
 
-const FILE_COLS = 'id, project_id, folder_id, original_name, mime, size, scan_status, upload_complete, created_at, created_by';
-
-async function fetchFiles(folderId: string, userId: string): Promise<FileRow[]> {
-  const rows: FileRow[] = isMock()
-    ? await mock.files(folderId)
-    : throwIfError(
-        await supabase
-          .from('files')
-          .select(FILE_COLS)
-          .eq('folder_id', folderId)
-          .is('deleted_at', null)
-          .is('superseded_by', null)
-          .order('original_name'),
-      );
-  // Someone else's unfinished upload is not a file yet; my own shows so I can see it resume.
-  return rows.filter((f) => f.upload_complete || f.created_by === userId);
-}
-
-export function useFiles(folderId: string | null) {
-  const user = useUser();
-  return useQuery({ queryKey: qk.files(folderId ?? ''), queryFn: folderId ? () => fetchFiles(folderId, user.id) : skipToken });
-}
+export const FILE_COLS = 'id, project_id, folder_id, original_name, mime, size, scan_status, upload_complete, created_at, created_by';
 
 async function fetchFile(fileId: string): Promise<FileRow | null> {
   if (isMock()) return mock.file(fileId);

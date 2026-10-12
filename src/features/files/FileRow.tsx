@@ -2,23 +2,27 @@
 // "a download button right from it, maybe an open full screen right from that"; Oct 11: "definitely need a way to delete
 // files out of here"): Full screen (photos and PDFs, data-testid="file-row-view"), Download ("file-row-download") and, on
 // a file I may change, Delete ("file-row-delete", Undo in the toast). A file I may change also has a checkbox at its
-// start, for Move to and Delete on many (ListHead). The name is never cut off: it wraps, even a long name with no spaces.
-// Desktop: size and date sit on the name's line, right-aligned in columns. Phone: scan state, size and date make one
-// short line under it, and the file's icon gives the checkbox its room.
+// start, for Move to and Delete on many (ListHead), and in To sort a Move to of its own. The columns are its section's
+// (RowCells). The name is never cut off: it wraps, even a long name with no spaces. On a phone the file's icon gives the
+// checkbox its room and a row's own Move to sits on a line under it.
 import { Download, Maximize2, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
-import { formatBytes } from '../../lib/format';
 import { Button } from '../../ui/Button';
+import { FIELD_CONTROL } from '../../ui/Fields';
 import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import { CHECK, CheckBox, type RowCheck } from './CheckBox';
+import { LeadCells, TitleCell, TrailCells } from './RowCells';
+import type { RowView } from './rowView';
+import type { FolderOption } from './sections';
 import { canOpenNow, scanChip } from './scanStatus';
 
 interface FileRowProps {
   file: File;
+  view: RowView;
   /** The job's zone for the date; null while it loads (the date waits). */
   timeZone: string | null;
   selected: boolean;
@@ -34,15 +38,18 @@ interface FileRowProps {
   check?: RowCheck | null | undefined;
   /** Delete (a file I may change); left out, no Delete button. */
   onDelete?: (() => void) | undefined;
+  /** The row's own Move to (To sort); left out, none. */
+  move?: { targets: readonly FolderOption[]; onMove: (to: FolderOption) => void } | undefined;
 }
 
-export const SIZE = 'w-16 shrink-0 text-right';
-export const DATE = 'w-[5.75rem] shrink-0 text-right';
 /** The buttons' column (Full screen, Download, Delete): 32px each on a desktop, 40px (a thumb's tap) on a phone. */
 export const ACTION = 'w-[7.75rem] shrink-0 sm:w-[6.5rem]';
+/** A row's own Move to (To sort). */
+export const MOVE = 'sm:w-40 sm:shrink-0';
 const ROW_BUTTON = 'h-10 w-10 sm:h-8 sm:w-8';
 
-export function FileRow({ file, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete }: FileRowProps) {
+export function FileRow(props: FileRowProps) {
+  const { file, view, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete, move } = props;
   const user = useUser();
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
   // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
@@ -51,12 +58,11 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
     selected ? 'bg-card text-accent' : 'bg-page text-ink-2'
   }`;
   const added = timeZone === null ? '' : formatInZone(file.created_at, timeZone, 'MMM d, yyyy');
-  const size = formatBytes(file.size);
   return (
     <li
       data-testid="file-row"
       aria-current={selected ? 'true' : undefined}
-      className={`group flex items-center gap-3 px-4 transition-colors ${
+      className={`group flex flex-wrap items-center gap-x-3 px-4 transition-colors sm:flex-nowrap ${
         selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
       }`}
     >
@@ -68,6 +74,7 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
       <button
         type="button"
         data-testid="file-row-open"
+        title={file.original_name}
         className="flex min-h-[52px] min-w-0 flex-1 items-center gap-3 py-2 text-left"
         onClick={() => {
           onOpen(file.id);
@@ -76,23 +83,40 @@ export function FileRow({ file, timeZone, selected, downloading, onOpen, onView,
         <span className={iconBox}>
           <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
         </span>
+        <LeadCells view={view} />
         <span className="min-w-0 flex-1 text-sm leading-5">
-          <span data-testid="file-row-name" className="wrap-anywhere font-medium text-ink group-hover:text-accent">
-            {file.original_name}
-          </span>
-          {chip ? (
-            <span className="ml-2 hidden align-middle sm:inline-block">
-              <StatusChip status={chip.status} label={chip.label} />
-            </span>
-          ) : null}
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs tabular-nums text-ink-3 wrap-anywhere sm:hidden">
-            {chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
-            {[size, added].filter((s) => s !== '').join(' · ')}
-          </span>
+          <TitleCell
+            view={view}
+            file={file}
+            added={added}
+            chip={chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
+          />
         </span>
-        <span className={`hidden text-xs tabular-nums text-ink-3 sm:block ${SIZE}`}>{size}</span>
-        <span className={`hidden text-xs tabular-nums text-ink-3 sm:block ${DATE}`}>{added}</span>
+        <TrailCells view={view} file={file} timeZone={timeZone} />
       </button>
+      {move ? (
+        <span className={`order-last basis-full pb-2 pl-10 sm:order-none sm:basis-auto sm:pb-0 sm:pl-0 ${MOVE}`}>
+          <select
+            aria-label={`Move ${file.original_name} to`}
+            data-testid="file-row-move"
+            className={`${FIELD_CONTROL} h-8 w-full`}
+            value=""
+            onChange={(e) => {
+              const to = move.targets.find((t) => t.id === e.target.value);
+              if (to) move.onMove(to);
+            }}
+          >
+            <option value="" disabled>
+              Move to
+            </option>
+            {move.targets.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </span>
+      ) : null}
       <span className={`flex items-center justify-end gap-1 ${ACTION}`}>
         {onView ? (
           <Button

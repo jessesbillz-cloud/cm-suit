@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS, statusCssVariables, statusLabel } from './status';
+import { STATUS, stampStatus, statusCssVariables, statusLabel } from './status';
 
 describe('status', () => {
   it('has every key with its colors and a label', () => {
@@ -23,5 +23,13 @@ describe('status', () => {
     expect(STATUS.step_ahead.dot).not.toBe(STATUS.step_current.dot);
     expect(STATUS.late.fg).toBe('#DC2626');
     expect(statusCssVariables()).toContain('--status-step_done-solid:#16A34A');
+  });
+  it("colors a submittal's stamp: done green, attention amber, back red (the furthest back wins)", () => {
+    expect(stampStatus('NET')).toBe('approved');
+    expect(stampStatus('aan')).toBe('approved');
+    expect(stampStatus('MCN')).toBe('pending');
+    expect(stampStatus('MCN RNR')).toBe('late');
+    expect(stampStatus('R&R')).toBe('late');
+    expect(stampStatus('XYZ')).toBeNull();
   });
 });

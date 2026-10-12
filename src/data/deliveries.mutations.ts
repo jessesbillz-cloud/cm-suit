@@ -26,7 +26,13 @@ function useFileRefresh(projectId: string) {
   const qc = useQueryClient();
   const refresh = useRefresh(projectId);
   return (fileId: string) =>
-    Promise.all([refresh(), qc.invalidateQueries({ queryKey: qk.file(fileId) }), qc.invalidateQueries({ queryKey: qk.filesAll })]);
+    Promise.all([
+      refresh(),
+      qc.invalidateQueries({ queryKey: qk.file(fileId) }),
+      qc.invalidateQueries({ queryKey: qk.filesAll }),
+      // Files' section lists and counts sit under the job's folders.
+      qc.invalidateQueries({ queryKey: qk.folders(projectId) }),
+    ]);
 }
 
 /** Leaving p_time out means "time TBD". */

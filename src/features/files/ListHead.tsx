@@ -1,13 +1,18 @@
-// The head of a Files list: the column names (desktop), and where some rows may be changed, a select-all box. With rows
-// checked it becomes the bar for them: how many, Move to (the folders I may add to) and Delete.
+// The head of a Files list: its section's column names (desktop), and where some rows may be changed, a select-all box.
+// With rows checked it becomes the bar for them: how many, Move to (the folders I may add to) and Delete.
 import { Trash2 } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { FIELD_CONTROL } from '../../ui/Fields';
 import { CheckBox, type RowCheck } from './CheckBox';
-import { ACTION, DATE, SIZE } from './FileRow';
+import type { SectionKind } from './classify';
+import { ACTION, MOVE } from './FileRow';
+import { headCols } from './RowCells';
 import type { MoveTarget } from './useMoveRows';
 
 interface ListHeadProps {
+  section: SectionKind;
+  /** The rows have their own Move to (To sort): its column. */
+  rowMove: boolean;
   /** Null: no row here may be changed (no checkboxes). */
   select: (RowCheck & { count: number }) | null;
   targets: readonly MoveTarget[];
@@ -18,7 +23,8 @@ interface ListHeadProps {
 
 const LABELS = 'text-[12px] font-bold uppercase tracking-wide text-ink';
 
-export function ListHead({ select, targets, busy, onMove, onDelete }: ListHeadProps) {
+export function ListHead({ section, rowMove, select, targets, busy, onMove, onDelete }: ListHeadProps) {
+  const cols = headCols(section);
   return (
     <div
       data-testid="files-list-head"
@@ -58,9 +64,19 @@ export function ListHead({ select, targets, busy, onMove, onDelete }: ListHeadPr
         </div>
       ) : (
         <div aria-hidden className={`hidden min-w-0 flex-1 items-center gap-3 sm:flex ${LABELS}`}>
-          <span className="min-w-0 flex-1 pl-11">Name</span>
-          <span className={SIZE}>Size</span>
-          <span className={DATE}>Added</span>
+          <span className="w-8 shrink-0" />
+          {cols.lead.map((c) => (
+            <span key={c.label} className={c.className}>
+              {c.label}
+            </span>
+          ))}
+          <span className="min-w-0 flex-1">{cols.main}</span>
+          {cols.trail.map((c) => (
+            <span key={c.label} className={c.className}>
+              {c.label}
+            </span>
+          ))}
+          {rowMove ? <span className={MOVE} /> : null}
           <span className={ACTION} />
         </div>
       )}
