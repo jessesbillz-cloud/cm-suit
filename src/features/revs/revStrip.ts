@@ -56,7 +56,7 @@ export function chipKey(mark: CheckMark): StatusKey {
 
 const ofs = (n: number) => String(n).padStart(4, '0');
 
-/** How a chip is labeled: its number (compact), its name (a room's rows, Jesse Oct 11), or both (the wall's page). */
+/** How a chip is labeled: its number (compact), its name (a room's rows, Jesse Oct 11), or both. */
 export type ChipLabel = 'number' | 'name' | 'both';
 
 /** What a chip says: the rev's number, its name or both, and with a number a done rev's OFS number. */

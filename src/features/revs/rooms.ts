@@ -1,14 +1,15 @@
 // Rooms worked out for the screens (0083; Jesse, Oct 5: "Room and then you click on the room and it breaks it down
 // into the walls ... All the exterior walls would come together"). Per list and level: the rooms (rooms first, then the
 // exterior and the shafts, each in its place), and the walls in no room ("Other walls", so nothing is lost). A room's
-// tally is every item of its walls; its walls in their order, each with its line on the image and its color (the plan's
-// colors, planGeom). Pure; tested in rooms.test.ts.
+// tally is every item of its walls; its walls in their order, each with its line on the image, its color (the plan's
+// colors, planGeom) and its bubble (room/wallBubble). Pure; tested in rooms.test.ts.
 import type { RevRoom, RevRoomWall, RevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevList, RevSetup, WallLine } from '../../data/revs.types';
 import { sameLevel } from './levels';
 import { wallRevs, type StatusIndex } from './model';
 import { toneColor, wallTone } from './plan/planGeom';
-import { calloutOf, countOf, type WallCount } from './wallPage';
+import { bubbleNames } from './room/wallBubble';
+import { countOf, type WallCount } from './wallPage';
 
 const KIND_ORDER: Record<RevRoom['kind'], number> = { room: 0, exterior: 1, shaft: 2 };
 
@@ -58,19 +59,22 @@ export interface RoomWall {
   area: RevArea;
   count: WallCount;
   color: string;
+  /** Its bubble in this room (room/wallBubble): the same on the room's picture and on its row. */
   title: string;
 }
 
-/** A room's walls in their order (a removed wall is left out), each with its tally and color. */
+/** A room's walls in their order (a removed wall is left out), each with its tally, color and bubble. */
 export function roomWalls(setup: RevSetup, index: StatusIndex, rooms: RevRooms, roomId: string): RoomWall[] {
-  const out: RoomWall[] = [];
-  for (const link of rooms.walls.filter((w) => w.room_id === roomId)) {
-    const area = setup.areas.find((a) => a.id === link.area_id);
-    if (!area) continue;
+  const room = rooms.rooms.find((r) => r.id === roomId);
+  const its = rooms.walls.flatMap((link) => {
+    const area = link.room_id === roomId ? setup.areas.find((a) => a.id === link.area_id) : undefined;
+    return area ? [{ link, area }] : [];
+  });
+  const bubbles = room ? bubbleNames(room, its.map((w) => w.area)) : new Map<string, string>();
+  return its.map(({ link, area }) => {
     const count = countOf(wallRevs(setup, index, area).flatMap((r) => r.cells.map((c) => c.cell.status)));
-    out.push({ link, area, count, color: toneColor(wallTone(count)), title: calloutOf(area.name).title });
-  }
-  return out;
+    return { link, area, count, color: toneColor(wallTone(count)), title: bubbles.get(area.id) ?? area.name };
+  });
 }
 
 /** A room's tally: every item of every one of its walls. */

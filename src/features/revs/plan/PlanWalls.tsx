@@ -1,16 +1,18 @@
 // The walls over the plan sheet, in screen pixels so they keep their weight at any zoom: each wall a thick line in its
 // state's color (lib/status; a white edge keeps it clear of the drawing under it) with its callout (the name; a tap
-// opens the wall's page), the wall being looked at heavier, and the line being drawn with its points.
+// opens the wall's page; its bubble, BubbleFace), the wall being looked at heavier, and the line being drawn with its
+// points. The callout says what the caller gives: the wall's name on the plan, its short bubble on a room's picture.
 import type { PointerEvent } from 'react';
 import type { PagePlace } from '../map/SheetStage';
 import { midpoint, type Pt } from './planGeom';
 import { placeLabels } from './planLabels';
+import { BUBBLE, BubbleFace } from './BubbleFace';
 
 export interface PlanWall {
   id: string;
   line: readonly Pt[];
   color: string;
-  /** The callout: the wall's name without its grid brackets. */
+  /** The callout: the wall's name without its grid brackets, or its bubble in a room. */
   title: string;
 }
 
@@ -79,7 +81,7 @@ export function PlanWalls({ walls, place, aspect, focusId, draft, onOpen }: Plan
             tabIndex={onOpen ? 0 : -1}
             data-testid={`plan-wall-${l.id}`}
             data-focus={l.id === focusId ? 'true' : undefined}
-            className={`absolute flex items-start gap-1.5 rounded-md bg-card/95 px-2 py-1 text-left text-[12px] font-semibold leading-[15px] text-ink shadow-card ${
+            className={`absolute ${BUBBLE} ${
               onOpen ? 'pointer-events-auto hover:bg-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent' : 'opacity-80'
             } ${l.id === focusId ? 'ring-2 ring-accent' : ''}`}
             style={{ left: l.box.x, top: l.box.y, width: l.box.w }}
@@ -88,8 +90,7 @@ export function PlanWalls({ walls, place, aspect, focusId, draft, onOpen }: Plan
               onOpen?.(l.id);
             }}
           >
-            <span aria-hidden className="mt-[4px] h-2 w-2 shrink-0 rounded-full" style={{ background: w.color }} />
-            <span className="min-w-0 break-words">{w.title}</span>
+            <BubbleFace color={w.color} name={w.title} />
           </button>
         );
       })}

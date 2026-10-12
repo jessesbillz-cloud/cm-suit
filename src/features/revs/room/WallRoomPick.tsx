@@ -1,8 +1,8 @@
 // The "little picker" on a wall's page (0083; Jesse, Oct 5: "a plan sheet with the wall highlighted on it as the little
 // picker"): a small piece of the room's image around the wall, its line in the accent color. A tap opens the room's
 // image over the whole window, zoomed on the wall (pinch, wheel or + / - / Fit), its other walls a tap away. A wall in
-// two rooms (a shared wall) shows the first, or the one it was opened from, with a small switch; the room's name opens
-// the room. A wall in no room shows nothing.
+// two rooms (a shared wall) shows the first with a small switch; the room's name opens the room. A wall in no room
+// shows nothing, and a wall opened from its room doesn't show it again (Jesse, Oct 12: the same thing twice).
 import { useState } from 'react';
 import type { RevRoom, RevRooms } from '../../../data/revs.rooms';
 import { useRevFile } from '../../../data/revs.history';
@@ -20,8 +20,6 @@ interface WallRoomPickProps {
   setup: RevSetup;
   index: StatusIndex;
   rooms: RevRooms;
-  /** The room the wall was opened from (?room=), shown first. */
-  fromRoom: string | undefined;
   isPhone: boolean;
   onOpenRoom: (roomId: string) => void;
   onOpenWall: (areaId: string, roomId: string) => void;
@@ -81,9 +79,9 @@ function Thumb({ projectId, room, line, isPhone, onOpen }: { projectId: string; 
   );
 }
 
-export function WallRoomPick({ projectId, area, setup, index, rooms, fromRoom, isPhone, onOpenRoom, onOpenWall }: WallRoomPickProps) {
+export function WallRoomPick({ projectId, area, setup, index, rooms, isPhone, onOpenRoom, onOpenWall }: WallRoomPickProps) {
   const its = roomsOfWall(rooms, area.id).filter((r) => r.room.image_file_id !== null);
-  const [picked, setPicked] = useState<string | null>(fromRoom ?? null);
+  const [picked, setPicked] = useState<string | null>(null);
   const [full, setFull] = useState(false);
   const shown = its.find((r) => r.room.id === picked) ?? its[0];
   if (!shown) return null;

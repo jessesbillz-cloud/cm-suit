@@ -1,6 +1,6 @@
 // A wall's revs as one strip of chips (revStrip): on a room's rows by the rev's name (Jesse, Oct 11: "bubbles you
-// click" for each wall, a tap opens the wall on its model) and on the wall's own page by number and name (the Walls
-// tiles show its items instead: WallItemChips). Colors only from lib/status: done green (with a check where the chip
+// click" for each wall, a tap opens the wall on its model). The wall's own page has its revs once, with their items
+// (WallItems; Jesse, Oct 12), and the Walls tiles show its items instead (WallItemChips). Colors only from lib/status: done green (with a check where the chip
 // says only the name), requested gold, failed red, open plain, N/A muted.
 // Every chip does something: the caller says what (a done chip with its OFS IR on file opens it, the rest the wall).
 // Each says it all when spoken or hovered.
