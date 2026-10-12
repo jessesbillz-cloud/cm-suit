@@ -3,7 +3,8 @@
 // one short name per wall, the same on the room's picture and on its row. Its tag and grid brackets dropped first
 // (calloutOf), then: a compass wall ("North wall", "West exterior wall") unless another room's wall ("Corridor 210
 // north wall" in 205 is "Wall to Corridor 210"); "Wall between X and Y" is the wall to the side that isn't this room;
-// a name starting with the room's own name or number is the rest ("Enclosure"); else the name as is. Two walls with
+// a name starting with the room's own name or number is the rest ("Enclosure"), unless the rest starts with "wall";
+// else the name as is. Two walls with
 // the same bubble add the tag, then a number. Pure; tested in wallBubble.test.ts.
 import type { RevRoom } from '../../../data/revs.rooms';
 import type { RevArea } from '../../../data/revs.types';
@@ -49,6 +50,8 @@ function afterRoom(title: string, room: Room): string | null {
     const next = title.charAt(h.length);
     if (next !== '' && /[\p{L}\p{N}]/u.test(next)) continue;
     const rest = title.slice(h.length).replace(/^[\s\-–—:·/,]+/, '').trim();
+    // "Exterior wall 1-hr run" in the room "Exterior" stays as it is, not "Wall 1-hr run".
+    if (/^wall\b/i.test(rest)) return null;
     if (rest !== '') return cap(rest);
   }
   return null;

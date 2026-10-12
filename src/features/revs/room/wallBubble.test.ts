@@ -41,7 +41,13 @@ describe('bubbleNames', () => {
         w('b', '1-hr shaft wall (small chase - Area A) (G2a)', 'G2a'),
         w('c', 'Exterior wall 1-hr run (Area B) (CP1b)', 'CP1b'),
       ]),
-    ).toEqual(['Shaft wall east of MDF 0142', '1-hr shaft wall', 'Wall 1-hr run']);
+    ).toEqual(['Shaft wall east of MDF 0142', '1-hr shaft wall', 'Exterior wall 1-hr run']);
+    expect(
+      names(room('EXT', 'Exterior'), [
+        w('a', 'Exterior wall 1-hr run - fiber cement'),
+        w('b', 'North exterior wall 1-hr run'),
+      ]),
+    ).toEqual(['Exterior wall 1-hr run - fiber cement', 'North exterior wall']);
   });
 
   it('equal bubbles add the tag, then a number', () => {
