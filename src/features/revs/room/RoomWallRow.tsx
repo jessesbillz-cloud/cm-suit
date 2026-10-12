@@ -1,16 +1,16 @@
-// One wall on its room's page (Jesse, Oct 6: "rooms then walls with the revs"; Oct 8: "each of those inspectable items
-// should be on that first page"): its tag once and its name, then its items by rev (WallItemChips). A tap on the row
-// opens the wall; a passed item with its OFS IR on file opens that, any other item the wall at that item. A manager
+// One wall on its room's page (Jesse, Oct 6: "rooms then walls with the revs"; Oct 11: one row of bubbles you click,
+// not every item written out): its tag once and its name, then one bubble per rev by the rev's name in its state's
+// color (RevStrip). A tap on the row opens the wall; a done rev with its OFS IR on file opens that, any other rev the
+// wall at that rev's first item. A manager
 // draws the wall's line on the room's picture (only when the room has one) and takes the wall out of the room (a quiet
 // icon; Undo in the toast).
 import { PenLine, X } from 'lucide-react';
 import type { RevSetup } from '../../../data/revs.types';
 import { Button } from '../../../ui/Button';
-import { itemLines, type ItemChip } from '../itemLines';
 import type { StatusIndex } from '../model';
 import type { RoomWall } from '../rooms';
-import type { SignoffFiles } from '../revStrip';
-import { WallItemChips } from '../WallItemChips';
+import { revStrip, type SignoffFiles, type StripChip } from '../revStrip';
+import { RevStrip } from '../RevStrip';
 import { calloutOf } from '../wallPage';
 
 interface RoomWallRowProps {
@@ -22,7 +22,7 @@ interface RoomWallRowProps {
   manage: { canDraw: boolean; busy: boolean; onDraw: () => void; onTakeOut: () => void } | null;
   isPhone: boolean;
   onOpen: () => void;
-  onChip: (chip: ItemChip) => void;
+  onChip: (chip: StripChip) => void;
 }
 
 export function RoomWallRow({ wall, setup, index, files, manage, isPhone, onOpen, onChip }: RoomWallRowProps) {
@@ -70,7 +70,7 @@ export function RoomWallRow({ wall, setup, index, files, manage, isPhone, onOpen
           </span>
         ) : null}
       </div>
-      <WallItemChips lines={itemLines(setup, index, area, files)} onChip={onChip} />
+      <RevStrip className="relative" chips={revStrip(setup, index, area, files)} label="name" onChip={onChip} />
     </li>
   );
 }

@@ -10,9 +10,8 @@
 // wall page's little picker; rev-room-pick-line) / rev-room-switch-<room> / rev-room-open, rev-wall-back (named for the
 // room), rev-history, rev-history-<item>, rev-history-row (data-kind), rev-history-open, rev-file-pane,
 // rev-link-files, file-viewer, viewer-zoom. Oct 6: rev-level-<level> (the level chips), rev-room-walls (the room's
-// rows, each rev-wall-<area> with rev-wall-open). Oct 8: each row's rev-items, a rev-line-<rev number> per rev with
-// its rev-line-label and rev-item-chip-<item> (data-status passed|requested|failed|open|na; data-file when its OFS IR
-// is on file).
+// rows, each rev-wall-<area> with rev-wall-open). Oct 11: each row's rev-strip, one rev-chip-<rev number> per rev by
+// its name (data-mark done|requested|failed|open|na; data-file when its OFS IR is on file).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -95,11 +94,11 @@ test.describe('revs rooms', () => {
     // Corridor 110's north wall failed an item: red.
     await expect(image.locator('[data-wall="mock-rev-area-2"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-not_approved-solid)');
     await expect(image.getByTestId('sheet-zoom')).toBeVisible();
-    // Then its walls, each with its items by rev: TOW's speed plugs passed, HOW cavity spray failed on the north wall.
+    // Then its walls, each with one bubble per rev: HOW cavity's spray failed on the north wall, so that rev is red.
     await expect(room.getByTestId('rev-wall-mock-rev-area-1')).toBeVisible();
     const north = room.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
-    await expect(north.getByTestId('rev-item-chip-mock-rev-item-0-1')).toHaveAttribute('data-status', 'passed');
-    await expect(north.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveAttribute('data-status', 'failed');
+    await expect(north.getByTestId('rev-strip').getByTestId('rev-chip-1')).toHaveAttribute('data-mark', 'failed');
+    await expect(north.getByTestId('rev-strip').getByTestId('rev-chip-1')).toHaveText('HOW - Cavity');
     // A reader has no manager's buttons.
     await expect(room.getByTestId('rev-room-edit')).toHaveCount(0);
     await expect(room.getByTestId('rev-room-add-pick')).toHaveCount(0);
@@ -252,7 +251,7 @@ test.describe('revs rooms', () => {
     }
   });
 
-  test('a passed item opens its OFS IR; any other item opens the wall at that item; it fits a phone', async ({ page }, testInfo) => {
+  test('a done rev opens its OFS IR; any other rev opens the wall at its first item; it fits a phone', async ({ page }, testInfo) => {
     const phone = testInfo.project.name === 'phone';
     // CJ signed off before the app on Corridor 110's north wall with OFS IR 41, then its file linked.
     await openAs(page, 'inspector', '/p/job-s/revs/mock-rev-area-2');
@@ -265,30 +264,29 @@ test.describe('revs rooms', () => {
 
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
     const row = page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
-    // Per rev, the rev written out, then its items by their short names.
-    const items = row.getByTestId('rev-items');
-    await expect(items.getByTestId('rev-line-label')).toHaveCount(8);
-    await expect(items.getByTestId('rev-line-1').getByTestId('rev-line-label')).toHaveText('Rev 1 · HOW - Cavity');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveText('Beam Pockets');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-3')).toHaveAttribute('aria-label', 'HOW Beam Pockets: Open');
-    const stuffing = items.getByTestId('rev-item-chip-mock-rev-item-2-1');
-    await expect(stuffing).toHaveAttribute('data-status', 'passed');
-    await expect(stuffing).toHaveAttribute('data-file', 'true');
-    await expect(stuffing).toHaveText('Stuffing · 0041');
+    // One bubble per rev, by the rev's name: no rev numbers, no lists of items.
+    const strip = row.getByTestId('rev-strip');
+    await expect(strip.getByRole('button')).toHaveCount(8);
+    await expect(row.getByTestId('rev-items')).toHaveCount(0);
+    const cj = strip.getByTestId('rev-chip-2');
+    await expect(cj).toHaveText('CJ');
+    await expect(cj).toHaveAttribute('data-mark', 'done');
+    await expect(cj).toHaveAttribute('data-file', 'true');
+    await expect(cj).toHaveAttribute('aria-label', 'Rev 2 CJ: Done, OFS 0041');
     if (phone) {
       // Phone first: big tap targets, nothing wider than the screen.
-      const box = await stuffing.boundingBox();
+      const box = await cj.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(40);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     }
-    await stuffing.click();
+    await cj.click();
     const viewer = page.getByTestId('file-viewer');
     await expect(viewer.getByTestId('viewer-name')).toHaveText('OFS_IR_0041_Attachment.pdf');
     if (phone) await expect(viewer.getByRole('button', { name: 'Zoom in' })).toBeInViewport();
     await viewer.getByTestId('viewer-close').click();
 
-    // An open item: the wall, shown at that item, with its way back to the room.
-    await items.getByTestId('rev-item-chip-mock-rev-item-3-1').click();
+    // An open rev: the wall, shown at that rev's first item, with its way back to the room.
+    await strip.getByTestId('rev-chip-3').click();
     await expect(page).toHaveURL(/\/mock-rev-area-2\?.*room=mock-room-110/);
     await expect(page).toHaveURL(/item=mock-rev-item-3-1/);
     const opened = page.getByTestId('rev-wall-page');
