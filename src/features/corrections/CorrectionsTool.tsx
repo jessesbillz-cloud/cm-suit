@@ -15,6 +15,7 @@ import { CorrectionsLog } from './CorrectionsLog';
 import { NEW_ITEM, PROGRESS_ITEM, logSummary, openTarget, visibleRows } from './model';
 import { NewCorrection } from './NewCorrection';
 import { useCorrectionCaps } from './useCorrectionCaps';
+import { useToName } from './useCompanies';
 import { useCorrectionsNav } from './useCorrectionsNav';
 
 interface CorrectionsToolProps {
@@ -103,6 +104,7 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
   const { caps, error, retry } = useCorrectionCaps(projectId);
   const list = useCorrections(projectId);
   const project = useProject(projectId);
+  const toName = useToName(projectId);
   const [shots, setShots] = useState<File[] | null>(null);
 
   if (error) return <Frame><ErrorState error={error} onRetry={retry} /></Frame>;
@@ -138,7 +140,7 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
   }
 
   const rows = list.data ?? [];
-  const visible = visibleRows(rows, nav.query, nav.sort);
+  const visible = visibleRows(rows, nav.query, nav.sort, toName);
   const openNew = () => {
     nav.open(NEW_ITEM);
   };
@@ -172,7 +174,7 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
         testId="cn-search"
         onChange={nav.setQuery}
         onEnter={(q) => {
-          const target = openTarget(rows, visibleRows(rows, q, nav.sort), q);
+          const target = openTarget(rows, visibleRows(rows, q, nav.sort, toName), q);
           if (target) nav.open(target.id);
         }}
       />
@@ -205,6 +207,7 @@ export function CorrectionsTool({ projectId, itemId, isPhone }: CorrectionsToolP
             sort={nav.sort}
             onSort={nav.setSort}
             onOpen={nav.open}
+            toName={toName}
             isPhone={isPhone}
           />
         ) : null}

@@ -5,6 +5,7 @@ import { STATUS } from '../../lib/status';
 import {
   canEdit,
   cnLabel,
+  companyName,
   latestStep,
   logSummary,
   matches,
@@ -12,11 +13,14 @@ import {
   nextSort,
   openTarget,
   parseSort,
+  pickable,
   prefill,
+  savedTo,
   sortCorrections,
   sortParam,
   statusChip,
   stepsFor,
+  toLabel,
   visibleRows,
   weeklySnapshot,
   undoableStep,
@@ -36,6 +40,7 @@ function row(p: Partial<CorrectionRow> & { number: number }): CorrectionRow {
     spec_tags: [],
     notice_file_id: null,
     notice_ref: '',
+    company_org_id: null,
     created_by: 'u-inspector',
     created_at: '2026-09-20T16:00:00Z',
     closed_at: null,
@@ -148,14 +153,15 @@ describe('search', () => {
 });
 
 describe('new item and history', () => {
-  it('prefills trade and location from my latest item', () => {
+  it('prefills To, trade and location from my latest item', () => {
     const rows = [
-      row({ number: 1, created_by: 'me', trade: 'Old trade', location: 'Old place' }),
-      row({ number: 2, created_by: 'me', trade: 'Sample Drywall', location: 'Level 2' }),
-      row({ number: 3, created_by: 'someone', trade: 'Other', location: 'Elsewhere' }),
+      row({ number: 1, created_by: 'me', trade: 'Old trade', location: 'Old place', company_org_id: 'org-old' }),
+      row({ number: 2, created_by: 'me', trade: 'Sample Drywall', location: 'Level 2', company_org_id: 'org-ngi' }),
+      row({ number: 3, created_by: 'someone', trade: 'Other', location: 'Elsewhere', company_org_id: 'org-other' }),
     ];
-    expect(prefill(rows, 'me')).toEqual({ trade: 'Sample Drywall', location: 'Level 2' });
-    expect(prefill(rows, 'new-person')).toEqual({ trade: '', location: '' });
+    expect(prefill(rows, 'me')).toEqual({ to: 'org-ngi', trade: 'Sample Drywall', location: 'Level 2' });
+    expect(prefill(rows, 'new-person')).toEqual({ to: '', trade: '', location: '' });
+    expect(prefill([row({ number: 4, created_by: 'me' })], 'me').to).toBe('');
   });
   it('the latest step skips undone ones', () => {
     const h = (seq: number, action: CorrectionHistoryRow['action'], undoes: string | null = null): CorrectionHistoryRow => ({
@@ -221,5 +227,34 @@ describe('undo from the pane', () => {
     expect(undoableStep([h(1, 'created', 'me', 1), h(2, 'edited', 'me', 0)], 'me', at)).toBeNull();
     expect(undoableStep([h(1, 'ready', 'me', 2), h(2, 'undone', 'me', 1)], 'me', at)).toBeNull();
     expect(undoableStep([], 'me', at)).toBeNull();
+  });
+});
+
+describe('To: the company an item goes to', () => {
+  const companies = [
+    { org_id: 'org-ngi', name: 'Sample NGI', on_job: true },
+    { org_id: 'org-roof', name: 'Sample Roofing', on_job: true },
+    { org_id: 'org-gone', name: 'Sample Gone', on_job: false },
+  ];
+  it('names it short, and says nothing for nobody', () => {
+    expect(toLabel(companyName(companies, 'org-ngi'))).toBe('To Sample NGI');
+    expect(toLabel(companyName(companies, null))).toBe('');
+    expect(companyName(companies, 'org-unknown')).toBe('');
+  });
+  it('offers the job\'s companies, plus the one an item already goes to', () => {
+    expect(pickable(companies, null).map((c) => c.org_id)).toEqual(['org-ngi', 'org-roof']);
+    expect(pickable(companies, 'org-gone').map((c) => c.org_id)).toEqual(['org-ngi', 'org-roof', 'org-gone']);
+  });
+  it('saves what the picker shows: a prefilled company that left the job is dropped', () => {
+    expect(savedTo('org-ngi', companies, null)).toBe('org-ngi');
+    expect(savedTo('', companies, null)).toBeNull();
+    expect(savedTo('org-gone', companies, null)).toBeNull();
+    expect(savedTo('org-gone', companies, 'org-gone')).toBe('org-gone');
+  });
+  it('search finds an item by the company it goes to', () => {
+    const r = row({ number: 7, company_org_id: 'org-ngi' });
+    const name = (id: string | null) => companyName(companies, id);
+    expect(matches(r, 'ngi', name)).toBe(true);
+    expect(matches(r, 'ngi')).toBe(false);
   });
 });

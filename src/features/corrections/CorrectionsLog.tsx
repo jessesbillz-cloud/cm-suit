@@ -1,13 +1,14 @@
-// The corrections log (SPEC §7.4): CN number, full title (wraps, never cut off), status, trade, location, opened,
-// closed. Click a header to sort. When the log is narrow (the right column open on a laptop), trade, location and the
-// dates fold under the title, as the RFI log keeps its lines under the title, and only No., Title and Status stay
-// columns. On the phone: one stacked row per item (title, then number, trade and location).
+// The corrections log (SPEC §7.4): CN number, full title (wraps, never cut off) with who it goes to under it ("To
+// NGI", 0098), status, trade, location, opened, closed. Click a header to sort. When the log is narrow (the right
+// column open on a laptop), trade, location and the dates fold under the title too, as the RFI log keeps its lines
+// under the title, and only No., Title and Status stay columns. On the phone: one stacked row per item (title, then
+// number, To, trade and location).
 import type { CorrectionRow } from '../../data/corrections.types';
 import { formatInZone } from '../../lib/dates';
 import { StatusChip } from '../../ui/StatusChip';
 import { HEAD_ROW, SortTh, TABLE, TD, TD_NUM, phoneRowClass, rowClass } from '../../ui/Table';
 import { useWidth } from '../revs/wall3d/useWidth';
-import { cnLabel, nextSort, statusChip, type Sort, type SortKey } from './model';
+import { cnLabel, nextSort, statusChip, toLabel, type Sort, type SortKey, type ToName } from './model';
 
 interface CorrectionsLogProps {
   rows: readonly CorrectionRow[];
@@ -16,6 +17,8 @@ interface CorrectionsLogProps {
   sort: Sort;
   onSort: (next: Sort) => void;
   onOpen: (id: string) => void;
+  /** The company an item goes to, by name. */
+  toName: ToName;
   isPhone: boolean;
 }
 
@@ -70,14 +73,15 @@ interface PhoneListProps {
   rows: readonly CorrectionRow[];
   selectedId: string | null;
   onOpen: (id: string) => void;
+  toName: ToName;
 }
 
-function PhoneList({ rows, selectedId, onOpen }: PhoneListProps) {
+function PhoneList({ rows, selectedId, onOpen, toName }: PhoneListProps) {
   return (
     <ul className="divide-y divide-line">
       {rows.map((r) => {
         const chip = statusChip(r.status);
-        const where = [r.trade, r.location].filter((v) => v !== '');
+        const where = [toLabel(toName(r.company_org_id)), r.trade, r.location].filter((v) => v !== '');
         return (
           <li key={r.id}>
             <button
@@ -111,10 +115,17 @@ function PhoneList({ rows, selectedId, onOpen }: PhoneListProps) {
   );
 }
 
-/** Trade, location and the dates, as one small line under the title (the folded log). */
-function Under({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
+interface UnderProps {
+  row: CorrectionRow;
+  timeZone: string;
+  to: string;
+  folded: boolean;
+}
+
+/** One small line under the title: who it goes to, and (folded) trade, location and the dates. */
+function Under({ row, timeZone, to, folded }: UnderProps) {
   const dates = [day(row.created_at, timeZone), day(row.closed_at, timeZone)].filter((v) => v !== '').join(' – ');
-  const bits = [row.trade, row.location, dates].filter((v) => v !== '');
+  const bits = (folded ? [to, row.trade, row.location, dates] : [to]).filter((v) => v !== '');
   if (bits.length === 0) return null;
   return (
     <span className="mt-0.5 flex flex-wrap gap-x-1.5 text-xs text-ink-2" data-testid="cn-row-under">
@@ -130,7 +141,7 @@ function Under({ row, timeZone }: { row: CorrectionRow; timeZone: string }) {
 
 type DeskProps = Omit<CorrectionsLogProps, 'isPhone'> & { folded: boolean };
 
-function DeskTable({ rows, timeZone, selectedId, sort, onSort, onOpen, folded }: DeskProps) {
+function DeskTable({ rows, timeZone, selectedId, sort, onSort, onOpen, toName, folded }: DeskProps) {
   const top = folded ? 'align-top' : '';
   return (
     <table className={TABLE}>
@@ -155,7 +166,7 @@ function DeskTable({ rows, timeZone, selectedId, sort, onSort, onOpen, folded }:
                 <button type="button" className="text-left">
                   {r.title}
                 </button>
-                {folded ? <Under row={r} timeZone={timeZone} /> : null}
+                <Under row={r} timeZone={timeZone} to={toLabel(toName(r.company_org_id))} folded={folded} />
               </td>
               <td className={`${TD} ${folded ? 'pr-4 align-top' : ''}`}>
                 <StatusChip status={chip.status} label={chip.label} />
@@ -182,7 +193,7 @@ export function CorrectionsLog({ isPhone, ...props }: CorrectionsLogProps) {
   return (
     <div ref={frame} data-testid="cn-log" data-folded={folded ? 'true' : undefined}>
       {isPhone ? (
-        <PhoneList rows={props.rows} selectedId={props.selectedId} onOpen={props.onOpen} />
+        <PhoneList rows={props.rows} selectedId={props.selectedId} onOpen={props.onOpen} toName={props.toName} />
       ) : (
         <DeskTable {...props} folded={folded} />
       )}
