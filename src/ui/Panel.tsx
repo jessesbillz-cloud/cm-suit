@@ -21,7 +21,8 @@ export function PanelScreen({ top, children, bottom }: PanelScreenProps) {
       <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-line bg-card px-2 pt-[env(safe-area-inset-top)]">
         {top}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      {/* Holding a file's box (FilePreview, data-fill), the screen does not scroll: the box does. */}
+      <div className="min-h-0 flex-1 overflow-auto has-[[data-fill]]:overflow-hidden">{children}</div>
       {bottom}
     </div>
   );

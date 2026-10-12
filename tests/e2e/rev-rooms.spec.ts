@@ -187,9 +187,14 @@ test.describe('revs rooms', () => {
     const pane = right.getByTestId('rev-file-pane');
     await expect(pane).toContainText('OFS_IR_0041_Attachment.pdf');
     await expect(pane.getByTestId('viewer-zoom')).toBeVisible();
-    await pane.getByTestId('file-preview-full').click();
-    await expect(page.getByTestId('file-viewer').getByTestId('viewer-zoom')).toBeVisible();
-    await page.getByTestId('file-viewer').getByTestId('viewer-close').click();
+    // New window on the file's box is the pane's one open-window control (none in the column's header).
+    await expect(right.getByTestId('item-open-window')).toHaveCount(0);
+    const opened = page.context().waitForEvent('page');
+    await pane.getByTestId('file-preview-window').click();
+    const win = await opened;
+    await win.waitForLoadState();
+    await expect(win).toHaveURL(/\/p\/job-s\/revs\/file-[^/?]+\?window=1$/);
+    await win.close();
     await right.getByRole('button', { name: 'Close' }).click();
     await expect(page).not.toHaveURL(/side=/);
     await expect(page.getByTestId('main-area').getByTestId('rev-wall-page')).toBeVisible();

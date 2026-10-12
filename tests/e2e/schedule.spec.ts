@@ -87,7 +87,7 @@ test.describe('schedule', () => {
     await expect(page.getByTestId('schedule-version-1')).toContainText('Current');
   });
 
-  test('a PDF look-ahead shows beside its rows; the published update views it full screen', async ({ page, isMobile }) => {
+  test('a PDF look-ahead shows beside its rows (New window on it); the published update views it full screen', async ({ page, isMobile }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('e2e-mock-user', 'super');
     });
@@ -101,16 +101,24 @@ test.describe('schedule', () => {
     if (isMobile) {
       // A phone has no room beside the rows: View opens it full screen.
       await page.getByTestId('schedule-source-view').click();
+      await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample printed look-ahead.pdf');
+      await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
+      await page.keyboard.press('Escape');
+      await expect(viewer).toHaveCount(0);
     } else {
-      // Beside the rows, page by page; Full screen from there.
+      // Beside the rows, page by page; the page fills the main area (the rows and the source scroll, the page never),
+      // and New window opens the source as a file of its own.
       const beside = page.getByTestId('schedule-draft').getByTestId('file-preview');
       await expect(beside.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
-      await beside.getByTestId('file-preview-full').click();
+      const main = page.getByTestId('main-area');
+      expect(await main.evaluate((el) => el.scrollHeight > el.clientHeight + 1)).toBe(false);
+      const opened = page.context().waitForEvent('page');
+      await beside.getByTestId('file-preview-window').click();
+      const win = await opened;
+      await win.waitForLoadState();
+      await expect(win).toHaveURL(/\/p\/job-b\/files\/[^/?]+\?window=1$/);
+      await win.close();
     }
-    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample printed look-ahead.pdf');
-    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 1 of 3');
-    await page.keyboard.press('Escape');
-    await expect(viewer).toHaveCount(0);
 
     // The undated row gets a start, then Publish; the update keeps the original with View and Download.
     await page.getByTestId('schedule-draft-filter-dates').click();

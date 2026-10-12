@@ -122,7 +122,9 @@ export function ReadingPane(props: ReadingPaneProps) {
     <article
       ref={root}
       tabIndex={-1}
-      className="flex h-full flex-col outline-none"
+      // Holding a file's box (ui/FileViewer FilePreview), the pane fills its place and the box takes the rest of the
+      // height: the box scrolls, the pane does not (one scroll per screen).
+      className="flex h-full flex-col outline-none has-[[data-fill]]:min-h-0 has-[[data-fill]]:flex-1"
       onKeyDown={(e) => {
         if (isTyping(e.target)) return;
         if ((e.key === 'ArrowDown' || e.key === 'ArrowRight') && onNext) {
@@ -147,7 +149,9 @@ export function ReadingPane(props: ReadingPaneProps) {
       </header>
 
       {/* An empty body keeps no padding: in a full view (comments under it) it would be a blank band. */}
-      <div className={`flex-1 overflow-auto text-sm leading-6 text-ink ${hasBody ? 'px-5 py-4' : ''}`}>
+      <div
+        className={`flex-1 overflow-auto text-sm leading-6 text-ink has-[[data-fill]]:flex has-[[data-fill]]:min-h-0 has-[[data-fill]]:flex-col ${hasBody ? 'px-5 py-4' : ''}`}
+      >
         {children}
         {attachments.length > 0 ? (
           <ul className="mt-4 flex flex-col gap-2" aria-label="Attachments">

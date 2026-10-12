@@ -4,7 +4,7 @@
 // on the list go up,
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
 // be removed (migration 0065). The file viewer (migration 0074): a sheet in Plans straight to full screen, a photo in
-// the file's pane, Full screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
+// the file's pane, New window on it, Full screen from its row, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
 // mock data layer. Delete and Move on the rows (migration 0096): a row's Delete with Undo, checked rows moved to another
 // folder or deleted together, one toast with Undo for all.
 import process from 'node:process';
@@ -325,11 +325,12 @@ test.describe('files: the viewer, Delete and Rename', () => {
     await expect(viewer).toHaveCount(0);
   });
 
-  test('a photo shows whole in its pane and full screen, and a tap zooms it', async ({ page }) => {
+  test("a photo shows whole in its pane (New window on it) and full screen from its row, and a tap zooms it", async ({ page }) => {
     await signIn(page, 'pm', '/p/job-b/files?folder=job-b-photos');
     await fileNamed(page, 'Sample corridor photo.jpg').click();
     await expect(page.getByTestId('file-preview').getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
-    await page.getByTestId('file-preview-full').click();
+    await expect(page.getByTestId('file-preview-window')).toHaveText('New window');
+    await page.getByTestId('file-row').filter({ has: fileNamed(page, 'Sample corridor photo.jpg') }).getByTestId('file-row-view').click();
     const viewer = page.getByTestId('file-viewer');
     await expect(viewer.getByRole('img', { name: 'Sample corridor photo.jpg' })).toBeVisible();
     await viewer.getByTestId('viewer-image').click();

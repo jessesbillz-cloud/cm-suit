@@ -1,6 +1,7 @@
 // THE file viewer (Jesse, Oct 4: "an upload and a delete and a full screen ... across the whole app"). One full-screen
 // overlay for photos, PDFs and every other file, mounted once at the root (FileViewerProvider in app/main.tsx); any
-// screen opens it. FilePreview is the same rendering in a box, for a pane.
+// screen opens it. FilePreview is the same rendering in a box, for a pane; its button opens the file in its own window
+// (Jesse, Oct 12: one Full screen, the column's, and one New window).
 //
 // HOW TO USE
 //   import { useFileViewer, FilePreview, type ViewerItem } from '../../ui/FileViewer';
@@ -18,7 +19,7 @@
 //   }));
 //   <button onClick={() => { viewer.open(items, index); }}>...</button>     // a photo strip: arrows walk the list
 //   <Button onClick={() => { viewer.open([item]); }}>Full screen</Button>   // one PDF
-//   <FilePreview item={item} onFullScreen={() => { viewer.open([item]); }} />  // inline, in a pane
+//   <FilePreview item={item} onOpenWindow={openWindow} />  // inline, filling a pane: New window
 //   A PDF may open at a page (`startPage`) and carry its own bar over the pages (`pageBar`: the spec book's sections),
 //   which gets where the reader is (PageNav) and moves them.
 //
@@ -26,7 +27,7 @@
 // stays inside; left / right (and the arrows) move through the list. Photos: fitted, tap or +/- to zoom, drag to pan.
 // PDFs (pdf.js, its own lazy chunk): pages one under another, +/- and Fit, "Page N of M".
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { Maximize2 } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Button } from './Button';
 import { FileViewerOverlay } from './viewer/FileViewerOverlay';
 import { ViewerBody } from './viewer/ViewerBody';
@@ -120,17 +121,24 @@ export function FileViewerProvider({ children }: { children: ReactNode }) {
 
 interface FilePreviewProps {
   item: ViewerItem;
-  /** Opens the full-screen viewer (usually `() => viewer.open(list, i)`). */
-  onFullScreen: () => void;
-  /** The box's size, e.g. 'h-80' (default) or 'aspect-[4/3]'. */
-  className?: string | undefined;
+  /** Opens the file alone in its own browser window (lib/itemWindow). Left out (a phone, or already its own window): no button. */
+  onOpenWindow?: (() => void) | undefined;
 }
 
-/** The viewer's rendering in a box (a pane's preview), with Full screen. */
-export function FilePreview({ item, onFullScreen, className = 'h-80' }: FilePreviewProps) {
+/**
+ * The viewer's rendering in a box (a pane's preview), with New window. The box takes the rest of its pane's height
+ * (flex-1) and the screen around it stops scrolling (Jesse, Oct 12: "only one scrolling action on each screen"): it
+ * says so with data-fill, and the right column, the reading pane, the phone screen, the main area and the own-window
+ * page each turn their own scroll off when they hold one (`has-[[data-fill]]`).
+ */
+export function FilePreview({ item, onOpenWindow }: FilePreviewProps) {
   const download = useViewerDownload();
   return (
-    <div data-testid="file-preview" className={`relative overflow-hidden rounded-lg border border-line bg-page ${className}`}>
+    <div
+      data-testid="file-preview"
+      data-fill="true"
+      className="relative min-h-40 flex-1 overflow-hidden rounded-lg border border-line bg-page"
+    >
       <ViewerBody
         key={item.id}
         item={item}
@@ -140,16 +148,18 @@ export function FilePreview({ item, onFullScreen, className = 'h-80' }: FilePrev
         }}
         downloading={download.pendingId === item.id}
       />
-      <Button
-        size="sm"
-        variant="secondary"
-        icon={Maximize2}
-        className="absolute right-2 top-2 z-10"
-        data-testid="file-preview-full"
-        onClick={onFullScreen}
-      >
-        Full screen
-      </Button>
+      {onOpenWindow ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={ExternalLink}
+          className="absolute right-2 top-2 z-10"
+          data-testid="file-preview-window"
+          onClick={onOpenWindow}
+        >
+          New window
+        </Button>
+      ) : null}
     </div>
   );
 }

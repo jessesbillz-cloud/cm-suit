@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useNavigate, useRouter, useSearch } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { opensInMain, sideItem } from '../../lib/itemIds';
+import { openItemWindow } from '../../lib/itemWindow';
 import { Button } from '../../ui/Button';
 import { JobPicker } from '../../ui/JobPicker';
 import { Rail } from '../../ui/Rail';
@@ -84,7 +85,7 @@ export function Frame({ model, folderId }: FrameProps) {
   const openWindow =
     right !== null && !itemHasOwnWindowButton(right.tool, right.itemId)
       ? () => {
-          window.open(model.itemWindowHref(right.tool, right.itemId), '_blank', 'noopener');
+          openItemWindow(loc.projectId, right.tool, right.itemId);
         }
       : undefined;
 
@@ -136,14 +137,15 @@ export function Frame({ model, folderId }: FrameProps) {
             gets the same width (max-w-tool), so the left edge never jumps between tools. */}
         <div className="flex min-h-0 flex-1 justify-center">
           <div data-testid="frame-pair" className={`flex min-h-0 w-full ${rightFull ? '' : 'max-w-frame'}`}>
-          {/* At full screen the main area only hides: Back finds it exactly as it was, scrolled where it was. */}
+          {/* At full screen the main area only hides: Back finds it exactly as it was, scrolled where it was. A page
+              holding a file's box (FilePreview, data-fill: a draft beside its source) fills it and does not scroll. */}
           <main
             data-testid="main-area"
             data-tool={loc.tool}
             hidden={rightFull}
-            className={`min-w-0 flex-1 overflow-auto p-4 [scrollbar-gutter:stable] ${rightFull ? 'hidden' : ''}`}
+            className={`min-w-0 flex-1 overflow-auto p-4 [scrollbar-gutter:stable] has-[[data-fill]]:overflow-hidden ${rightFull ? 'hidden' : ''}`}
           >
-            <div data-testid="tool-width" className="mx-auto w-full max-w-tool">
+            <div data-testid="tool-width" className="mx-auto w-full max-w-tool has-[[data-fill]]:h-full">
               <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
             </div>
           </main>

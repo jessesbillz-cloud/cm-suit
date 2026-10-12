@@ -1,7 +1,7 @@
 // A PDF in the viewer: every page, one under another, scrolled; + and - zoom (a trackpad's pinch too), Fit shows a
 // whole page (never narrower than a readable letter page, never wider than the window), and "Page N of M" follows the
 // scroll. pdf.js loads with the first PDF (lib/pdf, its own chunk). It can open at a page, and an item's own bar
-// (pageBar) sits over the pages and moves through them.
+// (pageBar) sits over the pages and moves through them. Scrolling past the last page never moves the screen behind it.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { pageText, type PDFDocumentProxy } from '../../lib/pdf/pdfjs';
@@ -125,7 +125,7 @@ function Pages({ doc, aspect, tone, startPage, pageBar }: PagesProps) {
         <div
           ref={scroller}
           data-testid="viewer-pdf"
-          className={`h-full w-full overflow-auto ${tone === 'dark' ? '' : 'bg-page'}`}
+          className={`h-full w-full overflow-auto overscroll-contain ${tone === 'dark' ? '' : 'bg-page'}`}
           onScroll={onScroll}
         >
           <div

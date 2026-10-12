@@ -1,12 +1,13 @@
 // A draft's review (a page of its own on a desktop; the phone's full screen): its data date, title and counts, then
-// every row to check and fix, and Publish. On a desktop a photo or PDF source shows beside the rows (Full screen from
-// there), so each row can be checked against it. Only the people who publish the schedule see drafts.
+// every row to check and fix, and Publish. On a desktop a photo or PDF source shows beside the rows (New window from
+// there opens it as a file), so each row can be checked against it. Only the people who publish the schedule see drafts.
 import type { ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useDraftRows, useScheduleVersion } from '../../data/schedule.queries';
+import { openItemWindow } from '../../lib/itemWindow';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
-import { FilePreview, useFileViewer } from '../../ui/FileViewer';
+import { FilePreview } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
@@ -35,7 +36,6 @@ export function DraftPage({ projectId, versionId, isPhone }: DraftPageProps) {
   const nav = useScheduleNav(projectId);
   const draft = useScheduleVersion(projectId, versionId);
   const rows = useDraftRows(projectId, versionId);
-  const viewer = useFileViewer();
   const source = useSourceItem(draft.data?.file_id ?? null, draft.data?.file_name ?? null);
   const beside = !isPhone && source !== null && source.kind !== 'other' ? source : null;
 
@@ -68,14 +68,17 @@ export function DraftPage({ projectId, versionId, isPhone }: DraftPageProps) {
           onBack={() => { nav.open(draftItemId(versionId)); }}
         />
         {beside ? (
-          <div className="grid grid-cols-2 items-start">
-            <DraftRows projectId={projectId} versionId={versionId} rows={rows.data} />
-            <div className="sticky top-0 border-l border-line p-3">
+          // The page fills the main area (the source's box says so, data-fill): the rows scroll on the left, the source
+          // on the right, the page itself never (Jesse, Oct 12: one scroll per screen).
+          <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1">
+            <div className="min-h-0 overflow-auto">
+              <DraftRows projectId={projectId} versionId={versionId} rows={rows.data} />
+            </div>
+            <div className="flex min-h-0 flex-col border-l border-line p-3">
               <FilePreview
                 item={beside}
-                className="h-[calc(100dvh-12rem)]"
-                onFullScreen={() => {
-                  viewer.open([beside]);
+                onOpenWindow={() => {
+                  openItemWindow(projectId, 'files', beside.id);
                 }}
               />
             </div>
@@ -88,10 +91,9 @@ export function DraftPage({ projectId, versionId, isPhone }: DraftPageProps) {
   }
   if (isPhone) return <div className="flex flex-col" data-testid="schedule-draft">{body}</div>;
   return (
-    <div className="flex flex-col gap-2" data-testid="schedule-draft">
+    <div className="flex flex-col gap-2 has-[[data-fill]]:h-full" data-testid="schedule-draft">
       <BackToSchedule onBack={() => { nav.close('updates'); }} />
-      {/* clip, not hidden: the source beside the rows stays in view (sticky) while the rows scroll. */}
-      <Card padded={false} className="overflow-clip">
+      <Card padded={false} className="overflow-clip has-[[data-fill]]:flex has-[[data-fill]]:min-h-0 has-[[data-fill]]:flex-1 has-[[data-fill]]:flex-col">
         {body}
       </Card>
     </div>

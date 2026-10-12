@@ -13,7 +13,7 @@ import { pushRecent, type LayoutChoices, type RailTool, type Tool } from '../../
 import { countsByTool } from '../../lib/toolCounts';
 import type { RailJobPart } from '../../ui/Rail';
 import { useToast } from '../../ui/Toast';
-import { inAppPath } from '../../lib/basePath';
+import { allItemTool } from '../../lib/itemWindow';
 import { boardLineItem } from '../../lib/itemIds';
 
 export interface FrameLocation {
@@ -31,11 +31,6 @@ const ALL_JOBS_PATH = {
   timesheets: '/all/timesheets',
   permits: '/all/permits',
 } as const;
-
-/** "All my jobs" tools that open items in the right column (the board's lines are the default). */
-function allItemTool(tool: Tool): 'calendar' | 'timesheets' | 'permits' | 'board' {
-  return tool === 'calendar' || tool === 'timesheets' || tool === 'permits' ? tool : 'board';
-}
 
 export function useFrameModel(loc: FrameLocation) {
   const navigate = useNavigate();
@@ -160,11 +155,6 @@ export function useFrameModel(loc: FrameLocation) {
     void navigate({ to: '/p/$projectId/$tool', params: { projectId: loc.projectId, tool: loc.tool }, search: true });
   }
 
-  function itemWindowHref(tool: Tool, itemId: string, projectId: string | null = loc.projectId): string {
-    const base = projectId === null ? `/all/${allItemTool(tool)}/${itemId}` : `/p/${projectId}/${tool}/${itemId}`;
-    return inAppPath(`${base}?window=1`);
-  }
-
   return {
     loc,
     layoutQuery,
@@ -186,7 +176,6 @@ export function useFrameModel(loc: FrameLocation) {
     openItem,
     openBoardLine,
     closeItem,
-    itemWindowHref,
   };
 }
 
