@@ -217,7 +217,11 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
       removeUnfinishedUpload(item.unfinishedId)
         .then(async () => {
           // The folder's list first, so the row is never seen without its line.
-          await qc.invalidateQueries({ queryKey: qk.files(item.folderId) });
+          await Promise.all([
+            qc.invalidateQueries({ queryKey: qk.files(item.folderId) }),
+            // Files' section lists sit under the job's folders (keys.ts).
+            qc.invalidateQueries({ queryKey: qk.folders(item.projectId) }),
+          ]);
           drop();
         })
         .catch((e: unknown) => {

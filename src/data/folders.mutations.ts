@@ -125,11 +125,16 @@ export function useSetFolderAiReads() {
   });
 }
 
-/** Takes back the files row of my upload that never finished (remove_unfinished_upload), then the folder's list reloads. */
+/** Takes back the files row of my upload that never finished (remove_unfinished_upload), then the lists showing it reload. */
 export function useRemoveUnfinishedUpload() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file: { id: string; folder_id: string }) => removeUnfinishedUpload(file.id),
-    onSuccess: (_d, file) => qc.invalidateQueries({ queryKey: qk.files(file.folder_id) }),
+    mutationFn: (file: { id: string; folder_id: string; project_id: string }) => removeUnfinishedUpload(file.id),
+    onSuccess: (_d, file) =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: qk.files(file.folder_id) }),
+        // Files' section lists sit under the job's folders (keys.ts).
+        qc.invalidateQueries({ queryKey: qk.folders(file.project_id) }),
+      ]),
   });
 }
