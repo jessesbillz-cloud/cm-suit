@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FileSection } from '../../data/fileSections';
-import { companyIn, filterOptions, moveTargets, resolveView, shownSections } from './sections';
+import { companyIn, filterOptions, moveTargets, resolveView, shownSections, uploadFolder } from './sections';
 
 const folder = (id: string, parent: string | null, name: string, appOnly = false) => ({
   id,
@@ -78,5 +78,17 @@ describe("Files' sections", () => {
       'To sort',
       'To sort / Sample loose',
     ]);
+  });
+
+  it("uploads into the section's folder, else (one the app fills) the folder right under it I may add to", () => {
+    const rfiFolders = [folder('rfis', null, 'RFIs', true), folder('up', 'rfis', 'Uploaded'), folder('deep', 'up', 'Sample deep')];
+    const rfis = section('rfis', 'rfis', ['rfis', 'up', 'deep']);
+    expect(uploadFolder(rfis, rfiFolders, new Set(['rfis', 'up', 'deep']))).toBe('up');
+    expect(uploadFolder(rfis, rfiFolders, new Set(['deep']))).toBeNull();
+    expect(uploadFolder(rfis, rfiFolders, new Set())).toBeNull();
+    // A reader who doesn't browse the RFI tool's folder: the section's folder is Uploaded itself.
+    expect(uploadFolder(section('rfis', 'up', ['up']), rfiFolders, new Set(['up']))).toBe('up');
+    expect(uploadFolder(ALL[1] as FileSection, FOLDERS, new Set(['subs', 't1']))).toBe('subs');
+    expect(uploadFolder(ALL[2] as FileSection, FOLDERS, new Set(['reports']))).toBeNull();
   });
 });

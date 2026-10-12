@@ -1,6 +1,7 @@
 // Uploads in Files go where their names say (classify), never by a question: a mixed drop lands in each section, a
 // dropped folder keeps its folders under the section most of its files point to (making folders takes files.manage),
 // and an OFS IR goes to Reports / OFS history and is linked to its sign-offs, as Revs adds it (revs.manage, 0094).
+// A section whose folder only the app fills takes uploads in the folder under it I may add to (RFIs' Uploaded, 0099).
 // A file whose section can't take it here goes to To sort, else where the person is looking. After a drop that went
 // anywhere but there, one toast says where: "Sorted: 6 Plans, 434 Submittals, 2 To sort".
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import { sortDrop, type SectionKind } from './classify';
 import type { DroppedFile } from './collectDrop';
 import { dirKey, planDrop } from './dropPlan';
 import { howMany } from './outcomes';
-import { SECTION_LABEL } from './sections';
+import { SECTION_LABEL, uploadFolder } from './sections';
 
 interface SortArgs {
   projectId: string;
@@ -49,8 +50,9 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void 
   function place(kind: SectionKind | null): { kind: SectionKind; folder: string } | null {
     const k = kind ?? viewing;
     if (k === viewing && takes(viewFolder.id)) return { kind: k, folder: viewFolder.id };
-    const root = rootOf(k);
-    if (takes(root)) return { kind: k, folder: root };
+    const section = sections.find((s) => s.kind === k);
+    const into = section && writable ? uploadFolder(section, folders, writable) : null;
+    if (into !== null) return { kind: k, folder: into };
     const unsorted = rootOf('unsorted');
     if (takes(unsorted)) return { kind: 'unsorted', folder: unsorted };
     return takes(viewFolder.id) ? { kind: viewing, folder: viewFolder.id } : null;

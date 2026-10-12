@@ -1,7 +1,7 @@
 // Where an upload goes, by its name, never by a question (Jesse, Oct 11: no more "dumping ground"). A dropped folder's
 // own name says it first ("Approved Submittals", "Specs"), then the file's name: OFS_IR... is an OFS IR (Reports), a
-// spec section at the start or S-0147.0-079200 is a submittal, a word RFI or CCD, a picture is a photo, a sheet number at
-// the start is a plan. Anything else goes where the person is looking. A dropped folder stays together and goes where
+// submittal's own number or S-0147.0-079200 is a submittal, then the word RFI (Jesse, Oct 12), a spec section at the
+// start (a submittal), the word CCD, a picture is a photo, a sheet number at the start is a plan. Anything else goes where the person is looking. A dropped folder stays together and goes where
 // most of its files point.
 import { parseSheet, stripExt } from './fileNames';
 
@@ -32,8 +32,9 @@ const FOLDER_WORDS: readonly [SectionKind, RegExp][] = [
 function byName(name: string): SectionKind | null {
   const base = stripExt(name);
   if (OFS_IR.test(base)) return 'reports';
-  if (S_FORM.test(base) || SPEC_START.test(base)) return 'submittals';
+  if (S_FORM.test(base) || SUBMITTAL_NO.test(name)) return 'submittals';
   if (RFI.test(base)) return 'rfis';
+  if (SPEC_START.test(base)) return 'submittals';
   if (CCD.test(base)) return 'ccd';
   if (IMAGE.test(name)) return 'photos';
   if (parseSheet(name)) return 'plans';

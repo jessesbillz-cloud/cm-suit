@@ -9,6 +9,13 @@ describe('where an upload goes by its name', () => {
     expect(classifyUpload('OFS_IR_0041.pdf')).toBe('reports');
     expect(classifyUpload('RFI 012 Door hardware.pdf')).toBe('rfis');
     expect(classifyUpload('Sample_RFI_013.pdf')).toBe('rfis');
+    expect(classifyUpload('RFI_012.pdf')).toBe('rfis');
+    expect(classifyUpload('RFI 12 response.pdf')).toBe('rfis');
+    expect(classifyUpload('Sample Hall - RFI-034.pdf')).toBe('rfis');
+    expect(classifyUpload('RFI012.pdf')).toBe('rfis');
+    expect(classifyUpload('rfi 7 sample.PDF')).toBe('rfis');
+    expect(classifyUpload('A101 RFI 12 sketch.pdf')).toBe('rfis');
+    expect(classifyUpload('092900 RFI 12 response.pdf')).toBe('rfis');
     expect(classifyUpload('CCD 3 Sample change.pdf')).toBe('ccd');
     expect(classifyUpload('IMG_1234.jpg')).toBe('photos');
     expect(classifyUpload('Sample corridor.HEIC')).toBe('photos');
@@ -18,6 +25,8 @@ describe('where an upload goes by its name', () => {
     expect(classifyUpload('11.pdf')).toBeNull();
     expect(classifyUpload('Sample Plan Set A.pdf')).toBeNull();
     expect(classifyUpload('Sample interfirm notes.pdf')).toBeNull();
+    expect(classifyUpload('Sample Carfield notes.pdf')).toBeNull();
+    expect(classifyUpload('Smurfit board.pdf')).toBeNull();
     expect(classifyUpload('Sample Project Manual.pdf')).toBeNull();
   });
 
@@ -32,6 +41,7 @@ describe('where an upload goes by its name', () => {
     expect(classifyUpload('092900 - Gypsum Board.pdf', [], 'specs')).toBe('specs');
     expect(classifyUpload('092900 - Gypsum Board.pdf', [], 'plans')).toBe('submittals');
     expect(classifyUpload('092900_04.0_Gypsum Board_PD_NET.pdf', [], 'specs')).toBe('submittals');
+    expect(classifyUpload('092900_04.0_Board per RFI 12_PD_NET.pdf')).toBe('submittals');
   });
 });
 
