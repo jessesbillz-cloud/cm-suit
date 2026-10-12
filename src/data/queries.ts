@@ -202,7 +202,7 @@ export function useFolders(projectId: string | null) {
   return useQuery({ queryKey: qk.folders(projectId ?? ''), queryFn: projectId ? () => fetchFolders(projectId) : skipToken });
 }
 
-const FILE_COLS = 'id, project_id, folder_id, original_name, mime, size, scan_status, upload_complete, created_at, created_by';
+export const FILE_COLS = 'id, project_id, folder_id, original_name, mime, size, scan_status, upload_complete, created_at, created_by';
 
 async function fetchFiles(folderId: string, userId: string): Promise<FileRow[]> {
   const rows: FileRow[] = isMock()

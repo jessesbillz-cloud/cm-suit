@@ -114,7 +114,8 @@ export function useSetFolderAiReads() {
     scope: { id: 'folder_ai_reads' },
     mutationFn: (v: { folder: FolderRow; aiReads: boolean }) => updateAiReads(v.folder, v.aiReads),
     // A folder-list refetch already in flight (e.g. right after a new folder) must not land after this and undo it.
-    onMutate: (v) => qc.cancelQueries({ queryKey: qk.folders(v.folder.project_id) }),
+    // Only the folder list: the lists under it (sections, files) keep loading.
+    onMutate: (v) => qc.cancelQueries({ queryKey: qk.folders(v.folder.project_id), exact: true }),
     onSuccess: (version, v) => {
       qc.setQueryData<FolderRow[]>(qk.folders(v.folder.project_id), (list) =>
         list?.map((f) => (f.id === v.folder.id ? { ...f, ai_reads: v.aiReads, version } : f)),

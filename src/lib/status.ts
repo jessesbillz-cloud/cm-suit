@@ -45,3 +45,16 @@ export function statusCssVariables(): string {
     ])
     .join(';');
 }
+
+/**
+ * A submittal's review stamp in Files (Jesse, Oct 11): NET, A, AAN, AN are done (green text), MCN needs attention (amber
+ * text, never an amber row), RNR, R&R, RR, REJ go back (red text). Several codes ("MCN RNR"): the one furthest back.
+ * Unknown codes: null (plain text).
+ */
+export function stampStatus(stamp: string): StatusKey | null {
+  const codes = stamp.toUpperCase().split(/\s+/);
+  if (codes.some((c) => ['RNR', 'R&R', 'RR', 'REJ'].includes(c))) return 'late';
+  if (codes.includes('MCN')) return 'pending';
+  if (codes.some((c) => ['NET', 'A', 'AAN', 'AN'].includes(c))) return 'approved';
+  return null;
+}
