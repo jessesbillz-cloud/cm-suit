@@ -1,7 +1,8 @@
 // A room's own page (0083; Jesse, Oct 5: "you click on the room and it breaks it down into the walls"; Oct 6: "rooms
 // then walls with the revs"): its number, name and one bar of its walls' items, the room's picture (compact) with each
-// wall's line in its state's color (a tap on a line opens the wall; pinch, wheel or + / - to zoom; full screen), then
-// its walls as rows, each with one bubble per rev (Jesse, Oct 11). No picture: nothing for readers, a slim place for a manager's (RoomImage).
+// wall's line in its state's color and its bubble ("North wall"; a tap on a line or bubble opens the wall; pinch, wheel
+// or + / - to zoom; full screen), then its walls as rows, each led by the same bubble (Jesse, Oct 12: "those bubbles
+// that you can follow") and one bubble per rev (Oct 11). No picture: nothing for readers, a slim place for a manager's (RoomImage).
 // A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
 // line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
 // Request inspection (those who may ask, ir.request; Jesse, Oct 10: "do it for the whole room very easily") opens a new
@@ -209,7 +210,7 @@ function BackToRevs({ projectId, canManage, level }: { projectId: string; canMan
       }}
     >
       <Icon icon={ChevronLeft} size={16} />
-      OFS required
+      OFS inspection card
     </button>
   );
 }

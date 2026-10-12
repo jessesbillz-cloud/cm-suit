@@ -11,7 +11,9 @@
 // room), rev-history, rev-history-<item>, rev-history-row (data-kind), rev-history-open, rev-file-pane,
 // rev-link-files, file-viewer, viewer-zoom. Oct 6: rev-level-<level> (the level chips), rev-room-walls (the room's
 // rows, each rev-wall-<area> with rev-wall-open). Oct 11: each row's rev-strip, one rev-chip-<rev number> per rev by
-// its name (data-mark done|requested|failed|open|na; data-file when its OFS IR is on file).
+// its name (data-mark done|requested|failed|open|na; data-file when its OFS IR is on file). Oct 12: each row leads with
+// rev-wall-bubble, the same short name as its plan-wall-<area> callout on the picture (wall-bubble-name inside both); a
+// wall opened from its room has no rev-room-picker and no rev-wall-strip.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -97,6 +99,12 @@ test.describe('revs rooms', () => {
     // Then its walls, each with one bubble per rev: HOW cavity's spray failed on the north wall, so that rev is red.
     await expect(room.getByTestId('rev-wall-mock-rev-area-1')).toBeVisible();
     const north = room.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2');
+    // The wall's short bubble on the picture leads its row too; the long name isn't written out again.
+    await expect(image.getByTestId('plan-wall-mock-rev-area-2')).toHaveText('North wall');
+    await expect(north.getByTestId('rev-wall-bubble')).toHaveText('North wall');
+    await expect(north).toContainText('B / 2–5');
+    await expect(north).not.toContainText('Corridor 110');
+    await expect(room.getByTestId('rev-wall-mock-rev-area-1').getByTestId('rev-wall-bubble')).toHaveText('Shaftwall at Stair 2');
     await expect(north.getByTestId('rev-strip').getByTestId('rev-chip-1')).toHaveAttribute('data-mark', 'failed');
     await expect(north.getByTestId('rev-strip').getByTestId('rev-chip-1')).toHaveText('HOW - Cavity');
     // A reader has no manager's buttons.
@@ -108,7 +116,11 @@ test.describe('revs rooms', () => {
     await image.getByTestId('plan-wall-mock-rev-area-2').click();
     await expect(page).toHaveURL(/\/mock-rev-area-2\?room=mock-room-110/);
     const wall = page.getByTestId('rev-wall-page');
-    await expect(wall.getByTestId('rev-room-pick-line')).toBeVisible();
+    await expect(wall.getByTestId('rev-wall-3d')).toBeVisible();
+    // Opened from its room: the room isn't shown again (Back goes there), and the revs are once, with their items.
+    await expect(wall.getByTestId('rev-room-picker')).toHaveCount(0);
+    await expect(wall.getByTestId('rev-wall-strip')).toHaveCount(0);
+    await expect(wall.getByTestId('rev-section-1')).toBeVisible();
     await expect(page.getByTestId('rev-wall-back')).toHaveText('110 Corridor');
     await page.getByTestId('rev-wall-back').click();
     await expect(page.getByTestId('rev-room-page')).toBeVisible();
@@ -236,6 +248,9 @@ test.describe('revs rooms', () => {
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-205?level=Level%2002');
     const room = page.getByTestId('rev-room-page');
     await expect(room.getByTestId('rev-wall-mock-rev-area-6')).toBeVisible();
+    // Its own east wall by its side; the corridor's north wall it shares as the wall to the corridor.
+    await expect(room.getByTestId('rev-wall-mock-rev-area-6').getByTestId('rev-wall-bubble')).toHaveText('East wall');
+    await expect(room.getByTestId('rev-wall-mock-rev-area-5').getByTestId('rev-wall-bubble')).toHaveText('Wall to Corridor 210');
     await expect(room.getByTestId('room-image')).toHaveCount(0);
 
     // The fire marshal manages revs too (View as): the same buttons as the inspector.
@@ -250,6 +265,9 @@ test.describe('revs rooms', () => {
     await expect(room.getByTestId('rev-wall-mock-rev-area-6')).toBeVisible();
     // Back keeps the level (a phone's screen has its own Back).
     if (testInfo.project.name === 'desktop') {
+      // The tool is called "OFS inspection card" (Jesse, Oct 12), on the rail and on the way back.
+      await expect(page.getByTestId('rail-revs')).toContainText('OFS inspection card');
+      await expect(page.getByTestId('rev-room-back')).toHaveText('OFS inspection card');
       await page.getByTestId('rev-room-back').click();
       await expect(page).toHaveURL(/\/p\/job-s\/revs\?level=Level(%20|\+)02$/);
       await expect(page.getByTestId('rev-room-mock-room-205')).toBeVisible();
@@ -264,7 +282,7 @@ test.describe('revs rooms', () => {
     await wall.getByTestId('rev-section-2').getByTestId('rev-before-rev').click();
     await wall.getByTestId('rev-before-ofs').fill('41');
     await wall.getByTestId('rev-form-save').click();
-    await expect(wall.getByTestId('rev-wall-strip').getByTestId('rev-chip-2')).toHaveAttribute('data-mark', 'done');
+    await expect(wall.getByTestId('rev-section-2').getByTestId('rev-before-rev')).toHaveCount(0);
     await linkFiles(page, '1 picture and 2 IRs linked.');
 
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
@@ -296,6 +314,6 @@ test.describe('revs rooms', () => {
     await expect(page).toHaveURL(/item=mock-rev-item-3-1/);
     const opened = page.getByTestId('rev-wall-page');
     await expect(opened.getByTestId('rev-item-mock-rev-item-3-1')).toHaveAttribute('data-focus', 'true');
-    await expect(opened.getByTestId('rev-wall-strip').getByTestId('rev-chip-2')).toHaveText('2 CJ · 0041');
+    await expect(opened.getByTestId('rev-wall-strip')).toHaveCount(0);
   });
 });
