@@ -1,9 +1,12 @@
 // e2e mock of files_sections (0097): the job's sections in their order, each section's folder found, adopted (a
 // top-level folder of people's own named like it) or made, with the folders in it and its file count. To sort holds
-// every other top-level folder but the ones a tool owns. Nothing real in it.
+// every other top-level folder but the ones a tool owns. Each person gets the folders they read (folder_row_can_read):
+// RFIs is its Uploaded folder to someone who doesn't browse the RFI tool's own (0099). Nothing real in it.
 import type { FileSection } from '../fileSections';
 import type { FileRow, FolderRow } from '../types';
 import * as api from './api';
+import { sectionFolderReadable } from './fileAccess';
+import * as mockRfis from './rfis';
 import { writeMock } from './store';
 
 const KINDS = ['plans', 'specs', 'submittals', 'rfis', 'ccd', 'reports', 'photos', 'unsorted', 'bids_received', 'inbound'];
@@ -36,6 +39,9 @@ async function makeMissing(projectId: string): Promise<void> {
       await api.appFolder(projectId, null, name, kind);
     }
   }
+  // RFIs' Uploaded folder (0099): RFI documents uploaded in Files.
+  const rfis = (await api.folders(projectId)).find((f) => f.parent_id === null && f.kind === 'rfis');
+  if (rfis) await api.appFolder(projectId, rfis.id, 'Uploaded', 'general');
 }
 
 function subtree(rootId: string, list: readonly FolderRow[]): string[] {
@@ -54,12 +60,21 @@ export async function sections(projectId: string): Promise<FileSection[]> {
   const roots = KINDS.flatMap((k) => rootOf(k)?.id ?? []);
   const loose = top.filter((f) => !roots.includes(f.id) && !f.app_only && !TOOL_KINDS.has(f.kind));
   const files = await sectionFiles(list.map((f) => f.id));
+  const signsRfis = mockRfis.has('rfi.sign_issue');
+  const reads = (id: string) => {
+    const f = list.find((x) => x.id === id);
+    return f !== undefined && sectionFolderReadable(f, list, signsRfis);
+  };
   return KINDS.flatMap((kind) => {
     const root = rootOf(kind);
-    if (!root) return [];
-    const ids = [...subtree(root.id, list), ...(kind === 'unsorted' ? loose.flatMap((f) => subtree(f.id, list)) : [])];
+    // A section needs its own folder read, but RFIs: its Uploaded folder is enough (0099).
+    if (!root || (kind !== 'rfis' && !reads(root.id))) return [];
+    const own = subtree(root.id, list).filter(reads);
+    const first = own[0];
+    if (first === undefined) return [];
+    const ids = [...own, ...(kind === 'unsorted' ? loose.flatMap((f) => subtree(f.id, list)).filter(reads) : [])];
     const count = files.filter((x) => ids.includes(x.folder_id) && x.upload_complete).length;
-    return [{ kind, folder_id: root.id, file_count: count, folder_ids: ids }];
+    return [{ kind, folder_id: first, file_count: count, folder_ids: ids }];
   });
 }
 

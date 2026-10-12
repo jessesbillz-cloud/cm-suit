@@ -46,15 +46,36 @@ export function statusCssVariables(): string {
     .join(';');
 }
 
+/** A submittal stamp's codes: sent back, needs attention (approved as noted), done. */
+const STAMP_BACK = ['RNR', 'R&R', 'RR', 'REJ'];
+const STAMP_NOTED = ['MCN'];
+const STAMP_DONE = ['NET', 'A', 'AAN', 'AN'];
+
+function stampCodes(stamp: string): string[] {
+  return stamp.toUpperCase().split(/\s+/);
+}
+
 /**
  * A submittal's review stamp in Files (Jesse, Oct 11): NET, A, AAN, AN are done (green text), MCN needs attention (amber
  * text, never an amber row), RNR, R&R, RR, REJ go back (red text). Several codes ("MCN RNR"): the one furthest back.
  * Unknown codes: null (plain text).
  */
 export function stampStatus(stamp: string): StatusKey | null {
-  const codes = stamp.toUpperCase().split(/\s+/);
-  if (codes.some((c) => ['RNR', 'R&R', 'RR', 'REJ'].includes(c))) return 'late';
-  if (codes.includes('MCN')) return 'pending';
-  if (codes.some((c) => ['NET', 'A', 'AAN', 'AN'].includes(c))) return 'approved';
+  const codes = stampCodes(stamp);
+  if (codes.some((c) => STAMP_BACK.includes(c))) return 'late';
+  if (codes.some((c) => STAMP_NOTED.includes(c))) return 'pending';
+  if (codes.some((c) => STAMP_DONE.includes(c))) return 'approved';
+  return null;
+}
+
+/**
+ * The stamp for a reader whose job is approved or not (Jesse, Oct 12: the fire marshal only needs approved or not; the
+ * codes are the design team's). Sent back: Not approved. Done or approved as noted (MCN): Approved. Several codes: the
+ * one furthest back. Unknown: null (blank). The label and colors are STATUS's.
+ */
+export function stampOutcome(stamp: string): 'approved' | 'not_approved' | null {
+  const codes = stampCodes(stamp);
+  if (codes.some((c) => STAMP_BACK.includes(c))) return 'not_approved';
+  if (codes.some((c) => STAMP_NOTED.includes(c) || STAMP_DONE.includes(c))) return 'approved';
   return null;
 }

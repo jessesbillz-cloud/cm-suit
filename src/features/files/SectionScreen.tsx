@@ -1,6 +1,7 @@
 // One section of Files on screen (0097): the header (the section and the folder it is narrowed to, the AI switch,
 // Upload), the sections (left card, a select on a phone), and the section's list. Uploads and drops are sorted by
-// their names (useSortUpload). New folder and Rename folder act on the folder on screen.
+// their names (useSortUpload). New folder and Rename folder act on the folder on screen. Submittals' stamps read as
+// codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12).
 import { useWritableFolders } from '../../data/files';
 import type { FileSection } from '../../data/fileSections';
 import { useCanWriteFolder, useCapability, useProject } from '../../data/queries';
@@ -15,7 +16,7 @@ import { NewFolderForm } from './NewFolderForm';
 import { RenameFolder } from './RenameFolder';
 import { SectionFiles } from './SectionFiles';
 import { SectionNav } from './SectionNav';
-import { moveTargets, shownSections } from './sections';
+import { moveTargets, shownSections, uploadFolder } from './sections';
 import { UploadButtons } from './UploadButtons';
 import { useSortUpload } from './useSortUpload';
 
@@ -39,9 +40,14 @@ export function SectionScreen(props: SectionScreenProps) {
   const canWrite = useCanWriteFolder(current.id);
   const writableIds = useWritableFolders(projectId);
   const revs = useCapability(projectId, 'revs.manage');
+  // A reader whose job is approve or not (the fire marshal decides OFS requests) sees a stamp as Approved or Not approved.
+  const decider = useCapability(projectId, 'ir.ofs_decide');
   const project = useProject(projectId);
   // A folder only the app fills takes files from its tool, not from Upload here.
-  const writable = canWrite.data === true && !current.app_only;
+  const here = canWrite.data === true && !current.app_only;
+  // On a section's own folder the app fills (RFIs), Upload goes to the folder under it I may add to (Uploaded).
+  const into = current.id === section.folder_id ? uploadFolder(section, folders, writableIds.data ?? new Set()) : null;
+  const writable = here || into !== null;
   // People's own folders; never a folder the system finds by its kind or name.
   const renamable = manager && current.kind === 'general' && !current.app_only;
   const sort = useSortUpload({
@@ -80,11 +86,14 @@ export function SectionScreen(props: SectionScreenProps) {
       {writableIds.isError ? (
         <ErrorState error={writableIds.error} title="Move is not available." onRetry={() => void writableIds.refetch()} className="m-0 mb-4" />
       ) : null}
+      {kind === 'submittals' && decider.isError ? (
+        <ErrorState error={decider.error} title="Stamps are not available." onRetry={() => void decider.refetch()} className="m-0 mb-4" />
+      ) : null}
     </>
   );
   const folderTools = (
     <>
-      {manager && writable ? <NewFolderForm projectId={projectId} parentId={current.id} onCreated={onSelectFolder} /> : null}
+      {manager && here ? <NewFolderForm projectId={projectId} parentId={current.id} onCreated={onSelectFolder} /> : null}
       {renamable ? <RenameFolder key={current.id} folder={current} /> : null}
     </>
   );
@@ -117,6 +126,7 @@ export function SectionScreen(props: SectionScreenProps) {
             viewFolderId={current.id}
             folders={folders}
             writable={writable}
+            stamps={decider.data === undefined ? 'unknown' : decider.data ? 'outcome' : 'codes'}
             timeZone={project.data?.timezone ?? null}
             selectedFileId={selectedFileId}
             targets={moveTargets(sections, folders, writableIds.data ?? new Set())}

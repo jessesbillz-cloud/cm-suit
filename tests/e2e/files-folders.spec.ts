@@ -6,7 +6,8 @@
 // be removed (migration 0065). The file viewer (migration 0074): a sheet in Plans straight to full screen, a photo in
 // the file's pane, Full screen, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
 // mock data layer. Delete and Move on the rows (migration 0096): a row's Delete with Undo, checked rows moved to another
-// folder or deleted together, one toast with Undo for all.
+// folder or deleted together, one toast with Undo for all. Who reads what (migration 0099): a file named for an RFI
+// lands in RFIs, the fire marshal reads a stamp as Approved or Not approved, a sub sees Submittals.
 import process from 'node:process';
 import { expect, test, type JSHandle, type Page } from '@playwright/test';
 
@@ -128,6 +129,45 @@ test.describe('files: sections', () => {
     await expect(page.getByTestId('file-row').filter({ hasText: 'Sample memo.pdf' })).toHaveCount(1);
     await section(page, 'Submittals').click();
     await expect(page.getByTestId('file-row').filter({ hasText: 'Sample Board PD' })).toHaveCount(1);
+  });
+
+  test("a file named for an RFI lands in RFIs, beside the RFI tool's own", async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-b/files');
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    const dataTransfer = await page.evaluateHandle(() => {
+      const dt = new DataTransfer();
+      for (const name of ['RFI 012 Sample response.pdf', 'Sample Hall - RFI-034.pdf']) {
+        dt.items.add(new File([new Uint8Array(1024)], name, { type: 'application/pdf' }));
+      }
+      return dt;
+    });
+    await page.getByTestId('files-drop').dispatchEvent('drop', { dataTransfer });
+    await expect(page.getByRole('status').filter({ hasText: 'Sorted: 2 RFIs' })).toBeVisible();
+    await section(page, 'RFIs').click();
+    await expect(fileNamed(page, 'RFI 012 Sample response.pdf')).toHaveCount(1);
+    await expect(fileNamed(page, 'Sample Hall - RFI-034.pdf')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    await expect(section(page, 'To sort').getByTestId('section-count')).toHaveText('1');
+  });
+
+  test('the fire marshal reads a stamp as Approved or Not approved', async ({ page }) => {
+    await signIn(page, 'ahj', '/p/job-b/files');
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    await section(page, 'Submittals').click();
+    const stamp = (title: string) => page.getByTestId('file-row').filter({ hasText: title }).getByTestId('file-row-stamp');
+    await expect(stamp('Gypsum Board PD Acoustic Sealant')).toHaveText('Approved');
+    await expect(stamp('Exterior Portland Cement Plaster')).toHaveText('Not approved');
+    await expect(stamp('Thermal Insulation PD')).toHaveText('Approved');
+    await expect(page.getByTestId('file-row-stamp').filter({ hasText: /NET|MCN|RNR|AAN/ })).toHaveCount(0);
+  });
+
+  test('a sub sees Submittals the way they see Plans, with the stamps', async ({ page }) => {
+    await signIn(page, 'sub', '/p/job-b/files');
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    await expect(section(page, 'Submittals').getByTestId('section-count')).toHaveText('4');
+    await section(page, 'Submittals').click();
+    await expect(page.getByTestId('file-row')).toHaveCount(4);
+    await expect(page.getByTestId('file-row').filter({ hasText: 'Gypsum Board PD Acoustic Sealant' }).getByTestId('file-row-stamp')).toHaveText('NET');
   });
 
   test('a file in To sort moves from its own row', async ({ page }) => {

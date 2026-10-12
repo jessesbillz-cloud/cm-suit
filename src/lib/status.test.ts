@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STATUS, stampStatus, statusCssVariables, statusLabel } from './status';
+import { STATUS, stampOutcome, stampStatus, statusCssVariables, statusLabel } from './status';
 
 describe('status', () => {
   it('has every key with its colors and a label', () => {
@@ -31,5 +31,12 @@ describe('status', () => {
     expect(stampStatus('MCN RNR')).toBe('late');
     expect(stampStatus('R&R')).toBe('late');
     expect(stampStatus('XYZ')).toBeNull();
+  });
+  it('reads a stamp as approved or not for a reader whose job is approve or not', () => {
+    for (const s of ['NET', 'A', 'AN', 'aan', 'MCN', 'AAN MCN']) expect(stampOutcome(s), s).toBe('approved');
+    for (const s of ['RNR', 'R&R', 'RR', 'REJ', 'MCN RNR']) expect(stampOutcome(s), s).toBe('not_approved');
+    for (const s of ['XYZ', '', 'PD']) expect(stampOutcome(s), s).toBeNull();
+    expect(STATUS.approved.label).toBe('Approved');
+    expect(STATUS.not_approved.label).toBe('Not approved');
   });
 });
