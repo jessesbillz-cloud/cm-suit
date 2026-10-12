@@ -1,5 +1,5 @@
 // What a task offers, in "Needs you" and on an opened board item alike (SPEC §5.5). A task its record closes (an RFI
-// moving on, a correction re-inspected, a tailgate meeting held, a requirement scheduled or done) has Open, which goes
+// moving on, a correction fixed or re-inspected, a tailgate meeting held, a requirement scheduled or done) has Open, which goes
 // to the record: Done there would only hide the reminder. An addendum is acknowledged in place, one tap, which records
 // the acknowledgment and closes the task. A task that needs a signature says so. Only a task with no record behind it
 // (a failed background job, a blocked file, an inbound email, a plain to-do) gets Done.
@@ -16,7 +16,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 
 /** Task kinds (create_task's p_kind in the migrations) that the record closes by itself when it moves on. */
-const CLOSED_BY_RECORD = new Set(['rfi', 'correction.reinspect', 'safety.tailgate_due', 'requirements.due']);
+const CLOSED_BY_RECORD = new Set(['rfi', 'correction.reinspect', 'correction.fix', 'safety.tailgate_due', 'requirements.due']);
 /** The task kind acknowledged in place (bids 0011: acknowledge_addendum closes it). */
 const ADDENDUM_ACK = 'addendum_ack';
 
