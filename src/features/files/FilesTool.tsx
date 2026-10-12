@@ -28,9 +28,10 @@ export function FilesTool({ projectId, folderId, selectedFileId, isPhone, onSele
   const folders = useFolders(projectId);
   const sections = useFileSections(projectId);
   const canManage = useCapability(projectId, 'files.manage');
-  // files_sections may have just made a section's folder the folder list doesn't have yet: ask for the list again.
+  // files_sections may have just made a folder (a section's, RFIs' Uploaded) the folder list doesn't have yet: ask again.
   const known = folders.data;
-  const missing = known !== undefined && (sections.data ?? []).some((x) => !known.some((f) => f.id === x.folder_id));
+  const missing =
+    known !== undefined && (sections.data ?? []).some((x) => x.folder_ids.some((id) => !known.some((f) => f.id === id)));
   const refetchFolders = folders.refetch;
   useEffect(() => {
     if (missing) void refetchFolders();

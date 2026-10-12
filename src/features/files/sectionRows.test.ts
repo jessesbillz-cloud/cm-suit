@@ -39,6 +39,13 @@ describe("a section's list", () => {
     expect(sectionRows(FILES, 'submittals', SUBS, FOLDERS, null, 'cover').map((r) => r.file.id)).toEqual(['c']);
   });
 
+  it('reads stamps as Approved or Not approved for a reader whose job is approve or not', () => {
+    const rows = sectionRows(FILES, 'submittals', SUBS, FOLDERS, null, '', 'outcome');
+    expect(rows.map((r) => (r.view.kind === 'submittal' ? r.view.stamps : null))).toEqual(['outcome', 'outcome', 'outcome']);
+    expect(sectionRows(FILES, 'submittals', SUBS, FOLDERS, null, 'approved', 'outcome').map((r) => r.file.id)).toEqual(['b', 'a']);
+    expect(sectionRows(FILES, 'submittals', SUBS, FOLDERS, null, 'not approved', 'outcome')).toEqual([]);
+  });
+
   it('sorts Plans by sheet number', () => {
     const plans = { kind: 'plans', folder_id: 'plans', file_count: 3, folder_ids: ['plans'] };
     const rows = sectionRows(

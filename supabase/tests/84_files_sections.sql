@@ -93,10 +93,10 @@ select is((select array_agg(folder_id order by kind) from public.files_sections(
   'asked twice: the same folders');
 select is(pg_temp.folders_of_job(), :before, 'and no folder made the second time');
 
--- The viewer reads the job's files but not the RFI folder (rfi.sign_issue browses it).
+-- The viewer reads the job's files but not the RFI tool's folder (rfi.sign_issue browses it): RFIs is its Uploaded folder
+-- (0099).
 select pg_temp.login('a0000000-0000-0000-0000-000000000843');
-select ok(not exists (select 1 from public.files_sections('c0000000-0000-0000-0000-000000000841') where kind = 'rfis'),
-  'viewer: no RFIs section');
+select is((pg_temp.folder_row(pg_temp.sec('rfis'))).name, 'Uploaded', 'viewer: RFIs is its Uploaded folder');
 select ok(exists (select 1 from public.files_sections('c0000000-0000-0000-0000-000000000841') where kind = 'plans'),
   'viewer: the sections they read');
 reset role;

@@ -94,6 +94,21 @@ export function companyIn(section: FileSection, folderId: string, folders: reado
   return first === undefined ? '' : companyOf(first);
 }
 
+/**
+ * Where an upload into the section goes: its own folder when I may add to it, else (its folder only the app fills, as
+ * RFIs' is the RFI tool's) the first folder right under it I may add to (RFIs' Uploaded, 0099). Null: nowhere here.
+ */
+export function uploadFolder(section: FileSection, folders: readonly Folder[], writable: ReadonlySet<string>): string | null {
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const takes = (f: Folder | undefined): f is Folder => f !== undefined && !f.app_only && writable.has(f.id);
+  if (takes(byId.get(section.folder_id))) return section.folder_id;
+  const under = section.folder_ids.find((id) => {
+    const f = byId.get(id);
+    return takes(f) && f.parent_id === section.folder_id;
+  });
+  return under ?? null;
+}
+
 /** Where Move to may send files: each section's folders I may add to that the app doesn't fill, in section order. */
 export function moveTargets(all: readonly FileSection[], folders: readonly Folder[], writable: ReadonlySet<string>): FolderOption[] {
   const byId = new Map(folders.map((f) => [f.id, f]));

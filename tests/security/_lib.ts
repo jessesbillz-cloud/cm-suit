@@ -386,4 +386,7 @@ export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   ['files_section_make', { p_project_id: ZERO_UUID, p_kind: 'plans', p_name: 'probe', p_sort: 1, p_ai: true, p_aliases: ['probe'] }],
   ['files_subtree', { p_root: ZERO_UUID }],
   ['files_hidden_root', { p_folder_id: ZERO_UUID }],
+  // Submittals as documents, RFIs' Uploaded folder (0099).
+  ['folder_kind_is_document', { p_kind: 'submittals' }],
+  ['files_rfi_uploads_make', { p_project_id: ZERO_UUID, p_rfis: ZERO_UUID }],
 ];
