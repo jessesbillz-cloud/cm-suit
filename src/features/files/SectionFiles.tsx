@@ -18,6 +18,7 @@ import { folderDescendants } from './folderOrder';
 import { leftoverUploads, storedFiles } from './leftovers';
 import { ListHead } from './ListHead';
 import { ListTools } from './ListTools';
+import type { StampMode } from './rowView';
 import { sectionRows } from './sectionRows';
 import { filterOptions, type FolderOption } from './sections';
 import { UploadList } from './UploadList';
@@ -37,6 +38,8 @@ interface SectionFilesProps {
   folders: readonly FolderRow[];
   /** May I add here (Upload and drop)? */
   writable: boolean;
+  /** How Submittals' stamps read. */
+  stamps: StampMode;
   timeZone: string | null;
   selectedFileId: string | null;
   targets: readonly FolderOption[];
@@ -66,7 +69,7 @@ export function SectionFiles(props: SectionFilesProps) {
   });
   const stored = files.data ? storedFiles(files.data) : [];
   const within = filterId === null ? null : new Set<string>([filterId, ...folderDescendants(folders, filterId)]);
-  const rows = sectionRows(stored, kind, section, folders, within, query);
+  const rows = sectionRows(stored, kind, section, folders, within, query, props.stamps);
   const changeable = useChangeable(
     projectId,
     kind,
@@ -123,6 +126,7 @@ export function SectionFiles(props: SectionFilesProps) {
             <>
               <ListHead
                 section={kind}
+                stamps={props.stamps}
                 rowMove={kind === 'unsorted' && mine.length > 0 && targets.length > 0}
                 select={
                   mine.length === 0

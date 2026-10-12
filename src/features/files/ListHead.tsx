@@ -7,10 +7,13 @@ import { CheckBox, type RowCheck } from './CheckBox';
 import type { SectionKind } from './classify';
 import { ACTION, MOVE } from './FileRow';
 import { headCols } from './RowCells';
+import type { StampMode } from './rowView';
 import type { MoveTarget } from './useMoveRows';
 
 interface ListHeadProps {
   section: SectionKind;
+  /** How Submittals' stamps read (the Stamp column's width). */
+  stamps: StampMode;
   /** The rows have their own Move to (To sort): its column. */
   rowMove: boolean;
   /** Null: no row here may be changed (no checkboxes). */
@@ -23,8 +26,8 @@ interface ListHeadProps {
 
 const LABELS = 'text-[12px] font-bold uppercase tracking-wide text-ink';
 
-export function ListHead({ section, rowMove, select, targets, busy, onMove, onDelete }: ListHeadProps) {
-  const cols = headCols(section);
+export function ListHead({ section, stamps, rowMove, select, targets, busy, onMove, onDelete }: ListHeadProps) {
+  const cols = headCols(section, stamps);
   return (
     <div
       data-testid="files-list-head"

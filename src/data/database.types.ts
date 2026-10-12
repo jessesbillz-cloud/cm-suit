@@ -8071,6 +8071,10 @@ export type Database = {
         }[]
       }
       files_hidden_root: { Args: { p_folder_id: string }; Returns: boolean }
+      files_rfi_uploads_make: {
+        Args: { p_project_id: string; p_rfis: string }
+        Returns: string
+      }
       files_section_make: {
         Args: {
           p_ai: boolean
@@ -8188,6 +8192,7 @@ export type Database = {
       folder_can_write: { Args: { p_folder_id: string }; Returns: boolean }
       folder_effective_id: { Args: { p_folder_id: string }; Returns: string }
       folder_is_document: { Args: { p_folder_id: string }; Returns: boolean }
+      folder_kind_is_document: { Args: { p_kind: string }; Returns: boolean }
       folder_marks: {
         Args: { p_project_id: string }
         Returns: {
