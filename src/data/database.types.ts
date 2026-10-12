@@ -7538,6 +7538,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_correction_retired_0098: {
+        Args: {
+          p_description?: string
+          p_location?: string
+          p_notice_file_id?: string
+          p_notice_ref?: string
+          p_photo_ids?: string[]
+          p_project_id: string
+          p_request_key: string
+          p_spec_tags?: string[]
+          p_title: string
+          p_trade?: string
+        }
+        Returns: {
+          closed_at: string | null
+          company_org_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          description: string
+          id: string
+          location: string
+          notice_file_id: string | null
+          notice_ref: string
+          number: number
+          org_id: string
+          photo_ids: string[]
+          project_id: string
+          request_key: string
+          spec_tags: string[]
+          status: string
+          status_changed_at: string
+          title: string
+          trade: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "corrections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_daily_report: {
         Args: {
           p_project_id: string

@@ -171,9 +171,14 @@ create trigger fix_tasks after insert or update of status, company_org_id, delet
   for each row execute function public.tg_corrections_fix_tasks();
 
 -- =====================================================================================================================
--- create_correction: 0026's, plus the company (last, optional, so a call without it is the same call as before)
+-- create_correction: 0026's, plus the company (last, optional, so a call without it is the same call as before). The
+-- old form is retired (renamed, callable by nobody), as 0061 and 0073 did.
 -- =====================================================================================================================
-drop function public.create_correction(uuid, text, text, text, text, text, text[], uuid[], uuid, text);
+alter function public.create_correction(uuid, text, text, text, text, text, text[], uuid[], uuid, text)
+  rename to create_correction_retired_0098;
+revoke execute on function
+  public.create_correction_retired_0098(uuid, text, text, text, text, text, text[], uuid[], uuid, text)
+from public, anon, authenticated, service_role;
 
 create function public.create_correction(
   p_project_id uuid,

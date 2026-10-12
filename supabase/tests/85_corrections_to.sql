@@ -1,5 +1,5 @@
 begin;
-select plan(47);
+select plan(48);
 -- Corrections TO a company on the job (migration 0098): the column, the companies (to pick and to show), a company not
 -- on the job refused on create and edit, only the creator or an inspector changes it (as every edit), an edit writes a
 -- history line, and the company's people get the item as a to-do while it is theirs to fix (open or reopened).
@@ -70,6 +70,10 @@ select has_column('public', 'corrections', 'company_org_id', 'column: correction
 select col_is_null('public', 'corrections', 'company_org_id', 'column: optional (an item may go to nobody)');
 select hasnt_function('public', 'create_correction', array['uuid', 'text', 'text', 'text', 'text', 'text', 'text[]', 'uuid[]', 'uuid', 'text'],
   'create_correction: the old form is gone (one way to create)');
+select ok(not has_function_privilege('authenticated', 'public.create_correction_retired_0098(uuid, text, text, text, text, text, text[], uuid[], uuid, text)', 'EXECUTE')
+          and not has_function_privilege('service_role', 'public.create_correction_retired_0098(uuid, text, text, text, text, text, text[], uuid[], uuid, text)', 'EXECUTE')
+          and not has_function_privilege('anon', 'public.create_correction_retired_0098(uuid, text, text, text, text, text, text[], uuid[], uuid, text)', 'EXECUTE'),
+  'create_correction: the old form is kept, retired, callable by nobody');
 select ok(not has_function_privilege('anon', 'public.correction_companies(uuid)', 'EXECUTE')
           and not has_function_privilege('authenticated', 'public.correction_fix_tasks(uuid)', 'EXECUTE'),
   'functions: anon cannot list companies, nobody calls the to-do helper');
