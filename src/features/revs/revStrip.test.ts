@@ -59,8 +59,9 @@ describe('the rev strip', () => {
 
   it('colors from lib/status, short words, full names spoken', () => {
     expect(chips.map((c) => chipKey(c.mark))).toEqual(['approved', 'approved', 'pending', 'not_approved', 'cancelled']);
-    expect(chipText(at(0), false)).toBe('0 · 0041');
-    expect(chipText(at(2), true)).toBe('2 CJ');
+    expect(chipText(at(0), 'number')).toBe('0 · 0041');
+    expect(chipText(at(2), 'both')).toBe('2 CJ');
+    expect(chipText(at(0), 'name')).toBe('TOW');
     expect(chipName(at(0))).toBe('Rev 0 TOW: Done, OFS 0041');
     expect(chipName(at(4))).toBe('Rev 4 In-Wall: N/A');
   });

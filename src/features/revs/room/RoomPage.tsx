@@ -1,7 +1,7 @@
 // A room's own page (0083; Jesse, Oct 5: "you click on the room and it breaks it down into the walls"; Oct 6: "rooms
 // then walls with the revs"): its number, name and one bar of its walls' items, the room's picture (compact) with each
 // wall's line in its state's color (a tap on a line opens the wall; pinch, wheel or + / - to zoom; full screen), then
-// its walls as rows, each with its items by rev. No picture: nothing for readers, a slim place for a manager's (RoomImage).
+// its walls as rows, each with one bubble per rev (Jesse, Oct 11). No picture: nothing for readers, a slim place for a manager's (RoomImage).
 // A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
 // line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
 // Request inspection (those who may ask, ir.request; Jesse, Oct 10: "do it for the whole room very easily") opens a new
@@ -182,7 +182,7 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
               }}
               onChip={(chip) => {
                 if (chip.fileId !== null) openFile(chip.fileId);
-                else nav.openFromRoom(w.area.id, room.id, chip.item.id);
+                else nav.openFromRoom(w.area.id, room.id, firstItemOf(setup, chip.rev.id));
               }}
             />
           ))}
@@ -190,6 +190,11 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
       </section>
     </div>
   );
+}
+
+/** The rev's first item (Setup's order): where a tap on its bubble opens the wall. */
+function firstItemOf(setup: RevSetup, revId: string): string | undefined {
+  return setup.items.filter((i) => i.rev_id === revId).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))[0]?.id;
 }
 
 function BackToRevs({ projectId, canManage, level }: { projectId: string; canManage: boolean; level: string | undefined }) {

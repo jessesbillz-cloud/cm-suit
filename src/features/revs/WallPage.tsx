@@ -188,7 +188,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
         }}
         manage={canManage ? manage.buttons : null}
       />
-      <RevStrip chips={revStrip(setup, index, area, files)} onChip={onChip} withNames testId="rev-wall-strip" />
+      <RevStrip chips={revStrip(setup, index, area, files)} onChip={onChip} label="both" testId="rev-wall-strip" />
       {manage.form}
       {isPhone ? thumb : null}
       <div className={wide ? 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>

@@ -56,9 +56,13 @@ export function chipKey(mark: CheckMark): StatusKey {
 
 const ofs = (n: number) => String(n).padStart(4, '0');
 
-/** What a chip says: the rev's number (with its name when there is room), and a done rev's OFS number. */
-export function chipText(chip: StripChip, withName: boolean): string {
-  const rev = withName ? `${String(chip.rev.number)} ${chip.rev.name}` : String(chip.rev.number);
+/** How a chip is labeled: its number (compact), its name (a room's rows, Jesse Oct 11), or both (the wall's page). */
+export type ChipLabel = 'number' | 'name' | 'both';
+
+/** What a chip says: the rev's number, its name or both, and with a number a done rev's OFS number. */
+export function chipText(chip: StripChip, label: ChipLabel): string {
+  if (label === 'name') return chip.rev.name;
+  const rev = label === 'both' ? `${String(chip.rev.number)} ${chip.rev.name}` : String(chip.rev.number);
   return chip.ofsNumber !== null ? `${rev} · ${ofs(chip.ofsNumber)}` : rev;
 }
 
