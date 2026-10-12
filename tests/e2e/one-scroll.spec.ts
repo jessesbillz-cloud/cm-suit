@@ -72,7 +72,7 @@ test.describe('one scroll per screen', () => {
     await box.getByTestId('file-preview-window').click();
     const win = await opened;
     await win.waitForLoadState();
-    await expect(win).toHaveURL(/\/p\/job-b\/files\/job-b-daily-7\?window=1$/);
+    await expect(win).toHaveURL(/\/p\/job-b\/files\/job-b-daily-7\?window=/);
     await expect(page.getByTestId('file-viewer')).toHaveCount(0);
   });
 

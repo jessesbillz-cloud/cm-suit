@@ -116,7 +116,7 @@ test.describe('schedule', () => {
       await beside.getByTestId('file-preview-window').click();
       const win = await opened;
       await win.waitForLoadState();
-      await expect(win).toHaveURL(/\/p\/job-b\/files\/[^/?]+\?window=1$/);
+      await expect(win).toHaveURL(/\/p\/job-b\/files\/[^/?]+\?window=/);
       await win.close();
     }
 

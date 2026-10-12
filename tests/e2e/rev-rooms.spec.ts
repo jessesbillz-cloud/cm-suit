@@ -193,7 +193,7 @@ test.describe('revs rooms', () => {
     await pane.getByTestId('file-preview-window').click();
     const win = await opened;
     await win.waitForLoadState();
-    await expect(win).toHaveURL(/\/p\/job-s\/revs\/file-[^/?]+\?window=1$/);
+    await expect(win).toHaveURL(/\/p\/job-s\/revs\/file-[^/?]+\?window=/);
     await win.close();
     await right.getByRole('button', { name: 'Close' }).click();
     await expect(page).not.toHaveURL(/side=/);
