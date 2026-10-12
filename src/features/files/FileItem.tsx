@@ -1,7 +1,8 @@
-// A file opened in the right column (or its own window): the file itself (a photo, or a PDF's pages, with Full screen),
-// its scan state, Rename and Delete (with Undo) when this person may, its earlier versions, Download, Open in new
-// window. A signed record (a daily or IR PDF, an RFI PDF, a stamped sheet) never offers Rename or Delete. A sheet in
-// Plans or a spec book in Specs is not drawn in the pane (too small to read): Full screen opens it.
+// A file opened in the right column (or its own window): the file itself (a photo, or a PDF's pages) filling the pane,
+// with New window on it; its scan state, Rename and Delete (with Undo) when this person may, its earlier versions (above
+// the file, so nothing under it makes the pane scroll), Download. A signed record (a daily or IR PDF, an RFI PDF, a
+// stamped sheet) never offers Rename or Delete. A sheet in Plans or a spec book in Specs is not drawn in the pane (too
+// small to read): Full screen opens it, and the footer has Open in new window.
 import { useState } from 'react';
 import { Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
@@ -81,6 +82,8 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
   const shows = openable && item.kind !== 'other';
   const folderKind = folders.data?.find((x) => x.id === f.folder_id)?.kind;
   const big = item.kind === 'pdf' && (folderKind === 'plans' || folderKind === 'specs');
+  // The file's box carries New window; the footer has it only when there is no box (one per pane).
+  const boxed = shows && !big;
   const fullScreen = () => {
     if (folderKind === 'specs') openSpec({ fileId: f.id, page: 1 });
     else viewer.open([item]);
@@ -115,7 +118,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
       }
       title={f.original_name}
       meta={`${formatBytes(f.size)} · added ${formatInZone(f.created_at, zone, 'MMM d, yyyy h:mm a')}`}
-      onOpenWindow={onOpenWindow}
+      onOpenWindow={boxed ? undefined : onOpenWindow}
       actions={actions}
       onDownload={
         f.upload_complete && f.scan_status !== 'infected'
@@ -127,7 +130,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
       downloadDisabled={!openable}
       downloading={download.pendingId === f.id}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
         {renaming && version !== null ? (
           <RenameForm
             name={f.original_name}
@@ -166,17 +169,9 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
             Full screen
           </Button>
         ) : null}
-        {shows && !big ? (
-          <FilePreview
-            item={item}
-            className="h-[min(60vh,32rem)]"
-            onFullScreen={() => {
-              viewer.open([item]);
-            }}
-          />
-        ) : null}
         {facts.isError ? <ErrorState error={facts.error} onRetry={() => void facts.refetch()} className="m-0" /> : null}
         {facts.data ? <EarlierVersions versions={facts.data.earlier} timeZone={zone} /> : null}
+        {boxed ? <FilePreview item={item} onOpenWindow={onOpenWindow} /> : null}
       </div>
     </ReadingPane>
   );

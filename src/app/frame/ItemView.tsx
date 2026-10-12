@@ -22,6 +22,7 @@ import {
   VERSION_ITEM_PREFIX,
   WALLS_ITEM,
 } from '../../lib/itemIds';
+import { openItemWindow } from '../../lib/itemWindow';
 import { EmptyState, LoadingState } from '../../ui/States';
 import { commentTarget } from './commentTarget';
 import {
@@ -59,14 +60,15 @@ interface ToolItemProps extends ItemViewProps {
 }
 
 /**
- * Panes that draw their own "Open in new window" (in their footer or head). Every other item gets it in the right
- * column's header (SPEC §7.2: every item has it); never on a phone, which has no windows.
+ * Panes that draw their own "Open in new window" (in their footer or head, or a file's New window on its box). Every
+ * other item gets it in the right column's header (SPEC §7.2: every item has it); never on a phone, which has no windows.
  */
 const OWN_WINDOW_BUTTON: readonly Tool[] = ['board', 'files', 'inspections', 'corrections', 'rfis', 'permits'];
 
 /** The tool's item opens with its own "Open in new window" button, or the frame draws one. */
 export function itemHasOwnWindowButton(tool: Tool, itemId: string): boolean {
-  return boardLineOf(itemId) !== null || OWN_WINDOW_BUTTON.includes(tool);
+  const revsFile = tool === 'revs' && itemId.startsWith(REV_FILE_PREFIX);
+  return boardLineOf(itemId) !== null || revsFile || OWN_WINDOW_BUTTON.includes(tool);
 }
 
 function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
@@ -75,7 +77,7 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
     standalone || isPhone
       ? undefined
       : () => {
-          window.open(model.itemWindowHref(tool, itemId), '_blank', 'noopener');
+          openItemWindow(model.loc.projectId, tool, itemId);
         };
 
   // A board line, opened from the board or from the board docked beside this tool.
@@ -107,7 +109,9 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   if (tool === 'inspections' && projectId !== null) {
     return <InspectionsItem projectId={projectId} itemId={itemId} onOpenWindow={openWindow} />;
   }
-  if (tool === 'revs' && projectId !== null) return <RevsItem projectId={projectId} itemId={itemId} isPhone={isPhone} />;
+  if (tool === 'revs' && projectId !== null) {
+    return <RevsItem projectId={projectId} itemId={itemId} isPhone={isPhone} onOpenWindow={openWindow} />;
+  }
   if (tool === 'deliveries' && projectId !== null) return <DeliveryItem projectId={projectId} itemId={itemId} />;
   if (tool === 'corrections' && projectId !== null) {
     return <CorrectionItem projectId={projectId} itemId={itemId} isPhone={isPhone} standalone={standalone} onOpenWindow={openWindow} />;
@@ -133,17 +137,22 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   const target = full && projectId !== null && boardLineOf(itemId) === null ? commentTarget(tool, itemId) : null;
   // One wrapper either way, so going full width never remounts the item. With comments the item takes its own height
   // and the whole view scrolls; without, it fills the column as before. At full width (and alone in its window) the item
-  // sits in one centered, readable column, its header and footer with it.
+  // sits in one centered, readable column, its header and footer with it. An item holding a file's box (data-fill)
+  // always fills: the box takes the height, the comments sit under it in a strip of their own (at most 35%), and the
+  // view itself never scrolls (Jesse, Oct 12: one scroll per screen).
   const centered = full && !isPhone;
+  const fills = 'has-[[data-fill]]:flex has-[[data-fill]]:h-full has-[[data-fill]]:flex-col';
   return (
-    <div data-testid="item-view" className={`${target === null ? 'h-full' : ''} ${centered ? 'mx-auto w-full max-w-reading' : ''}`}>
+    <div data-testid="item-view" className={`${target === null ? 'h-full' : ''} ${fills} ${centered ? 'mx-auto w-full max-w-reading' : ''}`}>
       <Suspense fallback={<LoadingState />}>
         <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
       </Suspense>
       {target !== null && projectId !== null ? (
-        <Suspense fallback={<LoadingState label="Loading comments" />}>
-          <CommentsPanel key={`${target.entityType}:${target.entityId}`} target={{ projectId, ...target }} />
-        </Suspense>
+        <div className="[:has([data-fill])~&]:max-h-[35%] [:has([data-fill])~&]:shrink-0 [:has([data-fill])~&]:overflow-auto">
+          <Suspense fallback={<LoadingState label="Loading comments" />}>
+            <CommentsPanel key={`${target.entityType}:${target.entityId}`} target={{ projectId, ...target }} />
+          </Suspense>
+        </div>
       ) : null}
     </div>
   );

@@ -1,5 +1,5 @@
 // A file's earlier versions (a regenerated report's older PDFs), behind one small "Earlier versions" line in its pane
-// (SPEC §8.1: "the old one stays viewable"). Each opens in the file viewer; Download is there too.
+// (SPEC §8.1: "the old one stays viewable"), above the file. Each opens in the file viewer; Download is there too.
 import type { EarlierVersion } from '../../data/files';
 import { usePreviewFetch } from '../../data/preview';
 import { formatInZone } from '../../lib/dates';
@@ -24,7 +24,8 @@ export function EarlierVersions({ versions, timeZone }: EarlierVersionsProps) {
   return (
     <div className="flex flex-col gap-2">
       <BehindLink label={`Earlier versions (${String(versions.length)})`} testId="file-earlier">
-        <ul className="flex flex-col gap-1.5">
+        {/* Above the file's box: a long list keeps to a few lines, so the box keeps its room. */}
+        <ul className="flex max-h-40 flex-col gap-1.5 overflow-auto">
           {versions.map((v, i) => (
             <li key={v.id}>
               <button

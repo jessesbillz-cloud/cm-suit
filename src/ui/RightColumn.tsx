@@ -1,6 +1,7 @@
 // The right column (SPEC §7.2): one docked panel, or the opened item. Fixed width (wider on a wide screen, never
 // dragged); it can go full screen or collapse. Full screen is ONE labelled button at the top right (Jesse, Oct 5: "the
-// arrows ... make that more prevalent"); at full screen the same spot is Back, and Escape does the same.
+// arrows ... make that more prevalent"); at full screen the same spot is Back, and Escape does the same. It is the
+// one Full screen on an opened file: the file's own box has New window (Jesse, Oct 12).
 import { useEffect, useRef, type ReactNode } from 'react';
 import { ArrowLeft, ChevronsLeft, ExternalLink, Maximize2, PanelRightClose, X } from 'lucide-react';
 import { Button } from './Button';
@@ -107,7 +108,10 @@ export function RightColumn(props: RightColumnProps) {
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      {/* Holding a file's box (FilePreview, data-fill), the column does not scroll: the box does (one scroll per screen). */}
+      <div data-testid="right-column-body" className="min-h-0 flex-1 overflow-auto has-[[data-fill]]:overflow-hidden">
+        {children}
+      </div>
     </aside>
   );
 }

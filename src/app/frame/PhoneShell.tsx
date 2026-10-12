@@ -41,7 +41,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
   if (loc.itemId !== null) {
     return (
       <PanelScreen top={<PanelBack label={TOOL_META[loc.tool].label} onBack={model.closeItem} />}>
-        <div className="min-h-full bg-card">
+        <div className="min-h-full bg-card has-[[data-fill]]:h-full">
           <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone={false} />
         </div>
       </PanelScreen>

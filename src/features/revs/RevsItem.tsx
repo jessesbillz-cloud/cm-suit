@@ -16,6 +16,8 @@ interface RevsItemProps {
   projectId: string;
   itemId: string;
   isPhone: boolean;
+  /** A sign-off's file: its box's New window (absent on a phone and in its own window). */
+  onOpenWindow?: (() => void) | undefined;
 }
 
 function ManagersOnly({ projectId, children }: { projectId: string; children: ReactNode }) {
@@ -32,7 +34,7 @@ function ManagersOnly({ projectId, children }: { projectId: string; children: Re
   return children;
 }
 
-export function RevsItem({ projectId, itemId, isPhone }: RevsItemProps) {
+export function RevsItem({ projectId, itemId, isPhone, onOpenWindow }: RevsItemProps) {
   if (itemId === NEW_ITEM) {
     return (
       <ManagersOnly projectId={projectId}>
@@ -47,7 +49,9 @@ export function RevsItem({ projectId, itemId, isPhone }: RevsItemProps) {
       </ManagersOnly>
     );
   }
-  if (itemId.startsWith(REV_FILE_PREFIX)) return <RevFilePane key={itemId} projectId={projectId} fileId={itemId.slice(REV_FILE_PREFIX.length)} />;
+  if (itemId.startsWith(REV_FILE_PREFIX)) {
+    return <RevFilePane key={itemId} projectId={projectId} fileId={itemId.slice(REV_FILE_PREFIX.length)} onOpenWindow={onOpenWindow} />;
+  }
   if (itemId.startsWith(ROOM_ITEM_PREFIX)) {
     return <RoomPage key={itemId} projectId={projectId} roomId={itemId.slice(ROOM_ITEM_PREFIX.length)} isPhone={isPhone} />;
   }
