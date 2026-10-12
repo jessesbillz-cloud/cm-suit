@@ -1,7 +1,7 @@
 // A PDF in the viewer: every page, one under another, scrolled; + and - zoom (a trackpad's pinch too), Fit shows a
 // whole page (never narrower than a readable letter page, never wider than the window), and "Page N of M" follows the
 // scroll. pdf.js loads with the first PDF (lib/pdf, its own chunk). It can open at a page, and an item's own bar
-// (pageBar) sits over the pages and moves through them. Scrolling past the last page never moves the screen behind it.
+// (pageBar) sits over the pages and its panel (pageSide) left of them; both move through them. Scrolling past the last page never moves the screen behind it.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { pageText, type PDFDocumentProxy } from '../../lib/pdf/pdfjs';
@@ -18,6 +18,7 @@ interface PdfViewProps {
   tone: 'dark' | 'light';
   startPage?: number | undefined;
   pageBar?: ((nav: PageNav) => ReactNode) | undefined;
+  pageSide?: ((nav: PageNav) => ReactNode) | undefined;
 }
 
 const PAD = 16;
@@ -38,9 +39,10 @@ interface PagesProps {
   tone: 'dark' | 'light';
   startPage?: number | undefined;
   pageBar?: ((nav: PageNav) => ReactNode) | undefined;
+  pageSide?: ((nav: PageNav) => ReactNode) | undefined;
 }
 
-function Pages({ doc, aspect, tone, startPage, pageBar }: PagesProps) {
+function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const size = useBoxSize(scroller);
   const [zoom, setZoom] = useState(1);
@@ -117,31 +119,34 @@ function Pages({ doc, aspect, tone, startPage, pageBar }: PagesProps) {
   }, [width, startPage]);
 
   const pages = Array.from({ length: doc.numPages }, (_, i) => i + 1);
-  const bar = pageBar?.({ page: current, pages: doc.numPages, goTo, text: (n) => pageText(doc, n) });
+  const nav: PageNav = { page: current, pages: doc.numPages, goTo, text: (n) => pageText(doc, n) };
   return (
     <div className="flex h-full w-full flex-col">
-      {bar}
-      <div className="relative min-h-0 w-full flex-1">
-        <div
-          ref={scroller}
-          data-testid="viewer-pdf"
-          className={`h-full w-full overflow-auto overscroll-contain ${tone === 'dark' ? '' : 'bg-page'}`}
-          onScroll={onScroll}
-        >
+      {pageBar?.(nav)}
+      <div className="flex min-h-0 w-full flex-1">
+        {pageSide?.(nav)}
+        <div className="relative min-h-0 min-w-0 flex-1">
           <div
-            className="relative mx-auto flex flex-col items-center"
-            style={{ width: `${String(width + PAD * 2)}px`, gap: `${String(GAP)}px`, padding: `${String(PAD)}px ${String(PAD)}px 72px` }}
+            ref={scroller}
+            data-testid="viewer-pdf"
+            className={`h-full w-full overflow-auto overscroll-contain ${tone === 'dark' ? '' : 'bg-page'}`}
+            onScroll={onScroll}
           >
-            {width > 0 ? pages.map((n) => <PdfPage key={n} doc={doc} number={n} width={width} aspect={aspect} root={scroller} />) : null}
+            <div
+              className="relative mx-auto flex flex-col items-center"
+              style={{ width: `${String(width + PAD * 2)}px`, gap: `${String(GAP)}px`, padding: `${String(PAD)}px ${String(PAD)}px 72px` }}
+            >
+              {width > 0 ? pages.map((n) => <PdfPage key={n} doc={doc} number={n} width={width} aspect={aspect} root={scroller} />) : null}
+            </div>
           </div>
+          <ZoomBar zoom={zoom} onZoom={setZoom} tone={tone} pageLabel={`Page ${String(current)} of ${String(doc.numPages)}`} />
         </div>
-        <ZoomBar zoom={zoom} onZoom={setZoom} tone={tone} pageLabel={`Page ${String(current)} of ${String(doc.numPages)}`} />
       </div>
     </div>
   );
 }
 
-export function PdfView({ url, tone, startPage, pageBar }: PdfViewProps) {
+export function PdfView({ url, tone, startPage, pageBar, pageSide }: PdfViewProps) {
   const pdf = usePdfDoc(url);
   if (pdf.status === 'loading') {
     return (
@@ -158,5 +163,5 @@ export function PdfView({ url, tone, startPage, pageBar }: PdfViewProps) {
       </p>
     );
   }
-  return <Pages doc={pdf.doc} aspect={pdf.aspect} tone={tone} startPage={startPage} pageBar={pageBar} />;
+  return <Pages doc={pdf.doc} aspect={pdf.aspect} tone={tone} startPage={startPage} pageBar={pageBar} pageSide={pageSide} />;
 }

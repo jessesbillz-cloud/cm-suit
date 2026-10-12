@@ -43,7 +43,7 @@ function Shown({ item, kind, tone }: ShownProps) {
   return kind === 'image' ? (
     <ImageView url={state.url} name={item.name} tone={tone} />
   ) : (
-    <PdfView url={state.url} tone={tone} startPage={item.startPage} pageBar={item.pageBar} />
+    <PdfView url={state.url} tone={tone} startPage={item.startPage} pageBar={item.pageBar} pageSide={item.pageSide} />
   );
 }
 

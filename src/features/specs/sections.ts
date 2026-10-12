@@ -1,6 +1,7 @@
 // Spec section numbers wherever people write them ("09 21 16", "092116", "09 21 16.13"), and where the reader is in a
 // spec book's sections. Numbers are compared by their digits, so spacing never matters.
-import type { SpecBookSection } from '../../data/specs';
+import type { SpecBook, SpecBookSection } from '../../data/specs';
+import { parseSubmittal } from '../files/fileNames';
 
 /** "09 21 16.13" -> "09211613"; null when it is not a section number (Divisions 00 to 49). */
 export function sectionDigits(s: string): string | null {
@@ -20,6 +21,20 @@ export function findSection<T extends Pick<SpecBookSection, 'section'>>(sections
     const d = digits[i];
     return d != null && (want.startsWith(d) || d.startsWith(want));
   }) ?? null;
+}
+
+/** The spec section a submittal's file name starts with ("092900_04.0_Gypsum Board_NET.pdf": 09 29 00), else null. */
+export function sectionOfName(name: string): string | null {
+  return parseSubmittal(name)?.section ?? null;
+}
+
+/** The newest book (the books come oldest first) that has the section, and the section in it; null when none has it. */
+export function bookWith(books: readonly SpecBook[], wanted: string): { book: SpecBook; section: SpecBookSection } | null {
+  for (const book of [...books].reverse()) {
+    const section = findSection(book.sections, wanted);
+    if (section) return { book, section };
+  }
+  return null;
 }
 
 /** The index of the section the page is in (the last one starting at or before it); -1 before the first. */

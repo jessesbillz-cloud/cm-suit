@@ -3,7 +3,8 @@
 // Why public: share links go to people who may not be project members. The link never expires by itself; instead,
 // access is checked on every click: the link must not be revoked, the caller must name the recipient address, and
 // they must be signed in (Supabase Auth email code) AS that address. Without a session we answer 401 needs_code and
-// the page runs signInWithOtp(email) and calls again. Every download is logged (downloads + audit).
+// the page runs signInWithOtp(email) and calls again. The page opens the file with the URL it gets (Jesse, Oct 12:
+// the file itself, not a download step). Every look and download is logged (downloads + audit).
 //
 // Service role: share recipients aren't members, so RLS can't authorize them; this function is the gate.
 import { handlePublic, HttpError, needsCode, ok } from '../_shared/http.ts';
@@ -167,5 +168,7 @@ Deno.serve(handlePublic(async (req) => {
   await markUsed(service, link);
 
   const url = await signedDownloadUrl(service, 'files', file.storage_path, file.original_name);
-  return ok(req, { kind: 'file', url, filename: file.original_name });
+  // Which file and job too: the page opens the file itself, and a member also gets the job's links (a submittal's spec
+  // section). The caller is the verified recipient, and both ids are only names for what the link already shows them.
+  return ok(req, { kind: 'file', url, filename: file.original_name, file_id: file.id, project_id: file.project_id });
 }));

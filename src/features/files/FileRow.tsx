@@ -3,8 +3,9 @@
 // files out of here"): Full screen (photos and PDFs, data-testid="file-row-view"), Download ("file-row-download") and, on
 // a file I may change, Delete ("file-row-delete", Undo in the toast). A file I may change also has a checkbox at its
 // start, for Move to and Delete on many (ListHead), and in To sort a Move to of its own. The columns are its section's
-// (RowCells). The name is never cut off: it wraps, even a long name with no spaces. On a phone the file's icon gives the
-// checkbox its room and a row's own Move to sits on a line under it.
+// (RowCells); a submittal's section, when the job's spec book has it, opens the book there (Jesse, Oct 12). The name is
+// never cut off: it wraps, even a long name with no spaces. On a phone the file's icon gives the checkbox its room and a
+// row's own Move to sits on a line under it.
 import { Download, Maximize2, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
@@ -15,7 +16,7 @@ import { fileIcon } from '../../ui/fileIcon';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import { CHECK, CheckBox, type RowCheck } from './CheckBox';
-import { LeadCells, TitleCell, TrailCells } from './RowCells';
+import { LeadCells, SpecSectionCell, TitleCell, TrailCells } from './RowCells';
 import type { RowView } from './rowView';
 import type { FolderOption } from './sections';
 import { canOpenNow, scanChip } from './scanStatus';
@@ -38,6 +39,8 @@ interface FileRowProps {
   check?: RowCheck | null | undefined;
   /** Delete (a file I may change); left out, no Delete button. */
   onDelete?: (() => void) | undefined;
+  /** A submittal's section in the job's spec book: its Section cell opens the book there. */
+  spec?: { section: string; onOpen: () => void } | undefined;
   /** The row's own Move to (To sort); left out, none. */
   move?: { targets: readonly FolderOption[]; onMove: (to: FolderOption) => void } | undefined;
 }
@@ -49,7 +52,7 @@ export const MOVE = 'sm:w-40 sm:shrink-0';
 const ROW_BUTTON = 'h-10 w-10 sm:h-8 sm:w-8';
 
 export function FileRow(props: FileRowProps) {
-  const { file, view, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete, move } = props;
+  const { file, view, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete, move, spec } = props;
   const user = useUser();
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
   // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
@@ -72,6 +75,8 @@ export function FileRow(props: FileRowProps) {
       ) : (
         <CheckBox label={`Select ${file.original_name}`} testId="file-row-check" check={check} />
       )}
+      {/* Its own button beside the row's: a button can't hold another. */}
+      {spec ? <SpecSectionCell view={view} spec={spec} /> : null}
       <button
         type="button"
         data-testid="file-row-open"
@@ -84,7 +89,7 @@ export function FileRow(props: FileRowProps) {
         <span className={iconBox}>
           <Icon icon={fileIcon(file.original_name, file.mime)} size={16} />
         </span>
-        <LeadCells view={view} />
+        {spec ? null : <LeadCells view={view} />}
         <span className="min-w-0 flex-1 text-sm leading-5">
           <TitleCell
             view={view}

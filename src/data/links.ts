@@ -7,6 +7,8 @@ import { supabase } from './client';
 import { throwIfError } from './errors';
 import { FunctionError, callFunction } from './functions';
 import { qk } from './keys';
+import { isMock } from './mock';
+import * as mockShare from './mock/share';
 import { refreshRail } from './rail.queries';
 
 const accessSchema = z.object({
@@ -52,7 +54,15 @@ export function useEnterProject() {
   );
 }
 
-const shareFileSchema = z.object({ kind: z.literal('file'), url: z.string(), filename: z.string() });
+const shareFileSchema = z.object({
+  kind: z.literal('file'),
+  url: z.string(),
+  filename: z.string(),
+  /** Which file and job, so the page can offer the job's own links (a submittal's spec section) to a member. */
+  file_id: z.string().optional(),
+  project_id: z.string().optional(),
+});
+export type SharedFile = z.infer<typeof shareFileSchema>;
 const shareFolderSchema = z.object({
   kind: z.literal('folder'),
   folder_name: z.string(),
@@ -66,8 +76,8 @@ const needsCodeSchema = z.object({
 });
 
 export type ShareFolder = z.infer<typeof shareFolderSchema>;
-type ShareResult =
-  | z.infer<typeof shareFileSchema>
+export type ShareResult =
+  | SharedFile
   | ShareFolder
   | { kind: 'needs_code'; email_masked: string; reason: 'signed_out' | 'other_account' };
 
@@ -76,6 +86,7 @@ type ShareResult =
  * here as a value (it is the normal first step, not an error). Everything else that fails throws.
  */
 export async function openShare(shareLinkId: string, email: string, fileId?: string): Promise<ShareResult> {
+  if (isMock()) return mockShare.open(shareLinkId, email.trim().toLowerCase(), fileId);
   const body = { share_link_id: shareLinkId, email: email.trim().toLowerCase(), ...(fileId ? { file_id: fileId } : {}) };
   try {
     return await callFunction('share', body, z.union([shareFileSchema, shareFolderSchema]));
