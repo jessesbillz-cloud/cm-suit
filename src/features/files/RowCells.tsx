@@ -1,5 +1,5 @@
 // What a file row shows in its section (Jesse, Oct 11). Plans: Sheet, Title, Added, by sheet number. Submittals:
-// Section, No., Title (its company under it), Stamp. Everything else: Name, Size, Added, as before. A name that says no sheet or
+// Section (its number under it), Title (its company under it), Stamp: the title keeps its room beside the right column. Everything else: Name, Size, Added, as before. A name that says no sheet or
 // submittal shows as it is. Desktop: columns. Phone: the sheet or section in front of the title, the rest on one short
 // line under it. A stamp's color comes from lib/status only (text, never a row).
 import type { ReactNode } from 'react';
@@ -15,7 +15,6 @@ const SIZE = 'w-16 shrink-0 text-right';
 const DATE = 'w-[5.75rem] shrink-0 text-right';
 const SHEET = 'w-20 shrink-0';
 const SECTION = 'w-[4.75rem] shrink-0';
-const NO = 'w-14 shrink-0';
 const STAMP = 'w-14 shrink-0';
 
 interface Col {
@@ -28,10 +27,7 @@ export function headCols(section: SectionKind): { lead: Col[]; main: string; tra
   if (section === 'plans') return { lead: [{ label: 'Sheet', className: SHEET }], main: 'Title', trail: [{ label: 'Added', className: DATE }] };
   if (section === 'submittals') {
     return {
-      lead: [
-        { label: 'Section', className: SECTION },
-        { label: 'No.', className: NO },
-      ],
+      lead: [{ label: 'Section', className: SECTION }],
       main: 'Title',
       trail: [{ label: 'Stamp', className: STAMP }],
     };
@@ -65,8 +61,10 @@ export function LeadCells({ view }: { view: RowView }) {
   if (view.kind === 'submittal') {
     return (
       <>
-        <span className={`${CELL} ${SECTION} text-ink`}>{view.sub?.section ?? ''}</span>
-        <span className={`${CELL} ${NO} text-ink`}>{view.sub?.no ?? ''}</span>
+        <span className={`${CELL} ${SECTION} text-ink`}>
+          {view.sub?.section ?? ''}
+          {view.sub?.no ? <span className="block text-ink-3">{view.sub.no}</span> : null}
+        </span>
       </>
     );
   }

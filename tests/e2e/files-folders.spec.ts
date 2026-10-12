@@ -89,7 +89,7 @@ test.describe('files: sections', () => {
     await signIn(page, 'pm', '/p/job-b/files');
     await section(page, 'Submittals').click();
     const head = page.getByTestId('files-list-head');
-    for (const label of ['Section', 'No.', 'Title', 'Stamp']) await expect(head).toContainText(label);
+    for (const label of ['Section', 'Title', 'Stamp']) await expect(head).toContainText(label);
     const board = page.getByTestId('file-row').filter({ hasText: 'Gypsum Board PD Acoustic Sealant' });
     // The title keeps room beside the columns (Oct 12: it once wrapped one letter per line).
     const title = await board.getByTestId('file-row-name').boundingBox();
