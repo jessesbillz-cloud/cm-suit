@@ -111,9 +111,21 @@ function recommendedSomewhere(tool: string, recommended: readonly (readonly stri
   return needs === undefined || recommended.some((r) => r.includes(needs));
 }
 
-/** The rail on All my jobs: the cross-job tools some job of mine has on (Timesheets, Permits: see TOP_FOR). */
-function allJobsRail(jobModules: readonly (readonly string[])[], recommended: readonly (readonly string[])[]): RailTool[] {
-  return railForAllJobs(ALL_JOBS_TOOLS, jobModules).filter((t) => recommendedSomewhere(t, recommended));
+/**
+ * The rail on All my jobs: the cross-job tools some job of mine has on and my role there may read (Timesheets, Permits:
+ * see TOP_FOR). Bids is there only for someone who runs or sends bids on a job (Jesse, Oct 12: "I would never use
+ * Bids"). `readable` per job (my_readable_tools); a missing job = not known yet, nothing hidden.
+ */
+function allJobsRail(
+  jobs: readonly RailJob[],
+  recommended: readonly (readonly string[])[],
+  readable: Readonly<Record<string, readonly string[]>>,
+): RailTool[] {
+  const mayRead = (tool: string, j: RailJob) => readable[j.project_id]?.includes(MODULE_OF[tool] ?? tool) ?? true;
+  return railForAllJobs(
+    ALL_JOBS_TOOLS,
+    jobs.map((j) => j.modules),
+  ).filter((t) => recommendedSomewhere(t, recommended) && (toolIsOn(t, []) || jobs.some((j) => toolIsOn(t, j.modules) && mayRead(t, j))));
 }
 
 /**
@@ -163,7 +175,7 @@ interface RailJob {
 /**
  * The rail the frame shows: on All my jobs (`projectId` null) the cross-job tools; on a job, that job's part only.
  * `recommended` and `choices` are per job id (my_recommended_tools, user_job_rail; a missing id = none); `readable` too
- * (my_readable_tools; a missing id = not known yet, nothing hidden).
+ * (my_readable_tools; a missing id = not known yet, nothing hidden), on All my jobs as on a job.
  */
 export function railModel(
   projectId: string | null,
@@ -174,8 +186,9 @@ export function railModel(
 ): RailModel {
   if (projectId === null) {
     const general = allJobsRail(
-      jobs.map((j) => j.modules),
+      jobs,
       jobs.map((j) => recommended[j.project_id] ?? []),
+      readable,
     );
     return { general, job: [], more: [] };
   }
