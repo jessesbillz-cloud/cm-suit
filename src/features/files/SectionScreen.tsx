@@ -1,12 +1,15 @@
 // One section of Files on screen (0097): the header (the section and the folder it is narrowed to, the AI switch,
 // Upload), the sections (left card, a select on a phone), and the section's list. Uploads and drops are sorted by
 // their names (useSortUpload). New folder and Rename folder act on the folder on screen. Submittals' stamps read as
-// codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12).
+// codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12). The spec section search
+// sits at the top of the sections; while it has text, or a section's page is open, that takes the list's place
+// (SpecMain). Files bound for Submittals with no spec section in their names are asked for one first.
 import { useWritableFolders } from '../../data/files';
 import type { FileSection } from '../../data/fileSections';
 import { useCanWriteFolder, useCapability, useProject } from '../../data/queries';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
+import { SearchBox } from '../../ui/SearchBox';
 import { ErrorState } from '../../ui/States';
 import type { SectionKind } from './classify';
 import { FilesFrame } from './FilesFrame';
@@ -16,9 +19,12 @@ import { NewFolderForm } from './NewFolderForm';
 import { RenameFolder } from './RenameFolder';
 import { SectionFiles } from './SectionFiles';
 import { SectionNav } from './SectionNav';
+import { SpecMain } from './SpecMain';
 import { moveTargets, shownSections, uploadFolder } from './sections';
 import { UploadButtons } from './UploadButtons';
+import { useFilesNav } from './useFilesNav';
 import { useSortUpload } from './useSortUpload';
+import { useSubmittalNaming } from './useSubmittalNaming';
 
 interface SectionScreenProps {
   projectId: string;
@@ -60,6 +66,9 @@ export function SectionScreen(props: SectionScreenProps) {
     manager,
     revs: revs.data === true,
   });
+  const naming = useSubmittalNaming(projectId, kind, sort);
+  const where = useFilesNav(projectId);
+  const finding = where.spec !== null || where.query.trim() !== '';
   const shown = shownSections(sections);
   const nav = sections.filter((s) => shown.includes(s) || s.folder_id === section.folder_id);
   // Desktop: the folder's AI switch sits beside Upload. Phone: under the header, so Camera and Upload keep one row.
@@ -71,7 +80,7 @@ export function SectionScreen(props: SectionScreenProps) {
         <UploadButtons
           showCamera={isPhone}
           onFiles={(picked) => {
-            sort(picked.map((file) => ({ file, dir: [] })));
+            naming.start(picked.map((file) => ({ file, dir: [] })));
           }}
         />
       ) : null}
@@ -98,50 +107,69 @@ export function SectionScreen(props: SectionScreenProps) {
     </>
   );
   const sectionNav = <SectionNav sections={nav} current={section.folder_id} isPhone={isPhone} onPick={onSelectFolder} />;
+  // Fresh when the section or the open page changes (a section picked clears the search).
+  const specSearch = (
+    <SearchBox
+      key={`${section.folder_id}:${where.spec ?? ''}`}
+      label="Find a spec section"
+      placeholder="Spec section"
+      initial={where.query}
+      onChange={where.setQuery}
+      testId="spec-search"
+      className="w-full"
+    />
+  );
 
   return (
     <FilesFrame meta={folderPath(folders, current.id)} actions={actions} below={isPhone ? aiToggle : undefined}>
       {errors}
       <div className={`flex gap-4 ${isPhone ? 'flex-col' : 'items-start'}`}>
         {isPhone ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
+            {specSearch}
             {sectionNav}
             <div className="flex flex-wrap gap-1">{folderTools}</div>
           </div>
         ) : (
           <Card padded={false} className="w-56 shrink-0">
             <div className="p-2">
+              {specSearch}
               {sectionNav}
               {folderTools}
             </div>
           </Card>
         )}
         <div className="min-w-0 flex-1">
-          <SectionFiles
-            key={section.folder_id}
-            projectId={projectId}
-            section={section}
-            kind={kind}
-            filterId={current.id === section.folder_id ? null : current.id}
-            viewFolderId={current.id}
-            folders={folders}
-            writable={writable}
-            stamps={decider.data === undefined ? 'unknown' : decider.data ? 'outcome' : 'codes'}
-            timeZone={project.data?.timezone ?? null}
-            selectedFileId={selectedFileId}
-            targets={moveTargets(sections, folders, writableIds.data ?? new Set())}
-            onDropped={sort}
-            onOpenFile={props.onOpenFile}
-            onFilter={(id) => {
-              onSelectFolder(id ?? section.folder_id);
-            }}
-            onDeleted={(ids) => {
-              // The pane of a deleted file closes; the section stays.
-              if (selectedFileId !== null && ids.includes(selectedFileId)) onSelectFolder(current.id);
-            }}
-          />
+          {finding ? (
+            <SpecMain projectId={projectId} sections={sections} timeZone={project.data?.timezone ?? null} selectedFileId={selectedFileId} />
+          ) : (
+            <SectionFiles
+              key={section.folder_id}
+              projectId={projectId}
+              section={section}
+              kind={kind}
+              filterId={current.id === section.folder_id ? null : current.id}
+              viewFolderId={current.id}
+              folders={folders}
+              writable={writable}
+              stamps={decider.data === undefined ? 'unknown' : decider.data ? 'outcome' : 'codes'}
+              timeZone={project.data?.timezone ?? null}
+              selectedFileId={selectedFileId}
+              targets={moveTargets(sections, folders, writableIds.data ?? new Set())}
+              onDropped={naming.start}
+              onOpenFile={props.onOpenFile}
+              onFilter={(id) => {
+                onSelectFolder(id ?? section.folder_id);
+              }}
+              onDeleted={(ids) => {
+                // The pane of a deleted file closes; the section stays.
+                if (selectedFileId !== null && ids.includes(selectedFileId)) onSelectFolder(current.id);
+              }}
+            />
+          )}
         </div>
       </div>
+      {naming.prompt}
     </FilesFrame>
   );
 }

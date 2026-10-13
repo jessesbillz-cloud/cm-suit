@@ -6,12 +6,19 @@ import { SectionFinder } from './SectionFinder';
 import { sectionAt } from './sections';
 import { useLiveBook } from './useLiveBook';
 
-export function SpecSide({ projectId, book: opened, nav }: { projectId: string; book: SpecBook; nav: PageNav }) {
+interface SpecSideProps {
+  projectId: string;
+  book: SpecBook;
+  nav: PageNav;
+  onHub: (section: string) => void;
+}
+
+export function SpecSide({ projectId, book: opened, nav, onHub }: SpecSideProps) {
   const book = useLiveBook(projectId, opened);
   if (book.sections.length === 0) return null;
   return (
     <aside data-testid="spec-side" aria-label="Sections" className="hidden w-80 shrink-0 flex-col border-r border-white/10 p-3 text-white md:flex">
-      <SectionFinder sections={book.sections} at={sectionAt(book.sections, nav.page)} onPick={nav.goTo} />
+      <SectionFinder sections={book.sections} at={sectionAt(book.sections, nav.page)} onPick={nav.goTo} onHub={onHub} />
     </aside>
   );
 }

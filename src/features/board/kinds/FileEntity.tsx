@@ -14,6 +14,8 @@ import { useDownload } from '../../files/useDownload';
 import { fileViewerItem } from '../../files/viewerItems';
 import { SpecViewerBar } from '../../specs/SpecButton';
 import { SpecLink } from '../../specs/SpecLink';
+import { useOpenSpec } from '../../specs/useOpenSpec';
+import { useSpecHub } from '../../specs/useSpecHub';
 import { useSpecFor } from '../../specs/useSpecFor';
 import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
@@ -25,6 +27,8 @@ export function FileEntity({ frame, id }: KindProps) {
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   const specFor = useSpecFor(frame.projectId);
+  const openSpec = useOpenSpec(frame.projectId);
+  const hub = useSpecHub(frame.projectId);
 
   if (file.isPending) return <LoadingState label="Loading the file" />;
   if (file.isError) return <ErrorState error={file.error} onRetry={() => void file.refetch()} />;
@@ -37,7 +41,19 @@ export function FileEntity({ frame, id }: KindProps) {
   const canDownload = f.upload_complete && f.scan_status !== 'infected';
   const section = inFolder && inFolder.kind !== 'specs' ? specFor(f.original_name) : null;
   const plain = fileViewerItem(f, preview);
-  const item = section === null ? plain : { ...plain, pageBar: () => <SpecViewerBar projectId={f.project_id} section={section} /> };
+  const bar =
+    section === null ? null : (
+      <SpecViewerBar
+        section={section}
+        onSpec={() => {
+          openSpec({ section });
+        }}
+        onHub={() => {
+          hub(section);
+        }}
+      />
+    );
+  const item = bar === null ? plain : { ...plain, pageBar: () => bar };
   return (
     <EntityPane
       frame={frame}

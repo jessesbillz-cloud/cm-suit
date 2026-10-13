@@ -11,6 +11,7 @@ import { useFileViewer } from '../../ui/FileViewer';
 import { useToast } from '../../ui/Toast';
 import { bookWith } from './sections';
 import { specViewerItem } from './specItem';
+import { useSpecHub } from './useSpecHub';
 
 type SpecTarget = { section: string } | { fileId: string; page: number };
 
@@ -19,6 +20,7 @@ export function useOpenSpec(projectId: string): (to: SpecTarget) => void {
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
   const toast = useToast();
+  const hub = useSpecHub(projectId);
 
   return useCallback(
     (to: SpecTarget) => {
@@ -31,22 +33,22 @@ export function useOpenSpec(projectId: string): (to: SpecTarget) => void {
             books.find((b) => b.file_id === to.fileId) ??
             (await qc.query({ ...specBooksQuery(projectId), staleTime: 0 })).find((b) => b.file_id === to.fileId);
           if (!book) throw new Error('That spec book is not in Specs any more.');
-          viewer.open([specViewerItem(projectId, book, preview, to.page)]);
+          viewer.open([specViewerItem(projectId, book, preview, { startPage: to.page, hub })]);
           return;
         }
         if (!newest) throw new Error('No spec book in Specs yet.');
         const hit = bookWith(books, to.section);
         if (hit) {
-          viewer.open([specViewerItem(projectId, hit.book, preview, hit.section.first_page)]);
+          viewer.open([specViewerItem(projectId, hit.book, preview, { startPage: hit.section.first_page, hub })]);
           return;
         }
-        viewer.open([specViewerItem(projectId, newest, preview)]);
+        viewer.open([specViewerItem(projectId, newest, preview, { hub })]);
         toast.show({ message: `${to.section} is not in the spec book's sections.` });
       };
       show().catch((e: unknown) => {
         toast.show({ message: messageOf(e), tone: 'error' });
       });
     },
-    [qc, viewer, preview, toast, projectId],
+    [qc, viewer, preview, toast, hub, projectId],
   );
 }

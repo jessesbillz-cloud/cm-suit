@@ -3,7 +3,7 @@
 // (useFileDrop), shows the upload lines, and on the rows I may change a checkbox and Delete (files_changeable, one call
 // for the list); checked rows get Move to and Delete in the list's head, and in To sort each row has its own Move to.
 // In Plans and Specs a row's name opens the file full screen at once (Jesse, Oct 5). In Submittals a section the job's
-// spec book has opens the book there (Jesse, Oct 12).
+// spec book has opens the book there, and a submittal whose name has no section has Add spec section (Jesse, Oct 12).
 import { useState } from 'react';
 import { useChangeable } from '../../data/files';
 import { useSectionFiles, type FileSection } from '../../data/fileSections';
@@ -12,8 +12,10 @@ import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import { sectionOfName } from '../specs/sections';
 import { useOpenSpec } from '../specs/useOpenSpec';
 import { useSpecFor } from '../specs/useSpecFor';
+import { AddSection } from './AddSection';
 import type { SectionKind } from './classify';
 import type { DroppedFile } from './collectDrop';
 import { FileRow } from './FileRow';
@@ -189,6 +191,7 @@ export function SectionFiles(props: SectionFilesProps) {
                       }
                       onDelete={one === null ? undefined : () => { del.runMany(one); }}
                       spec={section === null ? undefined : { section, onOpen: () => { openSpec({ section }); } }}
+                      fix={kind === 'submittals' && version !== undefined && sectionOfName(f.original_name) === null ? <AddSection file={f} version={version} /> : undefined}
                       move={
                         kind === 'unsorted' && one !== null && targets.length > 0
                           ? { targets, onMove: (to) => { mover.run(one, to); } }
