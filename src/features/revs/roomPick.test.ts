@@ -8,7 +8,7 @@ const wall = (n: number, level: string, name: string, list = 'l1'): RevArea => (
   ...base, id: `a${String(n)}`, list_id: list, level, name, sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: n,
 });
 const room = (id: string, level: string, number: string, name: string, kind: RevRoom['kind'], position: number): RevRoom => ({
-  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position,
+  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position, card_at: null,
 });
 const link = (roomId: string, area: number, position = area): RevRoomWall => ({
   ...base, id: `${roomId}-${String(area)}`, room_id: roomId, area_id: `a${String(area)}`, line: null, position,
@@ -36,6 +36,7 @@ const ROOMS: RevRooms = {
     room('r200', 'Level 2', '0200', 'Gone', 'room', 3),
   ],
   walls: [link('r134', 3, 1), link('r134', 2, 2), link('r134', 4, 3), link('s1', 4), link('r200', 9)],
+  out: [],
 };
 
 describe('roomGroups', () => {
@@ -55,7 +56,7 @@ describe('roomGroups', () => {
 
   it('a list with no rooms has none to pick', () => {
     expect(hasRooms(roomGroups(SETUP, ROOMS, 'l2'))).toBe(false);
-    expect(hasRooms(roomGroups(SETUP, { rooms: [], walls: [] }, 'l1'))).toBe(false);
+    expect(hasRooms(roomGroups(SETUP, { rooms: [], walls: [], out: [] }, 'l1'))).toBe(false);
     expect(roomGroups(SETUP, ROOMS, 'nope')).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 // e2e mock of the revs request side (0056), with the database's rules in short form: the status of every wall x item
-// (na > signed off before, 0082 > passed > requested > failed > open), the revs request (1 to 3 items, walls of one
+// (na by hand > signed off before, 0082 > passed > requested > failed > na set up on a card, 0101 > open), the revs request (1 to 3 items, walls of one
 // list, passed and N/A cells skipped, colors by item order, an OFS request numbered like any), the map (the requester
 // before a result, or whoever decides the request now; never once signed; a version check) and the results per cell (the deputy's, once the
 // request is with OFS: 0061). The requests themselves live in mock/inspections, read as the signed-in mock user may
@@ -49,7 +49,8 @@ export async function status(projectId: string): Promise<RevStatusRow[]> {
 function cellStatus(s: RevMockState, reqs: Map<string, IrRequest>, areaId: string, itemId: string): RevStatusRow {
   const empty = { area_id: areaId, item_id: itemId, request_id: null, ir_number: null, ofs_number: null, at: null, note: null };
   const mark = s.marks.find((m) => m.area_id === areaId && m.item_id === itemId && m.deleted_at === null);
-  if (mark) return { ...empty, status: 'na', at: mark.updated_at };
+  // A hand N/A first, a card's N/A (0101 set_up) only where nothing else decides the cell.
+  if (mark && !mark.set_up) return { ...empty, status: 'na', at: mark.updated_at };
   const live = s.cells.filter((c) => c.area_id === areaId && c.item_id === itemId && reqs.has(c.request_id));
   // Signed off before the app (0082), unless an in-app request on it is newer.
   const before = signoffOf(s, areaId, itemId, live.map((c) => c.created_at));
@@ -70,6 +71,7 @@ function cellStatus(s: RevMockState, reqs: Map<string, IrRequest>, areaId: strin
   }
   const last = latest(live.filter((c) => c.result !== null), (c) => c.result_at ?? '');
   if (last?.result === 'failed') return { ...empty, ...of(last), status: 'failed', at: last.result_at, note: last.result_note };
+  if (mark) return { ...empty, status: 'na', at: mark.updated_at };
   return { ...empty, status: 'open' };
 }
 

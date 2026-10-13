@@ -20,7 +20,7 @@ import * as mockRooms from './mock/revRooms';
 import { wallLineSchema, type WallLine } from './revs.types';
 import { uploadFile } from './upload';
 
-const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_name, image_file_id, position, version, deleted_at';
+const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_name, image_file_id, position, card_at, version, deleted_at';
 const REV_ROOM_WALL_COLS = 'id, project_id, room_id, area_id, line, position, version, deleted_at';
 
 const roomSchema = z.object({
@@ -35,6 +35,8 @@ const roomSchema = z.object({
   image_name: z.string().nullable(),
   image_file_id: z.string().nullable(),
   position: z.number().int(),
+  /** When its inspection card was set up (0101); null: never. */
+  card_at: z.string().nullable(),
   version: z.number().int(),
   deleted_at: z.string().nullable(),
 });
@@ -55,6 +57,8 @@ export type RevRoomWall = z.infer<typeof roomWallSchema>;
 export interface RevRooms {
   rooms: RevRoom[];
   walls: RevRoomWall[];
+  /** Walls taken out of a live room and not back in it (a manager reads them, RLS): its card can put them back. */
+  out: RevRoomWall[];
 }
 
 /** Live rows only: rooms by place then number, each room's walls by place; walls of a removed room are dropped. */
@@ -65,12 +69,15 @@ function liveRooms(raw: { rooms: unknown[]; walls: unknown[] }): RevRooms {
     .filter((r) => r.deleted_at === null)
     .sort((a, b) => a.position - b.position || a.number.localeCompare(b.number, undefined, { numeric: true }) || a.id.localeCompare(b.id));
   const ids = new Set(rooms.map((r) => r.id));
-  const walls = z
-    .array(roomWallSchema)
-    .parse(raw.walls)
-    .filter((w) => w.deleted_at === null && ids.has(w.room_id))
-    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
-  return { rooms, walls };
+  const all = z.array(roomWallSchema).parse(raw.walls).filter((w) => ids.has(w.room_id));
+  const walls = all.filter((w) => w.deleted_at === null).sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
+  const inRoom = new Set(walls.map((w) => `${w.room_id}:${w.area_id}`));
+  const out = new Map<string, RevRoomWall>();
+  for (const w of all) {
+    const k = `${w.room_id}:${w.area_id}`;
+    if (w.deleted_at !== null && !inRoom.has(k) && !out.has(k)) out.set(k, w);
+  }
+  return { rooms, walls, out: [...out.values()].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)) };
 }
 
 async function fetchRooms(projectId: string): Promise<RevRooms> {

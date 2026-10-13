@@ -1,6 +1,7 @@
 // What an OFS request inspects on a job with revs, laid out like My Daily Reports' Special kinds: buttons that just say
 // what each one is. Items first (Jesse, Oct 10: "that should be the first thing that comes up"): up to three items of
-// the list, each picked one with the color it gets on the map, the limit said once in the heading; then the walls by
+// the list the walls need (Oct 12: only those, as big boxes in their state), each picked one with the color it gets on
+// the map, the limit said once in the heading; then the walls by
 // level, room first when the job's rooms are given (RevRoomPick; Jesse, Oct 10: "selecting the whole room should be the
 // first option"), else one button per wall. A request that came with walls (a room's, a wall's) shows those, all on, a
 // tap takes one off, and Add walls shows the rest of the list. Then the title the map will carry. Props only (the job's
@@ -15,7 +16,7 @@ import { FIELD_MISSING } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { Segments } from '../../ui/Segments';
 import {
-  MAX_ITEMS, itemsByRev, listsWithWalls, mapWhat, pickList, pickWalls, requestPlan, statusIndex, titlePreview, toggleItem,
+  MAX_ITEMS, applicableGroups, itemsByRev, listsWithWalls, mapWhat, pickList, pickWalls, requestPlan, statusIndex, titlePreview, toggleItem,
   wallsByLevel, type RevPick,
 } from './revPick';
 import { RevItems } from './RevItems';
@@ -49,6 +50,9 @@ export function RevPicker({ setup, status, value, onChange, date, near = [], roo
   const { items, walls } = requestPlan(setup, index, value);
   const colors = new Map(items.map((r) => [r.item.id, r.color]));
   const allWalls = wallsByLevel(setup, value.listId);
+  // The items the picked walls need; before any is picked, those any wall of the list needs.
+  const askOf = value.areaIds.length > 0 ? value.areaIds : allWalls.flatMap((g) => g.areas.map((a) => a.id));
+  const offered = applicableGroups(itemsByRev(setup, value.listId), index, askOf);
   const nearSet = new Set(near);
   const onlyNear = near.length > 0 && !more;
   const groups = onlyNear
@@ -86,7 +90,7 @@ export function RevPicker({ setup, status, value, onChange, date, near = [], roo
           </span>
         </div>
         <RevItems
-          groups={itemsByRev(setup, value.listId)}
+          groups={offered}
           index={index}
           pick={value}
           colors={colors}

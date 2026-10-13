@@ -5016,6 +5016,7 @@ export type Database = {
           kind: string
           org_id: string
           project_id: string
+          set_up: boolean
           updated_at: string
           version: number
         }
@@ -5029,6 +5030,7 @@ export type Database = {
           kind?: string
           org_id: string
           project_id: string
+          set_up?: boolean
           updated_at?: string
           version?: number
         }
@@ -5042,6 +5044,7 @@ export type Database = {
           kind?: string
           org_id?: string
           project_id?: string
+          set_up?: boolean
           updated_at?: string
           version?: number
         }
@@ -5138,6 +5141,8 @@ export type Database = {
       }
       rev_rooms: {
         Row: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -5156,6 +5161,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          card_at?: string | null
+          card_by?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -5174,6 +5181,8 @@ export type Database = {
           version?: number
         }
         Update: {
+          card_at?: string | null
+          card_by?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -12699,6 +12708,38 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      rev_card_cell: {
+        Args: {
+          p_area_id: string
+          p_hand: boolean
+          p_item_id: string
+          p_na: boolean
+        }
+        Returns: boolean
+      }
+      rev_card_item: {
+        Args: { p_area_id: string; p_item_id: string; p_on: boolean }
+        Returns: Json
+      }
+      rev_card_items: { Args: { p_list_id: string }; Returns: string[] }
+      rev_card_kept: {
+        Args: { p_area_id: string; p_item_id: string }
+        Returns: boolean
+      }
+      rev_card_save: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_room_id: string
+          p_version: number
+        }
+        Returns: Json
+      }
+      rev_card_undo: {
+        Args: { p_room_id: string; p_undo: Json; p_version: number }
+        Returns: Json
+      }
+      rev_card_walls: { Args: { p_room_id: string }; Returns: string[] }
       rev_clean: { Args: { p_text: string }; Returns: string }
       rev_file_link: { Args: { p_file_id: string }; Returns: Json }
       rev_files_folder: {
@@ -12880,6 +12921,7 @@ export type Database = {
           kind: string
           org_id: string
           project_id: string
+          set_up: boolean
           updated_at: string
           version: number
         }
@@ -12934,6 +12976,8 @@ export type Database = {
           p_version: number
         }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -12965,6 +13009,8 @@ export type Database = {
       rev_room_lock: {
         Args: { p_room_id: string }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -12992,6 +13038,8 @@ export type Database = {
       rev_room_save: {
         Args: { p_id: string; p_name: string; p_number: string; p_version: number }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null

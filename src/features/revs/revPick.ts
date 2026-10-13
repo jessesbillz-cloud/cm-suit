@@ -68,6 +68,15 @@ export function itemsByRev(setup: RevSetup, listId: string | null): RevGroup[] {
     .filter((g) => g.items.length > 0);
 }
 
+/** Only the items one of these walls needs (not N/A on all of them; Jesse, Oct 12: "the noise shouldn't be there"),
+ *  revs left with none left out. No walls: every item. */
+export function applicableGroups(groups: readonly RevGroup[], index: StatusIndex, areaIds: readonly string[]): RevGroup[] {
+  if (areaIds.length === 0) return [...groups];
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => areaIds.some((a) => statusOf(index, a, i.id) !== 'na')) }))
+    .filter((g) => g.items.length > 0);
+}
+
 interface ItemNeed {
   /** Picked walls that still need it (not passed, not N/A). */
   open: number;

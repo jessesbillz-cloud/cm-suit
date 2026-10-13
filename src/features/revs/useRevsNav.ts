@@ -5,7 +5,7 @@
 // (?room=) back to that room. A wall opened from an item's chip on its row or tile opens at that item (?item=). Every
 // move keeps the level, so Back and links land where they were. On a desktop a wall's request or OFS IR opens beside
 // its page, in the right column (?side=). A new request opens in Inspections, prefilled with the wall and its next
-// items. Router only.
+// items. A room's card is set up on the room's page (?view=card). Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { RevItem } from '../../data/revs.types';
 import { NEW_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX } from '../../lib/itemIds';
@@ -54,8 +54,8 @@ export function useRevsNav(projectId: string, canManage: boolean) {
   // A wall opened from the plan comes back to the plan, from the list the list, each at its level.
   const kept = (level = search.level): Record<string, string> => ({ ...viewPart, ...levelPart(level) });
   const params = { projectId, tool: 'revs' };
-  const item = (itemId: string, s: Record<string, string>) => {
-    void navigate({ to: '/p/$projectId/$tool/$itemId', params: { ...params, itemId }, search: s });
+  const item = (itemId: string, s: Record<string, string>, replace = false) => {
+    void navigate({ to: '/p/$projectId/$tool/$itemId', params: { ...params, itemId }, search: s, replace });
   };
 
   return {
@@ -86,9 +86,13 @@ export function useRevsNav(projectId: string, canManage: boolean) {
     open: (itemId: string, focusItem?: string) => {
       item(itemId, { ...kept(), ...atItem(focusItem) });
     },
-    /** A room's own page. */
-    openRoom: (roomId: string) => {
-      item(`${ROOM_ITEM_PREFIX}${roomId}`, levelPart());
+    /** A room's own page; `replace`: in place of the screen it leaves (its card set up). */
+    openRoom: (roomId: string, replace = false) => {
+      item(`${ROOM_ITEM_PREFIX}${roomId}`, levelPart(), replace);
+    },
+    /** A room's card being set up (a manager): its own screen on the room's page (?view=card). */
+    openCard: (roomId: string) => {
+      item(`${ROOM_ITEM_PREFIX}${roomId}`, { ...levelPart(), view: 'card' });
     },
     /** A wall from its room's page (at one of its items): its Back comes to the room. */
     openFromRoom: (areaId: string, roomId: string, focusItem?: string) => {

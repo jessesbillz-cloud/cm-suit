@@ -4,7 +4,7 @@
 // request, the map and the results also refresh the job's inspections, board and calendar.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './client';
-import { throwIfError, throwIfErrorMaybe } from './errors';
+import { throwIfError } from './errors';
 import { callFunction } from './functions';
 import { qk } from './keys';
 import { isMock } from './mock';
@@ -26,7 +26,6 @@ import {
   type RevItem,
   type RevKind,
   type RevList,
-  type RevMark,
   type RevRemoved,
   type RevResult,
 } from './revs.types';
@@ -207,18 +206,6 @@ export function useRestoreRev() {
       if (isMock()) return v.kind === 'room' ? mockRooms.toggleRoom(v.id, v.version, false) : mockRevs.remove(v.kind, v.id, v.version, false);
       const data: unknown = throwIfError(await supabase.rpc('rev_restore', { p_kind: v.kind, p_id: v.id, p_version: v.version }));
       return revRemovedSchema.parse(data);
-    },
-    onSettled: (_r, _e, v) => refresh(v.projectId),
-  });
-}
-
-/** A wall that doesn't need an item: N/A on or off. */
-export function useMarkRevNa() {
-  const refresh = useRefreshRevs();
-  return useMutation({
-    mutationFn: async (v: { projectId: string; areaId: string; itemId: string; on: boolean }): Promise<RevMark | null> => {
-      if (isMock()) return mockRevs.markNa(v.areaId, v.itemId, v.on);
-      return throwIfErrorMaybe(await supabase.rpc('rev_mark_na', { p_area_id: v.areaId, p_item_id: v.itemId, p_on: v.on }));
     },
     onSettled: (_r, _e, v) => refresh(v.projectId),
   });

@@ -1,14 +1,18 @@
-// The wall's items as buttons that say what each one is (MDR's Special kinds; ui/ChipPick), in rev order with only a
-// thin rev line between groups. Each has its status dot (lib/status). A tap shows the item on the 3-D wall; one still
-// to ask for is also picked for the request (picked: filled; shown: ringed). A manager signs off a whole rev on this
-// wall before the app (0082) from its line: the items not yet passed or N/A.
-import { ChipPick, type Chip } from '../../ui/ChipPick';
+// The wall's items as big boxes that say what each one is, in rev order under the rev's name, each the whole box in its
+// state (StateBox, Jesse Oct 12: "If an item is signed off, the whole box should be green"). Items not applicable on
+// this wall are not shown, nor a rev left with none. A tap shows the item on the 3-D wall; one still to ask for is also
+// picked for the request (picked: the accent; shown: ringed). A manager signs off a whole rev on this wall before the
+// app (0082) from its line, and sees the items switched off here last, dashed ("Not needed here"), to switch one back.
 import { EmptyState } from '../../ui/States';
 import type { Rev } from '../../data/revs.types';
+import { boxState } from './boxLook';
+import { shortItem } from './itemLines';
 import { canSignBefore, chipOf, type WallRev } from './model';
+import { StateBox } from './StateBox';
 import type { WallItem, WallPick } from './wallPage';
 
 interface WallItemsProps {
+  /** The wall's revs; with the N/A items for a manager. */
   revs: readonly WallRev[];
   items: readonly WallItem[];
   pick: WallPick;
@@ -17,43 +21,47 @@ interface WallItemsProps {
   onSignRev?: ((rev: Rev, itemIds: string[]) => void) | undefined;
 }
 
-function StatusDot({ status }: { status: WallItem['cell']['status'] }) {
-  const { key } = chipOf(status);
-  const open = status === 'open';
+const HEAD = 'min-w-0 flex-1 break-words text-[13px] font-bold uppercase leading-5 tracking-[0.05em] text-ink';
+
+function ItemBox({ item, pick, onTap }: { item: WallItem; pick: WallPick; onTap: (item: WallItem) => void }) {
+  const id = item.item.id;
+  const state = boxState(item.cell.status);
   return (
-    <span
-      aria-hidden
-      data-status={status}
-      className="h-2.5 w-2.5 shrink-0 rounded-full"
-      style={open ? { boxShadow: `inset 0 0 0 1.5px var(--status-${key}-dot)` } : { background: `var(--status-${key}-dot)` }}
+    <StateBox
+      state={state ?? 'open'}
+      off={state === null}
+      // Under its rev's name, the words it repeats from it go ("Speed Plugs" under "TOW"). Switched off: all of it.
+      label={state === null ? item.item.name : shortItem(item.item.name, item.rev.name)}
+      name={`${item.item.name}: ${chipOf(item.cell.status).label}`}
+      picked={pick.picked.includes(id)}
+      pressed={pick.picked.includes(id)}
+      focus={pick.focus === id}
+      status={item.cell.status}
+      testId={`rev-item-${id}`}
+      onClick={() => {
+        onTap(item);
+      }}
     />
   );
 }
 
-/** The one value a tap changed between two picked lists. */
-function tapped(before: readonly string[], after: readonly string[]): string | undefined {
-  return after.find((v) => !before.includes(v)) ?? before.find((v) => !after.includes(v));
-}
-
 export function WallItems({ revs, items, pick, onTap, onSignRev }: WallItemsProps) {
-  if (revs.length === 0) return <EmptyState title="This wall's list has no revs yet." />;
   const byId = new Map(items.map((i) => [i.item.id, i]));
+  const shown = revs.map((r) => ({ ...r, cells: r.cells.filter((c) => c.cell.status !== 'na') })).filter((r) => r.cells.length > 0);
+  const off = items.filter((i) => i.cell.status === 'na');
+  if (shown.length === 0 && off.length === 0) return <EmptyState title="Nothing to inspect on this wall." />;
+  const box = (id: string) => {
+    const it = byId.get(id);
+    return it ? <ItemBox key={id} item={it} pick={pick} onTap={onTap} /> : null;
+  };
   return (
-    <div className="flex flex-col gap-3" data-testid="rev-items">
-      {revs.map(({ rev, cells }) => {
-        const chips: Chip<string>[] = cells.map(({ item, cell }) => ({
-          value: item.id,
-          label: item.name,
-          mark: <StatusDot status={cell.status} />,
-          title: chipOf(cell.status).label,
-        }));
+    <div className="flex flex-col gap-4" data-testid="rev-items">
+      {shown.map(({ rev, cells }) => {
         const toSign = cells.filter((c) => canSignBefore(c.cell.status)).map((c) => c.item.id);
         return (
-          <section key={rev.id} className="flex flex-col gap-1.5" data-testid={`rev-section-${String(rev.number)}`}>
-            <div className="flex items-end gap-2 border-b border-line pb-0.5">
-              <h3 className="min-w-0 flex-1 break-words text-[12px] font-semibold uppercase leading-5 tracking-[0.05em] text-ink-3">
-                Rev {rev.number} · {rev.name}
-              </h3>
+          <section key={rev.id} className="flex flex-col gap-2" data-testid={`rev-section-${String(rev.number)}`}>
+            <div className="flex items-end gap-2">
+              <h3 className={HEAD}>{rev.name}</h3>
               {onSignRev && toSign.length > 0 ? (
                 <button
                   type="button"
@@ -67,26 +75,20 @@ export function WallItems({ revs, items, pick, onTap, onSignRev }: WallItemsProp
                 </button>
               ) : null}
             </div>
-            {chips.length > 0 ? (
-              <ChipPick
-                label={`Rev ${String(rev.number)} ${rev.name}`}
-                chips={chips}
-                picked={pick.picked}
-                focus={pick.focus}
-                multiple
-                testId="rev-item"
-                onChange={(next) => {
-                  const id = tapped(pick.picked, next);
-                  const hit = id === undefined ? undefined : byId.get(id);
-                  if (hit) onTap(hit);
-                }}
-              />
-            ) : (
-              <p className="text-[13px] text-ink-3">No items.</p>
-            )}
+            <div role="group" aria-label={rev.name} className="flex flex-wrap gap-2" data-testid="rev-item">
+              {cells.map((c) => box(c.item.id))}
+            </div>
           </section>
         );
       })}
+      {off.length > 0 ? (
+        <section className="flex flex-col gap-2 border-t border-line pt-3" data-testid="rev-items-off">
+          <h3 className={`${HEAD} text-ink-3`}>Not needed here</h3>
+          <div role="group" aria-label="Not needed here" className="flex flex-wrap gap-2">
+            {off.map((i) => box(i.item.id))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

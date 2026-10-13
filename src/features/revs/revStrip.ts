@@ -1,11 +1,11 @@
 // A wall's rev strip worked out (Jesse, Oct 6: "rooms then walls with the revs"): one chip per rev of its list, in the
 // list's order, each the wall's items of that rev rolled up (the checklist's rule: N/A, failed, done, requested, open).
 // A done rev shows the OFS IR number that passed it (the newest when its items passed apart), and the file of that
-// sign-off before the app when one is on file (rev_signoffs.file_id), which a tap opens. Pure; tested in
-// revStrip.test.ts.
+// sign-off before the app when one is on file (rev_signoffs.file_id), which a tap opens. A rev the wall doesn't need
+// (every item N/A) has no chip. Pure; tested in revStrip.test.ts.
 import type { Rev, RevArea, RevSetup } from '../../data/revs.types';
 import type { SignoffFile } from '../../data/revs.history';
-import type { StatusKey } from '../../lib/status';
+import type { BoxState } from './boxLook';
 import { MARKS, revCell, type CheckMark } from './checklist';
 import { cellOf, signedBefore, type StatusIndex } from './model';
 
@@ -20,19 +20,22 @@ export function indexSignoffFiles(rows: readonly SignoffFile[]): SignoffFiles {
 
 export interface StripChip {
   rev: Rev;
-  mark: CheckMark;
+  /** Never N/A: such a rev has no chip. */
+  mark: Exclude<CheckMark, 'na'>;
   /** Done: the OFS IR number that passed it, when known. */
   ofsNumber: number | null;
   /** Done before the app: that OFS IR's file, when on file. */
   fileId: string | null;
 }
 
+/** The wall's revs it needs (a rev not applicable on it is left out, Jesse Oct 12), each rolled up. */
 export function revStrip(setup: RevSetup, index: StatusIndex, area: RevArea, files: SignoffFiles): StripChip[] {
   return setup.revs
     .filter((r) => r.list_id === area.list_id)
-    .map((rev) => {
+    .flatMap((rev): StripChip[] => {
       const { mark } = revCell(setup, index, area, rev);
-      if (mark !== 'done') return { rev, mark, ofsNumber: null, fileId: null };
+      if (mark === 'na') return [];
+      if (mark !== 'done') return [{ rev, mark, ofsNumber: null, fileId: null }];
       const passed = setup.items
         .filter((i) => i.rev_id === rev.id)
         .map((i) => cellOf(index, area.id, i.id))
@@ -45,13 +48,13 @@ export function revStrip(setup: RevSetup, index: StatusIndex, area: RevArea, fil
           .filter((c) => signedBefore(c) && c.ofs_number === ofsNumber)
           .map((c) => files.get(key(c.area_id, c.item_id)))
           .find((f) => f !== undefined) ?? null;
-      return { rev, mark, ofsNumber, fileId };
+      return [{ rev, mark, ofsNumber, fileId }];
     });
 }
 
-/** Each mark's lib/status colors: done green, requested gold, failed red, open plain, N/A muted. */
-export function chipKey(mark: CheckMark): StatusKey {
-  return MARKS[mark].key;
+/** Each shown mark as a box (boxLook): done the whole box green, requested gold, failed red, open white. */
+export function markBox(mark: Exclude<CheckMark, 'na'>): BoxState {
+  return mark === 'done' ? 'passed' : mark;
 }
 
 const ofs = (n: number) => String(n).padStart(4, '0');
