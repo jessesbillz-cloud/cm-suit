@@ -254,7 +254,7 @@ function BackToRevs({ projectId, canManage, level }: { projectId: string; canMan
       }}
     >
       <Icon icon={ChevronLeft} size={16} />
-      {from ? roomLabel(from) : 'OFS inspection card'}
+      {from ? roomLabel(from) : 'Inspection cards'}
     </button>
   );
 }

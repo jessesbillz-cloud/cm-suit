@@ -1,4 +1,4 @@
-# OFS job setup: from a permitted plan set to a working "OFS inspection card"
+# OFS job setup: from a permitted plan set to a working "Inspection cards"
 
 The repeatable setup of a fire marshal (OFS) job's rated walls, rooms, revs and history, as done for Hunter Hall
 (Oct 3–8, 2026). This is the per-job setup service: every step is either in the app, an RPC, or a script in

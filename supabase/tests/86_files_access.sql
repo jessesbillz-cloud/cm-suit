@@ -100,8 +100,8 @@ insert into ids values
 -- ---------------------------------------------------------------------------------------------------------------------
 select is(pg_temp.uploaded_count(), 1, 'RFIs has an Uploaded folder');
 select is(pg_temp.access_of(pg_temp.rid('uploaded')),
-  '{files.manage:true:true,files.read_records:true:false,files.write_project:true:true,rfi.answer:true:false,rfi.create_draft:true:false}'::text[],
-  'its list: the inside roles and the RFI writers and answerers read it, files writers add to it');
+  '{files.manage:true:true,files.read_records:true:false,files.write_project:true:true,rfi.answer:true:false,rfi.create_draft:true:false,rfi.read_documents:true:false}'::text[],
+  'its list: the inside roles, the RFI writers and answerers, and RFI document readers (0100) read it, files writers add to it');
 select is(pg_temp.access_of(pg_temp.rid('s_rfis')),
   '{rfi.answer:false:true,rfi.create_draft:false:true,rfi.sign_issue:true:false}'::text[],
   'the RFI tool''s own folder keeps its list');

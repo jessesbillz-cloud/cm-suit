@@ -265,9 +265,9 @@ test.describe('revs rooms', () => {
     await expect(room.getByTestId('rev-wall-mock-rev-area-6')).toBeVisible();
     // Back keeps the level (a phone's screen has its own Back).
     if (testInfo.project.name === 'desktop') {
-      // The tool is called "OFS inspection card" (Jesse, Oct 12), on the rail and on the way back.
-      await expect(page.getByTestId('rail-revs')).toContainText('OFS inspection card');
-      await expect(page.getByTestId('rev-room-back')).toHaveText('OFS inspection card');
+      // The tool is called "Inspection cards" (Jesse, Oct 12), on the rail and on the way back.
+      await expect(page.getByTestId('rail-revs')).toContainText('Inspection cards');
+      await expect(page.getByTestId('rev-room-back')).toHaveText('Inspection cards');
       await page.getByTestId('rev-room-back').click();
       await expect(page).toHaveURL(/\/p\/job-s\/revs\?level=Level(%20|\+)02$/);
       await expect(page.getByTestId('rev-room-mock-room-205')).toBeVisible();

@@ -1,4 +1,4 @@
-// Revs (0056), "OFS inspection card" on the rail (Jesse, Oct 12): a fire marshal job's rated walls and the revs each
+// Revs (0056), "Inspection cards" on the rail (Jesse, Oct 12): a fire marshal job's rated walls and the revs each
 // must pass (Jesse, Oct 2: "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls,
 // Plan, Open, Checklist, and Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to
 // filter from there"): the level picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the

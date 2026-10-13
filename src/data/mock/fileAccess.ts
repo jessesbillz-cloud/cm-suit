@@ -36,7 +36,8 @@ export function fileReadable(file: FileRow, all: readonly FolderRow[]): boolean 
 
 // Files' sections (0090, 0099): files.read_project reads the job's documents (Plans, Specs, Submittals, CCDs ... and the
 // folders under them). files.read_records reads every folder but the RFI tool's own, which rfi.sign_issue browses. RFIs'
-// Uploaded folder: files.read_records, rfi.create_draft and rfi.answer, never the fire marshal. role_permissions' files
+// Uploaded folder: rfi.read_documents (0100: every Plans reader but the fire marshal), files.read_records, rfi.create_draft
+// and rfi.answer. role_permissions' files
 // rows for the mock personas: the outside ones read documents only.
 const DOC_KINDS = ['plans', 'specs', 'addenda', 'dsa_103', 'ccd', 'approved_plans', 'submittals'];
 const DOCS_ONLY: Record<string, true> = { sub: true, foreman: true, special_inspector: true, ahj: true };
@@ -67,10 +68,11 @@ interface RfiRights {
 /** May the mock user read this folder in Files' sections (folder_row_can_read)? */
 export function sectionFolderReadable(folder: FolderRow, all: readonly FolderRow[], rfi: RfiRights): boolean {
   if (!folderReadable(folder, all)) return false;
-  const docsOnly = DOCS_ONLY[mockUser().id.replace(/^mock-user-/, '')] === true;
+  const persona = mockUser().id.replace(/^mock-user-/, '');
+  const docsOnly = DOCS_ONLY[persona] === true;
   let at: FolderRow | undefined = folder;
   for (let depth = 0; at && depth < 32; depth += 1) {
-    if (isRfiUploads(at, all)) return !docsOnly || rfi.writesOrAnswers;
+    if (isRfiUploads(at, all)) return persona !== 'ahj' || rfi.writesOrAnswers;
     if (at.kind === 'rfis') return rfi.signs;
     const parent: string | null = at.parent_id;
     at = parent === null ? undefined : all.find((f) => f.id === parent);
