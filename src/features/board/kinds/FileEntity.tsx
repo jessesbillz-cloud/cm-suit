@@ -39,7 +39,7 @@ export function FileEntity({ frame, id }: KindProps) {
   const folder = inFolder ? folderLabel(inFolder) : null;
   const chip = scanChip(f.scan_status, f.upload_complete);
   const canDownload = f.upload_complete && f.scan_status !== 'infected';
-  const section = inFolder && inFolder.kind !== 'specs' ? specFor(f.original_name) : null;
+  const section = inFolder && inFolder.kind !== 'specs' ? specFor(f.original_name, f.spec_section) : null;
   const plain = fileViewerItem(f, preview);
   const bar =
     section === null ? null : (

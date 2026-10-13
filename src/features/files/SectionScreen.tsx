@@ -3,7 +3,8 @@
 // their names (useSortUpload). New folder and Rename folder act on the folder on screen. Submittals' stamps read as
 // codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12). The spec section search
 // sits at the top of the sections; while it has text, or a section's page is open, that takes the list's place
-// (SpecMain). Files bound for Submittals with no spec section in their names are asked for one first.
+// (SpecMain). Uploads have their spec sections found first (useSubmittalNaming): Submittals asks only when neither the
+// name nor the PDF's words give one.
 import { useWritableFolders } from '../../data/files';
 import type { FileSection } from '../../data/fileSections';
 import { useCanWriteFolder, useCapability, useProject } from '../../data/queries';

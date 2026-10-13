@@ -1,8 +1,9 @@
-// A file in Submittals whose name carries no spec section: Add spec section on its row puts one in front of its name
-// ("092900_<its name>"), through Rename and its version check (Jesse, Oct 12: the spec number in every title).
+// A file in Submittals filed under no spec section: Add spec section on its row puts one in front of its name
+// ("092900_<its name>"), through Rename and its version check (Jesse, Oct 12: the spec number in every title), and
+// into its hidden field (0105).
 import { useState } from 'react';
 import { messageOf } from '../../data/errors';
-import { useRenameFile } from '../../data/files';
+import { useAddSpecSection } from '../../data/files';
 import type { FileRow } from '../../data/types';
 import { Button } from '../../ui/Button';
 import { SectionInput } from './SectionInput';
@@ -11,7 +12,7 @@ import { sectionedName, typedSection } from './submittalNames';
 export function AddSection({ file, version }: { file: FileRow; version: number }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
-  const rename = useRenameFile();
+  const add = useAddSpecSection();
   const key = typedSection(value);
   if (!open) {
     return (
@@ -33,14 +34,14 @@ export function AddSection({ file, version }: { file: FileRow; version: number }
       onSubmit={(e) => {
         e.preventDefault();
         if (key === null) return;
-        rename.mutate({ file, version, name: sectionedName(key, file.original_name) }, { onSuccess: () => { setOpen(false); } });
+        add.mutate({ file, version, section: key, name: sectionedName(key, file.original_name) }, { onSuccess: () => { setOpen(false); } });
       }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') setOpen(false);
       }}
     >
       <SectionInput projectId={file.project_id} value={value} label={`Spec section for ${file.original_name}`} testId="file-row-section-input" autoFocus onChange={setValue} />
-      <Button size="sm" type="submit" variant="primary" className="mt-1" loading={rename.isPending} disabled={key === null} data-testid="file-row-section-save">
+      <Button size="sm" type="submit" variant="primary" className="mt-1" loading={add.isPending} disabled={key === null} data-testid="file-row-section-save">
         Save
       </Button>
       <Button
@@ -48,15 +49,15 @@ export function AddSection({ file, version }: { file: FileRow; version: number }
         variant="quiet"
         className="mt-1"
         onClick={() => {
-          rename.reset();
+          add.reset();
           setOpen(false);
         }}
       >
         Cancel
       </Button>
-      {rename.isError ? (
+      {add.isError ? (
         <p role="alert" className="basis-full text-xs text-danger">
-          {messageOf(rename.error)}
+          {messageOf(add.error)}
         </p>
       ) : null}
     </form>

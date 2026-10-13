@@ -38,7 +38,9 @@ export type FileRow = Pick<
   | 'upload_complete'
   | 'created_at'
   | 'created_by'
->;
+> &
+  /** Its spec section's 6 digits (0105), where the list reads it (Files' lists, a file's pane); null when none is known. */
+  Partial<Pick<Tables<'files'>, 'spec_section'>>;
 
 export type ActivityRow = Pick<
   Tables<'activity'>,

@@ -384,7 +384,7 @@ export const OUTSIDE_SCOPE_RPCS: [string, Record<string, unknown>][] = [
   ['my_calendar_kinds', {}],
 ];
 
-/** Files' Delete, Undo and Rename and the viewer's keep rule (0074), Move and its list answers (0096), the sections (0097). */
+/** Files' Delete, Undo and Rename and the viewer's keep rule (0074), Move and its list answers (0096), the sections (0097), spec section (0105). */
 export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   ['file_remove', { p_file_id: ZERO_UUID, p_version: 1 }],
   ['file_restore', { p_file_id: ZERO_UUID }],
@@ -405,4 +405,8 @@ export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   // Submittals as documents, RFIs' Uploaded folder (0099).
   ['folder_kind_is_document', { p_kind: 'submittals' }],
   ['files_rfi_uploads_make', { p_project_id: ZERO_UUID, p_rfis: ZERO_UUID }],
+  // A file's spec section (0105).
+  ['file_spec_section_set', { p_file_id: ZERO_UUID, p_version: 1, p_section: '092900' }],
+  ['file_spec_sections_fill', { p_items: [{ file_id: ZERO_UUID, section: '092900' }] }],
+  ['file_spec_section_may', { p_file_id: ZERO_UUID }],
 ];

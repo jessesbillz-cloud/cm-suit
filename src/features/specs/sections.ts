@@ -47,6 +47,16 @@ export function sectionKey(s: string): string | null {
   return sectionDigits(s)?.slice(0, 6) ?? null;
 }
 
+/**
+ * The 6 digits a file is filed under: its spec section (0105, found when it went up, or from its name since), else its
+ * name's. Null when neither has one.
+ */
+export function fileSectionKey(f: { original_name: string; spec_section?: string | null | undefined }): string | null {
+  if (f.spec_section != null) return f.spec_section;
+  const named = sectionOfName(f.original_name);
+  return named === null ? null : sectionKey(named);
+}
+
 /** The newest book (the books come oldest first) that has the section, and the section in it; null when none has it. */
 export function bookWith(books: readonly SpecBook[], wanted: string): { book: SpecBook; section: SpecBookSection } | null {
   for (const book of [...books].reverse()) {

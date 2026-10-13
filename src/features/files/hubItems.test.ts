@@ -64,4 +64,16 @@ describe('spec section hub', () => {
     expect(hubCounts(SRC).get('092900')).toBe(4);
     expect(hubCounts(SRC).get('079200')).toBe(1);
   });
+
+  it('files a document under its hidden spec section first, its name second', () => {
+    const src: HubSources = {
+      ...SRC,
+      submittals: [{ ...file('h1', 'Shop drawings.pdf', 8), spec_section: '092900' }, { ...file('h2', '092900_Sample.pdf', 9), spec_section: '054000' }],
+      rfiFiles: [{ ...file('h3', 'RFI 020 Sample.pdf', 8), spec_section: '092900' }],
+    };
+    expect(hubGroups('092900', src).submittals.map((f) => f.id)).toEqual(['h1']);
+    expect(hubGroups('054000', src).submittals.map((f) => f.id)).toEqual(['h2']);
+    expect(hubGroups('092900', src).rfis.map((r) => (r.kind === 'rfi' ? r.rfi.id : r.file.id))).toEqual(['h3', 't1']);
+    expect(namedSections(src)).toContain('05 40 00');
+  });
 });

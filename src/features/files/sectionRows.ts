@@ -50,7 +50,13 @@ export function sectionRows(
     .filter((f) => within === null || within.has(f.folder_id))
     .map((file) => ({
       file,
-      view: rowView(kind, file.original_name, kind === 'submittals' ? companyIn(section, file.folder_id, folders) : '', stamps),
+      view: rowView(
+        kind,
+        file.original_name,
+        kind === 'submittals' ? companyIn(section, file.folder_id, folders) : '',
+        stamps,
+        file.spec_section ?? null,
+      ),
     }))
     .filter((r) => q === '' || words(r).includes(q))
     .sort((a, b) => order(a.file.original_name, b.file.original_name));

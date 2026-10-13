@@ -7,6 +7,7 @@ import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/reac
 import { z } from 'zod';
 import { supabase } from './client';
 import { conflictError, throwIfError, throwIfErrorMaybe } from './errors';
+import { setFileSection } from './fileSection';
 import { qk } from './keys';
 import { runPool } from '../lib/pool';
 import { isMock } from './mock';
@@ -203,6 +204,19 @@ export function useRenameFile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { file: FileRef; version: number; name: string }) => renameFile(v.file.id, v.version, v.name),
+    onSuccess: (_d, v) => refresh(qc, v.file),
+  });
+}
+
+/**
+ * Add spec section: the section in front of the name (Rename), then in the file's hidden field (0105) at the version the
+ * rename answered. One write for the screen, so it finishes even when the row changes under it.
+ */
+export function useAddSpecSection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { file: FileRef; version: number; section: string; name: string }) =>
+      setFileSection(v.file.id, await renameFile(v.file.id, v.version, v.name), v.section),
     onSuccess: (_d, v) => refresh(qc, v.file),
   });
 }
