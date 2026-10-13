@@ -4,7 +4,7 @@
 // decided request), a request's photo only on one of its walls. The files are mock/api's (the app folder Wall photos).
 // State lives in sessionStorage (its own key), never module state. Nothing real.
 import type { Tables } from '../database.types';
-import type { IrRowRaw } from '../inspections.types';
+import type { IrRequest } from '../inspections.types';
 import type { PhotoPlace, PhotoTarget, RevPhoto } from '../revs.photos';
 import * as mockApi from './api';
 import { MOCK_PEOPLE } from './fixtures';
@@ -41,15 +41,15 @@ const role = () => me().replace(/^mock-user-/, '');
 const adder = () => has('revs.read') && ROLES.adders.includes(role());
 
 /** The job's requests I may read, by id (RLS: ir_may_see). */
-type Seen = ReadonlyMap<string, IrRowRaw>;
+type Seen = ReadonlyMap<string, IrRequest>;
 
 async function seenRequests(projectId: string): Promise<Seen> {
-  return new Map((await readableRequests(projectId, () => true)).map((r): [string, IrRowRaw] => [r.id, r]));
+  return new Map((await readableRequests(projectId, () => true)).map((r): [string, IrRequest] => [r.id, r]));
 }
 
-const decided = (r: IrRowRaw) => r.result !== null || r.status === 'complete' || r.status === 'withdrawn';
+const decided = (r: IrRequest) => r.result !== null || r.status === 'complete' || r.status === 'withdrawn';
 
-function onRequest(r: IrRowRaw): boolean {
+function onRequest(r: IrRequest): boolean {
   if (!adder() || r.status === 'withdrawn') return false;
   if (r.requested_by === me() && holds(me(), 'ir.request') && !decided(r)) return true;
   return holds(me(), 'ir.decide') || (r.kind === 'ofs' && r.ofs_sent_at !== null && holds(me(), 'ir.ofs_decide'));
@@ -139,7 +139,7 @@ export async function add(projectId: string, at: PhotoPlace, fileId: string | nu
 export async function setRemoved(id: string, version: number, removing: boolean): Promise<number> {
   await delay();
   const p = rows().find((x) => x.id === id);
-  const seen = p ? await seenRequests(p.project_id) : new Map<string, IrRowRaw>();
+  const seen = p ? await seenRequests(p.project_id) : new Map<string, IrRequest>();
   if (!p || !maySee(p, seen)) throw fail('That item no longer exists.', 'P0002');
   if (!removable(p, seen)) throw fail('The request is decided: its photos are part of its record.', '42501');
   if (removing && p.deleted_at === null) checkVersion(p.version, version);
