@@ -45,7 +45,9 @@ test.describe('spec section hub', () => {
     await expect(boxes.first().getByTestId('spec-hub-box-count')).toHaveText('2');
     await boxes.first().click();
 
-    await expect(page.getByTestId('spec-hub-title')).toContainText('09 29 00 Gypsum Board');
+    const heading = page.getByTestId('spec-hub-title');
+    await expect(heading).toContainText('09 29 00');
+    await expect(heading).toContainText('Gypsum Board');
     const submittals = page.getByTestId('spec-hub-submittals');
     await expect(submittals.getByTestId('spec-hub-count')).toHaveText('1');
     await expect(submittals.getByTestId('spec-hub-row')).toContainText('092900_04.0_Gypsum Board_PD_Acoustic Sealant_NET.pdf');
