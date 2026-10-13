@@ -2,6 +2,7 @@
 // Activity ID, the area, the trade and how far along it is. A tap opens it beside the list.
 import { Flag } from 'lucide-react';
 import type { Activity } from '../../data/schedule.types';
+import { ROW_HOVER } from '../../ui/box';
 import { Icon } from '../../ui/Icon';
 import { phoneRowClass } from '../../ui/Table';
 import { dateSpan } from './model';
@@ -26,7 +27,7 @@ export function ActivityRow({ activity: a, selected, onOpen }: ActivityRowProps)
         type="button"
         data-testid={`schedule-row-${a.activity_code ?? a.id}`}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected)} flex flex-col gap-0.5 sm:py-2.5 ${selected ? '' : 'hover:bg-page/60'}`}
+        className={`${phoneRowClass(selected)} flex flex-col gap-0.5 sm:py-2.5 ${selected ? '' : ROW_HOVER}`}
         onClick={() => {
           onOpen(a.id);
         }}

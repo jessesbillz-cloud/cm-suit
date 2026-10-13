@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { useIrLog } from '../../data/inspections.queries';
 import type { IrRequest } from '../../data/inspections.types';
 import { formatDay, formatInZone, fromZonedInput } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { LogTable, type LogRow } from '../../ui/LogTable';
@@ -62,7 +63,7 @@ function LogList({ rows, tz, selectedId, ofsDecide, onOpen }: LogListProps) {
             <button
               type="button"
               data-testid={`log-row-${String(r.number)}`}
-              className={`flex min-h-[52px] w-full items-start gap-3 px-4 py-3 text-left ${r.id === selectedId ? SELECTED : 'hover:bg-page/60'}`}
+              className={`flex min-h-[52px] w-full items-start gap-3 px-4 py-3 text-left ${r.id === selectedId ? SELECTED : ROW_HOVER}`}
               onClick={() => {
                 onOpen(r.id);
               }}

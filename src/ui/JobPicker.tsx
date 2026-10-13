@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Plus, Search } from 'lucide-react';
 import type { MyProject } from '../data/types';
+import { CLICK_BOX } from './box';
 import { Icon } from './Icon';
 
 interface JobPickerProps {
@@ -53,7 +54,7 @@ function OptionRow({ option, index, active, current, onHover, onChoose }: Option
       role="option"
       aria-selected={current}
       data-testid={`job-picker-option-${String(index)}`}
-      className={`flex w-full items-start gap-2 px-3 py-2 text-left ${active ? 'bg-page' : ''}`}
+      className={`flex w-full items-start gap-2 px-3 py-2 text-left ${active ? 'bg-page shadow-[inset_3px_0_0_theme(colors.line.strong)]' : ''}`}
       onMouseEnter={onHover}
       onClick={onChoose}
     >
@@ -113,7 +114,7 @@ export function JobPicker({ projects, recentIds, currentId, onPick, onNewJob }: 
         data-testid="job-picker"
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex min-h-11 max-w-[32rem] items-center gap-2 rounded-lg px-2.5 py-1 text-left text-ink hover:bg-page"
+        className={`flex min-h-11 max-w-[32rem] items-center gap-2 rounded-lg px-2.5 py-1 text-left text-ink ${CLICK_BOX}`}
         onClick={() => {
           if (open) close();
           else setOpen(true);

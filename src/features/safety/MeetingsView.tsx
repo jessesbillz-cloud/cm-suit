@@ -3,6 +3,7 @@
 import { Plus } from 'lucide-react';
 import { useSafetyMeetings } from '../../data/safety.queries';
 import type { MeetingRow } from '../../data/safety.types';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -31,7 +32,7 @@ function Row({ row, selected, isPhone, onOpen }: { row: MeetingRow; selected: bo
         type="button"
         data-testid={`safety-row-${String(row.number)}`}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected)} flex flex-col gap-1 ${selected ? '' : 'hover:bg-page/60'} ${isPhone ? '' : 'py-2.5'}`}
+        className={`${phoneRowClass(selected)} flex flex-col gap-1 ${selected ? '' : ROW_HOVER} ${isPhone ? '' : 'py-2.5'}`}
         onClick={() => {
           onOpen(row.id);
         }}

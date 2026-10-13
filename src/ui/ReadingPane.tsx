@@ -156,7 +156,7 @@ export function ReadingPane(props: ReadingPaneProps) {
         {attachments.length > 0 ? (
           <ul className="mt-4 flex flex-col gap-2" aria-label="Attachments">
             {attachments.map((a, i) => (
-              <li key={a.id} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2" data-testid="attachment">
+              <li key={a.id} className="flex items-center gap-3 rounded-lg border border-line-strong bg-card px-3 py-2 shadow-tile transition-shadow hover:shadow-tile-hover" data-testid="attachment">
                 <button
                   type="button"
                   data-testid="attachment-view"

@@ -32,6 +32,8 @@ import { RootLayout } from './RootLayout';
 interface ToolSearch {
   /** Files: the folder being viewed. */
   folder?: string;
+  /** Files: a spec section's page ("092900"), its submittals, RFIs and CCDs. */
+  spec?: string;
   /** "Open in new window": render the item alone. */
   window?: '1';
   /** Arrived from another tool's record ("Open in RFIs" on the board): the top bar shows Back to it. */
@@ -76,6 +78,8 @@ function idList(v: unknown): string | undefined {
 
 function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const folder = str(s['folder']);
+  // A typed "101400" arrives as a number (the search is read as JSON).
+  const spec = typeof s['spec'] === 'number' ? String(s['spec']).padStart(6, '0') : str(s['spec']);
   const areas = idList(s['areas']);
   const items = idList(s['items']);
   const view = str(s['view']);
@@ -95,6 +99,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const by = s['by'];
   return {
     ...(folder ? { folder } : {}),
+    ...(spec && /^\d{6}$/.test(spec) ? { spec } : {}),
     ...(view ? { view } : {}),
     ...(pkg ? { pkg } : {}),
     ...(win ? { window: '1' as const } : {}),

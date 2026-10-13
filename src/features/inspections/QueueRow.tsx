@@ -2,6 +2,7 @@
 // the company and attendance, the status chip; Confirm in one tap on a pending request I decide.
 import { CalendarOff, Check, X } from 'lucide-react';
 import type { CalendarRow } from '../../data/inspections.types';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
@@ -66,7 +67,7 @@ export function QueueRow({ row, selected, ofsDecide, canConfirm, confirming, onO
     <li
       // Phone: the time and two lines (the chip leads the second); Confirm under them. Desktop: one row, Confirm last.
       className={`grid min-h-[64px] cursor-pointer grid-cols-[72px_minmax(0,1fr)] items-start gap-x-3 gap-y-2 px-4 py-3 sm:flex sm:items-center sm:gap-4 ${
-        selected ? SELECTED : 'hover:bg-page/60'
+        selected ? SELECTED : ROW_HOVER
       }`}
       data-testid={`ir-queue-${String(row.number)}`}
       onClick={() => {

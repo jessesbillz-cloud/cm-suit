@@ -31,9 +31,9 @@ function setup(): RevSetup {
       { ...row, id: 'a9', list_id: 'l3', level: 'Level 01', name: 'On a removed list', sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: 1 },
     ],
     marks: [
-      { ...row, id: 'm1', area_id: 'a1', item_id: 'i0', kind: 'na' },
-      { ...gone, id: 'm2', area_id: 'a2', item_id: 'i0', kind: 'na' },
-      { ...row, id: 'm3', area_id: 'a1', item_id: 'ix', kind: 'na' },
+      { ...row, id: 'm1', area_id: 'a1', item_id: 'i0', kind: 'na', set_up: false },
+      { ...gone, id: 'm2', area_id: 'a2', item_id: 'i0', kind: 'na', set_up: false },
+      { ...row, id: 'm3', area_id: 'a1', item_id: 'ix', kind: 'na', set_up: false },
     ],
   };
 }

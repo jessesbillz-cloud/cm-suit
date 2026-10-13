@@ -5,7 +5,7 @@
 // sessionStorage (its own key), never module state.
 import { DataError, conflictError } from '../errors';
 import type { Tables } from '../database.types';
-import { NO_WALL_DETAILS, parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevMark, type RevRemoved, type RevSetup } from '../revs.types';
+import { NO_WALL_DETAILS, parseArea, type LegendRev, type Rev, type RevArea, type RevItem, type RevKind, type RevList, type RevRemoved, type RevSetup } from '../revs.types';
 import { mockUser } from './index';
 import { seedCells, seedMaps, seedSetup } from './revSeeds';
 import { delay } from './store';
@@ -291,24 +291,4 @@ export async function move(kind: 'item' | 'area', id: string, version: number, d
   const after: { id: string; version: number; deleted_at: string | null }[] = kind === 'item' ? next.items : next.areas;
   const saved = after.find((r) => r.id === id) ?? row;
   return { id: saved.id, version: saved.version, deleted_at: saved.deleted_at };
-}
-
-export async function markNa(areaId: string, itemId: string, on: boolean): Promise<RevMark | null> {
-  await delay();
-  must('revs.manage');
-  const s = read();
-  const area = s.areas.find((a) => a.id === areaId && a.deleted_at === null);
-  const rev = s.revs.find((r) => r.id === s.items.find((i) => i.id === itemId)?.rev_id);
-  if (!area) throw fail('That item no longer exists.', 'P0002');
-  if (rev?.list_id !== area.list_id) throw fail("Pick an item of this wall's list.");
-  const mark = s.marks.find((m) => m.area_id === areaId && m.item_id === itemId);
-  let next: Tables<'rev_marks'> | null = mark ?? null;
-  if (on && !mark) {
-    next = { ...stamp(), org_id: area.org_id, project_id: area.project_id, id: newId('mock-rev-mark'), area_id: areaId, item_id: itemId, kind: 'na' };
-  } else if (mark && (mark.deleted_at === null) !== on) {
-    next = bump(mark, { deleted_at: on ? null : new Date().toISOString() });
-  }
-  const saved = next;
-  if (saved !== null) write((x) => ({ ...x, marks: [...x.marks.filter((m) => m.id !== saved.id), saved] }));
-  return saved;
 }

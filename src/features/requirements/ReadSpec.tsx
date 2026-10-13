@@ -7,6 +7,7 @@ import { messageOf } from '../../data/errors';
 import { useExtractRequirements } from '../../data/requirements.mutations';
 import { useSpecSections } from '../../data/requirements.queries';
 import type { ExtractInput, SpecSection } from '../../data/requirements.types';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { FIELD_AREA, FIELD_LABEL, TextField } from '../../ui/Fields';
 import { SearchBox } from '../../ui/SearchBox';
@@ -76,7 +77,7 @@ function SectionRow({ s, reading, run }: { s: SpecSection; reading: string | nul
         type="button"
         disabled={reading !== null}
         data-testid={`req-section-${s.section ?? ''}`}
-        className="flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-page/60 active:bg-page disabled:cursor-wait"
+        className={`flex min-h-[56px] w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${ROW_HOVER} disabled:cursor-wait`}
         onClick={() => {
           if (s.first_page === null || s.last_page === null) return;
           const p = readPages(s.first_page, s.last_page);

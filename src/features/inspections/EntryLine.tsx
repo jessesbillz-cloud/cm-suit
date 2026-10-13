@@ -35,7 +35,7 @@ export function EntryLine({ row, selected, ofsDecide, onOpen }: EntryLineProps) 
     </>
   );
   const box = `block w-full rounded-md border border-l-[3px] px-2 py-1.5 text-left ${
-    selected ? 'border-accent bg-accent-soft/60 ring-1 ring-accent/30' : row.is_block ? 'border-line bg-page/60' : 'border-line bg-card shadow-control'
+    selected ? 'border-accent bg-accent-soft/60 ring-1 ring-accent/30' : row.is_block ? 'border-line bg-page/60' : 'border-line bg-card'
   }`;
   const edge = { borderLeftColor: `var(--status-${chip.status}-dot)` };
   if (!openable) {
@@ -50,7 +50,7 @@ export function EntryLine({ row, selected, ofsDecide, onOpen }: EntryLineProps) 
       type="button"
       title={chip.label}
       data-testid="ir-entry"
-      className={`${box} hover:border-line-strong hover:bg-page/40`}
+      className={`${box} shadow-tile transition-shadow hover:border-line-strong hover:shadow-tile-hover active:shadow-press`}
       style={edge}
       onClick={() => {
         if (row.id !== null) onOpen(row.id);

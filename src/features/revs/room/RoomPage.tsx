@@ -6,19 +6,21 @@
 // A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
 // line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
 // Request inspection (those who may ask, ir.request; Jesse, Oct 10: "do it for the whole room very easily") opens a new
-// OFS request with every wall of the room picked, the items to pick first.
+// OFS request with every wall of the room picked, the items to pick first. Set up card (a manager; 0101, Jesse Oct 12)
+// opens the room's card on its own screen (CardSetup, ?view=card): the walls tracked here and the items they need.
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronLeft, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useSearch } from '@tanstack/react-router';
+import { ChevronLeft, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useCapability } from '../../../data/queries';
 import { useSignoffFiles } from '../../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../../data/revs.queries';
 import { useRevRooms, type RevRoom, type RevRooms } from '../../../data/revs.rooms';
-import type { RevSetup } from '../../../data/revs.types';
+import type { RevArea, RevSetup } from '../../../data/revs.types';
 import { Button } from '../../../ui/Button';
 import { Card } from '../../../ui/Card';
 import { Icon } from '../../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../../ui/States';
-import { indexStatus, type StatusIndex } from '../model';
+import { indexStatus, wallRevs, type StatusIndex } from '../model';
 import { indexSignoffFiles, type SignoffFiles } from '../revStrip';
 import { DrawBar } from '../plan/DrawBar';
 import { isLine } from '../plan/planGeom';
@@ -27,10 +29,12 @@ import { useRevsNav } from '../useRevsNav';
 import { useSetupActions } from '../useSetupActions';
 import { useOpenRevFile } from '../useOpenRevFile';
 import { WallProgress } from '../WallProgress';
+import { CardSetup } from './CardSetup';
 import { AddRoomWall, RoomForm } from './RoomForms';
 import { RoomImage } from './RoomImage';
 import { RoomWallRow } from './RoomWallRow';
 import { useRoomActions } from './useRoomActions';
+import { RoomPhotos } from '../photos/RoomPhotos';
 
 interface RoomPageProps {
   projectId: string;
@@ -123,20 +127,26 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
           ) : null}
         </div>
         <WallProgress count={count} withLine testId="rev-room-progress" />
-        {canRequest && count.needed > count.passed + count.requested ? (
-          <Button
-            variant="primary"
-            icon={Plus}
-            size={isPhone ? 'lg' : 'md'}
-            className={isPhone ? 'w-full' : 'self-start'}
-            data-testid="rev-room-request"
-            onClick={() => {
-              nav.request(walls.map((w) => w.area.id), []);
-            }}
-          >
-            Request inspection
-          </Button>
-        ) : null}
+        <div className={`flex flex-wrap gap-2 ${isPhone ? 'flex-col' : ''}`}>
+          {canRequest && count.needed > count.passed + count.requested ? (
+            <Button
+              variant="primary"
+              icon={Plus}
+              size={isPhone ? 'lg' : 'md'}
+              data-testid="rev-room-request"
+              onClick={() => {
+                nav.request(walls.map((w) => w.area.id), []);
+              }}
+            >
+              Request inspection
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button icon={ListChecks} size={isPhone ? 'lg' : 'md'} data-testid="rev-room-card" onClick={() => { nav.openCard(room.id); }}>
+              Set up card
+            </Button>
+          ) : null}
+        </div>
       </header>
       {editing ? <RoomForm room={room} onSave={act.rename} onCancel={() => { setEditing(false); }} /> : null}
       {full ? null : drawBar}
@@ -183,19 +193,20 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
               }}
               onChip={(chip) => {
                 if (chip.fileId !== null) openFile(chip.fileId);
-                else nav.openFromRoom(w.area.id, room.id, firstItemOf(setup, chip.rev.id));
+                else nav.openFromRoom(w.area.id, room.id, firstItemOf(setup, index, w.area, chip.rev.id));
               }}
             />
           ))}
         </ul>
       </section>
+      <RoomPhotos projectId={projectId} roomId={room.id} walls={walls} isPhone={isPhone} />
     </div>
   );
 }
 
-/** The rev's first item (Setup's order): where a tap on its bubble opens the wall. */
-function firstItemOf(setup: RevSetup, revId: string): string | undefined {
-  return setup.items.filter((i) => i.rev_id === revId).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))[0]?.id;
+/** The rev's first item the wall needs (Setup's order): where a tap on its bubble opens the wall. */
+function firstItemOf(setup: RevSetup, index: StatusIndex, area: RevArea, revId: string): string | undefined {
+  return wallRevs(setup, index, area).find((r) => r.rev.id === revId)?.cells[0]?.item.id;
 }
 
 function BackToRevs({ projectId, canManage, level }: { projectId: string; canManage: boolean; level: string | undefined }) {
@@ -216,12 +227,14 @@ function BackToRevs({ projectId, canManage, level }: { projectId: string; canMan
 }
 
 export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
+  const own: { view?: string | undefined } = useSearch({ strict: false });
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const manage = useCapability(projectId, 'revs.manage');
   const ask = useCapability(projectId, 'ir.request');
   const signoffs = useSignoffFiles(projectId);
+  const nav = useRevsNav(projectId, manage.data === true);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
 
@@ -231,7 +244,9 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
   else if (!setup.data || !status.data || !rooms.data || manage.isPending || ask.isPending) body = <LoadingState label="Loading the room" />;
   else if (!room) body = <EmptyState title="This room is no longer on the job." />;
-  else {
+  else if (own.view === 'card' && manage.data === true) {
+    body = <CardSetup key={room.id} room={room} setup={setup.data} index={index} rooms={rooms.data} isPhone={isPhone} onDone={() => { nav.openRoom(room.id, true); }} />;
+  } else {
     body = (
       <RoomBody
         key={room.id}

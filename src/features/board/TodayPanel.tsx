@@ -1,7 +1,8 @@
 // The right column while the board fills the main area and nothing is open: today's calendar lines for this job (or
 // all my jobs), grouped by time, each with its type icon, title and status, read-only. A click opens the line where
 // it lives. Reads the calendar's own data and rules (the types I checked, jobs with the calendar on); "today" is the
-// job's.
+// job's. On All my jobs, a job's inspection lines give way to the home's Inspections today card (the calendar's rule:
+// nothing shows twice).
 import { useMemo } from 'react';
 import { CalendarDays } from 'lucide-react';
 import type { CalendarLine } from '../../data/calendar.types';
@@ -14,6 +15,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
 import { bucketByDay, lineChip, lineTime, rangeFor, visibleLines } from '../calendar/model';
 import { useCalendarNav } from '../calendar/useCalendarNav';
+import { useHomeScope } from './home/useHomeScope';
 import { KindSquare } from './KindSquare';
 
 interface TodayPanelProps {
@@ -88,14 +90,19 @@ export function TodayPanel({ projectId }: TodayPanelProps) {
   const days = useMemo(() => [today], [today]);
   const lines = useCalendarLines(projectId, rangeFor(days));
 
+  const scope = useHomeScope(projectId === null);
+  const onCard = scope.inspections;
+
   const types = layout.data?.choices.calendar_types;
   const groups = useMemo(() => {
-    const shown = visibleLines(lines.data ?? [], types ?? [], projects.data ?? [], projectId);
+    const shown = visibleLines(lines.data ?? [], types ?? [], projects.data ?? [], projectId).filter(
+      (l) => !(l.source_type === 'inspection_request' && onCard?.includes(l.project_id) === true),
+    );
     return byTime(bucketByDay(shown, days).get(today) ?? []);
-  }, [lines.data, types, projects.data, projectId, days, today]);
+  }, [lines.data, types, projects.data, projectId, days, today, onCard]);
 
-  const loading = lines.isPending || layout.isPending || projects.isPending;
-  const error = lines.error ?? layout.error ?? projects.error;
+  const loading = lines.isPending || layout.isPending || projects.isPending || onCard === undefined;
+  const error = lines.error ?? layout.error ?? projects.error ?? scope.error;
 
   return (
     <section aria-label="Today" data-testid="today-panel" className="flex flex-col">
@@ -109,6 +116,7 @@ export function TodayPanel({ projectId }: TodayPanelProps) {
             void lines.refetch();
             void layout.refetch();
             void projects.refetch();
+            scope.refetch();
           }}
         />
       ) : null}

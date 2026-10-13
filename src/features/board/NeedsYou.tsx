@@ -1,6 +1,6 @@
 // "Needs you" (SPEC §7.3): tasks handled in place (TaskEnd: Open for a task its record closes, Acknowledge for an
-// addendum, Done with Undo for the rest). On top, the RFIs someone else is sitting on (late, or not opened for days).
-// One row design for both (NeedsRow).
+// addendum, Done with Undo for the rest). On a job's board, on top, the RFIs someone else is sitting on (late, or not
+// opened for days); the home gives those their own card (home/RfisWaitingCard). One row design for both (NeedsRow).
 import { CheckCheck, ListTodo } from 'lucide-react';
 import { useMyProjects } from '../../data/queries';
 import type { TaskRow } from '../../data/types';
@@ -11,6 +11,7 @@ import { KindSquare } from './KindSquare';
 import { kindIcon } from './lineKind';
 import { NeedsRow } from './NeedsRow';
 import { RfiWaitingLine } from './RfiWaiting';
+import { CountTitle } from './home/CountTitle';
 import { TaskEnd } from './TaskEnd';
 import { useNeedsYou } from './useNeedsYou';
 import { useTaskDone } from './useTaskDone';
@@ -18,6 +19,8 @@ import { useProjectZones } from './zones';
 
 interface NeedsYouProps {
   projectId: string | null;
+  /** false on the home, where waiting RFIs have their own card. */
+  withRfis?: boolean | undefined;
 }
 
 interface TaskLineProps {
@@ -44,8 +47,13 @@ function TaskLine({ task, projectName, zone, busy, onDone }: TaskLineProps) {
   );
 }
 
-export function NeedsYou({ projectId }: NeedsYouProps) {
-  const { tasks, waiting, rfis, count, ready } = useNeedsYou(projectId);
+export function NeedsYou({ projectId, withRfis = true }: NeedsYouProps) {
+  const needs = useNeedsYou(projectId);
+  const { tasks } = needs;
+  const waiting = withRfis ? needs.waiting : null;
+  const rfis = withRfis ? needs.rfis : [];
+  const count = rfis.length + (tasks.data?.length ?? 0);
+  const ready = tasks.isSuccess && (waiting === null || waiting.isSuccess);
   const projects = useMyProjects();
   const zoneOf = useProjectZones();
   const { done, busyId } = useTaskDone();
@@ -53,36 +61,38 @@ export function NeedsYou({ projectId }: NeedsYouProps) {
   const nameOf = (id: string) => (projectId === null ? (projects.data?.find((p) => p.project_id === id)?.name ?? null) : null);
   // RFIs someone else is sitting on come first (late, then not opened), then my tasks, due first.
   const now = new Date();
-  const loading = tasks.isPending || waiting.isPending;
+  const loading = tasks.isPending || waiting?.isPending === true;
 
   return (
-    <Card title="Needs you" padded={false}>
-      {loading ? <LoadingState label="Loading your tasks" /> : null}
-      {tasks.isError ? <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} /> : null}
-      {waiting.isError ? <ErrorState error={waiting.error} onRetry={() => void waiting.refetch()} title="Waiting RFIs did not load." /> : null}
-      {ready && count === 0 ? (
-        <p className="flex items-center gap-3 px-4 py-3 text-sm text-ink-2">
-          <KindSquare icon={CheckCheck} />
-          Nothing needs you right now.
-        </p>
-      ) : null}
-      {!loading && count > 0 ? (
-        <ul className="divide-y divide-line">
-          {rfis.map((w) => (
-            <RfiWaitingLine key={w.id} row={w} showJob={projectId === null} zone={zoneOf(w.project_id)} now={now} />
-          ))}
-          {(tasks.data ?? []).map((t) => (
-            <TaskLine
-              key={t.id}
-              task={t}
-              projectName={nameOf(t.project_id)}
-              zone={zoneOf(t.project_id)}
-              busy={busyId === t.id}
-              onDone={done}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </Card>
+    <div data-testid="needs-you">
+      <Card title={<CountTitle label="Needs you" count={ready ? count : null} testId="needs-you-count" />} padded={false}>
+        {loading ? <LoadingState label="Loading your tasks" /> : null}
+        {tasks.isError ? <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} /> : null}
+        {waiting !== null && waiting.isError ? <ErrorState error={waiting.error} onRetry={() => void waiting.refetch()} title="Waiting RFIs did not load." /> : null}
+        {ready && count === 0 ? (
+          <p className="flex items-center gap-3 px-4 py-3 text-sm text-ink-2">
+            <KindSquare icon={CheckCheck} />
+            Nothing needs you right now.
+          </p>
+        ) : null}
+        {!loading && count > 0 ? (
+          <ul className="divide-y divide-line">
+            {rfis.map((w) => (
+              <RfiWaitingLine key={w.id} row={w} showJob={projectId === null} zone={zoneOf(w.project_id)} now={now} />
+            ))}
+            {(tasks.data ?? []).map((t) => (
+              <TaskLine
+                key={t.id}
+                task={t}
+                projectName={nameOf(t.project_id)}
+                zone={zoneOf(t.project_id)}
+                busy={busyId === t.id}
+                onDone={done}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </Card>
+    </div>
   );
 }

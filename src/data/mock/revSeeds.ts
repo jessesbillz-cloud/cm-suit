@@ -74,8 +74,8 @@ export function seedSetup() {
     ...base, id: areaId(i + 1), list_id: LIST_ID, level, name, sheet_file_id: sheet, sheet_page: page, geom: line, position: i + 1, ...NO_WALL_DETAILS,
   }));
   const marks: Tables<'rev_marks'>[] = [
-    { ...base, id: 'mock-rev-mark-1', area_id: areaId(6), item_id: itemId(4, 2), kind: 'na' },
-    { ...base, id: 'mock-rev-mark-2', area_id: areaId(3), item_id: itemId(6, 3), kind: 'na' },
+    { ...base, id: 'mock-rev-mark-1', area_id: areaId(6), item_id: itemId(4, 2), kind: 'na', set_up: false },
+    { ...base, id: 'mock-rev-mark-2', area_id: areaId(3), item_id: itemId(6, 3), kind: 'na', set_up: false },
   ];
   return { lists, revs, items, areas, marks };
 }

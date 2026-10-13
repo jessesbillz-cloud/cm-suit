@@ -3,6 +3,7 @@
 // OSFM's status code for the stage (on a phone, the stage's name too). Line 2: the tracker with the days at each stage.
 // A tap opens it in the right column. No columns, no View buttons.
 import type { PermitListRow, PermitStep } from '../../data/permits.types';
+import { ROW_HOVER } from '../../ui/box';
 import { phoneRowClass } from '../../ui/Table';
 import { stageCode, stageLabel } from './model';
 import { PermitSteps } from './PermitSteps';
@@ -49,7 +50,7 @@ function Row({ row, steps, showJob, selected, isPhone, onOpen }: RowProps) {
         data-testid={`permit-row-${row.primary_number}`}
         data-stage={row.stage}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected)} flex flex-col gap-2 ${selected ? '' : 'hover:bg-page/60'} ${isPhone ? '' : 'py-2.5'}`}
+        className={`${phoneRowClass(selected)} flex flex-col gap-2 ${selected ? '' : ROW_HOVER} ${isPhone ? '' : 'py-2.5'}`}
         onClick={() => {
           onOpen(row.id);
         }}

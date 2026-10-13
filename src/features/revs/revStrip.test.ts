@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type Rev, type RevArea, type RevItem, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import { indexStatus } from './model';
-import { chipKey, chipName, chipText, indexSignoffFiles, revStrip } from './revStrip';
+import { chipName, chipText, indexSignoffFiles, markBox, revStrip } from './revStrip';
 
 const base = { project_id: 'job', version: 1, deleted_at: null };
 const rev = (n: number, name: string, list = 'l1'): Rev => ({ ...base, id: `r${String(n)}${list}`, list_id: list, number: n, name });
@@ -46,8 +46,8 @@ describe('the rev strip', () => {
     return c;
   };
 
-  it("one chip per rev of the wall's list, in order, each rolled up", () => {
-    expect(chips.map((c) => [c.rev.number, c.mark])).toEqual([[0, 'done'], [1, 'done'], [2, 'requested'], [3, 'failed'], [4, 'na']]);
+  it("one chip per rev of the wall's list it needs, in order, each rolled up (all N/A: none)", () => {
+    expect(chips.map((c) => [c.rev.number, c.mark])).toEqual([[0, 'done'], [1, 'done'], [2, 'requested'], [3, 'failed']]);
   });
 
   it("a done rev shows the newest OFS number, and that sign-off's file when on file", () => {
@@ -57,13 +57,13 @@ describe('the rev strip', () => {
     expect(at(2)).toMatchObject({ ofsNumber: null, fileId: null });
   });
 
-  it('colors from lib/status, short words, full names spoken', () => {
-    expect(chips.map((c) => chipKey(c.mark))).toEqual(['approved', 'approved', 'pending', 'not_approved', 'cancelled']);
+  it('each a whole box in its state, short words, full names spoken', () => {
+    expect(chips.map((c) => markBox(c.mark))).toEqual(['passed', 'passed', 'requested', 'failed']);
     expect(chipText(at(0), 'number')).toBe('0 · 0041');
     expect(chipText(at(2), 'both')).toBe('2 CJ');
     expect(chipText(at(0), 'name')).toBe('TOW');
     expect(chipName(at(0))).toBe('Rev 0 TOW: Done, OFS 0041');
-    expect(chipName(at(4))).toBe('Rev 4 In-Wall: N/A');
+    expect(chipName(at(3))).toBe('Rev 3 Drywall: Failed');
   });
 
   it('open when nothing is answered yet', () => {

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { DataError, messageOf } from '../../data/errors';
 import { useSetDailyHours } from '../../data/hours.mutations';
+import { CLICK_BOX } from '../../ui/box';
 import { FIELD_CONTROL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { PRESET_HOURS, parseHours } from './model';
@@ -20,8 +21,8 @@ interface HoursPromptProps {
 }
 
 const CHIP = 'inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-3 text-[15px] font-medium tabular-nums transition-colors';
-const ON = 'bg-accent text-white shadow-primary';
-const OFF = 'border border-line-strong bg-card text-ink shadow-control hover:border-ink-3/60 hover:bg-card-head';
+const ON = 'bg-accent text-white shadow-primary hover:shadow-primary-hover';
+const OFF = `${CLICK_BOX} text-ink`;
 
 export function HoursPrompt({ projectId, reportId, version, hours }: HoursPromptProps) {
   const save = useSetDailyHours(projectId);

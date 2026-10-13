@@ -3,15 +3,16 @@
 // Oct 3: "once you're on a job, it should all be specific to that job"): its name, its tools chosen per job with Edit,
 // every other tool of the job (its Board too) one click away under More, and a count where something needs me.
 // Runs only against the e2e mock.
-// Contract with the mock (src/data/mock/rail.ts, mock/jobRail.ts): 'pm' has no list of their own, so Sample Job A shows
-// the PM's tools under "Sample Job A" (the recommendation without the Board, then Files): Calendar, RFIs, Inspections,
-// Files; Board, Bids, Dailies, Deliveries, Corrections, People sit under More. Sample Job B has the same tools. What
-// needs 'pm' on job A: task-1 on a file (Files: 1) and RFIs 003 and 004 left with the architect (RFIs: 2). 'inspector'
-// gets Calendar, Dailies, Inspections, Corrections, Files under the job's name. Test ids: rail-<tool>, rail-more,
+// Contract with the mock (src/data/mock/rail.ts, mock/jobRail.ts; bids.* by mock/bids NO_BIDS): 'pm' has no list of
+// their own, so Sample Job A shows the PM's tools under "Sample Job A" (the recommendation without the Board, then
+// Files): Calendar, RFIs, Inspections, Files; Board, Bids, Dailies, Deliveries, Corrections, People sit under More.
+// Sample Job B has the same tools. What needs 'pm' on job A: task-1 on a file (Files: 1) and RFIs 003 and 004 left
+// with the architect (RFIs: 2). 'inspector' gets Calendar, Dailies, Inspections, Corrections, Files under the job's name. Test ids: rail-<tool>, rail-more,
 // rail-more-menu, rail-more-<tool>, job-rail (the job's tools; data-version = my saved list's version),
 // job-rail-label, job-rail-edit, job-rail-editor, job-tool-show-<tool>, job-tool-up-<tool>, job-tools-recommended,
 // job-tools-done, phone-tab-<tool>, phone-tab-more, phone-more-<tool>, phone-more-edit, tool-badge-<tool | more>,
-// needs-you-task, main-area (data-tool).
+// needs-you-task, main-area (data-tool). On All my jobs Bids shows only for someone who may read bids on some job:
+// 'pm' does, 'inspector' does not.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -118,6 +119,20 @@ test.describe('the rail by position', () => {
     await expect(page.getByTestId(isMobile ? 'phone-tab-bids' : 'rail-bids')).toBeVisible();
     await expect(page.getByTestId(isMobile ? 'phone-tab-more' : 'rail-more')).toHaveCount(isMobile ? 1 : 0);
     await expect(page.getByTestId('tool-badge-board')).toHaveText('3');
+  });
+
+  test('All my jobs: Bids only for someone who runs bids on some job; an inspector never sees it (Jesse, Oct 12)', async ({ page, isMobile }) => {
+    await signIn(page, 'inspector');
+    await page.goto('/all/board');
+    await expect(page.getByTestId(isMobile ? 'phone-tab-board' : 'rail-board')).toBeVisible();
+    await expect(page.getByTestId(isMobile ? 'phone-tab-calendar' : 'rail-calendar')).toBeVisible();
+    await expect(page.getByTestId(isMobile ? 'phone-tab-bids' : 'rail-bids')).toHaveCount(0);
+    // Nor under a job's More (the desktop rail): the inspector's role holds no bids.* row.
+    if (!isMobile) {
+      await page.goto('/p/job-a/board');
+      await page.getByTestId('rail-more').click();
+      await expect(page.getByTestId('rail-more-bids')).toHaveCount(0);
+    }
   });
 });
 

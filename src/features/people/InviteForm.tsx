@@ -9,6 +9,7 @@ import { messageOf } from '../../data/errors';
 import type { InviteResult, RoleRow } from '../../data/types';
 import { endOfDayInZone } from '../../lib/dates';
 import { humanize } from '../../lib/format';
+import { CLICK_BOX } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { DateInput, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
@@ -69,7 +70,7 @@ function Sent({ email, projectName, result }: SentProps) {
           Copy link
         </Button>
         <a
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-card px-3 text-[13px] font-medium text-ink shadow-control hover:bg-card-head"
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium text-ink ${CLICK_BOX}`}
           href={mailto}
         >
           <Mail size={16} strokeWidth={1.75} aria-hidden="true" />

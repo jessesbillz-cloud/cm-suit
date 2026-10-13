@@ -5,11 +5,13 @@
 // start, for Move to and Delete on many (ListHead), and in To sort a Move to of its own. The columns are its section's
 // (RowCells); a submittal's section, when the job's spec book has it, opens the book there (Jesse, Oct 12). The name is
 // never cut off: it wraps, even a long name with no spaces. On a phone the file's icon gives the checkbox its room and a
-// row's own Move to sits on a line under it.
+// row's own Move to sits on a line under it. A submittal with no spec section in its name has Add spec section under it.
+import type { ReactNode } from 'react';
 import { Download, Maximize2, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { FIELD_CONTROL } from '../../ui/Fields';
 import { fileIcon } from '../../ui/fileIcon';
@@ -43,6 +45,8 @@ interface FileRowProps {
   spec?: { section: string; onOpen: () => void } | undefined;
   /** The row's own Move to (To sort); left out, none. */
   move?: { targets: readonly FolderOption[]; onMove: (to: FolderOption) => void } | undefined;
+  /** A line under the row (Add spec section in Submittals); left out, none. */
+  fix?: ReactNode;
 }
 
 /** The buttons' column (Full screen, Download, Delete): 32px each on a desktop, 40px (a thumb's tap) on a phone. */
@@ -52,7 +56,7 @@ export const MOVE = 'sm:w-40 sm:shrink-0';
 const ROW_BUTTON = 'h-10 w-10 sm:h-8 sm:w-8';
 
 export function FileRow(props: FileRowProps) {
-  const { file, view, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete, move, spec } = props;
+  const { file, view, timeZone, selected, downloading, onOpen, onView, onDownload, check, onDelete, move, spec, fix } = props;
   const user = useUser();
   const chip = file.scan_status === 'clean' && file.upload_complete ? null : scanChip(file.scan_status, file.upload_complete);
   // Unfinished, infected, or someone else's file still being scanned: nothing to download yet.
@@ -66,8 +70,8 @@ export function FileRow(props: FileRowProps) {
     <li
       data-testid="file-row"
       aria-current={selected ? 'true' : undefined}
-      className={`group flex flex-wrap items-center gap-x-3 px-4 transition-colors sm:flex-nowrap ${
-        selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
+      className={`group flex flex-wrap items-center gap-x-3 px-4 transition-colors ${fix ? '' : 'sm:flex-nowrap'} ${
+        selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : ROW_HOVER
       }`}
     >
       {check === undefined ? null : check === null ? (
@@ -163,6 +167,11 @@ export function FileRow(props: FileRowProps) {
           />
         ) : null}
       </span>
+      {fix ? (
+        <span data-testid="file-row-fix" className="order-last basis-full pb-2.5 pl-10 sm:pl-11">
+          {fix}
+        </span>
+      ) : null}
     </li>
   );
 }

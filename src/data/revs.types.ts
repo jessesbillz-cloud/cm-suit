@@ -10,7 +10,7 @@ export const REV_COLS = 'id, project_id, list_id, number, name, version, deleted
 export const REV_ITEM_COLS = 'id, project_id, rev_id, name, company, position, version, deleted_at';
 export const REV_AREA_COLS =
   'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at, wall_tag, rating, ul_design, fire_area, sheet_ref, check_note';
-export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, version, deleted_at';
+export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, set_up, version, deleted_at';
 export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version';
 
 export type RevList = Pick<Tables<'rev_lists'>, 'id' | 'project_id' | 'name' | 'phase' | 'permit_id' | 'position' | 'version' | 'deleted_at'>;
@@ -46,7 +46,8 @@ export type RevArea = Omit<RevAreaRow, 'geom'> & { geom: WallLine | null };
 export function parseArea<T extends RevAreaRow>(row: T): Omit<T, 'geom'> & { geom: WallLine | null } {
   return { ...row, geom: row.geom === null ? null : wallLineSchema.parse(row.geom) };
 }
-export type RevMark = Pick<Tables<'rev_marks'>, 'id' | 'project_id' | 'area_id' | 'item_id' | 'kind' | 'version' | 'deleted_at'>;
+/** An N/A mark: by hand, or set up on a room's card (set_up, 0101). */
+type RevMark = Pick<Tables<'rev_marks'>, 'id' | 'project_id' | 'area_id' | 'item_id' | 'kind' | 'set_up' | 'version' | 'deleted_at'>;
 export type IrRevItem = Pick<
   Tables<'ir_rev_items'>,
   'id' | 'request_id' | 'area_id' | 'item_id' | 'color' | 'result' | 'result_note' | 'result_at' | 'result_by' | 'version'

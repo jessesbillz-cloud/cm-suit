@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { CircleCheck, Copy } from 'lucide-react';
 import type { Submitted } from '../../data/requestNoLogin.types';
 import { shortLinkText, statusLinkUrl } from '../../lib/requestLink';
+import { CLICK_BOX } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
@@ -48,7 +49,7 @@ export function PublicReceipt({ projectId, receipt, onAnother, children }: Publi
             <a
               href={url}
               data-testid="public-status-open"
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-line-strong bg-card px-4 text-base font-medium text-ink shadow-control hover:bg-card-head"
+              className={`inline-flex h-11 items-center justify-center rounded-lg px-4 text-base font-medium text-ink ${CLICK_BOX}`}
             >
               Open
             </a>

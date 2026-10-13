@@ -1,7 +1,8 @@
 // One wall's own inspection page (Jesse, Oct 3: "the whole wall gets built out on its own inspection page ... a 3-D
 // version of it sitting there ... Oh, first layer of drywall, there it is"): its callout, the 3-D wall with each part
-// tinted by its state, and every item of its list as a button, grouped by rev (WallItems: the one place for the revs
-// here; Jesse, Oct 12: the tabs above the model went, "keep the ones on the right"). A tap on an item shows it on the
+// tinted by its state, and every item it needs as a big box in its state, grouped by rev (WallItems: the one place for
+// the revs here; Jesse, Oct 12: the tabs above the model went, "keep the ones on the right"; items not applicable here
+// are not shown, a manager sees them last to switch one back). A tap on an item shows it on the
 // wall with a leader and its facts under the drawing; a tap on the wall shows that part's item. Up to three items still
 // to ask for are picked for Request (Inspections > new, prefilled). On a desktop it fills the main area (the drawing
 // beside the items when there is room); on a phone it is its own screen with the drawing held at the top while the
@@ -36,6 +37,7 @@ import { WallFacts } from './WallFacts';
 import { WallHeader } from './WallHeader';
 import { WallHistory } from './WallHistory';
 import { WallItems } from './WallItems';
+import { WallPhotos } from './photos/WallPhotos';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
 import { useWallManage } from './WallManage';
 import { countOf, firstPick, keepAskable, MAX_PICK, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
@@ -87,7 +89,8 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
   const history = useWallHistory(projectId, area.id);
-  const revs = useMemo(() => wallRevs(setup, index, area), [setup, index, area]);
+  // A manager also sees what is switched off here (last, dashed), to switch it back. Nobody else sees it.
+  const revs = useMemo(() => wallRevs(setup, index, area, canManage), [setup, index, area, canManage]);
   const items = useMemo(() => wallItems(revs), [revs]);
   const states = useMemo(() => partStates(items), [items]);
   const [chosen, setPick] = useState<WallPick>(() => pickAt(items, focusItem) ?? firstPick(items));
@@ -221,6 +224,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
           />
         </div>
       </div>
+      <WallPhotos projectId={projectId} areaId={area.id} isPhone={isPhone} />
       <WallHistory
         projectId={projectId}
         areaId={area.id}

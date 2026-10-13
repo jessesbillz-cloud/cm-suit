@@ -4,6 +4,7 @@ import type { EarlierVersion } from '../../data/files';
 import { usePreviewFetch } from '../../data/preview';
 import { formatInZone } from '../../lib/dates';
 import { formatBytes } from '../../lib/format';
+import { CLICK_BOX } from '../../ui/box';
 import { BehindLink } from '../../ui/BehindLink';
 import { fileIcon } from '../../ui/fileIcon';
 import { useFileViewer } from '../../ui/FileViewer';
@@ -30,7 +31,7 @@ export function EarlierVersions({ versions, timeZone }: EarlierVersionsProps) {
             <li key={v.id}>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-lg border border-line px-3 py-2 text-left text-sm hover:bg-page"
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm ${CLICK_BOX}`}
                 onClick={() => {
                   viewer.open(items, i);
                 }}

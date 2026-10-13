@@ -6,6 +6,7 @@ import type { Tool } from '../lib/layout';
 import { countOf, type ToolCounts } from '../lib/toolCounts';
 import { Button } from './Button';
 import { CountBadge } from './CountBadge';
+import { CLICK_EDGE } from './box';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
 
@@ -138,8 +139,8 @@ export function PanelMoreSheet({ tools, current, counts, onSelect, onEdit }: Pan
           type="button"
           data-testid={`phone-more-${t}`}
           aria-current={t === current ? 'page' : undefined}
-          className={`relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm ${
-            t === current ? 'bg-accent-soft text-accent' : 'text-ink-2 hover:bg-page'
+          className={`relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm ${CLICK_EDGE} ${
+            t === current ? 'border-accent bg-accent-soft text-accent' : 'border-line-strong bg-card text-ink-2'
           }`}
           onClick={() => {
             onSelect(t);

@@ -48,8 +48,8 @@ export function SectionNav({ sections, current, isPhone, onPick }: SectionNavPro
               type="button"
               aria-current={active ? 'true' : undefined}
               data-testid="section"
-              className={`flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-                active ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-page'
+              className={`flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-[background-color,box-shadow] ${
+                active ? 'bg-accent-soft font-medium text-accent shadow-tile ring-1 ring-inset ring-accent/25' : 'text-ink hover:bg-card hover:shadow-tile active:shadow-press'
               }`}
               onClick={() => {
                 onPick(s.folder_id);

@@ -3,6 +3,7 @@
 import { ChevronRight } from 'lucide-react';
 import { useIrReview } from '../../data/inspections.queries';
 import { formatDay } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -32,7 +33,7 @@ export function ReviewView({ projectId, selectedId, onOpen }: ReviewViewProps) {
               <button
                 type="button"
                 data-testid={`ir-review-${String(r.number)}`}
-                className={`flex min-h-[64px] w-full items-start gap-3 px-4 py-3 text-left sm:gap-4 ${r.id === selectedId ? SELECTED : 'hover:bg-page/60'}`}
+                className={`flex min-h-[64px] w-full items-start gap-3 px-4 py-3 text-left sm:gap-4 ${r.id === selectedId ? SELECTED : ROW_HOVER}`}
                 onClick={() => {
                   onOpen(r.id);
                 }}

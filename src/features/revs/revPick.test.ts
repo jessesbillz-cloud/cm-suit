@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import {
-  firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
+  applicableGroups, firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
   sheetCount, statusIndex, titlePreview, toggleItem, wallsByLevel, type RevPick,
 } from './revPick';
 
@@ -56,6 +56,13 @@ describe('the walls and items to pick from', () => {
       [2, 4],
     ]);
   });
+  it('offers only the items one of the walls needs (N/A on all of them: not offered), every item with no walls', () => {
+    const groups = itemsByRev(SETUP, 'l1');
+    expect(applicableGroups(groups, INDEX, ['w2']).map((g) => [g.number, g.items.map((i) => i.id)])).toEqual([[2, ['stuff', 'caulk', 'tape', 'seal']]]);
+    expect(applicableGroups(groups, INDEX, ['w1', 'w2']).map((g) => g.number)).toEqual([0, 2]);
+    expect(applicableGroups(groups, INDEX, [])).toEqual(groups);
+  });
+
   it('knows what each item still needs on the picked walls', () => {
     expect(itemNeed(INDEX, 'tow', ['w1', 'w2'])).toEqual({ open: 0, done: 2, requested: 0, failed: 0 });
     expect(isDone(itemNeed(INDEX, 'tow', ['w1', 'w2']))).toBe(true);

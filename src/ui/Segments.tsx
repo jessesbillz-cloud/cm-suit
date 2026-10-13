@@ -1,16 +1,17 @@
-// The one segmented control look: a white pill track with a hairline edge; the picked segment in the accent tint.
+// The one segmented control look: a tinted pill track pressed into the card; the picked segment a raised white box in
+// the accent color, the others lift to white under the pointer.
 // 36px tall, 14px labels. Tools switch views or filters with it (bids' Segmented uses the same classes). On a phone
 // the row scrolls sideways instead of wrapping.
 
 export const SEGMENT_TRACK =
-  'inline-flex h-9 w-fit max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-full border border-line-strong/80 bg-card p-[3px] shadow-control [scrollbar-width:none]';
+  'inline-flex h-9 w-fit max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-full border border-line-strong/80 bg-page p-[3px] shadow-[inset_0_1px_2px_rgba(16,24,40,.08)] [scrollbar-width:none]';
 
 export function segmentClass(active: boolean): string {
   const base =
-    'inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed';
+    'inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm transition-[background-color,color,box-shadow] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed';
   return active
-    ? `${base} bg-accent-soft font-medium text-accent shadow-[inset_0_0_0_1px_rgba(37,99,235,0.16)]`
-    : `${base} text-ink-2 hover:bg-page/70 hover:text-ink`;
+    ? `${base} bg-card font-semibold text-accent shadow-tile`
+    : `${base} text-ink-2 hover:bg-card/70 hover:text-ink active:bg-card`;
 }
 
 interface SegmentsProps<T extends string> {

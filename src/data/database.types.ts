@@ -5016,6 +5016,7 @@ export type Database = {
           kind: string
           org_id: string
           project_id: string
+          set_up: boolean
           updated_at: string
           version: number
         }
@@ -5029,6 +5030,7 @@ export type Database = {
           kind?: string
           org_id: string
           project_id: string
+          set_up?: boolean
           updated_at?: string
           version?: number
         }
@@ -5042,6 +5044,7 @@ export type Database = {
           kind?: string
           org_id?: string
           project_id?: string
+          set_up?: boolean
           updated_at?: string
           version?: number
         }
@@ -5066,6 +5069,90 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      rev_photos: {
+        Row: {
+          area_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          project_id: string
+          request_id: string | null
+          room_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_id?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          note?: string | null
+          org_id: string
+          project_id: string
+          request_id?: string | null
+          room_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_id?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          note?: string | null
+          org_id?: string
+          project_id?: string
+          request_id?: string | null
+          room_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_photos_area_id_project_id_fkey"
+            columns: ["area_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_areas"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_photos_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rev_photos_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "rev_photos_request_id_project_id_fkey"
+            columns: ["request_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_photos_room_id_project_id_fkey"
+            columns: ["room_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_rooms"
+            referencedColumns: ["id", "project_id"]
           },
         ]
       }
@@ -5138,6 +5225,8 @@ export type Database = {
       }
       rev_rooms: {
         Row: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -5156,6 +5245,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          card_at?: string | null
+          card_by?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -5174,6 +5265,8 @@ export type Database = {
           version?: number
         }
         Update: {
+          card_at?: string | null
+          card_by?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -12699,6 +12792,38 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      rev_card_cell: {
+        Args: {
+          p_area_id: string
+          p_hand: boolean
+          p_item_id: string
+          p_na: boolean
+        }
+        Returns: boolean
+      }
+      rev_card_item: {
+        Args: { p_area_id: string; p_item_id: string; p_on: boolean }
+        Returns: Json
+      }
+      rev_card_items: { Args: { p_list_id: string }; Returns: string[] }
+      rev_card_kept: {
+        Args: { p_area_id: string; p_item_id: string }
+        Returns: boolean
+      }
+      rev_card_save: {
+        Args: {
+          p_area_ids: string[]
+          p_item_ids: string[]
+          p_room_id: string
+          p_version: number
+        }
+        Returns: Json
+      }
+      rev_card_undo: {
+        Args: { p_room_id: string; p_undo: Json; p_version: number }
+        Returns: Json
+      }
+      rev_card_walls: { Args: { p_room_id: string }; Returns: string[] }
       rev_clean: { Args: { p_text: string }; Returns: string }
       rev_file_link: { Args: { p_file_id: string }; Returns: Json }
       rev_files_folder: {
@@ -12880,6 +13005,7 @@ export type Database = {
           kind: string
           org_id: string
           project_id: string
+          set_up: boolean
           updated_at: string
           version: number
         }
@@ -12901,6 +13027,145 @@ export type Database = {
       rev_ofs_name_has: {
         Args: { p_name: string; p_ofs: number }
         Returns: boolean
+      }
+      rev_photo_add: {
+        Args: { p_area_id: string; p_file_id: string; p_note: string; p_project_id: string; p_request_id: string; p_room_id: string }
+        Returns: {
+          area_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          project_id: string
+          request_id: string | null
+          room_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_photo_adder: { Args: { p_project_id: string }; Returns: boolean }
+      rev_photo_decided: { Args: { p_request_id: string }; Returns: boolean }
+      rev_photo_lock: {
+        Args: { p_id: string; p_version: number }
+        Returns: {
+          area_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          project_id: string
+          request_id: string | null
+          room_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_photo_may_add: {
+        Args: { p_project_id: string; p_request_id: string }
+        Returns: boolean
+      }
+      rev_photo_may_see: {
+        Args: { p_created_by: string; p_project_id: string; p_request_id: string }
+        Returns: boolean
+      }
+      rev_photo_on_request: { Args: { p_request_id: string }; Returns: boolean }
+      rev_photo_removable: {
+        Args: { p_created_by: string; p_project_id: string; p_request_id: string }
+        Returns: boolean
+      }
+      rev_photo_remove: {
+        Args: { p_id: string; p_version: number }
+        Returns: {
+          area_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          project_id: string
+          request_id: string | null
+          room_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_photo_restore: {
+        Args: { p_id: string }
+        Returns: {
+          area_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          project_id: string
+          request_id: string | null
+          room_id: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_photos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_photos_folder: { Args: { p_project_id: string }; Returns: string }
+      rev_photos_folder_id: { Args: { p_project_id: string }; Returns: string }
+      rev_photos_list: {
+        Args: {
+          p_area_id: string
+          p_project_id: string
+          p_request_id: string
+          p_room_id: string
+        }
+        Returns: {
+          area_id: string
+          by_name: string
+          can_remove: boolean
+          created_at: string
+          file_id: string
+          file_name: string
+          id: string
+          ir_number: number
+          locked: boolean
+          mine: boolean
+          note: string
+          ofs_number: number
+          request_id: string
+          room_id: string
+          version: number
+          via_request: boolean
+        }[]
       }
       rev_remove: {
         Args: { p_id: string; p_kind: string; p_version: number }
@@ -12934,6 +13199,8 @@ export type Database = {
           p_version: number
         }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -12965,6 +13232,8 @@ export type Database = {
       rev_room_lock: {
         Args: { p_room_id: string }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -12992,6 +13261,8 @@ export type Database = {
       rev_room_save: {
         Args: { p_id: string; p_name: string; p_number: string; p_version: number }
         Returns: {
+          card_at: string | null
+          card_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null

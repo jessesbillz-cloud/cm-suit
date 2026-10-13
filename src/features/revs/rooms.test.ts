@@ -9,7 +9,7 @@ const wall = (n: number, level: string, name: string): RevArea => ({
   ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: n,
 });
 const room = (id: string, level: string, number: string, name: string, kind: RevRoom['kind'], position: number): RevRoom => ({
-  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position,
+  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position, card_at: null,
 });
 const link = (roomId: string, area: number, line: RevRoomWall['line'] = null): RevRoomWall => ({
   ...base, id: `${roomId}-${String(area)}`, room_id: roomId, area_id: `a${String(area)}`, line, position: area,
@@ -29,6 +29,7 @@ const SETUP: RevSetup = {
 const ROOMS: RevRooms = {
   rooms: [room('ext', 'Level 2', 'EXT', 'Exterior', 'exterior', 1), room('s1', 'Level 2', 'S1', 'Stair 1', 'shaft', 2), room('r205', 'Level 2', '205', 'Electrical', 'room', 3)],
   walls: [link('r205', 2, [[0.1, 0.1], [0.9, 0.1]]), link('r205', 3), link('s1', 4), link('ext', 3)],
+  out: [],
 };
 
 const st = (area: string, item: string, status: RevStatusRow['status']): RevStatusRow => ({
@@ -45,7 +46,7 @@ describe('roomsByList', () => {
     expect(g?.levels[1]?.others.map((a) => a.id)).toEqual(['a1']);
   });
   it('with no rooms every wall is under its level', () => {
-    const [g] = roomsByList(SETUP, { rooms: [], walls: [] });
+    const [g] = roomsByList(SETUP, { rooms: [], walls: [], out: [] });
     expect(g?.levels.flatMap((l) => l.others.map((a) => a.id))).toEqual(['a2', 'a3', 'a4', 'a1']);
   });
 });

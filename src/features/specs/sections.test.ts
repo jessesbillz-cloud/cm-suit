@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookWith, findSection, sectionAt, sectionDigits, sectionOfName, sectionRefs } from './sections';
+import { bookWith, findSection, sectionAt, sectionDigits, sectionKey, sectionOfName, sectionRefs } from './sections';
 
 const BOOK = [
   { section: '09 21 16', first_page: 4 },
@@ -45,6 +45,21 @@ describe('spec sections', () => {
     expect(sectionOfName('092900_04.0_Gypsum Board_PD_Acoustic Sealant_NET.pdf')).toBe('09 29 00');
     expect(sectionOfName('S-0147.0-079200-Joint Sealants- PD - XYZ - AAN.pdf')).toBe('07 92 00');
     expect(sectionOfName('A201A Floor Plan Level 01 Area A.pdf')).toBeNull();
+  });
+
+  it('finds a section anywhere in a name, once it is not a date or a longer number', () => {
+    expect(sectionOfName('RFI 012 - 09 29 00 Sample board.pdf')).toBe('09 29 00');
+    expect(sectionOfName('RFI_012_092900_Sample.pdf')).toBe('09 29 00');
+    expect(sectionOfName('Sample Co 092900 shop drawings.pdf')).toBe('09 29 00');
+    expect(sectionOfName('092900_Gypsum board shop drawings.pdf')).toBe('09 29 00');
+    expect(sectionOfName('Gypsum board shop drawings.pdf')).toBeNull();
+    expect(sectionOfName('Report 2026-10-12.pdf')).toBeNull();
+    expect(sectionOfName('Report 2026 10 12.pdf')).toBeNull();
+    expect(sectionOfName('IMG_20261012_0929001.jpg')).toBeNull();
+    expect(sectionOfName('RFI 012 - 551234.pdf')).toBeNull();
+    expect(sectionKey('09 21 16.13')).toBe('092116');
+    expect(sectionKey('092900')).toBe('092900');
+    expect(sectionKey('A-501')).toBeNull();
   });
 
   it('picks the newest book that has the section', () => {

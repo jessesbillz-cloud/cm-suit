@@ -10,8 +10,8 @@ import { Icon } from './Icon';
 export const PHOTO_GRID = 'grid grid-cols-3 gap-2 sm:grid-cols-4';
 /** A square photo box with a hairline edge, holding a fill Thumb (and maybe a PHOTO_REMOVE). */
 export const PHOTO_BOX = 'relative block aspect-square w-full overflow-hidden rounded-lg bg-page ring-1 ring-black/10';
-/** The same box as a button (one click downloads): the accent ring on hover. */
-export const PHOTO_TILE = `${PHOTO_BOX} transition-shadow hover:ring-2 hover:ring-accent/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`;
+/** The same box as a button (one click opens it): a drop shadow, lifted with the accent ring on hover. */
+export const PHOTO_TILE = `${PHOTO_BOX} shadow-tile transition-shadow hover:shadow-tile-hover hover:ring-2 hover:ring-accent/60 active:shadow-press focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`;
 /** A short line on a tile's bottom edge (a time), white on a dark fade so it reads on any picture. */
 export const PHOTO_TILE_LABEL =
   'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5 text-left text-[11px] font-medium leading-4 tabular-nums text-white';

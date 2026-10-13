@@ -51,6 +51,20 @@ describe('jobs', () => {
     });
     expect(railModel(null, [{ project_id: 'a', modules: ['files'] }], {}, {})).toEqual({ general: ['board'], job: [], more: [] });
   });
+  it('All my jobs: Bids only where my role may read it on some job (Jesse, Oct 12); the Board always', () => {
+    const a = { project_id: 'a', modules: ['bids', 'files', 'calendar'] };
+    const b = { project_id: 'b', modules: ['bids', 'calendar'] };
+    const inspector = { a: ['board', 'calendar', 'files'], b: ['board', 'calendar'] };
+    expect(railModel(null, [a, b], {}, {}, inspector).general).toEqual(['board', 'calendar']);
+    // An estimator on one job, an inspector on the other: the home follows each job's role.
+    expect(railModel(null, [a, b], {}, {}, { ...inspector, b: ['board', 'bids'] }).general).toEqual(['board', 'calendar', 'bids']);
+    // Bids readable only on a job that has Bids off: still no Bids.
+    const bOff = { project_id: 'b', modules: ['calendar'] };
+    expect(railModel(null, [a, bOff], {}, {}, { ...inspector, b: ['board', 'bids'] }).general).toEqual(['board', 'calendar']);
+    // Not known yet: nothing hidden.
+    expect(railModel(null, [a], {}, {}, {}).general).toEqual(['board', 'calendar', 'bids']);
+    expect(railModel(null, [], {}, {}, {}).general).toEqual(['board']);
+  });
   it("a job: nothing general; my recommendation there minus the Board under its name, the rest (its Board too) under More", () => {
     const rec = { a: ['board', 'calendar', 'rfis', 'inspections', 'files'] };
     expect(railModel('a', [{ project_id: 'a', modules: FIELD }], rec, {})).toEqual({

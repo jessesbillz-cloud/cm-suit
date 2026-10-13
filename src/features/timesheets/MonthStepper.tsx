@@ -11,7 +11,7 @@ interface MonthStepperProps {
 }
 
 const STEP =
-  'inline-flex h-7 w-8 items-center justify-center rounded-full text-ink-2 hover:bg-page hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3/50 disabled:hover:bg-transparent';
+  'inline-flex h-7 w-8 items-center justify-center rounded-full text-ink-2 transition-[background-color,box-shadow] hover:bg-card hover:text-ink hover:shadow-tile active:shadow-press disabled:cursor-not-allowed disabled:text-ink-3/50 disabled:hover:bg-transparent disabled:hover:shadow-none';
 
 export function MonthStepper({ month, onPick }: MonthStepperProps) {
   const last = month >= currentMonth();
