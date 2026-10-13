@@ -1,13 +1,14 @@
 // The shown item's facts in one short line under the drawing: "Passed · IR 377 · OFS 0065 · Oct 2" (the IR opens the
-// request in Inspections), "Failed: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. Managers mark
-// the item N/A for this wall, or clear it, at once; the toast offers Undo (no "are you sure"). An item signed off
-// before the app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens
-// over the items) or clears it.
+// request in Inspections), "Failed: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. A manager switches
+// an open item off for this wall only ("Not needed here", 0101 rev_card_item) or back on, at once; the toast offers Undo
+// (no "are you sure"). An item with a sign-off, a request or a failure stays as it is. An item signed off before the
+// app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens over the
+// items) or clears it.
 import { messageOf } from '../../data/errors';
-import { useMarkRevNa } from '../../data/revs.mutations';
+import { useCardItem } from '../../data/revs.card';
 import type { RevArea } from '../../data/revs.types';
 import { useToast } from '../../ui/Toast';
-import { beforeLine, canSignBefore, chipOf, irLine, naToggle, signedBefore } from './model';
+import { beforeLine, canSignBefore, cardSwitch, chipOf, irLine, signedBefore } from './model';
 import type { WallItem } from './wallPage';
 
 interface WallFactsProps {
@@ -27,24 +28,25 @@ interface WallFactsProps {
 
 const LINK = '-my-1 min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3/50';
 
-function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea; shown: WallItem }) {
-  const mark = useMarkRevNa();
+function CardSwitch({ projectId, area, shown }: { projectId: string; area: RevArea; shown: WallItem }) {
+  const item = useCardItem();
   const toast = useToast();
-  const toggle = naToggle(shown.cell.status);
-  if (!toggle) return null;
-  const { item } = shown;
+  const to = cardSwitch(shown.cell.status);
+  if (!to) return null;
+  const v = { projectId, areaId: area.id, itemId: shown.item.id };
+  const name = shown.item.name;
   const failed = (e: unknown) => {
     toast.show({ tone: 'error', message: messageOf(e) });
   };
   const set = (on: boolean) => {
-    mark.mutate(
-      { projectId, areaId: area.id, itemId: item.id, on },
+    item.mutate(
+      { ...v, on },
       {
         onSuccess: () => {
           toast.show({
-            message: on ? `${item.name}: N/A.` : `${item.name}: needed again.`,
+            message: on ? `${name}: needed here.` : `${name}: not needed here.`,
             // mutateAsync settles even if this wall has closed meanwhile.
-            action: { label: 'Undo', onClick: () => { void mark.mutateAsync({ projectId, areaId: area.id, itemId: item.id, on: !on }).catch(failed); } },
+            action: { label: 'Undo', onClick: () => { void item.mutateAsync({ ...v, on: !on }).catch(failed); } },
           });
         },
         onError: failed,
@@ -55,13 +57,13 @@ function NaButton({ projectId, area, shown }: { projectId: string; area: RevArea
     <button
       type="button"
       className={LINK}
-      disabled={mark.isPending}
+      disabled={item.isPending}
       data-testid="rev-na"
       onClick={() => {
-        set(toggle === 'mark');
+        set(to === 'on');
       }}
     >
-      {toggle === 'mark' ? 'Mark N/A' : 'Clear N/A'}
+      {to === 'on' ? 'Needed here' : 'Not needed here'}
     </button>
   );
 }
@@ -139,7 +141,7 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
               Signed off before
             </button>
           ) : null}
-          <NaButton key={item.id} projectId={projectId} area={area} shown={shown} />
+          <CardSwitch key={item.id} projectId={projectId} area={area} shown={shown} />
         </span>
       ) : null}
     </div>

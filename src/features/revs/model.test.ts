@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type Rev, type RevArea, type RevItem, type RevList, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import {
   canAsk,
+  cardSwitch,
   cellOf,
   chipOf,
   indexStatus,
   irLine,
   levelsOf,
   listLines,
-  naToggle,
   openRollup,
   parseView,
   requestSearch,
@@ -54,10 +54,11 @@ const STATUS = indexStatus([
 ]);
 
 describe('revs model', () => {
-  it("a wall's revs, in order, each with its items' statuses (an unanswered cell is open)", () => {
+  it("a wall's revs, in order, each with its items' statuses (an unanswered cell is open), N/A left out", () => {
     const revs = wallRevs(SETUP, STATUS, wall(1, 'Level 01', 'Stair 2 shaft'));
     expect(revs.map((r) => r.rev.number)).toEqual([0, 1, 2]);
-    expect(revs[1]?.cells.map((c) => c.cell.status)).toEqual(['passed', 'failed', 'na', 'open']);
+    expect(revs[1]?.cells.map((c) => c.cell.status)).toEqual(['passed', 'failed', 'open']);
+    expect(wallRevs(SETUP, STATUS, wall(1, 'Level 01', 'Stair 2 shaft'), true)[1]?.cells.map((c) => c.cell.status)).toEqual(['passed', 'failed', 'na', 'open']);
     expect(cellOf(STATUS, 'a9', 'i01').status).toBe('open');
   });
 
@@ -104,12 +105,16 @@ describe('revs model', () => {
     expect(irLine(cellOf(STATUS, 'a1', 'i11'), 'America/Los_Angeles')).toBeNull();
   });
 
-  it('N/A: marked on items still to ask for, cleared on N/A ones', () => {
-    expect(naToggle('open')).toBe('mark');
-    expect(naToggle('failed')).toBe('mark');
-    expect(naToggle('na')).toBe('clear');
-    expect(naToggle('passed')).toBeNull();
-    expect(naToggle('requested')).toBeNull();
+  it('a wall\'s item switched off while open, back on once off; history stays', () => {
+    expect(cardSwitch('open')).toBe('off');
+    expect(cardSwitch('na')).toBe('on');
+    expect(cardSwitch('failed')).toBeNull();
+    expect(cardSwitch('passed')).toBeNull();
+    expect(cardSwitch('requested')).toBeNull();
+  });
+  it('a rev with every item N/A on a wall is left out', () => {
+    const allNa = indexStatus(SETUP.items.filter((i) => i.rev_id === 'r0').map((i) => row('a1', i.id, 'na')));
+    expect(wallRevs(SETUP, allNa, wall(1, 'Level 01', 'Stair 2 shaft')).map((r) => r.rev.number)).toEqual([1, 2]);
   });
 
   it('walls by level: one group per level whatever its case or spaces, levels in natural order', () => {

@@ -132,7 +132,7 @@ export function asPublicRevs(projectId: string, raw: PublicRevsAnswer): PublicRe
       areas: raw.areas.map((a) => ({ ...row, ...a, ...NO_WALL_DETAILS, sheet_page: 1, geom: null })),
       marks: raw.status
         .filter((s) => s.status === 'na')
-        .map((s) => ({ ...row, id: `na:${s.area_id}:${s.item_id}`, area_id: s.area_id, item_id: s.item_id, kind: 'na' })),
+        .map((s) => ({ ...row, id: `na:${s.area_id}:${s.item_id}`, area_id: s.area_id, item_id: s.item_id, kind: 'na', set_up: false })),
     },
     status,
   };

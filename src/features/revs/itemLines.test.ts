@@ -74,17 +74,17 @@ describe("a wall's item lines", () => {
     return c;
   };
 
-  it("one line per rev of the wall's list that has items, in order, the rev written out", () => {
+  it("one line per rev of the wall's list that has items it needs (N/A left out), in order, the rev written out", () => {
     expect(lines.map((l) => l.label)).toEqual(['Rev 0 · TOW', 'Rev 1 · HOW - Cavity', 'Rev 3 · Drywall']);
     expect(lines.map((l) => l.chips.map((c) => c.short))).toEqual([
       ['Speed Plugs'],
       ['Stuff', 'Spray', 'Beam Pockets'],
-      ['First Side - First Layer', 'First Side - Second Layer'],
+      ['First Side - First Layer'],
     ]);
   });
 
   it('each item its own state; passed ones with their OFS number and a sign-off file only before the app', () => {
-    expect(lines.flatMap((l) => l.chips.map((c) => c.status))).toEqual(['passed', 'passed', 'failed', 'requested', 'open', 'na']);
+    expect(lines.flatMap((l) => l.chips.map((c) => c.status))).toEqual(['passed', 'passed', 'failed', 'requested', 'open']);
     expect(chip(0, 0)).toMatchObject({ ofsNumber: 40, fileId: 'f40' });
     expect(chip(1, 0)).toMatchObject({ ofsNumber: 42, fileId: null });
     expect(chip(1, 1)).toMatchObject({ ofsNumber: null, fileId: null });
@@ -94,6 +94,6 @@ describe("a wall's item lines", () => {
     expect(itemChipText(chip(1, 0))).toBe('Stuff · 0042');
     expect(itemChipText(chip(1, 2))).toBe('Beam Pockets');
     expect(itemChipName(chip(1, 0))).toBe('HOW Cavity Stuff: Passed, OFS 0042');
-    expect(itemChipName(chip(2, 1))).toBe('First Side - Second Layer: N/A');
+    expect(itemChipName(chip(2, 0))).toBe('First Side - First Layer: Open');
   });
 });

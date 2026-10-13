@@ -2,7 +2,6 @@
 // needs every item of its list's revs; rev_status gives each wall x item one status (na, passed, requested, failed,
 // open). Here: a wall's revs with their items' statuses, what is still to ask for, the end-of-job rollup (what is
 // still open, and where), the walls by list and level, and the chip for each status (lib/status).
-import type { CSSProperties } from 'react';
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -55,11 +54,19 @@ export interface WallRev {
   cells: WallCell[];
 }
 
-/** A wall's revs (its list's, by number), each with its items' statuses. */
-export function wallRevs(setup: RevSetup, index: StatusIndex, area: RevArea): WallRev[] {
+/** A wall's revs (its list's, by number), each with its items' statuses. Not applicable items are left out, and revs
+ *  left with none (Jesse, Oct 12: "everything else should just go away"), unless `withNa` (a manager's wall page). */
+export function wallRevs(setup: RevSetup, index: StatusIndex, area: RevArea, withNa = false): WallRev[] {
   return setup.revs
     .filter((r) => r.list_id === area.list_id)
-    .map((rev) => ({ rev, cells: setup.items.filter((i) => i.rev_id === rev.id).map((item) => ({ item, cell: cellOf(index, area.id, item.id) })) }));
+    .map((rev) => ({
+      rev,
+      cells: setup.items
+        .filter((i) => i.rev_id === rev.id)
+        .map((item) => ({ item, cell: cellOf(index, area.id, item.id) }))
+        .filter((c) => withNa || c.cell.status !== 'na'),
+    }))
+    .filter((r) => withNa || r.cells.length > 0);
 }
 
 /** Still to ask for: never asked, or failed (a failed item is asked again). */
@@ -144,13 +151,6 @@ export function chipOf(status: CellStatus): { key: StatusKey; label: string } {
   return CHIPS[status];
 }
 
-/** A tappable chip's colors (lib/status): open plain with an outline, N/A muted, the rest tinted. */
-export function chipLook(key: StatusKey, kind: 'open' | 'na' | 'set'): CSSProperties {
-  if (kind === 'open') return { color: `var(--status-${key}-fg)`, background: `var(--status-${key}-bg)`, borderColor: `var(--status-${key}-dot)` };
-  if (kind === 'na') return { color: `var(--status-${key}-dot)`, background: `var(--status-${key}-bg)`, borderColor: 'transparent' };
-  return { color: `var(--status-${key}-fg)`, background: `var(--status-${key}-bg)`, borderColor: 'transparent' };
-}
-
 /** Signed off before the app (0082): passed, with no request behind it. */
 export function signedBefore(cell: RevStatusRow): boolean {
   return cell.status === 'passed' && cell.request_id === null;
@@ -186,10 +186,11 @@ export function irLine(cell: RevStatusRow, timeZone: string): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-/** A manager marks N/A an item that is still to ask for, and clears an N/A. Passed and requested items keep theirs. */
-export function naToggle(status: CellStatus): 'mark' | 'clear' | null {
-  if (status === 'na') return 'clear';
-  return canAsk(status) ? 'mark' : null;
+/** A manager switches an item off for one wall (not needed here) while it is open, and back on once off. An item with
+ *  a sign-off, a request or a failure stays as it is (0101 rev_card_item). */
+export function cardSwitch(status: CellStatus): 'off' | 'on' | null {
+  if (status === 'na') return 'on';
+  return status === 'open' ? 'off' : null;
 }
 
 interface LevelGroup {
