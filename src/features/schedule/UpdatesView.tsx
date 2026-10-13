@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useScheduleVersions } from '../../data/schedule.queries';
 import type { VersionRow } from '../../data/schedule.types';
 import { formatDay } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -37,7 +38,7 @@ function Row({ v, selected, onOpen }: { v: VersionRow; selected: boolean; onOpen
         type="button"
         data-testid={`schedule-version-${v.number === null ? 'draft' : String(v.number)}`}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected)} flex flex-col gap-1 sm:py-2.5 ${selected ? '' : 'hover:bg-page/60'}`}
+        className={`${phoneRowClass(selected)} flex flex-col gap-1 sm:py-2.5 ${selected ? '' : ROW_HOVER}`}
         onClick={() => {
           onOpen(itemId);
         }}

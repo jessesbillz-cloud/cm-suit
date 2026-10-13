@@ -8,6 +8,7 @@ import { useAddenda, useAddendumAcks, useBidInvites } from '../../data/bids.quer
 import type { AddendumRow } from '../../data/bids.types';
 import { messageOf } from '../../data/errors';
 import { usePeopleDisplay, useProject } from '../../data/queries';
+import { CLICK_BOX } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { ReadingPane } from '../../ui/ReadingPane';
 import { SaveState } from '../../ui/SaveState';
@@ -127,7 +128,7 @@ interface AttachFilesProps {
 /** Attach: the button is the file picker itself, so one click opens it. */
 function AttachFiles({ row, folderId, onFiles }: AttachFilesProps) {
   return (
-    <label className="inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-sm font-medium text-ink hover:bg-page">
+    <label className={`inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-ink ${CLICK_BOX}`}>
       <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
       Attach
       <input

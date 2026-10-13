@@ -3,6 +3,7 @@
 // dates or a check, buttons show only those. "Add row" adds one the reader missed, at the end.
 import { useState } from 'react';
 import { Flag, Plus } from 'lucide-react';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import type { DraftRow } from '../../data/schedule.types';
 import { ChipPick } from '../../ui/ChipPick';
@@ -33,7 +34,7 @@ function Row({ row, onEdit }: { row: DraftRow; onEdit: () => void }) {
       <button
         type="button"
         data-testid={`schedule-draft-row-${String(row.sort)}`}
-        className={`${phoneRowClass(false)} flex flex-col gap-0.5 hover:bg-page/60 sm:py-2.5`}
+        className={`${phoneRowClass(false)} flex flex-col gap-0.5 ${ROW_HOVER} sm:py-2.5`}
         onClick={onEdit}
       >
         <span className="flex w-full items-start gap-3">

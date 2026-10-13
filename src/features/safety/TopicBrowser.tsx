@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Check, FileText } from 'lucide-react';
 import type { Topic } from '../../data/safety.types';
 import { categoryLabel } from '../../lib/safety';
+import { ROW_HOVER } from '../../ui/box';
 import { ChipPick } from '../../ui/ChipPick';
 import { Icon } from '../../ui/Icon';
 import { SearchBox } from '../../ui/SearchBox';
@@ -25,7 +26,7 @@ function TopicRow({ topic, picked, onPick, testId }: { topic: Topic; picked: boo
         type="button"
         aria-pressed={picked}
         data-testid={`${testId}-${topic.slug ?? topic.id}`}
-        className={`flex min-h-[52px] w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${picked ? 'bg-accent-soft/70' : 'hover:bg-page/60'}`}
+        className={`flex min-h-[52px] w-full items-start gap-3 px-3 py-2.5 text-left transition-colors ${picked ? 'bg-accent-soft/70' : ROW_HOVER}`}
         onClick={() => {
           onPick(topic);
         }}

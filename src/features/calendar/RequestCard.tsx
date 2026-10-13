@@ -31,7 +31,7 @@ interface RequestCardProps {
 
 const CHIP = 'inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium';
 
-const SPLIT = 'relative z-10 inline-flex min-h-8 max-w-full items-stretch overflow-hidden rounded-md border border-line bg-card text-[13px]';
+const SPLIT = 'relative z-10 inline-flex min-h-8 max-w-full items-stretch overflow-hidden rounded-md border border-line-strong bg-card text-[13px] shadow-tile transition-shadow hover:shadow-tile-hover';
 const SPLIT_MAIN = 'inline-flex min-w-0 items-center gap-1.5 px-2.5 py-1 text-left hover:bg-page/60';
 const SPLIT_SAVE = 'flex w-8 shrink-0 items-center justify-center border-l border-line text-ink-3 hover:bg-page/60 hover:text-accent disabled:opacity-60';
 
@@ -136,8 +136,8 @@ export function RequestCard({ entry, showJob, selected, done, onOpen }: RequestC
   return (
     <article
       data-testid="cal-request"
-      className={`relative rounded-lg border border-l-4 border-line bg-card pb-3 shadow-control transition-shadow ${
-        selected ? 'ring-2 ring-accent' : opens ? 'hover:shadow-card' : ''
+      className={`relative rounded-lg border border-l-4 border-line bg-card pb-3 transition-shadow ${
+        selected ? 'shadow-tile ring-2 ring-accent' : opens ? 'shadow-tile hover:shadow-lift' : ''
       } ${done && !selected ? 'opacity-80' : ''}`}
       style={{ borderLeftColor: `var(--status-${chip.status}-dot)` }}
     >

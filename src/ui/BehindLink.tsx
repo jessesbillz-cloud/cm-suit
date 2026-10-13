@@ -3,6 +3,7 @@
 // tap hides it again. The one way every pane opens a section in place.
 import { useState, type ReactNode } from 'react';
 import { History, type LucideIcon } from 'lucide-react';
+import { FOCUS_RING } from './box';
 import { Icon } from './Icon';
 
 /** Brings a section that just appeared into view (smoothly unless the person asked for less motion) and focuses it. */
@@ -29,7 +30,7 @@ export function BehindLink({ label, icon = History, testId, className = '', chil
       <button
         type="button"
         aria-expanded={open}
-        className={`inline-flex h-8 items-center gap-1.5 self-start rounded-md text-[13px] font-medium text-accent hover:underline ${className}`}
+        className={`inline-flex h-8 items-center gap-1.5 self-start rounded-md bg-card-head px-2.5 text-[13px] font-medium text-accent ring-1 ring-inset ring-line transition-[background-color,box-shadow] hover:bg-card hover:shadow-tile active:bg-page active:shadow-press aria-expanded:bg-accent-soft ${FOCUS_RING} ${className}`}
         data-testid={testId}
         onClick={() => {
           setOpen((v) => !v);

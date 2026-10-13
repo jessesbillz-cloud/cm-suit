@@ -5,6 +5,7 @@ import { ChevronRight, FileText } from 'lucide-react';
 import { useMyHours } from '../../data/hours.queries';
 import { formatDay } from '../../lib/dates';
 import { addDays, hoursText, monthLabel, sumHours } from '../../lib/timesheet';
+import { ROW_HOVER } from '../../ui/box';
 import { Icon } from '../../ui/Icon';
 import { Button } from '../../ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
@@ -76,7 +77,7 @@ function Period({ projectId, itemId }: PeriodProps) {
             <button
               type="button"
               data-testid="hours-period-day"
-              className="flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left hover:bg-page/60"
+              className={`flex min-h-[52px] w-full items-center gap-3 px-4 py-2 text-left ${ROW_HOVER}`}
               onClick={() => {
                 nav.open(d.id);
               }}

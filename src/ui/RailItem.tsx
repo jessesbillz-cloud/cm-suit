@@ -37,9 +37,13 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
       aria-current={active ? 'page' : undefined}
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
       aria-expanded={expanded}
-      className={`relative flex shrink-0 items-center justify-center rounded-lg transition-colors ${
+      className={`relative flex shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ${
         compact ? 'h-10 w-10' : 'min-h-[60px] w-[80px] flex-col gap-1 [@media(max-height:820px)]:min-h-12 [@media(max-height:820px)]:gap-0.5'
-      } ${active || expanded ? 'bg-rail-active text-white' : 'text-rail-ink hover:bg-rail-hover hover:text-white'}`}
+      } ${
+        active || expanded
+          ? 'bg-rail-active text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.10),0_2px_6px_rgba(0,0,0,.35)]'
+          : 'text-rail-ink hover:bg-rail-hover hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)] active:bg-rail-active'
+      }`}
       onClick={onClick}
     >
       {active ? (

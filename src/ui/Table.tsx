@@ -1,8 +1,10 @@
-// The one look for logs and lists (SPEC §7.4): small uppercase column headers, rows at least 52px, a hover tint, and
+// The one look for logs and lists (SPEC §7.4): small uppercase column headers, rows at least 52px, a hover tint with a
+// gray edge bar (ui/box ROW_HOVER), and
 // the row open in the right column marked with the accent tint and a 3px accent bar on its left edge. Amber stays
 // amber (impact claimed) and gets the bar too. Numbers are tabular. Titles wrap; nothing is cut off.
 import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ROW_HOVER } from './box';
 import { Icon } from './Icon';
 
 export const TABLE = 'w-full table-fixed border-collapse text-sm';
@@ -19,7 +21,7 @@ const BAR = 'shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
 export function rowClass(selected: boolean, impact = false): string {
   const base = 'h-[52px] cursor-pointer border-b border-line transition-colors last:border-b-0';
   if (impact) return `${base} bg-impact-row ${selected ? BAR : 'hover:bg-impact-row/70'}`;
-  return selected ? `${base} bg-accent-soft/60 ${BAR}` : `${base} hover:bg-page/60`;
+  return selected ? `${base} bg-accent-soft/60 ${BAR}` : `${base} ${ROW_HOVER}`;
 }
 
 /** A phone list line: one stacked row, a big tap target, the same open-row marks. The caller sets the layout. */

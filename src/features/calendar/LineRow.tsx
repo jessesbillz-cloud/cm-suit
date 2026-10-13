@@ -4,6 +4,7 @@
 import type { CalendarLine } from '../../data/calendar.types';
 import { CALENDAR_KINDS, isCalendarKind, kindLabel, lineTarget } from '../../lib/calendarKinds';
 import { formatInZone } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import { lineChip, lineTime } from './model';
@@ -41,7 +42,7 @@ export function LineRow({ line, showJob, selected, timeLabel, onOpen }: LineRowP
       data-testid="cal-line"
       disabled={!opens}
       className={`flex min-h-[52px] w-full items-center gap-3 px-4 py-2.5 text-left ${
-        selected ? SELECTED_ROW : opens ? 'hover:bg-page/60' : 'cursor-default'
+        selected ? SELECTED_ROW : opens ? ROW_HOVER : 'cursor-default'
       }`}
       onClick={() => {
         onOpen(line);

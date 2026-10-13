@@ -30,7 +30,7 @@ function Tile({ stage, count, on, onToggle }: StageProps) {
       aria-pressed={on}
       data-testid={`pipeline-stage-${stage}`}
       className={`flex min-w-0 flex-1 flex-col gap-1 rounded-card px-4 py-3 text-left transition-[background-color,box-shadow] ${
-        on ? 'bg-card shadow-card' : 'border border-dashed border-line-strong bg-transparent hover:bg-card/60'
+        on ? 'bg-card shadow-card hover:shadow-lift active:shadow-tile' : 'border border-dashed border-line-strong bg-transparent hover:bg-card/60'
       }`}
       onClick={() => {
         onToggle(stage);

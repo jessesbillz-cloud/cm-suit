@@ -10,6 +10,7 @@ import { Download, Maximize2, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
 import type { FileRow as File } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { FIELD_CONTROL } from '../../ui/Fields';
 import { fileIcon } from '../../ui/fileIcon';
@@ -67,7 +68,7 @@ export function FileRow(props: FileRowProps) {
       data-testid="file-row"
       aria-current={selected ? 'true' : undefined}
       className={`group flex flex-wrap items-center gap-x-3 px-4 transition-colors sm:flex-nowrap ${
-        selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'
+        selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : ROW_HOVER
       }`}
     >
       {check === undefined ? null : check === null ? (

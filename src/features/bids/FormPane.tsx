@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Paperclip, Trash2 } from 'lucide-react';
 import { FORM_STATUSES, useAttachBidForm, useBidForms, useSaveBidForm, type BidFormItem, type FormPatch } from '../../data/bidForms';
 import { messageOf } from '../../data/errors';
+import { CLICK_BOX } from '../../ui/box';
 import { Button } from '../../ui/Button';
 import { TextField } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
@@ -113,7 +114,7 @@ function FormBody({ row, folderId, onClosed }: FormBodyProps) {
               }}
             />
           ) : null}
-          <label className="inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-card px-2.5 text-sm font-medium text-ink shadow-control hover:bg-page">
+          <label className={`inline-flex h-8 w-fit cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-ink ${CLICK_BOX}`}>
             <Icon icon={Paperclip} size={16} />
             {attach.isPending ? 'Attaching' : row.file_id !== null ? 'Replace' : 'Attach'}
             <input

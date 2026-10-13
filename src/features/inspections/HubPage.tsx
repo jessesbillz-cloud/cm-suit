@@ -3,6 +3,7 @@
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import { useRequestHub } from '../../data/requestLink';
+import { CLICK_BOX } from '../../ui/box';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { PublicPage } from '../auth/PublicPage';
@@ -40,14 +41,14 @@ export function HubPage() {
       {hub.data.jobs.length === 0 ? (
         <EmptyState title="No jobs are taking requests right now." />
       ) : (
-        <ul className="-mx-2 flex flex-col" data-testid="hub-jobs">
+        <ul className="flex flex-col gap-2" data-testid="hub-jobs">
           {hub.data.jobs.map((j) => (
             <li key={j.project_id}>
               <Link
                 to="/r/$projectId"
                 params={{ projectId: j.project_id }}
                 search={{ t, h: hubId }}
-                className="flex min-h-12 items-center gap-3 rounded-lg px-2 py-2.5 text-base font-medium text-ink hover:bg-page"
+                className={`flex min-h-12 items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium text-ink ${CLICK_BOX}`}
               >
                 <span className="min-w-0 flex-1 break-words">{j.name}</span>
                 <Icon icon={ChevronRight} size={18} className="text-ink-3" />

@@ -2,6 +2,7 @@
 import { LoaderCircle, Upload } from 'lucide-react';
 import { useImportSubs } from '../../data/subs.mutations';
 import { messageOf } from '../../data/errors';
+import { CLICK_BOX } from '../../ui/box';
 import { Icon } from '../../ui/Icon';
 import { useToast } from '../../ui/Toast';
 
@@ -38,7 +39,7 @@ export function ImportSubsButton({ projectId, orgId }: ImportSubsButtonProps) {
   return (
     <label
       aria-busy={run.isPending || undefined}
-      className={`inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-card px-2.5 text-sm font-medium ${run.isPending ? 'cursor-wait text-ink-3' : 'cursor-pointer text-ink hover:bg-page'}`}
+      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium ${CLICK_BOX} ${run.isPending ? 'cursor-wait text-ink-3' : 'cursor-pointer text-ink'}`}
     >
       {run.isPending ? <Icon icon={LoaderCircle} size={16} className="animate-spin" /> : <Icon icon={Upload} size={16} />}
       {run.isPending ? 'Importing' : 'Import list'}

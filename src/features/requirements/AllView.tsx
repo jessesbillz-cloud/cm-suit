@@ -2,6 +2,7 @@
 // status chip, who and where in the book (its kind instead of what the group already says), and the due day (red when
 // late). A tap opens it.
 import type { Requirement } from '../../data/requirements.types';
+import { ROW_HOVER } from '../../ui/box';
 import { phoneRowClass } from '../../ui/Table';
 import { DueText, KindChip, RequiredNote, StatusOf } from './RequirementBits';
 import { groupRows, rowFacts, type Grouping } from './model';
@@ -21,7 +22,7 @@ function AllRow({ row, by, selected, onOpen }: { row: Requirement; by: Grouping;
         type="button"
         data-testid={`req-row-${row.id}`}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected)} flex flex-col gap-1 ${selected ? '' : 'hover:bg-page/60'}`}
+        className={`${phoneRowClass(selected)} flex flex-col gap-1 ${selected ? '' : ROW_HOVER}`}
         onClick={() => { onOpen(row.id); }}
       >
         <span className="flex w-full items-start gap-3">

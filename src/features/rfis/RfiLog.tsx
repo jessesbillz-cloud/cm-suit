@@ -2,6 +2,7 @@
 // off), the due date at the right (red once late). Line 2: the route strip, where it is and how long each person has
 // had it. A tap opens it in the right column. No columns, no View buttons. Amber row = impact claimed, nothing else.
 import type { RfiListRow, RfiProgressRow } from '../../data/rfis.types';
+import { ROW_HOVER } from '../../ui/box';
 import { phoneRowClass } from '../../ui/Table';
 import { rfiNumber, rowNumber } from './model';
 import { dueMark } from './progress';
@@ -53,7 +54,7 @@ function Row({ row, steps, timeZone, now, selected, isPhone, onOpen }: RowProps)
         data-testid={`rfi-row-${rfiNumber(row.number)}`}
         data-impact={impact ? 'true' : undefined}
         aria-current={selected ? 'true' : undefined}
-        className={`${phoneRowClass(selected, impact)} flex flex-col gap-2 ${selected || impact ? '' : 'hover:bg-page/60'} ${isPhone ? '' : 'py-2.5'}`}
+        className={`${phoneRowClass(selected, impact)} flex flex-col gap-2 ${selected || impact ? '' : ROW_HOVER} ${isPhone ? '' : 'py-2.5'}`}
         onClick={() => {
           onOpen(row.id);
         }}

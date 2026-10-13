@@ -31,7 +31,7 @@ interface CellProps {
 
 function cellTone(isSelected: boolean, weekend: boolean): string {
   if (isSelected) return 'border-accent bg-accent-soft ring-1 ring-accent';
-  return weekend ? 'border-line bg-card-head hover:border-line-strong' : 'border-line bg-card hover:border-line-strong hover:bg-page/40';
+  return `${weekend ? 'bg-card-head' : 'bg-card'} border-line shadow-tile hover:border-line-strong hover:shadow-tile-hover active:shadow-press`;
 }
 
 function DayCell({ day, first, weekend, count, isToday, isPast, isSelected, onPick }: CellProps) {

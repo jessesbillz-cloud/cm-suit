@@ -3,6 +3,7 @@
 // cap). A button can carry a small mark before its name (a status dot, a color swatch) and can be done (shown, not
 // pickable); the one being looked at elsewhere (focus) is ringed. Big targets on the phone.
 import type { ReactNode } from 'react';
+import { CLICK_BOX, FOCUS_RING } from './box';
 
 export interface Chip<T extends string> {
   value: T;
@@ -53,14 +54,14 @@ export function ChipPick<T extends string>({ chips, picked, onChange, label, mul
             data-testid={testId ? `${testId}-${c.value}` : undefined}
             data-done={c.done ? 'true' : undefined}
             data-focus={c.value === focus ? 'true' : undefined}
-            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-left text-sm font-medium wrap-anywhere sm:min-h-9 ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-1.5 text-left text-sm font-medium wrap-anywhere sm:min-h-9 ${
               c.value === focus ? 'ring-2 ring-accent ring-offset-1' : ''
             } ${
               on
-                ? 'border-accent bg-accent text-white'
+                ? `border border-accent bg-accent text-white shadow-primary hover:shadow-primary-hover active:shadow-press ${FOCUS_RING}`
                 : c.done
-                  ? 'cursor-default border-line bg-card-head text-ink-3'
-                  : 'border-line bg-card text-ink hover:border-line-strong disabled:cursor-not-allowed disabled:text-ink-3/50'
+                  ? 'cursor-default border border-line bg-card-head text-ink-3'
+                  : `${CLICK_BOX} text-ink disabled:text-ink-3/50`
             }`}
             onClick={() => {
               onChange(nextPicked(picked, c.value, multiple, max));

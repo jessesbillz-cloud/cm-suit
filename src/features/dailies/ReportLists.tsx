@@ -7,6 +7,7 @@ import type { DailyReportRow } from '../../data/dailies.types';
 import { usePreviewFetch } from '../../data/preview';
 import { dailyHeaderSchema } from '../../lib/dailies';
 import { formatDay } from '../../lib/dates';
+import { ROW_HOVER } from '../../ui/box';
 import { Card } from '../../ui/Card';
 import { useFileViewer, type ViewerItem } from '../../ui/FileViewer';
 import { Icon } from '../../ui/Icon';
@@ -95,7 +96,7 @@ function MyList({ projectId, selectedId, onOpen }: ListProps) {
         const selected = r.id === selectedId;
         const fileId = r.pdf_file_id;
         return (
-          <li key={r.id} className={`flex items-center ${selected ? SELECTED : 'hover:bg-page/60'}`}>
+          <li key={r.id} className={`flex items-center ${selected ? SELECTED : ROW_HOVER}`}>
             <button
               type="button"
               data-testid="daily-row"
@@ -148,7 +149,7 @@ function TeamRow({ row, selected, onOpen, download, onView }: TeamRowProps) {
   const chip = reportChip(row);
   const fileId = row.pdf_file_id;
   return (
-    <li className={`flex items-center ${selected ? SELECTED : 'hover:bg-page/60'}`}>
+    <li className={`flex items-center ${selected ? SELECTED : ROW_HOVER}`}>
       <button
         type="button"
         data-testid="daily-team-row"

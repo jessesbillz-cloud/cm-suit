@@ -2,6 +2,7 @@
 // and the TV (size="tv", readable from across a trailer).
 import { formatInZone } from '../../lib/dates';
 import { durationLabel, endMs } from '../../lib/deliveries';
+import { ROW_HOVER } from '../../ui/box';
 import { StatusChip } from '../../ui/StatusChip';
 import type { BoardDelivery } from '../../data/deliveries.types';
 
@@ -79,7 +80,7 @@ export function DeliveryCard({ delivery: d, tz, size = 'normal', onOpen, selecte
         <button
           type="button"
           aria-current={selected ? 'true' : undefined}
-          className={`${cls} transition-colors ${selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-page/60'}`}
+          className={`${cls} transition-colors ${selected ? 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]' : ROW_HOVER}`}
           onClick={onOpen}
         >
           {body}
