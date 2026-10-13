@@ -52,7 +52,7 @@ function tinyPdf(lines: readonly string[]): number[] {
   out += `xref\n0 ${String(objects.length + 1)}\n0000000000 65535 f \n`;
   for (const at of offsets) out += `${String(at).padStart(10, '0')} 00000 n \n`;
   out += `trailer\n<< /Size ${String(objects.length + 1)} /Root 1 0 R >>\nstartxref\n${String(xref)}\n%%EOF\n`;
-  return [...out].map((c) => c.charCodeAt(0));
+  return Array.from({ length: out.length }, (_, i) => out.charCodeAt(i));
 }
 
 async function dropPdf(page: Page, name: string, lines: readonly string[]): Promise<void> {
