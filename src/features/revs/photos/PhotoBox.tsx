@@ -29,7 +29,7 @@ function PhotoForm({ projectId, isPhone, place, onDone }: FormProps) {
   const ready = place !== null && some && !uploads.busy && !uploads.failed && !add.isPending;
 
   function save() {
-    if (!ready || place === null) return;
+    if (!ready) return;
     add.mutate({ projectId, at: place, fileIds: uploads.ids, note }, { onSuccess: onDone });
   }
 
