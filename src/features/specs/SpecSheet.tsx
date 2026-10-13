@@ -10,6 +10,7 @@ interface SpecSheetProps {
   sections: readonly SpecBookSection[];
   at: number;
   onPick: (page: number) => void;
+  onHub: (section: string) => void;
   onClose: () => void;
 }
 
@@ -17,7 +18,7 @@ function focusables(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>('button:not([disabled]), input')];
 }
 
-export function SpecSheet({ sections, at, onPick, onClose }: SpecSheetProps) {
+export function SpecSheet({ sections, at, onPick, onHub, onClose }: SpecSheetProps) {
   const root = useRef<HTMLDivElement>(null);
   return (
     <div
@@ -63,6 +64,7 @@ export function SpecSheet({ sections, at, onPick, onClose }: SpecSheetProps) {
         sections={sections}
         at={at}
         autoFocus
+        onHub={onHub}
         onPick={(page) => {
           onPick(page);
           onClose();

@@ -1,7 +1,7 @@
 // Spec section numbers wherever people write them ("09 21 16", "092116", "09 21 16.13"), and where the reader is in a
 // spec book's sections. Numbers are compared by their digits, so spacing never matters.
 import type { SpecBook, SpecBookSection } from '../../data/specs';
-import { parseSubmittal } from '../files/fileNames';
+import { parseSubmittal, stripExt } from '../files/fileNames';
 
 /** "09 21 16.13" -> "09211613"; null when it is not a section number (Divisions 00 to 49). */
 export function sectionDigits(s: string): string | null {
@@ -23,9 +23,28 @@ export function findSection<T extends Pick<SpecBookSection, 'section'>>(sections
   }) ?? null;
 }
 
-/** The spec section a submittal's file name starts with ("092900_04.0_Gypsum Board_NET.pdf": 09 29 00), else null. */
+/** A section number in a name: 6 digits or 3 pairs with single spaces ("2026 10" is not one), never part of a longer number. */
+const IN_NAME = /(?<!\d)(?:\d{2} \d{2} \d{2}|\d{6})(?!\d)/g;
+
+/**
+ * The spec section a file's name carries, "09 29 00", else null. The one reading of it (Jesse, Oct 12: "as long as the
+ * spec number is in the title"): a submittal's own forms at the start ("092900_04.0_Gypsum Board_NET.pdf",
+ * "S-0147.0-079200-Joint Sealants"), else the first section number anywhere in it ("RFI 012 - 09 29 00 Board.pdf",
+ * "Sample Co 092900 shop drawings.pdf").
+ */
 export function sectionOfName(name: string): string | null {
-  return parseSubmittal(name)?.section ?? null;
+  const start = parseSubmittal(name)?.section;
+  if (start !== undefined) return start;
+  for (const m of stripExt(name).matchAll(IN_NAME)) {
+    const digits = sectionDigits(m[0].replace(/ /g, ''));
+    if (digits !== null) return `${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4, 6)}`;
+  }
+  return null;
+}
+
+/** "09 29 00", "092900" or "09 29 00.13" as the 6 digits a section is filed under; null when not a section number. */
+export function sectionKey(s: string): string | null {
+  return sectionDigits(s)?.slice(0, 6) ?? null;
 }
 
 /** The newest book (the books come oldest first) that has the section, and the section in it; null when none has it. */

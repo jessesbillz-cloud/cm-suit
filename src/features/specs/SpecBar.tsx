@@ -98,9 +98,11 @@ interface SpecBarProps {
   /** The book as it was when opened; the live answer replaces it (its sections appear once found). */
   book: SpecBook;
   nav: PageNav;
+  /** A section's page in Files. */
+  onHub: (section: string) => void;
 }
 
-export function SpecBar({ projectId, book: opened, nav }: SpecBarProps) {
+export function SpecBar({ projectId, book: opened, nav, onHub }: SpecBarProps) {
   const book = useLiveBook(projectId, opened);
   const sending = useSendText(projectId, book, nav);
   const [sheet, setSheet] = useState(false);
@@ -156,6 +158,7 @@ export function SpecBar({ projectId, book: opened, nav }: SpecBarProps) {
           sections={sections}
           at={at}
           onPick={goTo}
+          onHub={onHub}
           onClose={() => {
             setSheet(false);
           }}
