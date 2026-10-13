@@ -32,6 +32,7 @@ import { OfsRoute } from './OfsRoute';
 import { RequestDetails } from './RequestDetails';
 import { RequesterActions } from './RequesterActions';
 import { RevCells } from './RevCells';
+import { RequestWallPhotos } from '../revs/photos/RequestWallPhotos';
 import { clockLabel, durationLabel } from './time';
 import { Tracker } from './Tracker';
 import { useIrAccess, type IrCan, type IrJob } from './useIrAccess';
@@ -159,6 +160,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
             <IrMap requestId={row.id} projectId={row.project_id} />
           </PaneSection>
         ) : null}
+        {revs !== null ? <RequestWallPhotos projectId={row.project_id} requestId={row.id} /> : null}
         {mine && can.request ? <RequesterActions row={row} canMove={!decides} /> : null}
         {can.gcApprove && atGc ? <GcActions row={row} /> : null}
         <DeciderSteps row={row} can={can} me={user.id} jobName={job.name} revs={revs} holder={holder} />

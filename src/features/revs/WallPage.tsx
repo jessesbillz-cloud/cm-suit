@@ -37,6 +37,7 @@ import { WallFacts } from './WallFacts';
 import { WallHeader } from './WallHeader';
 import { WallHistory } from './WallHistory';
 import { WallItems } from './WallItems';
+import { WallPhotos } from './photos/WallPhotos';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
 import { useWallManage } from './WallManage';
 import { countOf, firstPick, keepAskable, MAX_PICK, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
@@ -223,6 +224,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
           />
         </div>
       </div>
+      <WallPhotos projectId={projectId} areaId={area.id} isPhone={isPhone} />
       <WallHistory
         projectId={projectId}
         areaId={area.id}

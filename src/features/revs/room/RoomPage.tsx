@@ -34,6 +34,7 @@ import { AddRoomWall, RoomForm } from './RoomForms';
 import { RoomImage } from './RoomImage';
 import { RoomWallRow } from './RoomWallRow';
 import { useRoomActions } from './useRoomActions';
+import { RoomPhotos } from '../photos/RoomPhotos';
 
 interface RoomPageProps {
   projectId: string;
@@ -198,6 +199,7 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
           ))}
         </ul>
       </section>
+      <RoomPhotos projectId={projectId} roomId={room.id} walls={walls} isPhone={isPhone} />
     </div>
   );
 }

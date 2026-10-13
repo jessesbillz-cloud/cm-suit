@@ -147,6 +147,8 @@ export const PUBLIC_TABLES = [
   'rev_signoffs',
   // Rooms (0083)
   'rev_rooms', 'rev_room_walls',
+  // Wall photos (0102)
+  'rev_photos',
   // Safety (0060)
   'safety_topics', 'safety_meetings', 'safety_signins',
   // Schedule (0062)
@@ -335,6 +337,20 @@ export const REVS_RPCS: [string, Record<string, unknown>][] = [
   ['rev_in_plans', { p_folder_id: ZERO_UUID }],
   ['rev_sheet_file_of', { p_project_id: ZERO_UUID, p_ref: 'probe', p_reader: true }],
   ['rev_walls_sheets_fill', { p_project_id: ZERO_UUID, p_file_id: null, p_reader: true }],
+  // Photos and notes on walls, rooms and requests (0102), and their helpers.
+  ['rev_photos_folder', { p_project_id: ZERO_UUID }],
+  ['rev_photo_add', { p_project_id: ZERO_UUID, p_area_id: ZERO_UUID, p_room_id: null, p_request_id: null, p_file_id: null, p_note: 'probe' }],
+  ['rev_photo_remove', { p_id: ZERO_UUID, p_version: 1 }],
+  ['rev_photo_restore', { p_id: ZERO_UUID }],
+  ['rev_photo_may_add', { p_project_id: ZERO_UUID, p_request_id: null }],
+  ['rev_photos_list', { p_project_id: ZERO_UUID, p_area_id: ZERO_UUID, p_room_id: null, p_request_id: null }],
+  ['rev_photo_may_see', { p_project_id: ZERO_UUID, p_created_by: ZERO_UUID, p_request_id: null }],
+  ['rev_photo_adder', { p_project_id: ZERO_UUID }],
+  ['rev_photo_decided', { p_request_id: ZERO_UUID }],
+  ['rev_photo_on_request', { p_request_id: ZERO_UUID }],
+  ['rev_photo_removable', { p_project_id: ZERO_UUID, p_created_by: ZERO_UUID, p_request_id: null }],
+  ['rev_photos_folder_id', { p_project_id: ZERO_UUID }],
+  ['rev_photo_lock', { p_id: ZERO_UUID, p_version: 1 }],
 ];
 
 /** A valid setup of a daily form (0072), for the probes. */

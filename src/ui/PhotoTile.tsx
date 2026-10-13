@@ -24,12 +24,14 @@ interface PhotoTileProps {
   onRemove?: (() => void) | undefined;
   /** A short line on the bottom edge (when it was added). */
   label?: ReactNode | undefined;
+  /** Lines under the tile (who, a note). */
+  caption?: ReactNode | undefined;
   testId?: string | undefined;
 }
 
-export function PhotoTile({ fileId, via, name, onOpen, onDownload, downloading = false, onRemove, label, testId }: PhotoTileProps) {
-  return (
-    <li className="relative" data-testid={testId}>
+export function PhotoTile({ fileId, via, name, onOpen, onDownload, downloading = false, onRemove, label, caption, testId }: PhotoTileProps) {
+  const tile = (
+    <>
       <button type="button" title={name} aria-label={`Open ${name}`} data-testid="photo-open" className={PHOTO_TILE} onClick={onOpen}>
         <Thumb fileId={fileId} via={via} alt={name} fill />
         {label ? <span className={PHOTO_TILE_LABEL}>{label}</span> : null}
@@ -51,6 +53,19 @@ export function PhotoTile({ fileId, via, name, onOpen, onDownload, downloading =
           <Icon icon={downloading ? LoaderCircle : Download} size={14} className={downloading ? 'animate-spin' : ''} />
         </button>
       ) : null}
+    </>
+  );
+  if (caption === undefined) {
+    return (
+      <li className="relative" data-testid={testId}>
+        {tile}
+      </li>
+    );
+  }
+  return (
+    <li className="flex flex-col gap-1" data-testid={testId}>
+      <div className="relative">{tile}</div>
+      {caption}
     </li>
   );
 }

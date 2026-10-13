@@ -111,7 +111,7 @@ function mockAppOnly(f: FolderRow): boolean {
   return (
     APP_KINDS.has(f.kind) ||
     f.person !== null ||
-    (f.parent_id === null && f.kind === 'general' && (f.name === 'Inspection requests' || f.name === 'Room pictures')) ||
+    (f.parent_id === null && f.kind === 'general' && (f.name === 'Inspection requests' || f.name === 'Room pictures' || f.name === 'Wall photos')) ||
     (f.kind === 'photos' && (f.name === 'Corrections' || f.name === 'Delivery tickets'))
   );
 }
