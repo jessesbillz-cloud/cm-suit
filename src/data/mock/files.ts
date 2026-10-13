@@ -1,7 +1,7 @@
-// e2e mock of Files' Delete, Undo, Move and Rename (migrations 0074, 0096) and a folder's Rename. Like the database: the
-// uploader or files.manage (every mock user but the bidder) may change a finished file, never a signed record (a file a
-// mock record points at), with a version check. A move never goes into or out of a folder only the app fills (Emailed
-// in is a tray to sort from). Nothing real in it.
+// e2e mock of Files' Delete, Undo, Move, Rename and spec section (migrations 0074, 0096, 0105) and a folder's Rename.
+// Like the database: the uploader or files.manage (every mock user but the bidder) may change a finished file, never a
+// signed record (a file a mock record points at), with a version check. A move never goes into or out of a folder only
+// the app fills (Emailed in is a tray to sort from). Nothing real in it.
 import { conflictError, toDataError } from '../errors';
 import type { FileFacts } from '../files';
 import type { FolderRow } from '../types';
@@ -97,4 +97,35 @@ export async function rename(id: string, version: number, name: string): Promise
 
 export function renameFolder(folderId: string, version: number, name: string): Promise<FolderRow> {
   return api.renameFolder(folderId, version, name);
+}
+
+/** Saves a file's copy with its spec section (0105). The section alone is not a new version, as in the database. */
+async function writeSection(id: string, section: string | null): Promise<number> {
+  const f = await api.file(id);
+  if (!f) throw toDataError({ message: 'not_found', code: 'P0002' });
+  writeMock((m) => ({ ...m, files: [...m.files.filter((x) => x.id !== id), { ...f, spec_section: section }] }));
+  return versionOf(id);
+}
+
+/** file_spec_sections_fill: each file I may change that has none gets its section; the rest are skipped. */
+export async function fillSections(items: readonly { fileId: string; section: string }[]): Promise<number> {
+  await delay();
+  let set = 0;
+  for (const it of items) {
+    const f = await api.file(it.fileId);
+    if (!f || (f.spec_section ?? null) !== null || !(await mayChange(it.fileId))) continue;
+    await writeSection(it.fileId, it.section);
+    set += 1;
+  }
+  return set;
+}
+
+/** file_spec_section_set: version-checked; the same section again answers its version. */
+export async function setSection(id: string, version: number, section: string | null): Promise<number> {
+  await delay();
+  const f = await api.file(id);
+  if (!f) throw toDataError({ message: 'not_found', code: 'P0002' });
+  if ((f.spec_section ?? null) === section) return versionOf(id);
+  await check(id, version);
+  return writeSection(id, section);
 }

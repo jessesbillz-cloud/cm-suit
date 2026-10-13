@@ -3,7 +3,8 @@
 // and an OFS IR goes to Reports / OFS history and is linked to its sign-offs, as Revs adds it (revs.manage, 0094).
 // A section whose folder only the app fills takes uploads in the folder under it I may add to (RFIs' Uploaded, 0099).
 // A file whose section can't take it here goes to To sort, else where the person is looking. After a drop that went
-// anywhere but there, one toast says where: "Sorted: 6 Plans, 434 Submittals, 2 To sort".
+// anywhere but there, one toast says where: "Sorted: 6 Plans, 434 Submittals, 2 To sort". `after` runs after each upload
+// (its spec section, useSubmittalNaming), but an OFS IR's, which is its link to Revs.
 import { useQueryClient } from '@tanstack/react-query';
 import { refusalOf } from '../../data/errors';
 import type { FileSection } from '../../data/fileSections';
@@ -32,7 +33,7 @@ interface SortArgs {
   revs: boolean;
 }
 
-export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void {
+export function useSortUpload(args: SortArgs): (dropped: DroppedFile[], after?: AfterUpload) => void {
   const { projectId, sections, viewing, viewFolder, folders, writable, manager, revs } = args;
   const qc = useQueryClient();
   const queue = useUploadQueue();
@@ -74,7 +75,7 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void 
     );
   }
 
-  function addTree(items: readonly DroppedFile[], parent: string) {
+  function addTree(items: readonly DroppedFile[], parent: string, after: AfterUpload | undefined) {
     const { dirs, groups } = planDrop(items);
     const aiReads = folders.find((f) => f.id === parent)?.ai_reads ?? true;
     ensure.mutateAsync({ projectId, parentId: parent, aiReads, dirs }).then(
@@ -82,7 +83,7 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void 
         for (const g of groups) {
           const target = ids.get(dirKey(g.dir));
           if (target === undefined) fail(`Not uploaded: no folder for ${dirKey(g.dir)}.`);
-          else queue.enqueue(g.files, projectId, target);
+          else queue.enqueue(g.files, projectId, target, after);
         }
       },
       (e: unknown) => {
@@ -91,7 +92,7 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void 
     );
   }
 
-  return (dropped) => {
+  return (dropped, after) => {
     if (dropped.length === 0) return;
     const sent = new Map<SectionKind, number>();
     const count = (k: SectionKind, n: number) => sent.set(k, (sent.get(k) ?? 0) + n);
@@ -114,8 +115,8 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[]) => void 
       count(to.kind, files.length);
       // A folder named for its section ("Approved Submittals"): what is in it goes right into the section.
       const into = g.intoSection && to.kind === g.kind;
-      if (g.tree) addTree(into ? g.items.map((d) => ({ ...d, dir: d.dir.slice(1) })) : g.items, to.folder);
-      else queue.enqueue(files, projectId, to.folder);
+      if (g.tree) addTree(into ? g.items.map((d) => ({ ...d, dir: d.dir.slice(1) })) : g.items, to.folder, after);
+      else queue.enqueue(files, projectId, to.folder, after);
     }
     if ([...sent.keys()].some((k) => k !== viewing)) {
       const parts = [...sent].map(([k, n]) => `${String(n)} ${SECTION_LABEL[k]}`);

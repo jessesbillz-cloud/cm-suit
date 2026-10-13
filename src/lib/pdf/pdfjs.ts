@@ -1,6 +1,6 @@
 // pdf.js, vendored in src/vendor/pdfjs (docs/decisions.md, Oct 2). Loaded only here and only by dynamic import, so it
 // is its own chunk that only a sheet or file viewer downloads; the worker is a separate file the bundler copies as is.
-// Shared by the Revs sheet viewer (features/revs/map) and the file viewer (ui/FileViewer).
+// Shared by the Revs sheet viewer (features/revs/map), the file viewer (ui/FileViewer) and Files on upload (leadText).
 import type {
   PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask,
 } from '../../vendor/pdfjs/pdf.min.mjs';
@@ -54,6 +54,33 @@ export async function pageText(doc: PDFDocumentProxy, number: number): Promise<s
   }
   page.cleanup();
   return out;
+}
+
+/** pdf.js's names for a file it can't open: not a PDF or broken, locked, or one its worker could not parse. */
+const UNREADABLE = new Set(['InvalidPDFException', 'PasswordException', 'UnknownErrorException']);
+
+/**
+ * The text of a PDF's first pages, read in this browser from a picked or dropped file (the spec section on upload,
+ * features/files/dropSections). Null when the file is not a PDF pdf.js can open; a scan answers ''.
+ */
+export async function leadText(file: File, pages: number): Promise<string | null> {
+  const lib = await pdfjs();
+  const data = new Uint8Array(await file.arrayBuffer());
+  const task = lib.getDocument({ data, isEvalSupported: false, wasmUrl: WASM_URL, verbosity: ERRORS_ONLY });
+  const doc = await task.promise.catch(async (e: unknown) => {
+    // Its worker goes with it.
+    await task.destroy();
+    if (e instanceof Error && UNREADABLE.has(e.name)) return null;
+    throw e;
+  });
+  if (doc === null) return null;
+  try {
+    const texts: string[] = [];
+    for (let n = 1; n <= Math.min(pages, doc.numPages); n += 1) texts.push(await pageText(doc, n));
+    return texts.join('\n');
+  } finally {
+    await doc.destroy();
+  }
 }
 
 /** A short sentence for a sheet that won't open. */

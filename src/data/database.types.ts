@@ -2416,6 +2416,7 @@ export type Database = {
           scanned_at: string | null
           sha256: string | null
           size: number
+          spec_section: string | null
           storage_path: string
           superseded_by: string | null
           text_status: string
@@ -2441,6 +2442,7 @@ export type Database = {
           scanned_at?: string | null
           sha256?: string | null
           size?: number
+          spec_section?: string | null
           storage_path: string
           superseded_by?: string | null
           text_status?: string
@@ -2466,6 +2468,7 @@ export type Database = {
           scanned_at?: string | null
           sha256?: string | null
           size?: number
+          spec_section?: string | null
           storage_path?: string
           superseded_by?: string | null
           text_status?: string
@@ -8147,6 +8150,12 @@ export type Database = {
         Returns: number
       }
       file_restore: { Args: { p_file_id: string }; Returns: undefined }
+      file_spec_section_may: { Args: { p_file_id: string }; Returns: boolean }
+      file_spec_section_set: {
+        Args: { p_file_id: string; p_section: string; p_version: number }
+        Returns: number
+      }
+      file_spec_sections_fill: { Args: { p_items: Json }; Returns: number }
       file_storage_path: {
         Args: {
           p_file_id: string
@@ -12130,6 +12139,7 @@ export type Database = {
           scanned_at: string | null
           sha256: string | null
           size: number
+          spec_section: string | null
           storage_path: string
           superseded_by: string | null
           text_status: string

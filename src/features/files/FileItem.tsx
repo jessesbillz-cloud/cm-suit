@@ -93,7 +93,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
     else viewer.open([item]);
   };
 
-  const section = folderKind !== undefined && folderKind !== 'specs' ? specFor(f.original_name) : null;
+  const section = folderKind !== undefined && folderKind !== 'specs' ? specFor(f.original_name, f.spec_section) : null;
   const actions =
     remove !== undefined || section !== null ? (
       <>

@@ -1,12 +1,13 @@
 // A spec section as the hub (Jesse, Oct 12: "a search bar and you can search the spec section, or click a spec section
 // and say show me all the RFIs and submittals associated with this"). The sections: the job's spec book's, and any
 // other a submittal, RFI or CCD names (titled from the CSI list when it has them). A section's items: the Submittals,
-// RFIs (the RFI tool's whose Reference or title names it, and RFI documents whose names carry it) and CCDs whose names
-// carry it, by its 6 digits (sectionOfName, the one reading), each group newest first.
+// RFIs (the RFI tool's whose Reference or title names it, and RFI documents filed under it) and CCDs filed under it, by
+// its 6 digits, each group newest first. A file is filed under its spec section (0105, found on upload, Jesse, Oct 12:
+// "hidden if we had to"), else its name's (fileSectionKey).
 import type { RfiRef } from '../../data/specHub';
 import type { FileRow } from '../../data/types';
 import { findSections } from '../specs/findSections';
-import { sectionKey, sectionOfName, sectionRefs } from '../specs/sections';
+import { fileSectionKey, sectionKey, sectionRefs } from '../specs/sections';
 
 export interface HubSection {
   /** "092900". */
@@ -64,11 +65,6 @@ function rfiKeys(r: Pick<RfiRef, 'refs' | 'title'>): string[] {
   });
 }
 
-const fileKey = (f: Pick<FileRow, 'original_name'>) => {
-  const s = sectionOfName(f.original_name);
-  return s === null ? null : sectionKey(s);
-};
-
 export interface HubSources {
   submittals: readonly FileRow[];
   /** RFI documents in Files' RFIs section. */
@@ -80,7 +76,7 @@ export interface HubSources {
 /** Every section the items name ("09 29 00"), for sections the book doesn't have. */
 export function namedSections(src: HubSources): string[] {
   const keys = [
-    ...[...src.submittals, ...src.rfiFiles, ...src.ccds].flatMap((f) => fileKey(f) ?? []),
+    ...[...src.submittals, ...src.rfiFiles, ...src.ccds].flatMap((f) => fileSectionKey(f) ?? []),
     ...src.rfis.flatMap(rfiKeys),
   ];
   return [...new Set(keys)].map(spaced);
@@ -99,7 +95,7 @@ const at = (r: HubRfiRow) => (r.kind === 'rfi' ? r.rfi.created_at : r.file.creat
 
 /** One section's items, each group newest first. */
 export function hubGroups(key: string, src: HubSources): HubGroups {
-  const mine = (files: readonly FileRow[]) => files.filter((f) => fileKey(f) === key).sort(newest);
+  const mine = (files: readonly FileRow[]) => files.filter((f) => fileSectionKey(f) === key).sort(newest);
   const rfis: HubRfiRow[] = [
     ...src.rfis.filter((r) => rfiKeys(r).includes(key)).map((rfi) => ({ kind: 'rfi' as const, rfi })),
     ...mine(src.rfiFiles).map((file) => ({ kind: 'file' as const, file })),
@@ -113,7 +109,7 @@ export function hubCounts(src: HubSources): Map<string, number> {
   const add = (key: string | null) => {
     if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
   };
-  for (const f of [...src.submittals, ...src.rfiFiles, ...src.ccds]) add(fileKey(f));
+  for (const f of [...src.submittals, ...src.rfiFiles, ...src.ccds]) add(fileSectionKey(f));
   for (const r of src.rfis) for (const k of new Set(rfiKeys(r))) add(k);
   return counts;
 }

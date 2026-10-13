@@ -19,7 +19,7 @@ export function useRowViewer(
   projectId: string,
   rows: readonly FileRow[],
   specs: boolean,
-  specFor: (fileName: string) => string | null = () => null,
+  specFor: (fileName: string, stored?: string | null) => string | null = () => null,
 ) {
   const viewer = useFileViewer();
   const preview = usePreviewFetch();
@@ -33,7 +33,7 @@ export function useRowViewer(
       const book = books.data?.find((b) => b.file_id === f.id);
       if (book) return specViewerItem(projectId, book, preview, { hub });
       const item = fileViewerItem(f, preview);
-      const section = specFor(f.original_name);
+      const section = specFor(f.original_name, f.spec_section);
       if (section === null) return item;
       const bar = (
         <SpecViewerBar

@@ -3,7 +3,8 @@
 // (useFileDrop), shows the upload lines, and on the rows I may change a checkbox and Delete (files_changeable, one call
 // for the list); checked rows get Move to and Delete in the list's head, and in To sort each row has its own Move to.
 // In Plans and Specs a row's name opens the file full screen at once (Jesse, Oct 5). In Submittals a section the job's
-// spec book has opens the book there, and a submittal whose name has no section has Add spec section (Jesse, Oct 12).
+// spec book has opens the book there, and a submittal filed under no section has Add spec section (Jesse, Oct 12).
+// Opening the list files the rows I may change under the sections their names carry (useNameSections, 0105).
 import { useState } from 'react';
 import { useChangeable } from '../../data/files';
 import { useSectionFiles, type FileSection } from '../../data/fileSections';
@@ -12,7 +13,7 @@ import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
-import { sectionOfName } from '../specs/sections';
+import { fileSectionKey } from '../specs/sections';
 import { useOpenSpec } from '../specs/useOpenSpec';
 import { useSpecFor } from '../specs/useSpecFor';
 import { AddSection } from './AddSection';
@@ -31,6 +32,7 @@ import { useDeleteFile } from './useDeleteFile';
 import { useDownload } from './useDownload';
 import { useFileDrop } from './useFileDrop';
 import { useMoveRows } from './useMoveRows';
+import { useNameSections } from './useNameSections';
 import { useRowViewer } from './useRowViewer';
 
 interface SectionFilesProps {
@@ -81,6 +83,7 @@ export function SectionFiles(props: SectionFilesProps) {
     stored.map((f) => f.id),
   );
   const versions = changeable.data ?? new Map<string, number>();
+  useNameSections(projectId, stored, versions);
   const specFor = useSpecFor(projectId, kind === 'submittals');
   const openSpec = useOpenSpec(projectId);
   const viewer = useRowViewer(
@@ -160,7 +163,7 @@ export function SectionFiles(props: SectionFilesProps) {
                 {rows.map(({ file: f, view }) => {
                   const version = versions.get(f.id);
                   const one = version === undefined ? null : [{ file: f, version }];
-                  const section = specFor(f.original_name);
+                  const section = specFor(f.original_name, f.spec_section);
                   return (
                     <FileRow
                       key={f.id}
@@ -191,7 +194,7 @@ export function SectionFiles(props: SectionFilesProps) {
                       }
                       onDelete={one === null ? undefined : () => { del.runMany(one); }}
                       spec={section === null ? undefined : { section, onOpen: () => { openSpec({ section }); } }}
-                      fix={kind === 'submittals' && version !== undefined && sectionOfName(f.original_name) === null ? <AddSection file={f} version={version} /> : undefined}
+                      fix={kind === 'submittals' && version !== undefined && fileSectionKey(f) === null ? <AddSection file={f} version={version} /> : undefined}
                       move={
                         kind === 'unsorted' && one !== null && targets.length > 0
                           ? { targets, onMove: (to) => { mover.run(one, to); } }

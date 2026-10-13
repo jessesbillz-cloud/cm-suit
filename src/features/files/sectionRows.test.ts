@@ -58,4 +58,11 @@ describe("a section's list", () => {
     );
     expect(rows.map((r) => r.file.id)).toEqual(['z', 'y', 'x']);
   });
+
+  it('shows a submittal filed under a section its name does not carry, and finds it by that section', () => {
+    const hidden = { ...file('d', 'subs', 'Shop drawings.pdf'), spec_section: '092900' };
+    const rows = sectionRows([hidden], 'submittals', SUBS, FOLDERS, null, '09 29');
+    const v = rows[0]?.view;
+    expect(v?.kind === 'submittal' ? [v.sub?.section, v.sub?.title] : null).toEqual(['09 29 00', 'Shop drawings']);
+  });
 });
