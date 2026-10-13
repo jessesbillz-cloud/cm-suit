@@ -27,6 +27,7 @@ import { NOTICE_STATEMENT } from './model';
 import { InspectorStatement, NoticeBox, SpecialQuestion } from './OfsAsk';
 import { OfsFields, type OfsRevs } from './OfsFields';
 import { Receipt } from './Receipt';
+import { RequestWallPhotos } from '../revs/photos/RequestWallPhotos';
 import { CompanyField, ItemsText, SubmitBar } from './RequestParts';
 import { SpecialPick } from './SpecialPick';
 import { useOpenRequest } from './useInspectionsNav';
@@ -126,6 +127,7 @@ export function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: B
         }}
       >
         {sent.map ? <IrMap requestId={sent.row.id} projectId={projectId} editing /> : null}
+        {sent.map ? <RequestWallPhotos projectId={projectId} requestId={sent.row.id} /> : null}
       </Receipt>
     );
   }
