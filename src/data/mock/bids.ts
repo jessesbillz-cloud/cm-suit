@@ -41,8 +41,17 @@ function isBidder(): boolean {
   return mockUser().id === 'mock-user-bidder';
 }
 
-/** has_capability in the mock: the bidder can only submit; everyone else can do everything else, but for the tools
- *  that keep their own matrix (corrections, inspections, RFIs, permits, revs, safety, the schedule). */
+/** The personas whose roles hold no bids.* row in role_permissions (only estimator and project admin manage bids). The
+ *  mock 'pm' and the default user stay the bid managers the bids tests sign in as. */
+const NO_BIDS: readonly string[] = ['inspector', 'ahj', 'sub', 'architect', 'safety', 'foreman', 'super'];
+
+function holdsNoBids(): boolean {
+  return NO_BIDS.includes(mockUser().id.replace(/^mock-user-/, ''));
+}
+
+/** has_capability in the mock: the bidder can only submit; the field personas hold no bids.*; everyone else can do
+ *  everything else, but for the tools that keep their own matrix (corrections, inspections, RFIs, permits, revs,
+ *  safety, the schedule). */
 export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('corrections.')) return mockCorrections.capability(cap);
   if (cap.startsWith('ir.')) return mockIr.capability(cap);
@@ -53,7 +62,8 @@ export async function capability(cap: string): Promise<boolean> {
   if (cap.startsWith('schedule.')) return mockSchedule.capability(cap);
   if (cap.startsWith('requirements.')) return mockRequirements.capability(cap);
   await delay();
-  return isBidder() ? cap === 'bids.submit' : cap !== 'bids.submit';
+  if (isBidder()) return cap === 'bids.submit';
+  return cap !== 'bids.submit' && !(cap.startsWith('bids.') && holdsNoBids());
 }
 
 /** The aal2-gated capabilities (pricing, findings): managers once the mock two-step login is done, never the bidder. */
