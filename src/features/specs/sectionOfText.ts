@@ -47,7 +47,7 @@ const spaced = (key: string) => `${key.slice(0, 2)} ${key.slice(2, 4)} ${key.sli
 
 /** The section the text names, "09 29 00", else null. `book`: the job's spec book's sections, to prefer. */
 export function sectionOfText(text: string, book: readonly { section: string }[] = []): string | null {
-  const lines = text.replace(/[\t  ]+/g, ' ').split(/\r?\n/);
+  const lines = text.replace(/[\t\u00a0 ]+/g, ' ').split(/\r?\n/);
   const found: Found[] = [];
   lines.forEach((line, n) => {
     for (const m of line.matchAll(NUMBER)) {

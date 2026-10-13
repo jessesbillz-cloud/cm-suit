@@ -12139,6 +12139,7 @@ export type Database = {
           scanned_at: string | null
           sha256: string | null
           size: number
+          spec_section: string | null
           storage_path: string
           superseded_by: string | null
           text_status: string

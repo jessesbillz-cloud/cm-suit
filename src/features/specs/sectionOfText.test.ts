@@ -12,7 +12,7 @@ describe('sectionOfText', () => {
   it('reads the number however it is spaced, and a Level 4 under its 6 digits', () => {
     expect(sectionOfText('Specification Section No. 092900')).toBe('09 29 00');
     expect(sectionOfText('SECTION 09 21 16.13 - NON-STRUCTURAL FRAMING')).toBe('09 21 16');
-    expect(sectionOfText('Spec   Section: 09 29 00')).toBe('09 29 00');
+    expect(sectionOfText('Spec   Section:\u00a009 29 00')).toBe('09 29 00');
   });
 
   it("reads an RFI's Spec Section or Reference field", () => {
