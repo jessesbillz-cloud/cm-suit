@@ -5,6 +5,7 @@
 //   Brand: job_brand (the company the job shows and its logo's path) with a fresh signed URL of the logo, for the top
 //   bar. job_brand_choices and set_job_brand (project.manage) for Settings > Job.
 import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { supabase } from './client';
 import { throwIfError, throwIfErrorMaybe } from './errors';
 import { qk } from './keys';
@@ -13,11 +14,22 @@ import * as mock from './mock/orgBrand';
 import { signedLogoUrl } from './org.mutations';
 import type { BrandChoice, JobBrand, Letterhead, LetterheadField } from './brand.types';
 
+const letterheadRow = z
+  .object({
+    version: z.number().int(),
+    print_name: z.string().nullable(),
+    address: z.string().nullable(),
+    phone: z.string().nullable(),
+    website: z.string().nullable(),
+  })
+  .nullable();
+
 async function fetchLetterhead(orgId: string): Promise<Letterhead> {
   if (isMock()) return mock.letterhead(orgId);
-  const row = throwIfErrorMaybe(
+  const raw: unknown = throwIfErrorMaybe(
     await supabase.from('org_letterheads').select('version, print_name, address, phone, website').eq('org_id', orgId).maybeSingle(),
   );
+  const row = letterheadRow.parse(raw);
   return {
     version: row?.version ?? 0,
     print_name: row?.print_name ?? '',
