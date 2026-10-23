@@ -50,6 +50,10 @@ test.describe('the look of the fire marshal screens', () => {
     await page
       .getByTestId('ofs-desk-submittal-input')
       .setInputFiles({ name: SUBMITTAL, mimeType: 'application/pdf', buffer: Buffer.from(`%PDF-1.4\n% ${SUBMITTAL}\n%%EOF\n`) });
+    // The upload has landed: it waits on OFS.
+    const waiting = page.locator('[data-testid="ofs-group"][data-group="waiting"]');
+    await waiting.getByTestId('ofs-group-head').first().click();
+    await expect(page.locator('[data-testid="ofs-group"][data-group="waiting/submittals"]').getByTestId('ofs-group-count').first()).toHaveText('1');
     await shot(page, '01-start-page');
 
     // The fire marshal: home, For review, one item open with Approve / Not approved.
@@ -59,7 +63,7 @@ test.describe('the look of the fire marshal screens', () => {
     await openAs(page, 'ahj', `/p/${JOB}/review`);
     await expect(page.getByTestId('ofs-review')).toBeVisible();
     await shot(page, '03-for-review');
-    await page.getByTestId('ofs-row').first().click();
+    await page.getByTestId('ofs-row').filter({ hasText: SUBMITTAL }).click();
     await expect(page.getByTestId('ofs-approve')).toBeVisible();
     await shot(page, '04-review-item');
 
