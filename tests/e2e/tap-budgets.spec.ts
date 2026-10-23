@@ -322,7 +322,14 @@ test.describe('tap budgets, a batch of OFS requests', () => {
     await page.evaluate((w: string) => {
       window.localStorage.setItem('e2e-mock-user', w);
     }, who);
-    await page.goto(path);
+    try {
+      await page.goto(path);
+    } catch (e) {
+      // The first page of a test can reload itself once (a new build taking over) while this navigation starts.
+      if (!/interrupted/i.test(String(e))) throw e;
+      await page.waitForLoadState();
+      await page.goto(path);
+    }
   }
 
   test('GC Ready all = 1 tap, inspector Send all to OFS = 1 tap', async ({ page }) => {

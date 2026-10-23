@@ -21,7 +21,7 @@ async function openAs(page: Page, who: string, path: string): Promise<void> {
     await page.goto(path);
   } catch (e) {
     // The first page of a test can reload itself once (a new build taking over) while this navigation starts.
-    if (!String(e).includes('interrupted by another navigation')) throw e;
+    if (!/interrupted/i.test(String(e))) throw e;
     await page.waitForLoadState();
     await page.goto(path);
   }
