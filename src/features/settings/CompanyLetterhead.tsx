@@ -11,8 +11,8 @@ import { FIELD_ROW } from './SettingRow';
 
 const FIELDS: readonly { field: LetterheadField; label: string; max: number; autoComplete: string }[] = [
   { field: 'print_name', label: 'Name on documents', max: 120, autoComplete: 'organization' },
-  { field: 'address', label: 'Address', max: 200, autoComplete: 'street-address' },
-  { field: 'phone', label: 'Phone', max: 40, autoComplete: 'tel' },
+  { field: 'address', label: 'Office address', max: 200, autoComplete: 'street-address' },
+  { field: 'phone', label: 'Office phone', max: 40, autoComplete: 'tel' },
   { field: 'website', label: 'Website', max: 120, autoComplete: 'url' },
 ];
 

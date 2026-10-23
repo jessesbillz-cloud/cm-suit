@@ -75,7 +75,9 @@ test.describe('company logo, letterhead and the job brand (0110)', () => {
     await page.getByTestId('add-company-save').click();
     await expect(page.getByRole('heading', { name: 'Sample Fire Office' })).toBeVisible();
     await page.getByTestId('company-logo-input').nth(1).setInputFiles({ name: 'office.svg', mimeType: 'image/svg+xml', buffer: SVG });
-    await expect(page.getByTestId('company-logo-image').nth(1)).toBeVisible();
+    // Sample Builders has no logo in this test: the fire office's is the only one.
+    await expect(page.getByTestId('company-logo-image')).toHaveCount(1);
+    await expect(page.getByTestId('company-logo-image')).toBeVisible();
 
     const brand = page.getByTestId('job-brand');
     await expect(brand.locator('option')).toHaveText(['Sample Builders', 'Sample Fire Office']);
