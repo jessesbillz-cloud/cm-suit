@@ -31,6 +31,8 @@ import { decidesRequest, ownsSteps, requestChip, resultsNow, routesOnly, tracker
 import { OfsRoute } from './OfsRoute';
 import { RequestDetails } from './RequestDetails';
 import { RequesterActions } from './RequesterActions';
+import { schedState } from './ofsSchedule';
+import { ScheduleBox } from './ScheduleBox';
 import { RevCells } from './RevCells';
 import { RequestWallPhotos } from '../revs/photos/RequestWallPhotos';
 import { clockLabel, durationLabel } from './time';
@@ -138,6 +140,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
             save();
           }}
         />
+        {ofs && row.ofs_sent_at !== null ? (
+          <ScheduleBox row={row} state={schedState(row)} date={row.request_date} time={row.start_time} note={row.ofs_sched_note} canAccept={mine || holder || can.decide} />
+        ) : null}
         {duties.isError ? <ErrorState error={duties.error} onRetry={() => void duties.refetch()} className="m-0" /> : null}
         {ofs ? (
           <OfsChecks

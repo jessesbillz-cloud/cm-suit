@@ -35,7 +35,9 @@ type IrRpcName =
   | 'ir_send_ofs'
   | 'ir_unsend_ofs'
   | 'ir_ofs_check'
-  | 'ir_ofs_number_set';
+  | 'ir_ofs_number_set'
+  | 'ir_ofs_propose'
+  | 'ir_ofs_accept';
 
 /** The request fields a write needs: which one, and the version I saw (the database refuses a stale one). */
 export type IrRef = Pick<IrRequest, 'id' | 'version' | 'project_id'>;
@@ -56,6 +58,9 @@ function useIrApply() {
     qc.setQueryData<IrRequest | null>(qk.inspectionsPart(row.project_id, 'request', row.id), (old) => (old ? { ...old, ...row } : old));
     await qc.invalidateQueries({ queryKey: qk.inspections(row.project_id) });
     if (row.kind === 'ofs') {
+      // The fire marshal's schedule on All my jobs, and the designated person's start page (0108).
+      await qc.invalidateQueries({ queryKey: qk.inspections('all') });
+      await qc.invalidateQueries({ queryKey: qk.ofsPart('desk', row.project_id) });
       await qc.invalidateQueries({ queryKey: qk.revs(row.project_id) });
       await qc.invalidateQueries({ queryKey: qk.board(row.project_id) });
     }

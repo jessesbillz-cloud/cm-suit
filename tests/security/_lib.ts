@@ -437,3 +437,17 @@ export const OFS_REVIEW_RPCS: [string, Record<string, unknown>][] = [
   ['ofs_item_json', { p_item_id: ZERO_UUID }],
   ['folder_nearest_kind', { p_folder_id: ZERO_UUID }],
 ];
+
+/** OFS scheduling (0108): his schedule, his new time, the requester's Accept, and their helpers. */
+export const OFS_SCHEDULE_RPCS: [string, Record<string, unknown>][] = [
+  ['ofs_schedule', { p_from: '2026-10-01', p_to: '2026-10-07' }],
+  ['ir_ofs_propose', { p_request_id: ZERO_UUID, p_version: 1, p_date: '2026-10-01', p_time: '09:00' }],
+  ['ir_ofs_accept', { p_request_id: ZERO_UUID, p_version: 1 }],
+  ['ir_ofs_sched_state', { p_status: 'pending', p_result: null, p_sched: null }],
+  ['ir_ofs_label', { p_number: 1 }],
+  ['ir_ofs_when', { p_date: '2026-10-01', p_time: '09:00' }],
+  ['ir_ofs_place', { p_request_id: ZERO_UUID }],
+  ['ir_ofs_side', { p_request_id: ZERO_UUID }],
+  ['ir_ofs_tell_side', { p_request: {}, p_kind: 'probe', p_summary: 'probe' }],
+  ['ir_ofs_calendar_sync', { p_request_id: ZERO_UUID }],
+];

@@ -1,6 +1,7 @@
 // The home's cards above the activity (All my jobs is the to-do list): each a box with its heading and count, each
 // only for someone whose role on some job works it (home/useHomeScope, capabilities only). For review leads for whoever
-// reviews for OFS, then Inspections today for whoever inspects or requests; today's reports for whoever writes dailies;
+// reviews for OFS, then the OFS schedule for whoever decides OFS requests (0108), then Inspections today for whoever
+// inspects or requests; today's reports for whoever writes dailies;
 // Needs you for everyone; RFIs waiting and open bids for the management side.
 import { useRfiWaiting } from '../../../data/rfis.queries';
 import { Card } from '../../../ui/Card';
@@ -9,6 +10,7 @@ import { NeedsYou } from '../NeedsYou';
 import { TodayReports } from '../TodayReports';
 import { BidsOpen } from './BidsOpen';
 import { ForReviewCard } from './ForReviewCard';
+import { HomeSchedule } from './HomeSchedule';
 import { InspectionsToday } from './InspectionsToday';
 import { RfisWaitingCard } from './RfisWaitingCard';
 import { useHomeScope } from './useHomeScope';
@@ -16,7 +18,9 @@ import { useHomeScope } from './useHomeScope';
 export function HomeCards() {
   const scope = useHomeScope();
   const waiting = useRfiWaiting();
-  const inspections = scope.inspections ?? [];
+  const ofs = scope.ofs ?? [];
+  // The jobs where I decide OFS requests are on my OFS schedule; Inspections today keeps the rest.
+  const inspections = (scope.inspections ?? []).filter((id) => !ofs.includes(id));
   // An RFI still waiting on someone shows even if my role there changed since.
   const rfis = (scope.rfis?.length ?? 0) > 0 || (waiting.data?.length ?? 0) > 0;
   const bids = (scope.bids?.length ?? 0) > 0;
@@ -30,7 +34,8 @@ export function HomeCards() {
         </Card>
       ) : null}
       {(scope.review?.length ?? 0) > 0 ? <ForReviewCard /> : null}
-      {inspections.length > 0 ? <InspectionsToday jobs={inspections} ofsJobs={scope.ofs ?? []} /> : null}
+      {ofs.length > 0 ? <HomeSchedule /> : null}
+      {inspections.length > 0 ? <InspectionsToday jobs={inspections} ofsJobs={ofs} /> : null}
       <TodayReports />
       <div className={`grid items-start gap-4 ${pair ? 'xl:grid-cols-2' : ''}`}>
         <NeedsYou projectId={null} withRfis={false} />

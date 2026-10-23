@@ -16,6 +16,7 @@ import { mockUser } from './index';
 import { holder } from './duties';
 import { NO_OFS_CHECKS, STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, type Args } from './irRules';
 import { OFS_STEPS, backToGc, stampOnFile } from './ofsRules';
+import { SCHED_STEPS, confirmAnswer, schedAfter } from './ofsSchedRules';
 import { projectSettings } from './jobs';
 import { has as hasPermitRight } from './permitStore';
 import { revsJobRequests } from './revSeeds';
@@ -241,6 +242,11 @@ function fileRequest(a: Args, by: string | null, patch: Partial<IrRowRaw>): IrRo
   return row;
 }
 
+/** Every request, as the database's own functions read them (ofs_schedule answers across jobs, mock/ofsSchedule). */
+export function everyRequest(): IrRowRaw[] {
+  return read().requests;
+}
+
 /** ir_for_update: the request, if the signed-in mock user may read it in full. */
 export function readable(requestId: unknown): IrRowRaw {
   const r = read().requests.find((x) => x.id === requestId);
@@ -262,7 +268,7 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   await delay();
   const me = mockUser().id;
   if (name === 'ir_submit') return fileRequest(a, me, {});
-  const step = STEPS[name] ?? OFS_STEPS[name];
+  const step = STEPS[name] ?? OFS_STEPS[name] ?? SCHED_STEPS[name];
   if (!step) throw notFound();
   const current = readable(a['p_request_id']);
   // The permit link checks the version only once it has something to change (set_request_permit).
@@ -280,8 +286,10 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   });
   if (change === null) return current;
   if (late && current.version !== a['p_version']) throw conflictError();
-  const changed: IrRowRaw = { ...current, ...change };
-  const next: IrRowRaw = { ...changed, ...backToGc(current, changed), version: current.version + 1, updated_at: now };
+  const changed: IrRowRaw = { ...current, ...change, ...(name === 'ir_confirm' ? confirmAnswer(current, me, now, a) : {}) };
+  const next: IrRowRaw = {
+    ...changed, ...backToGc(current, changed), ...schedAfter(name, current, changed), version: current.version + 1, updated_at: now,
+  };
   write((s) => ({
     ...s,
     requests: s.requests.map((r) => (r.id === next.id ? next : r)),

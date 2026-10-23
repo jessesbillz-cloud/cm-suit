@@ -1,6 +1,7 @@
 // The steps of whoever decides one request (the inspector; the deputy on an OFS request sent to OFS), each small,
 // redoable and silent unless noted: Confirm, Attendance, Approved / Not approved (wall by wall on an OFS request with
-// walls; the fire marshal may record it without confirming first, model resultsNow), Generate IR, Send results; then Move and Postpone, and the helper (never on an OFS request: it is the
+// walls; the fire marshal may record it without confirming first, model resultsNow), Generate IR, Send results; then Move
+// (the fire marshal's Pick another time, 0108) and Postpone, and the helper (never on an OFS request: it is the
 // deputy's alone). Each step is a card; the one to do now stands out. The database checks every one. Signing a passed
 // OFS request makes its map again, with the signature on it.
 import { useState } from 'react';
@@ -12,10 +13,11 @@ import { AttendanceStep } from './AttendanceStep';
 import { ConfirmStep } from './ConfirmStep';
 import { HelperStep } from './HelperStep';
 import { useSignedMap } from './MapActions';
-import { WITH_GC, inspectorSteps, ownsSteps } from './model';
+import { WITH_GC, inspectorSteps, ownsSteps, withOfs } from './model';
 import { MoveForm } from './MoveForm';
 import { PdfStep } from './PdfStep';
 import { PostponeForm, canPostpone } from './PostponeForm';
+import { ProposeForm } from './ProposeForm';
 import { ResultStep } from './ResultStep';
 import { SendStep } from './SendStep';
 import { StepCard } from './StepCard';
@@ -44,6 +46,8 @@ export function InspectorPanel({ row, me, jobName, revs, helper = true }: Inspec
         }
       : undefined;
   const movable = row.status !== 'complete' && row.result === null;
+  // The fire marshal's Move is Pick another time (0108): it waits on the requester's Accept.
+  const ofs = withOfs(row);
   const postponable = canPostpone(row.status);
   const steps = inspectorSteps(row);
   // Confirm has controls while waiting (beside the result on an OFS request with OFS), and "Back to pending" until
@@ -75,11 +79,12 @@ export function InspectorPanel({ row, me, jobName, revs, helper = true }: Inspec
                 <Button
                   icon={CalendarClock}
                   aria-pressed={moving}
+                  data-testid={ofs ? 'ofs-propose-open' : undefined}
                   onClick={() => {
                     setMoving(!moving);
                   }}
                 >
-                  Move
+                  {ofs ? 'Pick another time' : 'Move'}
                 </Button>
               ) : null}
               {postponable ? (
@@ -96,7 +101,15 @@ export function InspectorPanel({ row, me, jobName, revs, helper = true }: Inspec
               ) : null}
             </div>
           ) : null}
-          {moving && movable ? (
+          {moving && movable && ofs ? (
+            <ProposeForm
+              row={row}
+              onDone={() => {
+                setMoving(false);
+              }}
+            />
+          ) : null}
+          {moving && movable && !ofs ? (
             <MoveForm
               row={row}
               onDone={() => {

@@ -68,8 +68,38 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
    Then `rpc/ir_send_ofs` `{ "p_request_id", "p_version" }`. After: `ofs_sent_at` set, `status = 'pending'`, the fire
    marshal is told. Undo until he acts: `rpc/ir_unsend_ofs` `{ "p_request_id", "p_version" }`.
 
-7. **Fire marshal, optional: confirm a time first.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
-   Not needed before step 8 (Oct 10): recording the result confirms the request in the same call.
+7. **Fire marshal answers the time (0108).** Read his schedule first: `rpc/ofs_schedule`
+   `{ "p_from": "yyyy-MM-dd", "p_to": "yyyy-MM-dd" }` (at most 62 days; add `"p_project_id"` for one job). Each row has
+   `state` (`asked`, `confirmed`, `proposed`, `postponed`, `done`) and `needs_time` (Asked with no time: Flexible).
+   Then one of 7a, 7b or 7c. None of them is needed before step 8 (Oct 10): recording the result confirms the request
+   in the same call.
+
+   7a. **Confirm the asked time.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
+       After: `status = 'confirmed'`, `ofs_sched = 'confirmed'`, `ofs_sched_by` = him, `ofs_sched_at` set. The requester,
+       the job's OFS duty holder and whoever sent it get a board line `ir.ofs_confirmed` ("OFS IR #0097 confirmed Tue
+       Oct 27, 9:00 AM"). Go to step 8.
+
+   7b. **JUDGMENT: pick another time.** `rpc/ir_ofs_propose`
+       `{ "p_request_id", "p_version", "p_date": "yyyy-MM-dd", "p_time": "HH:mm", "p_note": "<optional, up to 500>" }`.
+       The day is today or later in the job's time zone; the time is on the hour or half hour; not the asked time
+       (that is 7a). After: the request is at that day and time (`duration_kind = 'timed'`), `status = 'pending'`,
+       `ofs_sched = 'proposed'`. The requester and the duty holder get a board line `ir.ofs_proposed` and a Needs you
+       task `ir.ofs_time`; the sender gets the board line. Go to 7d.
+
+   7c. **Postpone** (as before). `rpc/ir_postpone` `{ "p_request_id", "p_version", "p_reason", "p_note", "p_until" }`.
+       Clears any answer. A later 7a or 7b brings it back.
+
+   7d. **Requester (or the duty holder, or the inspector) accepts the new time.** `rpc/ir_ofs_accept`
+       `{ "p_request_id", "p_version" }`. Refused with 22023 when nothing waits to be accepted, 42501 for the fire
+       marshal himself. After: `status = 'confirmed'`, `ofs_sched = 'accepted'`, the tasks done, the fire marshal gets
+       `ir.ofs_accepted`. **Or ask again:** the requester's `rpc/ir_move` `{ "p_request_id", "p_version",
+       "p_request_date", "p_start_time", "p_duration_kind", "p_duration_min" }`: back to `asked`, the proposal and its
+       tasks cleared, the fire marshal gets `ir.moved`. Back to step 7.
+
+   Every answer is in the request's history (`ir_events.action` `confirm`, `ofs_propose`, `ofs_accept`, `move`, with
+   the actor) and the audit log. The fire marshal's subscribed calendar (Calendar > Subscribe) carries one line per
+   OFS request sent to OFS (`calendar_entries.source_type = 'ofs_request'`, read by `ir.ofs_view`), with its time,
+   state and the job's address, on every job of his, even one with the calendar tool off. Nothing sends email or text.
 
 8. **JUDGMENT: pass or fail each wall and item.** The fire marshal, on site.
    `rpc/ir_rev_results`

@@ -11,7 +11,7 @@ export type Args = Record<string, unknown>;
 /** A request's OFS attestation and checks (0091), none yet. */
 export const NO_OFS_CHECKS = {
   ofs_attest_by: null, ofs_attest_at: null, ofs_attest_text: null, ofs_ready_by: null, ofs_ready_at: null, ofs_si_by: null,
-  ofs_si_at: null, ofs_si_file_id: null,
+  ofs_si_at: null, ofs_si_file_id: null, ofs_sched: null, ofs_sched_by: null, ofs_sched_at: null, ofs_sched_note: null,
 } as const;
 
 const ASKS: readonly string[] = ['ir.request'];

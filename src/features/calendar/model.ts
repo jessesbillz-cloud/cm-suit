@@ -133,6 +133,10 @@ export function offeredKinds(
 }
 
 /** A mirrored delivery (0025): its all-day line is a delivery whose time is TBD, its "pending" is Standby. */
+/** Calendar lines that mirror an inspection request (calendar_entries.source_type): the request's own, and the fire
+ *  marshal's OFS line (0108). Where a job's requests are on screen, these lines are not shown again. */
+export const IR_MIRRORS: readonly string[] = ['inspection_request', 'ofs_request'];
+
 function isDelivery(line: { source_type?: string | undefined }): boolean {
   return line.source_type === 'delivery';
 }

@@ -9,7 +9,7 @@ import type { CalendarInspection, CalendarLine } from '../../data/calendar.types
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
 import { rowChip } from '../inspections/model';
-import { lineChip, lineDay } from './model';
+import { IR_MIRRORS, lineChip, lineDay } from './model';
 
 export type Entry =
   | { type: 'ir'; key: string; day: string; time: string; projectId: string; projectName: string; row: CalendarInspection }
@@ -64,7 +64,8 @@ export function buildEntries({ lines, inspections, loaded, types, jobs }: Source
     out.push({ type: 'ir', key, day: row.request_date, time: irTime(row), projectId: row.project_id, projectName: name(row.project_id), row });
   }
   for (const line of lines) {
-    if (line.source_type === 'inspection_request' && loaded.has(line.project_id)) continue;
+    // A loaded job's requests replace its mirrored lines: the request's own and the fire marshal's OFS line (0108).
+    if (IR_MIRRORS.includes(line.source_type) && loaded.has(line.project_id)) continue;
     out.push({ type: 'line', key: `line:${line.id}`, day: lineDay(line), time: lineTimeKey(line), projectId: line.project_id, projectName: line.project_name, line });
   }
   return out;

@@ -65,6 +65,15 @@ export type OfsReviewRow = z.infer<typeof ofsReviewRowSchema>;
 const DESK_STATES = ['waiting', 'approved', 'not_approved', 'passed', 'failed'] as const;
 export type DeskState = (typeof DESK_STATES)[number];
 
+/** An inspection's schedule state on the start page (0108): where its time stands, and the version Accept carries. */
+const deskSchedSchema = z.object({
+  state: z.enum(['asked', 'confirmed', 'proposed', 'postponed', 'done', 'withdrawn']),
+  date: z.string(),
+  time: z.string().nullable(),
+  version: z.number(),
+  note: z.string().nullable(),
+});
+
 const deskRowSchema = z.object({
   id: z.string(),
   kind: z.enum([...OFS_KINDS, 'inspection']),
@@ -74,6 +83,7 @@ const deskRowSchema = z.object({
   title: z.string(),
   state: z.enum(DESK_STATES),
   at: z.string(),
+  sched: deskSchedSchema.nullable(),
 });
 export type DeskRow = z.infer<typeof deskRowSchema>;
 

@@ -8,6 +8,7 @@
 import { conflictError } from '../errors';
 import type { DecideInput, MarkInput } from '../ofs';
 import type { DeskRow, OfsItem, OfsKind, OfsReviewRow, OfsTarget } from '../ofs.types';
+import type { IrRequest } from '../inspections.types';
 import type { FolderRow } from '../types';
 import * as api from './api';
 import { holder } from './duties';
@@ -213,6 +214,14 @@ export async function reviewList(projectId: string | null): Promise<OfsReviewRow
   return reviewer() ? rowsOf(read(), projectId) : [];
 }
 
+/** ir_ofs_sched_state (0108). */
+function schedOf(r: Pick<IrRequest, 'status' | 'result' | 'ofs_sched'>): NonNullable<DeskRow['sched']>['state'] {
+  if (r.result !== null || r.status === 'complete') return 'done';
+  if (r.status === 'postponed') return 'postponed';
+  if (r.ofs_sched === 'proposed' && r.status === 'pending') return 'proposed';
+  return r.status === 'confirmed' ? 'confirmed' : 'asked';
+}
+
 /** ofs_desk */
 export async function desk(projectId: string): Promise<DeskRow[] | null> {
   await delay();
@@ -221,7 +230,7 @@ export async function desk(projectId: string): Promise<DeskRow[] | null> {
   const items = (await rowsOf(read(), projectId)).map(
     (r): DeskRow => ({
       id: r.id, kind: r.kind, target_type: 'file', target_id: r.file_id ?? '', number: null, title: r.title,
-      state: r.decision ?? 'waiting', at: r.decided_at ?? r.sent_at,
+      state: r.decision ?? 'waiting', at: r.decided_at ?? r.sent_at, sched: null,
     }),
   );
   const requests = (await mockIr.list(projectId, (r) => r.kind === 'ofs' && r.ofs_sent_at !== null && r.status !== 'withdrawn')).map(
@@ -229,6 +238,7 @@ export async function desk(projectId: string): Promise<DeskRow[] | null> {
       id: r.id, kind: 'inspection', target_type: 'inspection_request', target_id: r.id, number: r.ofs_number ?? null,
       title: r.items.trim().slice(0, 200), state: r.result === 'approved' ? 'passed' : r.result === 'not_approved' ? 'failed' : 'waiting',
       at: r.result_at ?? r.ofs_sent_at ?? r.created_at,
+      sched: { state: schedOf(r), date: r.request_date, time: r.start_time?.slice(0, 5) ?? null, version: r.version, note: r.ofs_sched_note },
     }),
   );
   return [...items, ...requests].sort((a, b) => b.at.localeCompare(a.at));
