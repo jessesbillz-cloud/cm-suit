@@ -23,7 +23,8 @@ import { revsJobRequests } from './revSeeds';
 import { read as readRevs } from './revs';
 import { delay, readMock } from './store';
 
-const KEY = 'e2e-mock-ir';
+/** The requests' sessionStorage key (mock/irBatch puts it back when a batch step fails). */
+export const KEY = 'e2e-mock-ir';
 /** The sample jobs' zone. */
 export const TZ = 'America/Los_Angeles';
 /** The active special kinds in order: My Daily Reports' list (0084), as ir_form_context answers them. */
@@ -245,15 +246,6 @@ function fileRequest(a: Args, by: string | null, patch: Partial<IrRowRaw>): IrRo
 /** Every request, as the database's own functions read them (ofs_schedule answers across jobs, mock/ofsSchedule). */
 export function everyRequest(): IrRowRaw[] {
   return read().requests;
-}
-
-/** One transaction for several steps (ir_batch_step): undo puts every request back as it was. */
-export function snapshot(): () => void {
-  const raw = window.sessionStorage.getItem(KEY);
-  return () => {
-    if (raw === null) window.sessionStorage.removeItem(KEY);
-    else window.sessionStorage.setItem(KEY, raw);
-  };
 }
 
 /** ir_for_update: the request, if the signed-in mock user may read it in full. */

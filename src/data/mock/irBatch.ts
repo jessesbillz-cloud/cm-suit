@@ -53,6 +53,15 @@ function itemsLine(ids: readonly string[]): string {
   return [levels.join(', '), items.join(' & ')].filter((x) => x !== '').join(' · ');
 }
 
+/** One transaction for several steps: undo puts every request back as it was. */
+function snapshot(): () => void {
+  const raw = window.sessionStorage.getItem(mockIr.KEY);
+  return () => {
+    if (raw === null) window.sessionStorage.removeItem(mockIr.KEY);
+    else window.sessionStorage.setItem(mockIr.KEY, raw);
+  };
+}
+
 function view(batchId: string): IrBatch | null {
   const me = mockUser().id;
   const rows = rowsOf(batchId).filter((r) => r.status !== 'withdrawn');
@@ -96,7 +105,7 @@ export async function step(batchId: string, which: BatchStep, versions: Record<s
   if (first === undefined) throw notFound();
   const may = which === 'gc' ? holds(me, 'ir.gc_approve') : which === 'ready' ? holds(me, 'ir.decide') : sender(me, first.project_id);
   if (!may) throw forbidden();
-  const undo = mockIr.snapshot();
+  const undo = snapshot();
   const done: BatchStepAnswer['done'] = [];
   const skipped: string[] = [];
   try {
