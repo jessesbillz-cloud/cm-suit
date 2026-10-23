@@ -135,8 +135,18 @@ export async function remove(projectId: string, areaIds: readonly string[], item
   return { ...(await view(projectId, next)), removed: b.cells.length - keep.length };
 }
 
+/** The requests each batch filed (rev_basket_cells.batch_id and sent_request_id). */
+export function batchRequests(batchId: string): string[] {
+  return readState().batches.find((x) => x.batch_id === batchId)?.request_ids ?? [];
+}
+
+/** Every batch's id. */
+export function batchIds(): string[] {
+  return readState().batches.map((x) => x.batch_id);
+}
+
 async function batchOf(batchId: string): Promise<Batch> {
-  const ids = readState().batches.find((x) => x.batch_id === batchId)?.request_ids ?? [];
+  const ids = batchRequests(batchId);
   const rows = (await Promise.all(ids.map((id) => mockIr.request(id)))).filter((r) => r !== null);
   return {
     batch_id: batchId,

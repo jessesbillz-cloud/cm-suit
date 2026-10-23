@@ -1,11 +1,14 @@
 // The fire marshal's schedule (0108; Jesse, Oct 22: the texts move here): his OFS requests by the day and time asked,
 // one box each, live. Needs a time (Asked, no time yet) sits on top. On a job it is his Inspections week; on All my jobs
 // (projectId null) his home, every job at once with the job named on each box. A box opens the request, where he
-// confirms it, picks another time or postpones it. Requests filed together (0113) sit together under "Batch of 9".
+// confirms it, picks another time or postpones it. Requests filed together (0113) sit together under "Batch of 9",
+// with the one tap for those waiting on me (0114).
+import { useIrBatchesWaiting } from '../../data/inspections.batch';
 import { useOfsSchedule, type ScheduleRow } from '../../data/inspections.schedule';
 import { useIrBatches } from '../../data/revs.basket';
 import { Card } from '../../ui/Card';
 import { CountTitle } from '../board/home/CountTitle';
+import { BatchHead, waitingById } from '../ofs/BatchHead';
 import { byBatch } from '../ofs/model';
 import { OfsBox } from './OfsBox';
 import { splitSchedule, whenLabel } from './ofsSchedule';
@@ -29,6 +32,7 @@ export function OfsSchedule({ projectId, day, today, isPhone, selectedId, onDay,
   const inWeek = dated.filter((r) => r.request_date >= from && r.request_date <= to);
   const showJob = projectId === null;
   const batches = useIrBatches((sched.data ?? []).map((r) => r.id));
+  const waiting = waitingById(useIrBatchesWaiting(projectId).data);
   const box = (r: ScheduleRow, showDay: string | null) => (
     <OfsBox key={r.id} row={r} selected={r.id === selectedId} showJob={showJob} showDay={showDay} onOpen={onOpen} />
   );
@@ -39,7 +43,7 @@ export function OfsSchedule({ projectId, day, today, isPhone, selectedId, onDay,
         run.rows.map((r) => box(r, showDay(r)))
       ) : (
         <div key={run.batch.id} className="col-span-full flex flex-col gap-1.5 border-l-[3px] border-ink pl-2" data-testid="ofs-batch" data-size={run.batch.size}>
-          <span className="heading text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-2">{`Batch of ${String(run.batch.size)}`}</span>
+          <BatchHead batchId={run.batch.id} size={run.batch.size} waiting={waiting} />
           {run.rows.map((r) => box(r, showDay(r)))}
         </div>
       ),

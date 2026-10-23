@@ -1,12 +1,14 @@
 // "Needs you" (SPEC §7.3): tasks handled in place (TaskEnd: Open for a task its record closes, Acknowledge for an
 // addendum, Done with Undo for the rest). On a job's board, on top, the RFIs someone else is sitting on (late, or not
-// opened for days); the home gives those their own card (home/RfisWaitingCard). One row design for both (NeedsRow).
+// opened for days); the home gives those their own card (home/RfisWaitingCard). Then the batches of OFS requests that
+// wait on me, one line each with one tap for all (0114). One row design for all of them (NeedsRow).
 import { CheckCheck, ListTodo } from 'lucide-react';
 import { useMyProjects } from '../../data/queries';
 import type { TaskRow } from '../../data/types';
 import { formatInZone } from '../../lib/dates';
 import { Card } from '../../ui/Card';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { BatchNeedsLine } from './BatchNeeds';
 import { KindSquare } from './KindSquare';
 import { kindIcon } from './lineKind';
 import { NeedsRow } from './NeedsRow';
@@ -52,8 +54,9 @@ export function NeedsYou({ projectId, withRfis = true }: NeedsYouProps) {
   const { tasks } = needs;
   const waiting = withRfis ? needs.waiting : null;
   const rfis = withRfis ? needs.rfis : [];
-  const count = rfis.length + (tasks.data?.length ?? 0);
-  const ready = tasks.isSuccess && (waiting === null || waiting.isSuccess);
+  const { batches } = needs;
+  const count = rfis.length + (batches.data?.length ?? 0) + (tasks.data?.length ?? 0);
+  const ready = tasks.isSuccess && batches.isSuccess && (waiting === null || waiting.isSuccess);
   const projects = useMyProjects();
   const zoneOf = useProjectZones();
   const { done, busyId } = useTaskDone();
@@ -61,13 +64,14 @@ export function NeedsYou({ projectId, withRfis = true }: NeedsYouProps) {
   const nameOf = (id: string) => (projectId === null ? (projects.data?.find((p) => p.project_id === id)?.name ?? null) : null);
   // RFIs someone else is sitting on come first (late, then not opened), then my tasks, due first.
   const now = new Date();
-  const loading = tasks.isPending || waiting?.isPending === true;
+  const loading = tasks.isPending || batches.isPending || waiting?.isPending === true;
 
   return (
     <div data-testid="needs-you">
       <Card title={<CountTitle label="Needs you" count={ready ? count : null} testId="needs-you-count" />} padded={false}>
         {loading ? <LoadingState label="Loading your tasks" /> : null}
         {tasks.isError ? <ErrorState error={tasks.error} onRetry={() => void tasks.refetch()} /> : null}
+        {batches.isError ? <ErrorState error={batches.error} onRetry={() => void batches.refetch()} title="Batches did not load." /> : null}
         {waiting !== null && waiting.isError ? <ErrorState error={waiting.error} onRetry={() => void waiting.refetch()} title="Waiting RFIs did not load." /> : null}
         {ready && count === 0 ? (
           <p className="flex items-center gap-3 px-4 py-3 text-sm text-ink-2">
@@ -79,6 +83,9 @@ export function NeedsYou({ projectId, withRfis = true }: NeedsYouProps) {
           <ul className="divide-y divide-line">
             {rfis.map((w) => (
               <RfiWaitingLine key={w.id} row={w} showJob={projectId === null} zone={zoneOf(w.project_id)} now={now} />
+            ))}
+            {(batches.data ?? []).map((b) => (
+              <BatchNeedsLine key={b.batch_id} batch={b} jobName={nameOf(b.project_id)} className={PHONE_TAP} />
             ))}
             {(tasks.data ?? []).map((t) => (
               <TaskLine

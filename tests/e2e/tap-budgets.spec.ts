@@ -311,3 +311,64 @@ test.describe('tap budgets, OFS request from a room', () => {
     expect(await taps(page)).toBe(7);
   });
 });
+
+// Jesse, Oct 23 (0114): a batch of OFS requests takes each approval step in one tap. Before: the GC checked Ready on
+// each request and the inspector sent each one on (2 x 9 taps for a batch of 9, more with opening each). Now: Ready all
+// from the GC's Needs you = 1, Send all to OFS from the inspector's = 1, whatever the batch's size.
+test.describe('tap budgets, a batch of OFS requests', () => {
+  test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
+
+  async function switchTo(page: Page, who: string, path: string): Promise<void> {
+    await page.evaluate((w: string) => {
+      window.localStorage.setItem('e2e-mock-user', w);
+    }, who);
+    try {
+      await page.goto(path);
+    } catch (e) {
+      // The first page of a test can reload itself once (a new build taking over) while this navigation starts.
+      if (!/interrupted/i.test(String(e))) throw e;
+      await page.waitForLoadState();
+      await page.goto(path);
+    }
+  }
+
+  test('GC Ready all = 1 tap, inspector Send all to OFS = 1 tap', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.addInitScript(() => {
+      (window as unknown as ClickWindow).__tapCount = 0;
+      document.addEventListener('click', () => {
+        (window as unknown as ClickWindow).__tapCount += 1;
+      }, true);
+    });
+    // Setup, not counted: the sub sends two whole rooms' items as one batch of two requests.
+    await page.goto('/');
+    await switchTo(page, 'sub', '/p/job-s/revs/room-mock-room-110');
+    await page.getByTestId('rev-room-add-mock-rev-item-3-1').click();
+    await expect(page.getByTestId('rev-room-add-mock-rev-item-3-1')).toHaveAttribute('data-in', 'true');
+    await page.getByTestId('rev-room-add-mock-rev-item-3-2').click();
+    await expect(page.getByTestId('basket-line')).toHaveText('4 items on 2 walls');
+    await page.getByTestId('basket-review').click();
+    await page.getByTestId('ir-special-required-no').click();
+    await page.getByTestId('basket-send').click();
+    await page.getByTestId('ir-attest-confirm').click();
+    await expect(page.getByTestId('basket-sent')).toHaveAttribute('data-count', '2');
+
+    const counter = { n: 0 };
+    await switchTo(page, 'pm', '/p/job-s/board');
+    const gc = page.getByTestId('needs-you-batch').getByTestId('batch-step');
+    await expect(gc).toHaveAttribute('data-step', 'gc');
+    await resetTaps(page);
+    await tap(gc, counter);
+    await expect(gc).not.toHaveAttribute('data-step', 'gc');
+    expect(await taps(page)).toBe(1);
+
+    await switchTo(page, 'inspector', '/p/job-s/board');
+    const send = page.getByTestId('needs-you-batch').getByTestId('batch-step');
+    await expect(send).toHaveAttribute('data-step', 'send');
+    await resetTaps(page);
+    await tap(send, counter);
+    await expect(page.getByTestId('needs-you-batch')).toHaveCount(0);
+    expect(await taps(page)).toBe(1);
+    expect(counter.n).toBe(2);
+  });
+});

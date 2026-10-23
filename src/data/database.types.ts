@@ -9079,10 +9079,24 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_batch_get: { Args: { p_batch_id: string }; Returns: Json }
+      ir_batch_json: { Args: { p_batch_id: string }; Returns: Json }
+      ir_batch_step: {
+        Args: { p_batch_id: string; p_step: string; p_versions: Json }
+        Returns: Json
+      }
+      ir_batch_waits: {
+        Args: {
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+          p_step: string
+        }
+        Returns: boolean
+      }
       ir_batches: {
         Args: { p_request_ids: string[] }
         Returns: { batch_id: string; request_id: string; size: number }[]
       }
+      ir_batches_waiting: { Args: { p_project_id?: string }; Returns: Json }
       ir_calendar: {
         Args: { p_from: string; p_project_id: string; p_to: string }
         Returns: {

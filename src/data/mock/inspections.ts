@@ -23,7 +23,8 @@ import { revsJobRequests } from './revSeeds';
 import { read as readRevs } from './revs';
 import { delay, readMock } from './store';
 
-const KEY = 'e2e-mock-ir';
+/** The requests' sessionStorage key (mock/irBatch puts it back when a batch step fails). */
+export const KEY = 'e2e-mock-ir';
 /** The sample jobs' zone. */
 export const TZ = 'America/Los_Angeles';
 /** The active special kinds in order: My Daily Reports' list (0084), as ir_form_context answers them. */
