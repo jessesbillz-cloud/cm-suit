@@ -31,7 +31,12 @@ const allowed = new Set(
   existsSync(allowPath) ? readFileSync(allowPath, 'utf8').split('\n').map((s) => s.trim()).filter((s) => s && !s.startsWith('#')) : [],
 );
 const ALWAYS_OK = new Set(['_shared/db.ts']);
-for (const f of files.filter((p) => p.startsWith('supabase/functions/') && p.endsWith('.ts'))) {
+// The migration tool does the same (0112's mdr_sync_begin, Oct 23): migrations from 0115 on hold none either.
+const ESCAPE_RULE_FROM = '20261023000115';
+const escapeChecked = (p) =>
+  (p.startsWith('supabase/functions/') && p.endsWith('.ts')) ||
+  (/^supabase\/migrations\/\d{14}_.*\.sql$/.test(p) && p.split('/')[2].slice(0, 14) >= ESCAPE_RULE_FROM);
+for (const f of files.filter(escapeChecked)) {
   const rel = f.replace('supabase/functions/', '');
   const src = readFileSync(f, 'utf8');
   if (/SUPABASE_SERVICE_ROLE_KEY|serviceClient\(/.test(src)) {

@@ -1,5 +1,5 @@
 begin;
-select plan(65);
+select plan(66);
 -- Migration 0112 (Jesse, Oct 23: "You actually have to use it and review the data of what did happen."). Once a day
 -- MDR's requests for a linked job are copied in, one way. Copies are safe to repeat, adopt the requests typed in by hand
 -- by number, keep MDR's numbers (MDR reuses some), push the job's own counter past them, and are view only. Files wait
@@ -133,6 +133,8 @@ select matches(public.mdr_sync_begin()->>'mdr_sql',
   'job_id = ''f0000000-0000-0000-0000-000000000981''::uuid and updated_at > ''-infinity''::timestamptz',
   'the first run reads every row of the linked job');
 select ok(position(';' in public.mdr_sync_begin()->>'mdr_sql') = 0, 'the MDR SELECT has no semicolon');
+select ok(position(chr(92) || 'u' in pg_get_functiondef('public.mdr_sync_begin()'::regprocedure)) = 0,
+  'its source holds no escape a tool could rewrite (0115)');
 
 create temp table r1 as select public.mdr_import_requests((select doc from mdr)) as res;
 select is((select res->'counts' from r1),
