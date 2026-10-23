@@ -1,5 +1,6 @@
 // The requester's own request: Move or Withdraw (Undo in the toast, no "are you sure?"). A request the GC returned goes
-// back to the GC when moved, and says so. Once the inspector has a result or the IR is made, it stays as it is.
+// back to the GC when moved, and says so. Once the inspector has a result or the IR is made, it stays as it is. A request
+// withdrawn by taking all its walls off (0109) has no Request again: its Undo puts them back.
 import { useState } from 'react';
 import { CalendarClock, Undo2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -13,15 +14,18 @@ interface RequesterActionsProps {
   row: IrRequest;
   /** Off when I'm also the one who decides it now: those steps have Move (one way to each thing). */
   canMove: boolean;
+  /** Off when every wall was taken off it: nothing to request again. */
+  canRestore?: boolean | undefined;
 }
 
-export function RequesterActions({ row, canMove }: RequesterActionsProps) {
+export function RequesterActions({ row, canMove, canRestore = true }: RequesterActionsProps) {
   const [moving, setMoving] = useState(false);
   const withdraw = useWithdrawIr();
   const restore = useRestoreIr();
   const toast = useToast();
 
   if (row.status === 'withdrawn') {
+    if (!canRestore) return null;
     return (
       <div>
         <Button

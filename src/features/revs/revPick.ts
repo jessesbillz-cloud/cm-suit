@@ -77,6 +77,18 @@ export function applicableGroups(groups: readonly RevGroup[], index: StatusIndex
     .filter((g) => g.items.length > 0);
 }
 
+/** What heads the items (and marks a room) that failed last time: they go on the next request first (Jesse, Oct 22). */
+export const FAILED_LAST_TIME = 'Failed last time';
+
+/** The items that failed last time on these walls come first, under their own heading; the rest as they were. */
+export function failedFirst(groups: readonly RevGroup[], index: StatusIndex, areaIds: readonly string[]): RevGroup[] {
+  const failed = groups.flatMap((g) => g.items.filter((i) => itemState(index, i.id, areaIds) === 'failed'));
+  if (failed.length === 0) return [...groups];
+  const ids = new Set(failed.map((i) => i.id));
+  const rest = groups.map((g) => ({ ...g, items: g.items.filter((i) => !ids.has(i.id)) })).filter((g) => g.items.length > 0);
+  return [{ number: -1, name: FAILED_LAST_TIME, items: failed }, ...rest];
+}
+
 interface ItemNeed {
   /** Picked walls that still need it (not passed, not N/A). */
   open: number;

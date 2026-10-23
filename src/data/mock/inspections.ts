@@ -265,6 +265,10 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   const step = STEPS[name] ?? OFS_STEPS[name];
   if (!step) throw notFound();
   const current = readable(a['p_request_id']);
+  const revs = readRevs();
+  if (name === 'ir_restore' && revs.pulled.some((c) => c.request_id === current.id) && !revs.cells.some((c) => c.request_id === current.id)) {
+    throw refuse('Its walls were taken off. Request them again.');
+  }
   // The permit link checks the version only once it has something to change (set_request_permit).
   const late = name === 'set_request_permit';
   if (!late && current.version !== a['p_version']) throw conflictError();
@@ -286,6 +290,20 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
     ...s,
     requests: s.requests.map((r) => (r.id === next.id ? next : r)),
     events: [...s.events, { id: s.events.length + 1, request_id: next.id, action: actionOf(name, a, change), actor_id: me, created_at: now }],
+  }));
+  return next;
+}
+
+/** A request changed by its walls (mock/revRequests: taken off or put back, 0109): the version check, the history line. */
+export function patchRequest(requestId: string, version: number, patch: Partial<IrRowRaw>, action: string): IrRowRaw {
+  const current = readable(requestId);
+  if (current.version !== version) throw conflictError();
+  const now = new Date().toISOString();
+  const next: IrRowRaw = { ...current, ...patch, version: current.version + 1, updated_at: now };
+  write((s) => ({
+    ...s,
+    requests: s.requests.map((r) => (r.id === next.id ? next : r)),
+    events: [...s.events, { id: s.events.length + 1, request_id: next.id, action, actor_id: mockUser().id, created_at: now }],
   }));
   return next;
 }

@@ -1,9 +1,11 @@
 // The request picker's walls, room first (Jesse, Oct 10: "the entire room first, and then if you wanted it, you expand
 // it to just one wall and select from there"): per level, one button per room that picks all its walls ("0134 Main
 // Electrical · 4 walls"; "1 of 4 walls" while only some are picked) with Walls beside it to show that room's walls as
-// buttons, one taken off or picked alone; then the level's walls in no room. Names wrap, never cut.
+// buttons, one taken off or picked alone; then the level's walls in no room. A room with an item that failed last time
+// comes first and says so. Names wrap, never cut.
 import { useState } from 'react';
 import { ChipPick } from '../../ui/ChipPick';
+import { FAILED_LAST_TIME } from './revPick';
 import { pickedIn, roomCountLabel, tapRoom, type PickRoom, type RoomGroup } from './roomPick';
 import { GROUP_LABEL } from './RevWalls';
 
@@ -48,6 +50,11 @@ function RoomRow({ room, picked, open, onOpen, onChange }: RoomRowProps) {
         >
           <span>{room.label}</span>
           <span className={state === 'all' ? 'text-white/85' : 'text-ink-2'}>· {roomCountLabel(room, picked)}</span>
+          {room.failed ? (
+            <span className={state === 'all' ? 'text-white' : 'text-danger'} data-testid={`rev-pick-room-${room.id}-failed`}>
+              · {FAILED_LAST_TIME}
+            </span>
+          ) : null}
         </button>
         <button
           type="button"

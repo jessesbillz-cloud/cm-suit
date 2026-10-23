@@ -7,7 +7,7 @@
 // sessionStorage, never module state.
 import { conflictError } from '../errors';
 import type { DecideInput, MarkInput } from '../ofs';
-import type { DeskRow, OfsItem, OfsKind, OfsReviewRow, OfsTarget } from '../ofs.types';
+import type { DeskData, DeskRow, OfsItem, OfsKind, OfsReviewRow, OfsTarget } from '../ofs.types';
 import type { FolderRow } from '../types';
 import * as api from './api';
 import { holder } from './duties';
@@ -15,6 +15,8 @@ import { mockUser } from './index';
 import * as mockIr from './inspections';
 import { forbidden, holds, notFound, refuse } from './irRules';
 import { projectSettings } from './jobs';
+import { failedRows } from './ofsFailed';
+import { read as readRevs } from './revs';
 import { delay } from './store';
 
 const KEY = 'e2e-mock-ofs';
@@ -213,25 +215,36 @@ export async function reviewList(projectId: string | null): Promise<OfsReviewRow
   return reviewer() ? rowsOf(read(), projectId) : [];
 }
 
-/** ofs_desk */
-export async function desk(projectId: string): Promise<DeskRow[] | null> {
+/** ofs_desk: the designated person's, or the requester's (own OFS requests sent to OFS); a request that failed walls
+ *  shows as its failed items (mock/ofsFailed). */
+export async function desk(projectId: string): Promise<DeskData | null> {
   await delay();
   const me = mockUser().id;
-  if (!ofsOn(projectId) || !(holds(me, 'ir.decide') || holder(projectId) === me)) return null;
-  const items = (await rowsOf(read(), projectId)).map(
-    (r): DeskRow => ({
-      id: r.id, kind: r.kind, target_type: 'file', target_id: r.file_id ?? '', number: null, title: r.title,
-      state: r.decision ?? 'waiting', at: r.decided_at ?? r.sent_at,
-    }),
-  );
-  const requests = (await mockIr.list(projectId, (r) => r.kind === 'ofs' && r.ofs_sent_at !== null && r.status !== 'withdrawn')).map(
-    (r): DeskRow => ({
-      id: r.id, kind: 'inspection', target_type: 'inspection_request', target_id: r.id, number: r.ofs_number ?? null,
-      title: r.items.trim().slice(0, 200), state: r.result === 'approved' ? 'passed' : r.result === 'not_approved' ? 'failed' : 'waiting',
-      at: r.result_at ?? r.ofs_sent_at ?? r.created_at,
-    }),
-  );
-  return [...items, ...requests].sort((a, b) => b.at.localeCompare(a.at));
+  if (!ofsOn(projectId)) return null;
+  const designated = holds(me, 'ir.decide') || holder(projectId) === me;
+  const sent = (await mockIr.list(projectId, (r) => r.kind === 'ofs' && r.ofs_sent_at !== null && r.status !== 'withdrawn'))
+    .filter((r) => designated || r.requested_by === me);
+  if (!designated && !(holds(me, 'ir.request') && sent.length > 0)) return null;
+  const items = designated
+    ? (await rowsOf(read(), projectId)).map(
+        (r): DeskRow => ({
+          id: r.id, kind: r.kind, target_type: 'file', target_id: r.file_id ?? '', number: null, title: r.title,
+          state: r.decision ?? 'waiting', at: r.decided_at ?? r.sent_at,
+        }),
+      )
+    : [];
+  const walls = new Set(readRevs().cells.map((c) => c.request_id));
+  const requests = sent
+    .filter((r) => !(r.result === 'not_approved' && walls.has(r.id)))
+    .map(
+      (r): DeskRow => ({
+        id: r.id, kind: 'inspection', target_type: 'inspection_request', target_id: r.id, number: r.ofs_number ?? null,
+        title: r.items.trim().slice(0, 200), state: r.result === 'approved' ? 'passed' : r.result === 'not_approved' ? 'failed' : 'waiting',
+        at: r.result_at ?? r.ofs_sent_at ?? r.created_at,
+      }),
+    );
+  const failed = await failedRows(projectId, sent);
+  return { designated, rows: [...items, ...requests, ...failed].sort((a, b) => b.at.localeCompare(a.at)) };
 }
 
 /** has_capability for ofs.* */

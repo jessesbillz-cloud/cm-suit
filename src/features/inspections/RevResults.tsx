@@ -1,6 +1,7 @@
-// The deputy's result on an OFS request with walls: Pass or Fail on each wall of each item; a failed one says why
-// (OSFM: not just a red circle). Once every wall is set it saves by itself (ir_rev_results), and the request's result
-// follows: approved when all passed. "All passed" is one tap; it and Clear come with Undo, never a question.
+// The deputy's result on an OFS request with walls (Jesse, Oct 22: "an easy sign-off"): what is still on the request as
+// big boxes, every one Pass to start with, and one Pass all. A tap flips a box to Fail, which asks for one line on why
+// (OSFM: not just a red circle); the button then saves them all (ir_rev_results) and the request's result follows:
+// approved when all passed. Saving and Clear come with Undo, never a question.
 import { useState } from 'react';
 import { CheckCheck, Eraser } from 'lucide-react';
 import { messageOf } from '../../data/errors';
@@ -9,21 +10,15 @@ import type { IrRequest } from '../../data/inspections.types';
 import { useSetRevResults } from '../../data/revs.mutations';
 import type { IrRevItem, RevResult, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
-import { FIELD_AREA } from '../../ui/Fields';
+import { FIELD_CONTROL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
-import { ChoiceRow } from './ChoiceRow';
+import { StateBox } from '../revs/StateBox';
 import { CellGroupCard, LevelLine, WithSetup } from './RevCells';
 import {
-  allPassed, cellGroups, cellKey, draftOf, draftToSave, leftToDo, savedResults, settle, type CellDraft, type CellResult,
-  type Edits,
+  cellGroups, cellKey, draftOf, draftToSave, failedCount, flip, missingReasons, savedResults, settle, type CellDraft, type Edits,
 } from './revCells';
 
-const PASS_FAIL = [
-  { value: 'passed', label: 'Pass' },
-  { value: 'failed', label: 'Fail' },
-] as const;
-
-const NOTE_MISSING = FIELD_AREA.replace('border-line-strong', 'border-danger');
+const NOTE_MISSING = FIELD_CONTROL.replace('border-line-strong', 'border-danger');
 
 interface BodyProps {
   row: IrRequest;
@@ -36,8 +31,9 @@ function RevResultsBody({ row, cells, setup }: BodyProps) {
   const toast = useToast();
   const [edits, setEdits] = useState<Edits>({});
   const saved = savedResults(cells);
-  const left = leftToDo(cells, edits);
-  const everyPassed = saved !== null && saved.every((r) => r.result === 'passed');
+  const failed = failedCount(cells, edits);
+  const missing = missingReasons(cells, edits);
+  const toSave = draftToSave(cells, edits);
 
   function save(ref: IrRef, results: RevResult[] | null, undo?: { message: string; back: RevResult[] | null }) {
     set.mutate(
@@ -63,27 +59,23 @@ function RevResultsBody({ row, cells, setup }: BodyProps) {
     );
   }
 
-  /** A change; saved once every wall is set (a reason is saved when its box is left). */
-  function edit(cell: IrRevItem, next: CellDraft, now: boolean) {
-    const all = { ...edits, [cellKey(cell)]: next };
-    setEdits(all);
-    const results = now && !set.isPending ? draftToSave(cells, all) : null;
-    if (results !== null) save(row, results);
+  function edit(cell: IrRevItem, next: CellDraft) {
+    setEdits((cur) => ({ ...cur, [cellKey(cell)]: next }));
   }
 
   return (
     <div className="flex flex-col gap-2.5" data-testid="rev-results">
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          size="sm"
+          variant="primary"
           icon={CheckCheck}
-          disabled={set.isPending || everyPassed}
+          disabled={set.isPending || toSave === null}
           data-testid="rev-all-passed"
           onClick={() => {
-            save(row, allPassed(cells), { message: 'All passed.', back: saved });
+            if (toSave !== null) save(row, toSave, { message: failed > 0 ? `Saved. ${String(failed)} failed.` : 'All passed.', back: saved });
           }}
         >
-          All passed
+          {failed > 0 ? `Save · ${String(failed)} failed` : 'Pass all'}
         </Button>
         {saved !== null ? (
           <Button
@@ -98,49 +90,49 @@ function RevResultsBody({ row, cells, setup }: BodyProps) {
             Clear
           </Button>
         ) : null}
-        <span className="ml-auto text-xs tabular-nums text-ink-2" data-testid="rev-left" aria-live="polite">
-          {set.isPending ? 'Saving' : left > 0 ? `${String(left)} left` : ''}
+        <span className="ml-auto text-xs text-ink-2" data-testid="rev-left" aria-live="polite">
+          {set.isPending ? 'Saving' : missing > 0 ? 'Say why it failed' : ''}
         </span>
       </div>
       <LevelLine cells={cells} setup={setup} />
       {cellGroups(cells, setup).map((g) => (
         <CellGroupCard key={g.color} group={g}>
+          <li className="flex flex-wrap gap-2 px-3 py-2.5">
+            {g.rows.map(({ cell, label }) => {
+              const draft = draftOf(cell, edits);
+              return (
+                <StateBox
+                  key={cell.id}
+                  state={draft.result}
+                  label={label}
+                  name={`${label}: ${draft.result === 'passed' ? 'Pass' : 'Fail'}`}
+                  disabled={set.isPending}
+                  testId={`rev-cell-${cell.area_id}-${cell.item_id}`}
+                  onClick={() => {
+                    edit(cell, flip(draft));
+                  }}
+                />
+              );
+            })}
+          </li>
           {g.rows.map(({ cell, label }) => {
             const draft = draftOf(cell, edits);
-            const id = `${cell.area_id}-${cell.item_id}`;
+            if (draft.result !== 'failed') return null;
             return (
-              <li key={cell.id} className="flex flex-col gap-2 px-3 py-2.5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="break-words text-sm text-ink">{label}</span>
-                  <ChoiceRow<CellResult>
-                    label={`${label}: result`}
-                    options={PASS_FAIL}
-                    value={draft.result}
-                    disabled={set.isPending}
-                    responsive
-                    testId={`rev-cell-${id}`}
-                    onPick={(v) => {
-                      edit(cell, { ...draft, result: v === draft.result ? null : v }, true);
-                    }}
-                  />
-                </div>
-                {draft.result === 'failed' ? (
-                  <textarea
-                    rows={2}
-                    aria-label="Why it failed"
-                    placeholder="Why it failed"
-                    maxLength={1000}
-                    className={draft.note.trim() === '' ? NOTE_MISSING : FIELD_AREA}
-                    value={draft.note}
-                    data-testid={`rev-note-${id}`}
-                    onChange={(e) => {
-                      edit(cell, { ...draft, note: e.target.value }, false);
-                    }}
-                    onBlur={() => {
-                      edit(cell, draft, true);
-                    }}
-                  />
-                ) : null}
+              <li key={`${cell.id}-why`} className="flex flex-col gap-1 px-3 py-2">
+                <span className="break-words text-[13px] font-medium text-ink-2">{label}</span>
+                <input
+                  type="text"
+                  aria-label={`${label}: why it failed`}
+                  placeholder="Why it failed"
+                  maxLength={1000}
+                  className={draft.note.trim() === '' ? NOTE_MISSING : FIELD_CONTROL}
+                  value={draft.note}
+                  data-testid={`rev-note-${cell.area_id}-${cell.item_id}`}
+                  onChange={(e) => {
+                    edit(cell, { ...draft, note: e.target.value });
+                  }}
+                />
               </li>
             );
           })}

@@ -3,7 +3,8 @@
 // the list the walls need (Oct 12: only those, as big boxes in their state), each picked one with the color it gets on
 // the map, the limit said once in the heading; then the walls by
 // level, room first when the job's rooms are given (RevRoomPick; Jesse, Oct 10: "selecting the whole room should be the
-// first option"), else one button per wall. A request that came with walls (a room's, a wall's) shows those, all on, a
+// first option"), else one button per wall. What failed last time comes first: its items under their own heading, its
+// rooms first on their level (Jesse, Oct 22). A request that came with walls (a room's, a wall's) shows those, all on, a
 // tap takes one off, and Add walls shows the rest of the list. Then the title the map will carry. Props only (the job's
 // setup, status and rooms in, the pick out), so the no-login request page uses it too (no rooms there: wall buttons).
 // The database decides again on submit (ir_submit_ofs).
@@ -16,13 +17,13 @@ import { FIELD_MISSING } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 import { Segments } from '../../ui/Segments';
 import {
-  MAX_ITEMS, applicableGroups, itemsByRev, listsWithWalls, mapWhat, pickList, pickWalls, requestPlan, statusIndex, titlePreview, toggleItem,
-  wallsByLevel, type RevPick,
+  MAX_ITEMS, applicableGroups, failedFirst, itemsByRev, listsWithWalls, mapWhat, pickList, pickWalls, requestPlan, statusIndex, titlePreview,
+  toggleItem, wallsByLevel, type RevPick,
 } from './revPick';
 import { RevItems } from './RevItems';
 import { RevRoomPick } from './RevRoomPick';
 import { RevWalls } from './RevWalls';
-import { hasRooms, nearGroups, roomGroups, shownCount } from './roomPick';
+import { failedRoomsFirst, hasRooms, nearGroups, roomGroups, shownCount } from './roomPick';
 
 interface RevPickerProps {
   setup: RevSetup;
@@ -52,13 +53,13 @@ export function RevPicker({ setup, status, value, onChange, date, near = [], roo
   const allWalls = wallsByLevel(setup, value.listId);
   // The items the picked walls need; before any is picked, those any wall of the list needs.
   const askOf = value.areaIds.length > 0 ? value.areaIds : allWalls.flatMap((g) => g.areas.map((a) => a.id));
-  const offered = applicableGroups(itemsByRev(setup, value.listId), index, askOf);
+  const offered = failedFirst(applicableGroups(itemsByRev(setup, value.listId), index, askOf), index, askOf);
   const nearSet = new Set(near);
   const onlyNear = near.length > 0 && !more;
   const groups = onlyNear
     ? allWalls.map((g) => ({ ...g, areas: g.areas.filter((a) => nearSet.has(a.id)) })).filter((g) => g.areas.length > 0)
     : allWalls;
-  const allRooms = rooms ? roomGroups(setup, rooms, value.listId) : [];
+  const allRooms = failedRoomsFirst(rooms ? roomGroups(setup, rooms, value.listId) : [], index);
   const byRoom = hasRooms(allRooms);
   const roomView = onlyNear ? nearGroups(allRooms, near) : allRooms;
   const hidden = byRoom

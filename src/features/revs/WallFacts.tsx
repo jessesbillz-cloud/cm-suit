@@ -1,5 +1,5 @@
 // The shown item's facts in one short line under the drawing: "Passed · IR 377 · OFS 0065 · Oct 2" (the IR opens the
-// request in Inspections), "Failed: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. A manager switches
+// request in Inspections), "Failed — needs re-inspection: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. A manager switches
 // an open item off for this wall only ("Not needed here", 0101 rev_card_item) or back on, at once; the toast offers Undo
 // (no "are you sure"). An item with a sign-off, a request or a failure stays as it is. An item signed off before the
 // app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens over the
@@ -81,7 +81,7 @@ export function WallFacts({ projectId, area, shown, timeZone, canManage, onOpenR
   return (
     <div className="flex min-h-8 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[14px] leading-5" data-testid="rev-facts" data-status={cell.status}>
       <span className="font-semibold" style={{ color: `var(--status-${chip.key}-fg)` }}>
-        {why ? 'Failed:' : before ? 'Done' : chip.label}
+        {why ? `${chip.label}:` : before ? 'Done' : chip.label}
       </span>
       {signed !== null ? (
         <>

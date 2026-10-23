@@ -3184,6 +3184,8 @@ export type Database = {
           item_id: string
           org_id: string
           project_id: string
+          pulled_at: string | null
+          pulled_by: string | null
           request_id: string
           result: string | null
           result_at: string | null
@@ -3201,6 +3203,8 @@ export type Database = {
           item_id: string
           org_id: string
           project_id: string
+          pulled_at?: string | null
+          pulled_by?: string | null
           request_id: string
           result?: string | null
           result_at?: string | null
@@ -3218,6 +3222,8 @@ export type Database = {
           item_id?: string
           org_id?: string
           project_id?: string
+          pulled_at?: string | null
+          pulled_by?: string | null
           request_id?: string
           result?: string | null
           result_at?: string | null
@@ -9375,6 +9381,10 @@ export type Database = {
         }
       }
       ir_map_context: { Args: { p_request_id: string }; Returns: Json }
+      ir_map_drop_walls: {
+        Args: { p_cells: Json; p_request_id: string }
+        Returns: Json
+      }
       ir_map_editor: { Args: { p_request_id: string }; Returns: boolean }
       ir_map_facts: { Args: { p_request_id: string }; Returns: Json }
       ir_map_save: {
@@ -9522,6 +9532,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      ir_may_pull_back: {
+        Args: { p_kind: string; p_project_id: string; p_requested_by: string }
+        Returns: boolean
       }
       ir_may_see: {
         Args: {
@@ -9728,6 +9742,10 @@ export type Database = {
         Args: { p_area_ids: string[]; p_item_ids: string[] }
         Returns: string
       }
+      ir_ofs_label: {
+        Args: { p_number: number; p_ofs_number: number }
+        Returns: string
+      }
       ir_ofs_list: {
         Args: {
           p_area_ids: string[]
@@ -9928,6 +9946,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_pull_cells: {
+        Args: { p_cells: Json; p_pulled: boolean; p_request_id: string }
+        Returns: Json
+      }
+      ir_pull_count: {
+        Args: { p_cells: Json; p_request_id: string }
+        Returns: string
+      }
+      ir_pull_open: { Args: { p_request_id: string }; Returns: boolean }
+      ir_pull_tell: {
+        Args: {
+          p_kind: string
+          p_line: string
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+          p_was: string
+        }
+        Returns: undefined
+      }
+      ir_pull_text: {
+        Args: { p_items: string; p_request_id: string }
+        Returns: string
+      }
       ir_recipients: {
         Args: { p_request_id: string }
         Returns: {
@@ -10016,6 +10056,158 @@ export type Database = {
         }
       }
       ir_rev_failed_notes: { Args: { p_request_id: string }; Returns: string }
+      ir_rev_pull_back: {
+        Args: { p_cells: Json; p_request_id: string; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_attest_at: string | null
+          ofs_attest_by: string | null
+          ofs_attest_text: string | null
+          ofs_number: number | null
+          ofs_ready_at: string | null
+          ofs_ready_by: string | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          ofs_si_at: string | null
+          ofs_si_by: string | null
+          ofs_si_file_id: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_rev_put_back: {
+        Args: { p_cells: Json; p_request_id: string; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          notice_ack_at: string
+          number: number
+          ofs_attest_at: string | null
+          ofs_attest_by: string | null
+          ofs_attest_text: string | null
+          ofs_number: number | null
+          ofs_ready_at: string | null
+          ofs_ready_by: string | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          ofs_si_at: string | null
+          ofs_si_by: string | null
+          ofs_si_file_id: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ir_rev_results: {
         Args: { p_request_id: string; p_results: Json; p_version: number }
         Returns: {
@@ -10417,6 +10609,10 @@ export type Database = {
       ir_status_key: {
         Args: { p_helper: string; p_result: string; p_status: string }
         Returns: string
+      }
+      ir_stroke_on_line: {
+        Args: { p_line: Json; p_points: Json }
+        Returns: boolean
       }
       ir_submit: {
         Args: {

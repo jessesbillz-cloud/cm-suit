@@ -26,6 +26,7 @@ const SERVER_KINDS = [
   'ir.moved',
   'ir.ofs',
   'ir.postponed',
+  'ir.pulled_back',
   'ir.requested',
   'ir.results',
   'ir.returned',

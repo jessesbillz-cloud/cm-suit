@@ -21,12 +21,15 @@ export interface RevMockState {
   /** Signed off before the app (0082). */
   signoffs: Tables<'rev_signoffs'>[];
   cells: Tables<'ir_rev_items'>[];
+  /** Cells taken off their request (0109 pulled_at): kept apart, so every read of `cells` is what is still asked for. */
+  pulled: Tables<'ir_rev_items'>[];
   maps: Tables<'ir_maps'>[];
 }
 
 export function read(): RevMockState {
   const raw = window.sessionStorage.getItem(KEY);
-  return raw === null ? { ...seedSetup(), cells: seedCells(), maps: seedMaps(), signoffs: [] } : (JSON.parse(raw) as RevMockState);
+  const fresh = { ...seedSetup(), cells: seedCells(), pulled: [], maps: seedMaps(), signoffs: [] };
+  return raw === null ? fresh : { ...fresh, ...(JSON.parse(raw) as Partial<RevMockState>) };
 }
 
 export function write(update: (s: RevMockState) => RevMockState): RevMockState {

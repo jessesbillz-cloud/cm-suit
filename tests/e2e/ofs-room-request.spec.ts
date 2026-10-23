@@ -132,7 +132,7 @@ test.describe('OFS request from a room', () => {
 
     // The first request carries the north wall only.
     await page.goto(`/p/job-s/inspections/mock-ir-${String(n)}`);
-    const cells = page.getByTestId('ir-pane').getByTestId('rev-cells');
+    const cells = page.getByTestId('ir-pane').getByTestId('ir-pull-back');
     await expect(cells).toContainText('Corridor 110 north wall');
     await expect(cells).not.toContainText('Shaftwall');
   });

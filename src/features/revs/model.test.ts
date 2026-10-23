@@ -93,7 +93,7 @@ describe('revs model', () => {
   it('chips use lib/status keys, each with its own word', () => {
     expect(chipOf('passed')).toEqual({ key: 'approved', label: 'Passed' });
     expect(chipOf('requested')).toEqual({ key: 'pending', label: 'Requested' });
-    expect(chipOf('failed')).toEqual({ key: 'not_approved', label: 'Failed' });
+    expect(chipOf('failed')).toEqual({ key: 'not_approved', label: 'Failed — needs re-inspection' });
     expect(chipOf('open')).toEqual({ key: 'step_ahead', label: 'Open' });
     expect(chipOf('na')).toEqual({ key: 'cancelled', label: 'N/A' });
   });

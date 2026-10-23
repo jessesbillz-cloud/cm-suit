@@ -18,6 +18,7 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
 | Inspector (IOR) | `ir.decide` |
 | OFS sender | the inspector, or the job's OFS requests duty holder (`ir_ofs_sender`) |
 | Fire marshal (deputy) | `ir.ofs_decide`, `ir.ofs_view` |
+| Takes walls off (Not ready) | its requester (`ir.request`), the job's OFS requests duty holder, or `ir.gc_approve`; never the fire marshal (`ir_may_pull_back`) |
 
 ## Inputs to read first (no writes)
 
@@ -71,14 +72,34 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
 7. **Fire marshal, optional: confirm a time first.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
    Not needed before step 8 (Oct 10): recording the result confirms the request in the same call.
 
+7a. **JUDGMENT, optional: take off what isn't ready (Not ready, 0109).** The requester (or the duty holder, or the GC),
+   any time from step 2 until step 8 records a result, also after step 6. One wall (every item on it) or one item:
+   `rpc/ir_rev_pull_back`
+   ```json
+   { "p_request_id": "<id>", "p_version": <version>, "p_cells": [ { "area_id": "<wall>", "item_id": "<item>" }, ... ] }
+   ```
+   Each cell must be on the request now. After: those `ir_rev_items` rows have `pulled_at` set (kept, never deleted)
+   and every reader leaves them out: `rev_status` shows them `open` again (as if never asked for), the request's
+   `items` line, map legend and title no longer name them, and the map loses their strokes. The fire marshal (once it
+   is with OFS, else the inspector) gets one board line, `ir.pulled_back` "OFS #0097: 2 walls taken off by <name>";
+   the requester gets it when someone else did it. Audited (`ir.rev_pull_back`, with the cells and the strokes taken
+   off). Every cell off: `status = 'withdrawn'` (board line `ir.withdrawn`), and `ir_restore` refuses it.
+   Refused once a result is recorded on the request or any of its cells: "The results are in."
+
+7b. **Undo of 7a.** `rpc/ir_rev_put_back` with the same body and the version 7a returned. After: the same cells back
+   (refused if one of them is on another request since: "That wall is on IR N now."), their strokes back on the map, a
+   request 7a withdrew back in the status it had, its line written again. Audited (`ir.rev_put_back`).
+
 8. **JUDGMENT: pass or fail each wall and item.** The fire marshal, on site.
    `rpc/ir_rev_results`
    ```json
    { "p_request_id": "<id>", "p_version": <version>,
      "p_results": [ { "area_id": "<wall>", "item_id": "<item>", "result": "passed", "note": null }, ... ] }
    ```
-   Every `ir_rev_items` cell of the request exactly once; `result` is `passed` or `failed`; a `failed` one has a
-   `note` saying why (up to 1000 characters). "All passed" is this call with every cell `passed`. `p_results: null`
+   Every cell still on the request (not taken off in 7a) exactly once; `result` is `passed` or `failed`; a `failed`
+   one has a `note` saying why (up to 1000 characters). In the app every box starts as Pass: "Pass all" is this call
+   with every cell `passed`, one tap; a box flipped to Fail needs its one line first, and the same button saves the
+   whole set ("Save · 1 failed"). `p_results: null`
    clears every result (Undo). After: `status = 'confirmed'` (if it was pending), `result = 'approved'` when every cell
    passed, else `not_approved` with the failed notes; `rev_status` shows each passed cell as `passed` with the OFS
    number: **passed in Revs**.
@@ -95,6 +116,8 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
 
 ## Failed walls
 
-A failed cell stays `failed` in `rev_status`. To ask again, start at step 1 with those walls and items: they are
-`open` to a new request. "File another like this" in the app is step 2 again with the same walls, items, time and
+A failed cell stays `failed` in `rev_status` ("Failed — needs re-inspection" on the wall) until it is asked for again
+or passes. It is listed on its own under Back from OFS · Failed on the start page (`rpc/ofs_desk`: the designated
+person's, and the requester's for his own requests), with its room, wall, item and why. To ask again, start at step 1
+with those walls and items: the request form offers them first, under "Failed last time", and marks their rooms. "File another like this" in the app is step 2 again with the same walls, items, time and
 answer, the next working day.
