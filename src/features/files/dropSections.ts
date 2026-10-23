@@ -24,9 +24,9 @@ const PAGES = 2;
 const isPdf = (f: File) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
 
 /** The places in the drop of the files whose words are read: PDFs bound for those sections with no section in the name. */
-export function toRead(dropped: readonly DroppedFile[], viewing: SectionKind): number[] {
+export function toRead(dropped: readonly DroppedFile[], viewing: SectionKind, ccds: boolean): number[] {
   const bound = new Set<DroppedFile>();
-  for (const g of sortDrop(dropped, viewing)) if (READS.has(g.kind ?? viewing)) for (const d of g.items) bound.add(d);
+  for (const g of sortDrop(dropped, viewing, ccds)) if (READS.has(g.kind ?? viewing)) for (const d of g.items) bound.add(d);
   return dropped.flatMap((d, at) =>
     bound.has(d) && isPdf(d.file) && d.file.size <= MAX_BYTES && sectionOfName(d.file.name) === null ? [at] : [],
   );

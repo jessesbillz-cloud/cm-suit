@@ -46,9 +46,10 @@ select pg_temp.mk_user('a0000000-0000-0000-0000-000000000867', 'probe+fa-out@exa
 
 insert into public.orgs (id, name, kind, created_by) values
   ('b0000000-0000-0000-0000-000000000861', 'Sample Access Builders', 'gc', 'a0000000-0000-0000-0000-000000000861');
-insert into public.projects (id, org_id, name, stage, timezone, created_by) values
+-- A DSA job: it has a CCDs section (0111).
+insert into public.projects (id, org_id, name, stage, timezone, is_dsa, created_by) values
   ('c0000000-0000-0000-0000-000000000861', 'b0000000-0000-0000-0000-000000000861', 'Sample Access Job', 'construction',
-   'America/Los_Angeles', 'a0000000-0000-0000-0000-000000000861');
+   'America/Los_Angeles', true, 'a0000000-0000-0000-0000-000000000861');
 insert into public.project_members (org_id, project_id, user_id, invite_email, role, status)
 select 'b0000000-0000-0000-0000-000000000861', 'c0000000-0000-0000-0000-000000000861', u::uuid, e, r, 'active'
   from (values ('a0000000-0000-0000-0000-000000000862', 'probe+fa-pm@example.test', 'pm'),

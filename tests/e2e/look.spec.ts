@@ -90,7 +90,7 @@ test.describe('the look of the fire marshal screens', () => {
     await expect(page.getByTestId('ir-pane').getByTestId('ir-inspector')).toBeVisible();
     await shot(page, '10-result-step');
 
-    // Files: Plans, Specs, CCDs.
+    // Files (a CSU job: no CCDs).
     await openAs(page, 'pm', `/p/${JOB}/files`);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
     await shot(page, '11-files');

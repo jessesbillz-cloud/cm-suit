@@ -23,6 +23,9 @@ export function sectionKind(s: Pick<FileSection, 'kind'>): SectionKind | null {
   return SECTION_KINDS.find((k) => k === s.kind) ?? null;
 }
 
+/** The job has CCDs: files_sections lists them on a DSA job only (0111). */
+export const hasCcds = (all: readonly Pick<FileSection, 'kind'>[]) => all.some((s) => s.kind === 'ccd');
+
 /** Shown only while something is in them. */
 const WHILE_FULL: readonly SectionKind[] = ['unsorted', 'bids_received', 'inbound'];
 

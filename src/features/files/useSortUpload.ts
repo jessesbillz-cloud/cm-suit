@@ -17,7 +17,7 @@ import { sortDrop, type SectionKind } from './classify';
 import type { DroppedFile } from './collectDrop';
 import { dirKey, planDrop } from './dropPlan';
 import { howMany } from './outcomes';
-import { SECTION_LABEL, uploadFolder } from './sections';
+import { hasCcds, SECTION_LABEL, uploadFolder } from './sections';
 
 interface SortArgs {
   projectId: string;
@@ -96,7 +96,7 @@ export function useSortUpload(args: SortArgs): (dropped: DroppedFile[], after?: 
     if (dropped.length === 0) return;
     const sent = new Map<SectionKind, number>();
     const count = (k: SectionKind, n: number) => sent.set(k, (sent.get(k) ?? 0) + n);
-    for (const g of sortDrop(dropped, viewing)) {
+    for (const g of sortDrop(dropped, viewing, hasCcds(sections))) {
       const files = g.items.map((d) => d.file);
       if (g.kind === 'reports' && revs) {
         addOfs(files);
