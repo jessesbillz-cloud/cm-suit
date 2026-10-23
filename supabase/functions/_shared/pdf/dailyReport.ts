@@ -10,6 +10,7 @@
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { type DailyContent, type DailyHeader, NOTE_SECTIONS } from '../dailies.ts';
 import { plainSpaces } from './inspectionReport.ts';
+import { type Letterhead, layoutLetterhead } from './letterhead.ts';
 
 export interface DailyPdfPhoto {
   bytes: Uint8Array;
@@ -29,6 +30,8 @@ export interface DailyPdfInput {
   content: DailyContent;
   photos: readonly DailyPdfPhoto[];
   photosPerPage: 1 | 2 | 4;
+  /** The job's brand at the top (0110); none leaves the report as it was. */
+  letterhead?: Letterhead | null | undefined;
 }
 
 /** One piece of text as drawn: page (0-based) and baseline. For tests: proves nothing was dropped or drawn off-page. */
@@ -185,6 +188,14 @@ export function heading(ctx: Ctx, text: string): void {
   ctx.y -= 4;
   draw(ctx, clean(ctx, text), MARGIN, ctx.y - 11, 11, ctx.bold);
   ctx.y -= 16;
+}
+
+/** The job's brand letterhead (0110, letterhead.ts) at the top of the first page, when it has one. */
+export async function letterheadBlock(ctx: Ctx, lh: Letterhead | null | undefined): Promise<void> {
+  if (!lh) return;
+  const placed = await layoutLetterhead(ctx.doc, { regular: ctx.font, bold: ctx.bold }, lh, WIDTH);
+  placed.draw(ctx.page, MARGIN, ctx.y);
+  ctx.y -= placed.height + 14;
 }
 
 /** The report's name and number, the job, the day and who wrote it. */
@@ -371,6 +382,7 @@ function footers(ctx: Ctx, h: DailyHeader, number: number, dateLabel: string): v
 /** Builds the daily report PDF. Throws PhotoReadError for a photo that isn't a readable JPEG or PNG. */
 export async function buildDailyReportPdf(input: DailyPdfInput, onText?: (t: DrawnText) => void): Promise<Uint8Array> {
   const ctx = await newCtx(`${input.header.label} #${input.number} - ${input.header.project_name}`, onText);
+  await letterheadBlock(ctx, input.letterhead);
   titleBlock(ctx, input);
   workLog(ctx, input.content);
   notes(ctx, input.content);

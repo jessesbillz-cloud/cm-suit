@@ -2,7 +2,8 @@
 // (scaled to fit, 18 pt margin, its /Rotate honored), the inspected walls highlighted over it in up to three colors, the
 // title in red bold at the top left on a white box with the permit number under it (0061), the legend (swatch + item
 // name) and, on an IR that passed and is signed, the deputy's signature and date in that same box under them through
-// the ONE stamp (stamp.ts), so nothing on the sheet (its number, its title block) is covered. No checklist: the
+// the ONE stamp (stamp.ts), so nothing on the sheet (its number, its title block) is covered. The job's brand letterhead
+// (0110, letterhead.ts) heads that box when the brand has a logo or letterhead lines. No checklist: the
 // request's route is the readiness check (SPEC §18.4 P1).
 // The page content is embedded, not its annotations: old markups on an uploaded sheet never show (OSFM: no previously
 // inspected work on a map), and the sheet viewer leaves them off too. Pure: bytes in, bytes out. Tests: irMap_test.ts.
@@ -12,6 +13,7 @@ import {
 } from 'pdf-lib';
 import { HIGHLIGHT_OPACITY, MARKUP_COLORS, type MarkupColor, type Stroke, clampStroke } from '../markup.ts';
 import { pdfSafe, wrapText } from './inspectionReport.ts';
+import { type Letterhead, layoutLetterhead, type PlacedLetterhead } from './letterhead.ts';
 import { STAMP_TEXT_SIZE, type StampSpot, signedByLine, stampSignature } from './stamp.ts';
 
 /** The sheet itself can't be used (locked, damaged, no such page): the person's file, said in plain words. */
@@ -45,6 +47,8 @@ export interface IrMapInput {
   permit?: string | null | undefined;
   /** A passed, signed IR: the deputy's signature (PNG or none), name and signed time. */
   stamp: { signaturePng: Uint8Array | null; name: string; signedAtLabel: string } | null;
+  /** The job's brand at the top of the title box (0110); none leaves the map as it was. */
+  letterhead?: Letterhead | null | undefined;
 }
 
 /** OSFM's title: one definition with the request form's preview (../markup.ts). */
@@ -127,6 +131,7 @@ interface SignRow {
 }
 
 interface TitleBox {
+  letterhead: PlacedLetterhead | null;
   title: string;
   permit: string | null;
   legend: readonly MapLegendItem[];
@@ -146,6 +151,7 @@ function drawTitleBox(page: PDFPage, bold: PDFFont, box: TitleBox): StampSpot | 
   const signWidth = sign === null ? 0 : (sign.image ? SIGNATURE.width + STAMP_GAP : 0) + sign.textWidth;
   const widest = Math.max(
     signWidth,
+    box.letterhead?.width ?? 0,
     ...titleLines.map((l) => bold.widthOfTextAtSize(l, TITLE_SIZE)),
     ...permitLines.map((l) => bold.widthOfTextAtSize(l, PERMIT_SIZE)),
     ...rows.flatMap((r) => r.lines.map((l) => SWATCH.width + 8 + bold.widthOfTextAtSize(l, LEGEND_SIZE))),
@@ -155,6 +161,8 @@ function drawTitleBox(page: PDFPage, bold: PDFFont, box: TitleBox): StampSpot | 
 
   // Lay out first (baselines top-down; capitals are about 0.72 of the size), then draw the box and the text on it.
   let cursor = top - PAD;
+  const letterheadTop = cursor;
+  if (box.letterhead) cursor -= box.letterhead.height + 8;
   const titleBase = titleLines.map(() => {
     const base = cursor - TITLE_SIZE * 0.74;
     cursor -= TITLE_LEAD;
@@ -191,6 +199,7 @@ function drawTitleBox(page: PDFPage, bold: PDFFont, box: TitleBox): StampSpot | 
   page.drawRectangle({
     x: left, y: bottom - PAD, width: widest + 2 * PAD, height: top - bottom + PAD, color: WHITE, borderColor: RED, borderWidth: 0.75,
   });
+  box.letterhead?.draw(page, left + PAD, letterheadTop);
   if (rule !== null) {
     page.drawLine({ start: { x: left + PAD, y: rule }, end: { x: left + PAD + widest, y: rule }, thickness: 0.5, color: RULE });
   }
@@ -241,6 +250,9 @@ export async function buildIrMap(input: IrMapInput): Promise<Uint8Array> {
   drawStrokes(page, input.strokes, place.box);
 
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const letterhead = input.letterhead
+    ? await layoutLetterhead(doc, { regular: await doc.embedFont(StandardFonts.Helvetica), bold }, input.letterhead, BOX_MAX_TEXT)
+    : null;
   const stamp = input.stamp;
   // The stamp writes its line in Helvetica: measured the same way, so the box holds it.
   const sign = stamp
@@ -249,7 +261,7 @@ export async function buildIrMap(input: IrMapInput): Promise<Uint8Array> {
       textWidth: (await doc.embedFont(StandardFonts.Helvetica)).widthOfTextAtSize(signedByLine(stamp), STAMP_TEXT_SIZE),
     }
     : null;
-  const spot = drawTitleBox(page, bold, { title: input.title, permit: input.permit ? pdfSafe(input.permit) : null, legend: input.legend, sign });
+  const spot = drawTitleBox(page, bold, { letterhead, title: input.title, permit: input.permit ? pdfSafe(input.permit) : null, legend: input.legend, sign });
 
   // Without object streams: much less work for a big sheet, and nothing is compressed twice.
   const bytes = await doc.save({ useObjectStreams: false });

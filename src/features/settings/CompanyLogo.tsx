@@ -1,5 +1,6 @@
-// Settings > Company, "Logo": the company's logo, printed on its official RFIs. PNG or JPEG; a photo over 2 MB is made
-// smaller first. Upload / Replace, and Remove with Undo (the removal waits for the toast to close, no "are you sure?").
+// Settings > Company, "Logo": the company's logo, on the PDFs and the top bar of the jobs that show it (0110). PNG, JPEG
+// or SVG (made a PNG first); an image over 1 MB is made smaller first. Upload / Replace, and Remove with Undo (the
+// removal waits for the toast to close, no "are you sure?").
 // Org admins only (the card around it already is).
 import { useRef, useState } from 'react';
 import { LoaderCircle, Trash2, Upload } from 'lucide-react';
@@ -76,7 +77,7 @@ export function CompanyLogo({ orgId }: { orgId: string }) {
         <input
           ref={input}
           type="file"
-          accept="image/png,image/jpeg"
+          accept="image/png,image/jpeg,image/svg+xml"
           hidden
           data-testid="company-logo-input"
           onChange={(e) => {

@@ -1,8 +1,10 @@
 // The IR PDF (SPEC §8.2, §13.2): a clean generic inspection report form. Pure: data in, bytes out. Company/agency
-// form templates come later (SPEC §8.3); this is the standard builder. The signature goes on afterwards through the
+// form templates come later (SPEC §8.3); this is the standard builder. The job's brand letterhead (0110, letterhead.ts)
+// heads it when the brand has a logo or letterhead lines. The signature goes on afterwards through the
 // one stamp (stamp.ts), so the bottom of every page is kept clear for it. Overflow flows onto continuation pages,
 // never cut off.
 import { degrees, PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
+import { type Letterhead, layoutLetterhead } from './letterhead.ts';
 
 export interface InspectionReportInput {
   job: { name: string; number: string | null; address: string | null };
@@ -26,6 +28,8 @@ export interface InspectionReportInput {
   photos: readonly Uint8Array[];
   /** Set when the request is postponed: a banner and a mark on every page. */
   postponed: { reason: string; note: string | null; until: string | null } | null;
+  /** The job's brand at the top (0110); none leaves the form as it was. */
+  letterhead?: Letterhead | null | undefined;
 }
 
 const SIZE: [number, number] = [612, 792];
@@ -192,8 +196,13 @@ async function photos(c: Cursor, list: readonly Uint8Array[]): Promise<void> {
   }
 }
 
-function header(c: Cursor, input: InspectionReportInput): void {
+async function header(c: Cursor, input: InspectionReportInput): Promise<void> {
   const { bold } = c.fonts;
+  if (input.letterhead) {
+    const lh = await layoutLetterhead(c.doc, c.fonts, input.letterhead, WIDTH);
+    lh.draw(c.page, MARGIN, c.y);
+    c.y -= lh.height + 14;
+  }
   const ir = `IR ${input.number}`;
   c.page.drawText('INSPECTION REPORT', { x: MARGIN, y: c.y - 16, size: 16, font: bold, color: INK });
   c.page.drawText(ir, { x: MARGIN + WIDTH - bold.widthOfTextAtSize(ir, 16), y: c.y - 16, size: 16, font: bold, color: INK });
@@ -251,7 +260,7 @@ export async function buildInspectionReport(input: InspectionReportInput): Promi
   const fonts: Fonts = { regular: await doc.embedFont(StandardFonts.Helvetica), bold: await doc.embedFont(StandardFonts.HelveticaBold) };
   const c = new Cursor(doc, fonts, pdfSafe(`IR ${input.number} · ${input.job.name} (continued)`));
 
-  header(c, input);
+  await header(c, input);
   if (input.postponed) postponedBanner(c, input.postponed);
   fieldGrid(c, [
     ['Address', input.job.address ?? ''],

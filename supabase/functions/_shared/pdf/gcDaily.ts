@@ -5,16 +5,17 @@
 // (dailyReport.ts) so every daily reads alike. Rendered only on the server from the saved report (submit-daily); the ONE
 // stamp (stamp.ts) signs the last page's corner afterwards, where room is kept for it.
 //
-// Order: the title block; the short fields on one line under their title ("Conditions: Clear · High: 78°F"); each table
+// Order: the job's brand letterhead when it has one (0110), the title block; the short fields on one line under their title ("Conditions: Clear · High: 78°F"); each table
 // with its column titles (repeated on a new page) and a total under its count and hours; IR results the inspections
 // module wrote; the long fields; the photos, 1/2/4 a page. Empty parts are left out. Nothing is cut off: cells and
 // paragraphs wrap and flow onto further pages, and a word longer than its column is broken.
 import type { DailyHeader, TableRow } from '../dailies.ts';
 import { type FormColumn, type FormTable, type ReportForm, tablesOf } from '../reportForms.ts';
 import {
-  type Ctx, type DailyPdfPhoto, type DrawnText, clean, draw, finish, GRAY, heading, jobTitle, MARGIN, newCtx, paragraph,
-  photoPages, rightText, room, rule, WIDTH, wrapText,
+  type Ctx, type DailyPdfPhoto, type DrawnText, clean, draw, finish, GRAY, heading, jobTitle, letterheadBlock, MARGIN, newCtx,
+  paragraph, photoPages, rightText, room, rule, WIDTH, wrapText,
 } from './dailyReport.ts';
+import type { Letterhead } from './letterhead.ts';
 
 export interface FormDailyPdfInput {
   form: ReportForm;
@@ -30,6 +31,8 @@ export interface FormDailyPdfInput {
   inspections: readonly string[];
   photos: readonly DailyPdfPhoto[];
   photosPerPage: 1 | 2 | 4;
+  /** The job's brand at the top (0110); none leaves the report as it was. */
+  letterhead?: Letterhead | null | undefined;
 }
 
 const CELL_SIZE = 9;
@@ -149,6 +152,7 @@ function shortLine(form: ReportForm, day: Readonly<Record<string, string>>): str
 export async function buildFormDailyPdf(input: FormDailyPdfInput, onText?: (t: DrawnText) => void): Promise<Uint8Array> {
   const { form, header, day } = input;
   const ctx = await newCtx(`${header.label} #${input.number} - ${header.project_name}`, onText);
+  await letterheadBlock(ctx, input.letterhead);
   jobTitle(ctx, header, input.number, input.dateLabel);
   ctx.y -= 4;
   rule(ctx);

@@ -14,6 +14,7 @@ import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { InspectionSettings } from '../inspections/InspectionSettings';
+import { JobBrand } from './JobBrand';
 import { JobLocation } from './JobLocation';
 import { FIELD_ROW, SettingRow } from './SettingRow';
 
@@ -115,6 +116,7 @@ function JobFields({ row, commit, onProblem }: JobFieldsProps) {
       {textField('address', 'Address')}
       <JobLocation projectId={row.id} address={row.address} />
       {textField('job_type', 'Job type')}
+      <JobBrand projectId={row.id} />
       <SelectField
         label="Time zone"
         value={row.timezone}

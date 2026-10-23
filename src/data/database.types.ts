@@ -3601,6 +3601,50 @@ export type Database = {
           },
         ]
       }
+      org_letterheads: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          org_id: string
+          phone: string | null
+          print_name: string | null
+          updated_at: string
+          version: number
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          org_id: string
+          phone?: string | null
+          print_name?: string | null
+          updated_at?: string
+          version?: number
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          org_id?: string
+          phone?: string | null
+          print_name?: string | null
+          updated_at?: string
+          version?: number
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_letterheads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           created_at: string
@@ -4475,6 +4519,7 @@ export type Database = {
           address: string | null
           bid_due_at: string | null
           bid_sealed: boolean
+          brand_org_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -4500,6 +4545,7 @@ export type Database = {
           address?: string | null
           bid_due_at?: string | null
           bid_sealed?: boolean
+          brand_org_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -4525,6 +4571,7 @@ export type Database = {
           address?: string | null
           bid_due_at?: string | null
           bid_sealed?: boolean
+          brand_org_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -4547,6 +4594,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_brand_org_id_fkey"
+            columns: ["brand_org_id"]
+            isOneToOne: false
+            referencedRelation: "orgs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_org_id_fkey"
             columns: ["org_id"]
@@ -8129,6 +8183,7 @@ export type Database = {
           address: string | null
           bid_due_at: string | null
           bid_sealed: boolean
+          brand_org_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -11573,6 +11628,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      job_brand: {
+        Args: { p_project_id: string }
+        Returns: {
+          address: string
+          logo_path: string
+          name: string
+          org_id: string
+          phone: string
+          print_name: string
+          website: string
+        }[]
+      }
+      job_brand_choices: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          org_id: string
+        }[]
+      }
       job_rail_ok: { Args: { p_tools: string[] }; Returns: boolean }
       job_rail_tools: { Args: never; Returns: string[] }
       jwt_role: { Args: never; Returns: string }
@@ -11857,6 +11931,7 @@ export type Database = {
         Returns: undefined
       }
       mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
+      may_read_org_brand: { Args: { p_org_id: string }; Returns: boolean }
       merge_sub_contacts: {
         Args: { p_existing: Json; p_incoming: Json }
         Returns: Json
@@ -12968,6 +13043,7 @@ export type Database = {
           address: string | null
           bid_due_at: string | null
           bid_sealed: boolean
+          brand_org_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -16086,6 +16162,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_job_brand: {
+        Args: { p_org_id: string; p_project_id: string }
+        Returns: string
+      }
       set_job_rate: {
         Args: { p_project_id: string; p_rate: number; p_version?: number }
         Returns: {
@@ -16099,6 +16179,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "billing_job_rates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_org_letterhead: {
+        Args: {
+          p_address: string
+          p_org_id: string
+          p_phone: string
+          p_print_name: string
+          p_version: number
+          p_website: string
+        }
+        Returns: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          org_id: string
+          phone: string | null
+          print_name: string | null
+          updated_at: string
+          version: number
+          website: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "org_letterheads"
           isOneToOne: true
           isSetofReturn: false
         }

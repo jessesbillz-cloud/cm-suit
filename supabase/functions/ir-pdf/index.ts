@@ -16,12 +16,14 @@
 //   download: "View IR" and a request's own files. authorize_ir_file() as the caller (who may see the request, scan
 //             rules, logs the download), then a fresh signed URL.
 // Service client (admin_service_key_allowlist.txt): storing the PDF (storage + files row) and recording it
-// (ir_attach_pdf), reading the result photos' bytes and signing download URLs; each only after the caller-run checks.
+// (ir_attach_pdf), reading the result photos' bytes, the job's brand letterhead (0110, _shared/brand.ts) and signing
+// download URLs; each only after the caller-run checks.
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, storageError } from '../_shared/db.ts';
 import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
+import { jobLetterhead } from '../_shared/brand.ts';
 import { buildInspectionReport } from '../_shared/pdf/inspectionReport.ts';
 import { stampSignature } from '../_shared/pdf/stamp.ts';
 import {
@@ -129,6 +131,7 @@ async function render(client: Db, service: Db, row: IrRow, signer: Signer, signe
     approved: row.result === 'approved',
     resultNote: row.result_note,
     photos: await photoBytes(client, service, row),
+    letterhead: await jobLetterhead(service, row.project_id),
     postponed: postponed
       ? {
         reason: postponeLabel(row.postpone_reason),

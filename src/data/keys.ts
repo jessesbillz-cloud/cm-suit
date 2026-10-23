@@ -90,6 +90,14 @@ export const qk = {
   rfiWaiting: ['rfi_waiting'] as const,
   /** A company's logo (path and a fresh signed URL for the preview). */
   orgLogo: (orgId: string) => ['org_logo', orgId] as const,
+  /** A company's letterhead lines (0110). */
+  orgLetterhead: (orgId: string) => ['org_letterhead', orgId] as const,
+  /** The company a job shows and its logo (0110); every job's under one prefix, so a new logo refreshes them all. */
+  jobBrands: ['job_brand'] as const,
+  jobBrand: (projectId: string) => ['job_brand', projectId] as const,
+  /** The companies a job may show: under one prefix, so a new company of mine joins every job's list. */
+  jobBrandChoicesAll: ['job_brand_choices'] as const,
+  jobBrandChoices: (projectId: string) => ['job_brand_choices', projectId] as const,
   /** Testing only: the "View as" control in the top bar (0039). */
   viewAs: ['testing_view_as'] as const,
   /** My role's recommended rail on each of my jobs (0040). */

@@ -145,9 +145,11 @@ export interface RfiJob {
   number: string | null;
   address: string | null;
   timezone: string;
-  /** The job's company (the GC): its name and logo head the PDF. */
+  /** The job's brand (0110: projects.brand_org_id, else the job's company): its name, logo and letterhead lines head
+   *  the PDF. */
   orgName: string;
   logoPath: string | null;
+  letterhead: string[];
 }
 
 export interface RfiStamp {
@@ -163,6 +165,8 @@ export interface RfiPdfPlan {
   /** Photos the PDF embeds (JPEG / PNG); others are listed by name in `text`. */
   photos: RfiFileRef[];
   logoPath: string | null;
+  /** The letterhead lines under the name (address, phone, website). */
+  letterhead: string[];
   /** The originator's signature bottom left, the PM / PE's bottom right. */
   stamps: RfiStamp[];
   filename: string;
@@ -220,10 +224,11 @@ export function rfiPdfPlan(d: Omit<RfiDetail, 'raw'>, job: RfiJob): RfiPdfPlan {
       signerId: r.issued_by, name: d.issuer_name ?? 'PM / PE', signedAtLabel: signedAtLabel(r.issued_at, tz), align: 'right',
     });
   }
-  return { text, photos, logoPath: job.logoPath, stamps, filename: rfiFilename(r.number, r.title) };
+  return { text, photos, logoPath: job.logoPath, letterhead: job.letterhead, stamps, filename: rfiFilename(r.number, r.title) };
 }
 
-/** The stored PDF's key (rfis.pdf_hash): a change to anything it shows makes a new one. */
+/** The stored PDF's key (rfis.pdf_hash): a change to anything it shows makes a new one. The letterhead lines only when
+ *  there are some, so an RFI on a job without them keeps its key. */
 export function rfiPdfKey(plan: RfiPdfPlan): Promise<string> {
   return contentHash({
     v: 1,
@@ -232,5 +237,6 @@ export function rfiPdfKey(plan: RfiPdfPlan): Promise<string> {
     logo: plan.logoPath,
     stamps: plan.stamps,
     filename: plan.filename,
+    ...(plan.letterhead.length > 0 ? { letterhead: plan.letterhead } : {}),
   });
 }
