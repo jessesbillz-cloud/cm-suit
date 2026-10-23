@@ -268,7 +268,7 @@ export function RevsTool({ projectId, itemId, isPhone }: RevsToolProps) {
   }
   // A wall, a room, the request being built and a wall added on the spot are pages of their own (lib/itemIds opensInMain).
   if (itemId === BASKET_ITEM) return <BasketReview projectId={projectId} isPhone={isPhone} />;
-  if (itemId === FIELD_WALL_ITEM) return <AddWallPage projectId={projectId} isPhone={isPhone} canManage={manage.data === true} />;
+  if (itemId === FIELD_WALL_ITEM) return <AddWallPage projectId={projectId} isPhone={isPhone} />;
   if (itemId !== null && itemId.startsWith(ROOM_ITEM_PREFIX)) {
     return <RoomPage key={itemId} projectId={projectId} roomId={itemId.slice(ROOM_ITEM_PREFIX.length)} isPhone={isPhone} />;
   }

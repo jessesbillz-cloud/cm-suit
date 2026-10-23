@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft } from 'lucide-react';
+import { useCapability } from '../../../data/queries';
 import { useRevSetup } from '../../../data/revs.queries';
 import { useRevRooms } from '../../../data/revs.rooms';
 import { Card } from '../../../ui/Card';
@@ -18,11 +19,12 @@ import { AddWallForm } from './AddWallForm';
 interface AddWallPageProps {
   projectId: string;
   isPhone: boolean;
-  canManage: boolean;
 }
 
-export function AddWallPage({ projectId, isPhone, canManage }: AddWallPageProps) {
+export function AddWallPage({ projectId, isPhone }: AddWallPageProps) {
   const own: { room?: string | undefined; level?: string | undefined } = useSearch({ strict: false });
+  const manage = useCapability(projectId, 'revs.manage');
+  const canManage = manage.data === true;
   const nav = useRevsNav(projectId, canManage);
   const setup = useRevSetup(projectId);
   const rooms = useRevRooms(projectId);
@@ -34,9 +36,9 @@ export function AddWallPage({ projectId, isPhone, canManage }: AddWallPageProps)
   };
 
   let body: ReactNode;
-  const failed = [setup, rooms].find((q) => q.isError);
+  const failed = [setup, rooms, manage].find((q) => q.isError);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
-  else if (!setup.data || !rooms.data || !basket.ready) body = <LoadingState label="Loading the cards" />;
+  else if (!setup.data || !rooms.data || !basket.ready || manage.isPending) body = <LoadingState label="Loading the cards" />;
   else if (!basket.can && !canManage) body = <EmptyState title="You don't add walls on this job." />;
   else if (setup.data.lists.length === 0) body = <EmptyState title="No inspection card on this job yet." />;
   else {

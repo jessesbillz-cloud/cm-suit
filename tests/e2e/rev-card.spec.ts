@@ -71,15 +71,14 @@ test.describe('a room inspection card', () => {
     await expect(wall.getByTestId('rev-items').locator('[data-status]')).toHaveCount(2);
     await expect(wall.getByTestId('rev-items-off')).toHaveCount(0);
 
-    // The request from the room: only those two items, as boxes.
+    // The request from the room (0113: Add for the whole room): only those two items, each on its one wall.
     await openAs(page, 'sub', '/p/job-s/revs/room-mock-room-205');
     await expect(page.getByTestId('rev-room-card')).toHaveCount(0);
-    await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-6,mock-rev-area-5&items=');
-    const items = page.getByTestId('rev-items-pick');
-    await expect(items.getByRole('button')).toHaveCount(2);
-    for (const i of PICKED) await expect(items.getByTestId(`rev-item-${i}`)).toHaveAttribute('data-state', 'open');
-    await items.getByTestId(`rev-item-${PICKED[0] ?? ''}`).click();
-    await expect(items.getByTestId(`rev-item-${PICKED[0] ?? ''}`)).toHaveAttribute('aria-pressed', 'true');
+    const whole = page.getByTestId('rev-room-whole');
+    await expect(whole.getByRole('button')).toHaveCount(2);
+    for (const i of PICKED) await expect(whole.getByTestId(`rev-room-add-${i}`)).toHaveAttribute('data-count', '1');
+    await whole.getByTestId(`rev-room-add-${PICKED[0] ?? ''}`).click();
+    await expect(whole.getByTestId(`rev-room-add-${PICKED[0] ?? ''}`)).toHaveAttribute('data-in', 'true');
   });
 
   test('Undo puts the card back as it was', async ({ page }) => {
