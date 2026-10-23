@@ -349,8 +349,29 @@ begin
 end;
 $$;
 
+-- Both of a request's dates typed with a wrong year (0226-09-22): the same month and day in the year it was made.
+create or replace function public.mdr_fix_year(p_value text, p_created timestamptz)
+returns date
+language plpgsql
+immutable
+set search_path = public, pg_temp
+as $$
+declare y int; m int; d int;
+begin
+  if p_value is null or p_created is null or p_value !~ '^\d{4}-\d{2}-\d{2}' then return null; end if;
+  y := extract(year from p_created at time zone 'UTC')::int;
+  m := substr(p_value, 6, 2)::int;
+  d := substr(p_value, 9, 2)::int;
+  if m not between 1 and 12 or d < 1 or d > extract(day from make_date(y, m, 1) + interval '1 month - 1 day')::int then
+    return null;
+  end if;
+  return make_date(y, m, d);
+end;
+$$;
+
 revoke execute on function public.mdr_ir_status(text, boolean), public.mdr_ir_result(text),
-  public.mdr_ir_kind(text[], text), public.mdr_ir_postpone_reason(text), public.mdr_sane_date(text)
+  public.mdr_ir_kind(text[], text), public.mdr_ir_postpone_reason(text), public.mdr_sane_date(text),
+  public.mdr_fix_year(text, timestamptz)
   from public, anon, authenticated, service_role;
 
 -- One MDR row into the suite. Answers what happened: inserted, updated, adopted, unchanged, hidden, skipped:<why>.
@@ -400,7 +421,9 @@ begin
   end if;
 
   -- When
-  v_date := coalesce(public.mdr_sane_date(p_row->>'inspection_date'), public.mdr_sane_date(p_row->>'requested_date'));
+  v_created := coalesce(nullif(p_row->>'created_at', '')::timestamptz, v_updated);
+  v_date := coalesce(public.mdr_sane_date(p_row->>'inspection_date'), public.mdr_sane_date(p_row->>'requested_date'),
+                     public.mdr_fix_year(p_row->>'inspection_date', v_created));
   if v_date is null then raise exception 'no usable date'; end if;
   if nullif(p_row->>'inspection_time', '') is not null then
     v_time := (p_row->>'inspection_time')::time;
@@ -427,7 +450,6 @@ begin
   if v_loc is not null and position(lower(v_loc) in lower(v_items)) = 0 then v_items := v_items || E'\n' || v_loc; end if;
   v_items := left(v_items, 4000);
   v_note := left(nullif(btrim(coalesce(p_row->>'inspector_notes', '')), ''), 4000);
-  v_created := coalesce(nullif(p_row->>'created_at', '')::timestamptz, v_updated);
   v_att := case lower(coalesce(p_row->>'attendance', '')) when 'present_required' then 'be_present' when 'solo' then 'alone' end;
 
   -- A request typed in by hand before the mirror, with this number: adopted, not copied again.
@@ -484,7 +506,17 @@ begin
            postpone_until = case when v_status = 'postponed' then public.mdr_sane_date(p_row->>'expected_date') end,
            postponed_at = case when v_status = 'postponed' then coalesce(postponed_at, v_updated) end,
            postpone_count = greatest(coalesce(nullif(p_row->>'postpone_count', '')::int, postpone_count), 0),
-           ofs_sent_at = v_sent, ofs_sent_by = case when v_sent is null then null else ofs_sent_by end
+           ofs_sent_at = v_sent, ofs_sent_by = case when v_sent is null then null else ofs_sent_by end,
+           -- A request typed in as OFS that MDR has as another kind keeps none of its OFS steps.
+           ofs_attest_by = case when v_kind = 'ofs' then ofs_attest_by end,
+           ofs_attest_at = case when v_kind = 'ofs' then ofs_attest_at end,
+           ofs_attest_text = case when v_kind = 'ofs' then ofs_attest_text end,
+           ofs_ready_by = case when v_kind = 'ofs' then ofs_ready_by end,
+           ofs_ready_at = case when v_kind = 'ofs' then ofs_ready_at end,
+           special_required = case when v_kind = 'ofs' then special_required end,
+           ofs_si_by = case when v_kind = 'ofs' then ofs_si_by end,
+           ofs_si_at = case when v_kind = 'ofs' then ofs_si_at end,
+           ofs_si_file_id = case when v_kind = 'ofs' then ofs_si_file_id end
      where id = r.id
     returning * into r;
     v_action := coalesce(v_action, 'updated');

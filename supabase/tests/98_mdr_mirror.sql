@@ -1,5 +1,5 @@
 begin;
-select plan(64);
+select plan(65);
 -- Migration 0112 (Jesse, Oct 23: "You actually have to use it and review the data of what did happen."). Once a day
 -- MDR's requests for a linked job are copied in, one way. Copies are safe to repeat, adopt the requests typed in by hand
 -- by number, keep MDR's numbers (MDR reuses some), push the job's own counter past them, and are view only. Files wait
@@ -123,6 +123,8 @@ select is(array[public.mdr_ir_postpone_reason('Not ready'), public.mdr_ir_postpo
   array['not_ready', 'gc_requested', 'weather', 'other', null], 'why it was postponed');
 select is(array[public.mdr_sane_date('2026-09-25'), public.mdr_sane_date('0026-09-25'), public.mdr_sane_date(null)],
   array['2026-09-25'::date, null, null], 'a year-0026 date is no date');
+select is(array[public.mdr_fix_year('0226-09-22', '2026-09-20T16:00:00+00'), public.mdr_fix_year('0226-02-29', '2026-02-20T16:00:00+00')],
+  array['2026-09-22'::date, null], 'both dates wrong: the month and day in the year it was made, if that day exists');
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- The run

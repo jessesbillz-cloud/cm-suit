@@ -14,10 +14,7 @@ import { calendarRows, type MockBlock } from './irCalendar';
 import { mirroredRequests, permitJobRequests, seedBlocks, seedRequests } from './irSeeds';
 import { mockUser } from './index';
 import { holder } from './duties';
-import {
-  NOT_MIRRORED, NO_OFS_CHECKS, STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, mustNotBeMirrored, notFound, opt, ownerOk, refuse,
-  type Args,
-} from './irRules';
+import { NOT_MIRRORED, NO_OFS_CHECKS, STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, unmirrored, type Args } from './irRules';
 import { OFS_STEPS, backToGc, stampOnFile } from './ofsRules';
 import { SCHED_STEPS, confirmAnswer, schedAfter } from './ofsSchedRules';
 import { projectSettings } from './jobs';
@@ -58,8 +55,7 @@ interface IrState {
 /** The start: IR 12 on Sample Job B (a board line points at it) and the calendar's seeded month on both jobs. */
 function seeded(): IrState {
   const today = todayInZone(TZ);
-  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 }), ...permitJobRequests(today), ...revsJobRequests(today),
-    ...mirroredRequests(today)];
+  const requests = [SEED_IR, ...seedRequests(today, { 'job-a': 1, [SEED_IR.project_id]: SEED_IR.number + 1 }), ...permitJobRequests(today), ...revsJobRequests(today), ...mirroredRequests(today)];
   const next: Record<string, number> = {};
   for (const r of requests) next[r.project_id] = Math.max(next[r.project_id] ?? 1, r.number + 1);
   return { requests, events: [], blocks: seedBlocks(today), next };
@@ -260,8 +256,7 @@ export function readable(requestId: unknown): IrRowRaw {
 
 /** ir_decider, for the walls' results (mock/revRequests): the request, if I decide it now and saw this version. */
 export function decider(requestId: string, version: number): IrRowRaw {
-  const r = readable(requestId);
-  mustNotBeMirrored(r);
+  const r = unmirrored(readable(requestId));
   if (r.version !== version) throw conflictError();
   mustDecide(mockUser().id, r);
   return r;
@@ -275,8 +270,7 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   if (name === 'ir_submit') return fileRequest(a, me, {});
   const step = STEPS[name] ?? OFS_STEPS[name] ?? SCHED_STEPS[name];
   if (!step) throw notFound();
-  const current = readable(a['p_request_id']);
-  mustNotBeMirrored(current);
+  const current = unmirrored(readable(a['p_request_id']));
   const revs = readRevs();
   if (name === 'ir_restore' && revs.pulled.some((c) => c.request_id === current.id) && !revs.cells.some((c) => c.request_id === current.id)) {
     throw refuse('Its walls were taken off. Request them again.');
@@ -310,8 +304,7 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
 
 /** A request changed by its walls (mock/revRequests: taken off or put back, 0109): the version check, the history line. */
 export function patchRequest(requestId: string, version: number, patch: Partial<IrRowRaw>, action: string): IrRowRaw {
-  const current = readable(requestId);
-  mustNotBeMirrored(current);
+  const current = unmirrored(readable(requestId));
   if (current.version !== version) throw conflictError();
   const now = new Date().toISOString();
   const next: IrRowRaw = { ...current, ...patch, version: current.version + 1, updated_at: now };
@@ -327,8 +320,7 @@ export function patchRequest(requestId: string, version: number, patch: Partial<
 export async function generateIr(requestId: string): Promise<{ id: string }> {
   await delay();
   const me = mockUser().id;
-  const r = readable(requestId);
-  mustNotBeMirrored(r);
+  const r = unmirrored(readable(requestId));
   mustDecide(me, r);
   if (r.result === null) throw refuse('Record the result first.');
   const now = new Date().toISOString();

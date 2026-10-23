@@ -17,9 +17,10 @@ export const NO_OFS_CHECKS = {
 /** A request filed in the suite, not copied from My Daily Reports (0112). */
 export const NOT_MIRRORED = { mdr_id: null, mdr_updated_at: null } as const;
 
-/** A request copied from MDR is view only (0112): every step refuses it, in the database's words. */
-export function mustNotBeMirrored(r: Pick<Row, 'mdr_id'>): void {
+/** A request copied from MDR is view only (0112): every step refuses it, in the database's words (ir_for_update). */
+export function unmirrored<T extends Pick<Row, 'mdr_id'>>(r: T): T {
   if (r.mdr_id !== null) throw new DataError('This request comes from MDR. It is view only.', '42501', 'forbidden');
+  return r;
 }
 
 const ASKS: readonly string[] = ['ir.request'];
