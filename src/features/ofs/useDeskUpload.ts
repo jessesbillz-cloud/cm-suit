@@ -1,6 +1,7 @@
 // Upload submittal / Upload RFI on the designated person's start page: the files go where Files puts them (Submittals,
 // or RFIs' Uploaded folder) through the one uploader, their spec sections found the way Files finds them (the name, else
 // the PDF's words; Submittals asks only when neither says), and each one goes to OFS marked fire / life safety.
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { messageOf } from '../../data/errors';
 import { useWritableFolders } from '../../data/files';
@@ -24,6 +25,16 @@ export function useDeskUpload(projectId: string, kind: DeskKind) {
   const qc = useQueryClient();
   const toast = useToast();
   const section = sections.data?.find((s) => s.kind === kind) ?? null;
+  // files_sections may have just made the section's folders (as FilesTool knows): ask for the lists again.
+  const known = folders.data;
+  const missing = known !== undefined && section !== null && section.folder_ids.some((id) => !known.some((f) => f.id === id));
+  const { refetch: refetchFolders } = folders;
+  const { refetch: refetchWritable } = writable;
+  useEffect(() => {
+    if (!missing) return;
+    void refetchFolders();
+    void refetchWritable();
+  }, [missing, refetchFolders, refetchWritable]);
   const folder = section !== null && folders.data && writable.data ? uploadFolder(section, folders.data, writable.data) : null;
 
   const send = (dropped: DroppedFile[], after: AfterUpload) => {
@@ -50,7 +61,7 @@ export function useDeskUpload(projectId: string, kind: DeskKind) {
   const naming = useSubmittalNaming(projectId, kind, send);
 
   return {
-    loading: sections.isPending || folders.isPending || writable.isPending,
+    loading: sections.isPending || folders.isPending || writable.isPending || missing,
     error: sections.error ?? folders.error ?? writable.error,
     retry: () => {
       void sections.refetch();
