@@ -44,7 +44,10 @@ function Line({ label, step, tz, testId, onCheck, onUndo, busy, detail }: LinePr
   const done = step !== null;
   const head = (
     <>
-      <Icon icon={done ? SquareCheck : Square} size={18} className={done ? 'shrink-0 text-accent' : 'shrink-0 text-ink-2'} />
+      {/* Done is the tracker's green (lib/status), never the accent red. */}
+      <span className="flex shrink-0" style={done ? { color: 'var(--status-step_done-dot)' } : undefined}>
+        <Icon icon={done ? SquareCheck : Square} size={18} className={done ? '' : 'text-ink-2'} />
+      </span>
       <span className="font-semibold text-ink">{label}</span>
     </>
   );

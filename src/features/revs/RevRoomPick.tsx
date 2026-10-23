@@ -16,11 +16,12 @@ interface RevRoomPickProps {
   onChange: (areaIds: string[]) => void;
 }
 
-const ROOM = 'flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-x-1.5 rounded-lg border px-3 py-1.5 text-left text-sm font-medium wrap-anywhere';
+const ROOM = 'flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-x-1.5 rounded-md border-[1.5px] px-3 py-1.5 text-left text-sm font-medium wrap-anywhere';
 const ROOM_STATE = {
-  all: 'border-accent bg-accent text-white',
-  some: 'border-accent bg-card text-accent',
-  none: 'border-line bg-card text-ink hover:border-line-strong',
+  // Picked is black like every pick (the accent red would read as failed).
+  all: 'border-ink bg-ink text-white shadow-primary',
+  some: 'border-ink bg-card text-ink shadow-[inset_4px_0_0_theme(colors.ink.DEFAULT)]',
+  none: 'border-line-strong bg-card text-ink shadow-tile hover:border-ink',
 } as const;
 const TOGGLE = 'min-h-11 shrink-0 rounded-lg border px-3 text-[13px] font-medium';
 

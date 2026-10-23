@@ -12,9 +12,9 @@ describe('a box in its state', () => {
     expect(boxLook('failed').style?.background).toBe('var(--status-not_approved-solid)');
   });
 
-  it('open is white with a strong edge, picked is the accent', () => {
+  it('open is white with a strong edge, picked is black', () => {
     expect(boxLook('open')).toEqual({ className: 'bg-card text-ink', style: { borderColor: 'var(--status-step_ahead-fg)' } });
-    expect(boxLook('passed', true)).toEqual({ className: 'border-accent bg-accent text-white', style: undefined });
+    expect(boxLook('passed', true)).toEqual({ className: 'border-ink bg-ink text-white', style: undefined });
   });
 
   it('N/A has no box', () => {

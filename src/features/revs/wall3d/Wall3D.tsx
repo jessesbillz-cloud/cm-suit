@@ -1,6 +1,6 @@
 // The 3-D wall (Jesse, Oct 3: "what are you looking at? Oh, a wall, there it is, it's pointing to it. Oh, first layer
 // of drywall, there it is."): a rated stud wall assembly drawn as a clean technical drawing, each part tinted by its
-// state (lib/status), the focused part in the accent color with a leader and its name, and a tap on a part picks it.
+// state (lib/status), the focused part in ink with a leader and its name, and a tap on a part picks it.
 // Pure SVG and React; the geometry is assembly.ts, built once.
 import { useId, type KeyboardEvent } from 'react';
 import { PART_LABELS, type WallPart } from '../wallParts';
@@ -117,7 +117,7 @@ export function Wall3D({ states, focus, focusLabel, onPick, maxHeight, testId }:
     >
       <svg
         viewBox={`${String(view.minX)} ${String(view.minY)} ${String(w)} ${String(h)}`}
-        className="absolute inset-0 h-full w-full text-accent"
+        className="absolute inset-0 h-full w-full text-ink"
         role="group"
         aria-label="Wall"
       >

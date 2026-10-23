@@ -77,7 +77,7 @@ function UploadBox({ projectId, kind, label, icon, testId }: UploadBoxProps) {
 export function DeskBoxes({ projectId }: { projectId: string }) {
   const navigate = useNavigate();
   return (
-    <div className="grid gap-4 sm:grid-cols-3" data-testid="ofs-desk-boxes">
+    <div className="grid items-start gap-4 sm:grid-cols-3" data-testid="ofs-desk-boxes">
       <button
         type="button"
         data-testid="ofs-desk-request"
