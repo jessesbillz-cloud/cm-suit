@@ -18,6 +18,7 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
 | Inspector (IOR) | `ir.decide` |
 | OFS sender | the inspector, or the job's OFS requests duty holder (`ir_ofs_sender`) |
 | Fire marshal (deputy) | `ir.ofs_decide`, `ir.ofs_view` |
+| Takes walls off (Not ready) | its requester (`ir.request`), the job's OFS requests duty holder, or `ir.gc_approve`; never the fire marshal (`ir_may_pull_back`) |
 
 ## Inputs to read first (no writes)
 
@@ -68,33 +69,85 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
    Then `rpc/ir_send_ofs` `{ "p_request_id", "p_version" }`. After: `ofs_sent_at` set, `status = 'pending'`, the fire
    marshal is told. Undo until he acts: `rpc/ir_unsend_ofs` `{ "p_request_id", "p_version" }`.
 
-7. **Fire marshal, optional: confirm a time first.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
-   Not needed before step 8 (Oct 10): recording the result confirms the request in the same call.
+7. **Fire marshal answers the time (0108).** Read his schedule first: `rpc/ofs_schedule`
+   `{ "p_from": "yyyy-MM-dd", "p_to": "yyyy-MM-dd" }` (at most 62 days; add `"p_project_id"` for one job). Each row has
+   `state` (`asked`, `confirmed`, `proposed`, `postponed`, `done`) and `needs_time` (Asked with no time: Flexible).
+   Then one of 7a, 7b or 7c. None of them is needed before step 10 (Oct 10): recording the result confirms the request
+   in the same call.
 
-8. **JUDGMENT: pass or fail each wall and item.** The fire marshal, on site.
-   `rpc/ir_rev_results`
+   7a. **Confirm the asked time.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
+       After: `status = 'confirmed'`, `ofs_sched = 'confirmed'`, `ofs_sched_by` = him, `ofs_sched_at` set. The requester,
+       the job's OFS duty holder and whoever sent it get a board line `ir.ofs_confirmed` ("OFS IR #0097 confirmed Tue
+       Oct 27, 9:00 AM"). Go to step 10.
+
+   7b. **JUDGMENT: pick another time.** `rpc/ir_ofs_propose`
+       `{ "p_request_id", "p_version", "p_date": "yyyy-MM-dd", "p_time": "HH:mm", "p_note": "<optional, up to 500>" }`.
+       The day is today or later in the job's time zone; the time is on the hour or half hour; not the asked time
+       (that is 7a). After: the request is at that day and time (`duration_kind = 'timed'`), `status = 'pending'`,
+       `ofs_sched = 'proposed'`. The requester and the duty holder get a board line `ir.ofs_proposed` and a Needs you
+       task `ir.ofs_time`; the sender gets the board line. Go to 7d.
+
+   7c. **Postpone** (as before). `rpc/ir_postpone` `{ "p_request_id", "p_version", "p_reason", "p_note", "p_until" }`.
+       Clears any answer. A later 7a or 7b brings it back.
+
+   7d. **Requester (or the duty holder, or the inspector) accepts the new time.** `rpc/ir_ofs_accept`
+       `{ "p_request_id", "p_version" }`. Refused with 22023 when nothing waits to be accepted, 42501 for the fire
+       marshal himself. After: `status = 'confirmed'`, `ofs_sched = 'accepted'`, the tasks done, the fire marshal gets
+       `ir.ofs_accepted`. **Or ask again:** the requester's `rpc/ir_move` `{ "p_request_id", "p_version",
+       "p_request_date", "p_start_time", "p_duration_kind", "p_duration_min" }`: back to `asked`, the proposal and its
+       tasks cleared, the fire marshal gets `ir.moved`. Back to step 7.
+
+   Every answer is in the request's history (`ir_events.action` `confirm`, `ofs_propose`, `ofs_accept`, `move`, with
+   the actor) and the audit log. The fire marshal's subscribed calendar (Calendar > Subscribe) carries one line per
+   OFS request sent to OFS (`calendar_entries.source_type = 'ofs_request'`, read by `ir.ofs_view`), with its time,
+   state and the job's address, on every job of his, even one with the calendar tool off. Nothing sends email or text.
+
+8. **JUDGMENT, optional: take off what isn't ready (Not ready, 0109).** The requester (or the duty holder, or the GC),
+   any time from step 2 until step 10 records a result, also after step 6. One wall (every item on it) or one item:
+   `rpc/ir_rev_pull_back`
    ```json
-   { "p_request_id": "<id>", "p_version": <version>,
-     "p_results": [ { "area_id": "<wall>", "item_id": "<item>", "result": "passed", "note": null }, ... ] }
+   { "p_request_id": "<id>", "p_version": <version>, "p_cells": [ { "area_id": "<wall>", "item_id": "<item>" }, ... ] }
    ```
-   Every `ir_rev_items` cell of the request exactly once; `result` is `passed` or `failed`; a `failed` one has a
-   `note` saying why (up to 1000 characters). "All passed" is this call with every cell `passed`. `p_results: null`
-   clears every result (Undo). After: `status = 'confirmed'` (if it was pending), `result = 'approved'` when every cell
-   passed, else `not_approved` with the failed notes; `rev_status` shows each passed cell as `passed` with the OFS
-   number: **passed in Revs**.
+   Each cell must be on the request now. After: those `ir_rev_items` rows have `pulled_at` set (kept, never deleted)
+   and every reader leaves them out: `rev_status` shows them `open` again (as if never asked for), the request's
+   `items` line, map legend and title no longer name them, and the map loses their strokes. The fire marshal (once it
+   is with OFS, else the inspector) gets one board line, `ir.pulled_back` "OFS #0097: 2 walls taken off by <name>";
+   the requester gets it when someone else did it. Audited (`ir.rev_pull_back`, with the cells and the strokes taken
+   off). Every cell off: `status = 'withdrawn'` (board line `ir.withdrawn`), and `ir_restore` refuses it.
+   Refused once a result is recorded on the request or any of its cells: "The results are in."
 
-9. **Fire marshal signs the OFS IR.** `functions/v1/ir-pdf`
-   `{ "action": "generate", "request_id": "<id>", "filename": "<from lib/buildFilename IR_FILENAME>" }`. Signing
-   re-confirms identity first (SPEC §6.9; the app's SignButton). The function hashes the saved content, calls
-   `ir_sign` as the caller and renders the PDF in the worker. After: `ir_file_id` set, `status = 'complete'`.
-   When approved, make the map again with the signature: `functions/v1/ir-map` `{ "action": "render", "request_id" }`.
+9. **Undo of step 8.** `rpc/ir_rev_put_back` with the same body and the version step 8 returned. After: the same
+   cells back (refused if one of them is on another request since: "That wall is on IR N now."), their strokes back on
+   the map, a request step 8 withdrew back in the status it had, its line written again. Audited (`ir.rev_put_back`).
 
-10. **Fire marshal sends the results.** `functions/v1/ir-send`
+10. **JUDGMENT: pass or fail each wall and item.** The fire marshal, on site.
+    `rpc/ir_rev_results`
+    ```json
+    { "p_request_id": "<id>", "p_version": <version>,
+      "p_results": [ { "area_id": "<wall>", "item_id": "<item>", "result": "passed", "note": null }, ... ] }
+    ```
+    Every cell still on the request (not taken off in step 8) exactly once; `result` is `passed` or `failed`; a `failed`
+    one has a `note` saying why (up to 1000 characters). In the app every box starts as Pass: "Pass all" is this call
+    with every cell `passed`, one tap; a box flipped to Fail needs its one line first, and the same button saves the
+    whole set ("Save · 1 failed"). `p_results: null`
+    clears every result (Undo). After: `status = 'confirmed'` (if it was pending), `result = 'approved'` when every cell
+    passed, else `not_approved` with the failed notes; `rev_status` shows each passed cell as `passed` with the OFS
+    number: **passed in Revs**.
+
+11. **Fire marshal signs the OFS IR.** `functions/v1/ir-pdf`
+    `{ "action": "generate", "request_id": "<id>", "filename": "<from lib/buildFilename IR_FILENAME>" }`. Signing
+    re-confirms identity first (SPEC §6.9; the app's SignButton). The function hashes the saved content, calls
+    `ir_sign` as the caller and renders the PDF in the worker. After: `ir_file_id` set, `status = 'complete'`.
+    When approved, make the map again with the signature: `functions/v1/ir-map` `{ "action": "render", "request_id" }`.
+
+12. **Fire marshal sends the results.** `functions/v1/ir-send`
     `{ "request_id": "<id>", "member_ids": ["<member>", ...], "requester": true, "emails": [] }` (at least one
     recipient). The IR goes as a permanent share link. After: `results_sent_at` set.
 
 ## Failed walls
 
-A failed cell stays `failed` in `rev_status`. To ask again, start at step 1 with those walls and items: they are
-`open` to a new request. "File another like this" in the app is step 2 again with the same walls, items, time and
+A failed cell stays `failed` in `rev_status` ("Failed — needs re-inspection" on the wall) until it is asked for again
+or passes. It is listed on its own under Back from OFS · Failed on the start page (`rpc/ofs_desk`: the designated
+person's, and the requester's for his own requests), with its room, wall, item and why. To ask again, start at step 1
+with those walls and items: the request form offers them first, under "Failed last time", and marks their rooms. "File another like this" in the app is step 2 again with the same walls, items, time and
 answer, the next working day.

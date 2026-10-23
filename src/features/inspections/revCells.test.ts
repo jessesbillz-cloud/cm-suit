@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type IrRevItem, type RevSetup } from '../../data/revs.types';
-import { allPassed, cellChip, cellGroups, draftOf, draftToSave, leftToDo, oneLevel, savedResults, settle, type Edits } from './revCells';
+import { cellChip, cellGroups, draftOf, draftToSave, failedCount, flip, missingReasons, oneLevel, savedResults, settle, type Edits } from './revCells';
 
 const row = { project_id: 'job', version: 1, deleted_at: null };
 
@@ -20,7 +20,7 @@ const SETUP: RevSetup = {
 };
 
 function cell(area: string, item: string, color: number, result: string | null = null, note: string | null = null): IrRevItem {
-  return { id: `${area}-${item}`, request_id: 'q', area_id: area, item_id: item, color, result, result_note: note, result_at: null, result_by: null, version: 1 };
+  return { id: `${area}-${item}`, request_id: 'q', area_id: area, item_id: item, color, result, result_note: note, result_at: null, result_by: null, version: 1, pulled_at: null };
 }
 
 const OPEN = [cell('b', 'caulk', 2), cell('b', 'stuff', 1), cell('a', 'stuff', 1)];
@@ -47,17 +47,26 @@ describe('the cells on screen', () => {
 });
 
 describe('the result draft', () => {
-  it('saves only once every cell is set, and a failed one says why', () => {
-    let edits: Edits = { 'b|caulk': { result: 'passed', note: '' }, 'b|stuff': { result: 'failed', note: ' ' } };
-    expect(leftToDo(OPEN, edits)).toBe(2);
+  it('starts with every cell as Pass: Pass all is one tap', () => {
+    expect(draftOf(OPEN[0] as IrRevItem, {})).toEqual({ result: 'passed', note: '' });
+    expect(failedCount(OPEN, {})).toBe(0);
+    expect(draftToSave(OPEN, {})?.every((r) => r.result === 'passed' && r.note === null)).toBe(true);
+    expect(draftToSave(OPEN, {})).toHaveLength(3);
+  });
+  it('flips one to Fail, which waits for why', () => {
+    const failed = flip(draftOf(OPEN[1] as IrRevItem, {}));
+    let edits: Edits = { 'b|stuff': failed };
+    expect(failed).toEqual({ result: 'failed', note: '' });
+    expect([failedCount(OPEN, edits), missingReasons(OPEN, edits)]).toEqual([1, 1]);
     expect(draftToSave(OPEN, edits)).toBeNull();
-    edits = { ...edits, 'b|stuff': { result: 'failed', note: ' Gaps at the track ' }, 'a|stuff': { result: 'passed', note: '' } };
-    expect(leftToDo(OPEN, edits)).toBe(0);
+    edits = { 'b|stuff': { result: 'failed', note: ' Gaps at the track ' } };
+    expect(missingReasons(OPEN, edits)).toBe(0);
     expect(draftToSave(OPEN, edits)).toEqual([
       { area_id: 'b', item_id: 'caulk', result: 'passed', note: null },
       { area_id: 'b', item_id: 'stuff', result: 'failed', note: 'Gaps at the track' },
       { area_id: 'a', item_id: 'stuff', result: 'passed', note: null },
     ]);
+    expect(flip({ result: 'failed', note: 'Gaps' })).toEqual({ result: 'passed', note: 'Gaps' });
   });
   it('sends nothing when the draft is what is saved', () => {
     const saved = [cell('b', 'caulk', 2, 'passed'), cell('b', 'stuff', 1, 'failed', 'Gaps'), cell('a', 'stuff', 1, 'passed')];
@@ -66,15 +75,10 @@ describe('the result draft', () => {
     expect(draftToSave(saved, { 'b|stuff': { result: 'passed', note: 'Gaps' } })?.[1]).toEqual({ area_id: 'b', item_id: 'stuff', result: 'passed', note: null });
     expect(savedResults(OPEN)).toBeNull();
   });
-  it('passes everything in one tap', () => {
-    expect(allPassed(OPEN).every((r) => r.result === 'passed' && r.note === null)).toBe(true);
-    expect(allPassed(OPEN)).toHaveLength(3);
-  });
   it('keeps changes made while a save was on its way', () => {
-    const sent = allPassed(OPEN);
+    const sent = draftToSave(OPEN, {});
     const edits: Edits = { 'b|caulk': { result: 'passed', note: '' }, 'a|stuff': { result: 'failed', note: 'Typed meanwhile' } };
     expect(settle(edits, sent)).toEqual({ 'a|stuff': { result: 'failed', note: 'Typed meanwhile' } });
     expect(settle(edits, null)).toEqual({});
-    expect(draftOf(OPEN[0] as IrRevItem, {})).toEqual({ result: null, note: '' });
   });
 });

@@ -11,7 +11,7 @@ export const REV_ITEM_COLS = 'id, project_id, rev_id, name, company, position, v
 export const REV_AREA_COLS =
   'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at, wall_tag, rating, ul_design, fire_area, sheet_ref, check_note';
 export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, set_up, version, deleted_at';
-export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version';
+export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version, pulled_at';
 
 export type RevList = Pick<Tables<'rev_lists'>, 'id' | 'project_id' | 'name' | 'phase' | 'permit_id' | 'position' | 'version' | 'deleted_at'>;
 export type Rev = Pick<Tables<'revs'>, 'id' | 'project_id' | 'list_id' | 'number' | 'name' | 'version' | 'deleted_at'>;
@@ -50,7 +50,7 @@ export function parseArea<T extends RevAreaRow>(row: T): Omit<T, 'geom'> & { geo
 type RevMark = Pick<Tables<'rev_marks'>, 'id' | 'project_id' | 'area_id' | 'item_id' | 'kind' | 'set_up' | 'version' | 'deleted_at'>;
 export type IrRevItem = Pick<
   Tables<'ir_rev_items'>,
-  'id' | 'request_id' | 'area_id' | 'item_id' | 'color' | 'result' | 'result_note' | 'result_at' | 'result_by' | 'version'
+  'id' | 'request_id' | 'area_id' | 'item_id' | 'color' | 'result' | 'result_note' | 'result_at' | 'result_by' | 'version' | 'pulled_at'
 >;
 
 /** A job's whole setup: what useRevSetup answers (live rows only, in order). */

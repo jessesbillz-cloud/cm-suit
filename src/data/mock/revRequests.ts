@@ -78,7 +78,8 @@ function cellStatus(s: RevMockState, reqs: Map<string, IrRequest>, areaId: strin
 export async function cells(requestId: string): Promise<IrRevItem[]> {
   const request = await mockIr.request(requestId);
   if (!request) return [];
-  return read().cells.filter((c) => c.request_id === requestId).sort((a, b) => a.color - b.color);
+  const s = read();
+  return [...s.cells, ...s.pulled].filter((c) => c.request_id === requestId).sort((a, b) => a.color - b.color);
 }
 
 /** ir_map_context; `asServer`: as the link's own function reads it (a request by its receipt). */
@@ -111,6 +112,11 @@ function canDraw(q: IrRequest, mine: Cell[]): boolean {
   return holds(me, decideCap(q)) || (q.requested_by === me && q.result === null && mine.every((c) => c.result === null));
 }
 
+/** ir_ofs_items_text: the levels, the items joined with " & ", the walls. */
+export function itemsText(walls: readonly Tables<'rev_areas'>[], items: readonly Tables<'rev_items'>[]): string {
+  return `${[...new Set(walls.map((a) => a.level))].sort().join(', ')} · ${items.map((i) => i.name).join(' & ')} · ${walls.map((a) => a.name).join(', ')}`;
+}
+
 /** ir_submit_ofs in short form. */
 export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
   if (!has('revs.read')) throw fail("You don't have access to that.", '42501');
@@ -132,7 +138,7 @@ export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
     .filter((i) => open.some((c) => c.i.id === i.id))
     .sort((x, y) => order(x)[0] - order(y)[0] || order(x)[1] - order(y)[1]);
   const walls = areas.filter((a) => open.some((c) => c.a.id === a.id)).sort((x, y) => x.level.localeCompare(y.level) || x.position - y.position);
-  const text = `${[...new Set(walls.map((a) => a.level))].sort().join(', ')} · ${used.map((i) => i.name).join(' & ')} · ${walls.map((a) => a.name).join(', ')}`;
+  const text = itemsText(walls, used);
   const row = await mockIr.addOfsRequest({
     p_project_id: v.projectId, p_company: v.company, p_request_date: v.date, p_items: text, p_start_time: v.startTime,
     p_duration_kind: v.durationKind, p_duration_min: v.durationMin, p_attachment_ids: v.attachmentIds,
@@ -143,7 +149,7 @@ export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
   const added: Cell[] = open.map(({ a, i }, k) => ({
     id: `mock-ir-rev-item-${row.id}-${String(k)}`, created_at: now, updated_at: now, created_by: me, version: 1, org_id: row.org_id,
     project_id: row.project_id, request_id: row.id, area_id: a.id, item_id: i.id, color: used.indexOf(i) + 1, result: null,
-    result_note: null, result_at: null, result_by: null,
+    result_note: null, result_at: null, result_by: null, pulled_at: null, pulled_by: null,
   }));
   const sheet = v.sheetFileId ?? walls.find((a) => a.sheet_file_id !== null)?.sheet_file_id ?? null;
   // The page of the first wall on that sheet, one drawn on the plan first (0059).

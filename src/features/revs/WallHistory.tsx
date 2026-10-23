@@ -29,7 +29,8 @@ function rowLine(r: HistoryRow): string {
 }
 
 function Row({ row, onRequest, onFile }: { row: HistoryRow } & Pick<WallHistoryProps, 'onRequest' | 'onFile'>) {
-  const chip = chipOf(row.result);
+  // A past result says what it was: Failed, not what the cell needs now.
+  const chip = row.result === 'failed' ? { ...chipOf('failed'), label: 'Failed' } : chipOf(row.result);
   const fileId = row.file_id;
   const open =
     row.kind === 'request' && row.can_open && row.request_id !== null

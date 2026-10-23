@@ -21,6 +21,8 @@ const HOMES: Record<string, Home> = {
   file: { tool: 'files' },
   delivery: { tool: 'deliveries' },
   inspection_request: { tool: 'inspections' },
+  // The fire marshal's calendar line for an OFS request (0108): the request itself.
+  ofs_request: { tool: 'inspections' },
   correction: { tool: 'corrections' },
   rfi: { tool: 'rfis' },
   permit: { tool: 'permits' },

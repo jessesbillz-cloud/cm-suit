@@ -38,6 +38,8 @@ test.describe('OFS request with revs from the link, no login', () => {
   });
 
   test('a visitor picks walls and items, sends, draws the map, and finds it on the status link', async ({ page }) => {
+    // Two maps rendered on the phone's WebKit: more than the default 30 s there (main failed on time, Oct 22).
+    test.setTimeout(60_000);
     await page.goto(`/r/job-s?t=${TOKEN}`);
     await expect(page.getByTestId('public-job')).toHaveText('Sample Science Building');
     await expect(page.getByTestId('rev-picker')).toBeVisible();

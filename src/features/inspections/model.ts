@@ -308,6 +308,10 @@ const ACTIONS: Record<string, string> = {
   send: 'Results sent',
   send_ofs: 'Sent to OFS',
   unsend_ofs: 'Send undone',
+  ofs_propose: 'New time from OFS',
+  ofs_accept: 'New time accepted',
+  pull_back: 'Walls taken off',
+  put_back: 'Walls put back',
   link_join: 'Requester signed in',
 };
 

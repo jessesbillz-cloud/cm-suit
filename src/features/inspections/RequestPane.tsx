@@ -4,14 +4,15 @@
 // inspector, or the deputy once an OFS request is sent to OFS). On an OFS request the inspector only sends it on or
 // postpones it (OfsRoute), and the job's OFS duty holder sends it once the inspector has checked it. An OFS request
 // shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
-// shows its walls and items (with their results) and its map.
+// shows its walls and items (with their results) and its map; until a result, whoever may takes walls off it there
+// (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal.
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
 import { useDuties } from '../../data/inspections.ofs';
 import { useIrFileNames, useIrRequest } from '../../data/inspections.queries';
 import type { IrRequest } from '../../data/inspections.types';
-import { useIrRevItems } from '../../data/revs.queries';
+import { useIrRevAllTakenOff, useIrRevItems } from '../../data/revs.queries';
 import type { IrRevItem } from '../../data/revs.types';
 import { formatDay } from '../../lib/dates';
 import { ofsIrLabel } from '../../lib/markup';
@@ -29,8 +30,12 @@ import { OfsChecks } from './OfsChecks';
 import { IrMap } from './IrMap';
 import { decidesRequest, ownsSteps, requestChip, resultsNow, routesOnly, trackerSteps, typeLabel } from './model';
 import { OfsRoute } from './OfsRoute';
+import { PullBack } from './PullBack';
+import { mayPullBack, pullOpen } from './pullBack';
 import { RequestDetails } from './RequestDetails';
 import { RequesterActions } from './RequesterActions';
+import { schedState } from './ofsSchedule';
+import { ScheduleBox } from './ScheduleBox';
 import { RevCells } from './RevCells';
 import { RequestWallPhotos } from '../revs/photos/RequestWallPhotos';
 import { clockLabel, durationLabel } from './time';
@@ -89,6 +94,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   // it is with OFS (no Confirm first); everyone else (and he, while it is postponed) sees the walls with their results here.
   const mySteps = decides && !routesOnly(row) && ownsSteps(row, user.id);
   const deciding = mySteps && resultsNow(row);
+  const pulling = revs !== null && !deciding && mayPullBack(row, can, user.id, holder) && pullOpen(row, revs);
+  // A request withdrawn by taking all its walls off comes back by Undo, not Request again (0109).
+  const takenOff = useIrRevAllTakenOff(ofs && row.status === 'withdrawn' ? row.id : null);
 
   function save(fileId?: string) {
     download.mutate(
@@ -138,6 +146,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
             save();
           }}
         />
+        {ofs && row.ofs_sent_at !== null ? (
+          <ScheduleBox row={row} state={schedState(row)} date={row.request_date} time={row.start_time} note={row.ofs_sched_note} canAccept={mine || holder || can.decide} />
+        ) : null}
         {duties.isError ? <ErrorState error={duties.error} onRetry={() => void duties.refetch()} className="m-0" /> : null}
         {ofs ? (
           <OfsChecks
@@ -152,7 +163,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         {cells.isError ? <ErrorState error={cells.error} onRetry={() => void cells.refetch()} className="m-0" /> : null}
         {revs !== null && !deciding ? (
           <PaneSection title="Walls">
-            <RevCells projectId={row.project_id} cells={revs} />
+            {pulling ? <PullBack row={row} cells={revs} /> : <RevCells projectId={row.project_id} cells={revs} />}
           </PaneSection>
         ) : null}
         {revs !== null ? (
@@ -161,7 +172,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
           </PaneSection>
         ) : null}
         {revs !== null ? <RequestWallPhotos projectId={row.project_id} requestId={row.id} /> : null}
-        {mine && can.request ? <RequesterActions row={row} canMove={!decides} /> : null}
+        {mine && can.request ? <RequesterActions row={row} canMove={!decides} canRestore={takenOff.data !== true} /> : null}
         {can.gcApprove && atGc ? <GcActions row={row} /> : null}
         <DeciderSteps row={row} can={can} me={user.id} jobName={job.name} revs={revs} holder={holder} />
       </div>

@@ -36,6 +36,7 @@ describe('entries', () => {
       lines: [
         line('IR 1 mirror', '2026-09-30T16:00:00Z', { kind: 'inspections', source_type: 'inspection_request', source_id: 'r1' }),
         line('B mirror', '2026-09-30T16:00:00Z', { project_id: 'job-b', kind: 'inspections', source_type: 'inspection_request', source_id: 'r9' }),
+        line('OFS 1 mirror', '2026-09-30T16:00:00Z', { kind: 'inspections', source_type: 'ofs_request', source_id: 'r1' }),
         line('OAC', '2026-09-30T17:00:00Z'),
       ],
       inspections: [ir()],

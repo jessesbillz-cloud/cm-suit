@@ -46,7 +46,7 @@ describe('the fire marshal\'s groups', () => {
 });
 
 function desk(p: Partial<DeskRow> & Pick<DeskRow, 'id' | 'kind' | 'state'>): DeskRow {
-  return { target_type: 'file', target_id: p.id, number: null, title: `Sample ${p.id}`, at: '2026-10-22T16:00:00Z', ...p };
+  return { target_type: 'file', target_id: p.id, number: null, title: `Sample ${p.id}`, at: '2026-10-22T16:00:00Z', sched: null, ...p };
 }
 
 describe("the designated person's lists", () => {

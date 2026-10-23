@@ -106,7 +106,8 @@ test.describe('request: room first, never a silent grey button', () => {
 
     // It carries the north wall only.
     await page.goto(`/p/job-s/inspections/mock-ir-${n}`);
-    const cells = page.getByTestId('ir-pane').getByTestId('rev-cells');
+    // (Hers until the fire marshal records it: each wall with Not ready.)
+    const cells = page.getByTestId('ir-pane').getByTestId('ir-pull-back');
     await expect(cells).toContainText('Corridor 110 north wall');
     await expect(cells).not.toContainText('Shaftwall');
   });

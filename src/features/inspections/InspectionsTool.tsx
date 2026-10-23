@@ -1,6 +1,7 @@
 // Inspections (SPEC §13.2, §18.4 P1). Requesters see the job's week and their log; inspectors start on their day, and
 // so does the deputy, on the OFS requests sent to OFS (the database gives him nothing else); the GC review list shows
-// when the job has the GC step on or takes OFS requests. What shows is decided by has_capability, never role names.
+// when the job has the GC step on or takes OFS requests. The fire marshal's week is his OFS schedule (0108). What shows
+// is decided by has_capability, never role names.
 import { CalendarOff, Plus, QrCode } from 'lucide-react';
 import { useIrCalendar } from '../../data/inspections.queries';
 import { todayInZone } from '../../lib/dates';
@@ -12,6 +13,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
 import { DayView } from './DayView';
 import { LogView } from './LogView';
+import { OfsSchedule } from './OfsSchedule';
 import { BLOCK_ITEM, NEW_ITEM, SHARE_ITEM, VIEW_LABELS, dayMeta, viewsFor, type IrView } from './model';
 import { ReviewView } from './ReviewView';
 import { useInspectionsNav } from './useInspectionsNav';
@@ -101,7 +103,20 @@ function InspectionsMain({ projectId, itemId, isPhone, can, job }: MainProps) {
         }
       />
       {nav.view === 'day' ? <DayView {...common} can={can} day={nav.day} today={today} onDay={nav.setDay} onRequest={request} /> : null}
-      {nav.view === 'week' ? (
+      {nav.view === 'week' && can.ofsDecide ? (
+        <OfsSchedule
+          projectId={projectId}
+          day={nav.day}
+          today={today}
+          isPhone={isPhone}
+          selectedId={itemId}
+          onDay={nav.setDay}
+          onOpen={(r) => {
+            nav.open(r.id);
+          }}
+        />
+      ) : null}
+      {nav.view === 'week' && !can.ofsDecide ? (
         <WeekView
           {...common}
           day={nav.day}

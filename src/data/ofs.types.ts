@@ -65,6 +65,15 @@ export type OfsReviewRow = z.infer<typeof ofsReviewRowSchema>;
 const DESK_STATES = ['waiting', 'approved', 'not_approved', 'passed', 'failed'] as const;
 export type DeskState = (typeof DESK_STATES)[number];
 
+/** An inspection's schedule state on the start page (0108): where its time stands, and the version Accept carries. */
+const deskSchedSchema = z.object({
+  state: z.enum(['asked', 'confirmed', 'proposed', 'postponed', 'done', 'withdrawn']),
+  date: z.string(),
+  time: z.string().nullable(),
+  version: z.number(),
+  note: z.string().nullable(),
+});
+
 const deskRowSchema = z.object({
   id: z.string(),
   kind: z.enum([...OFS_KINDS, 'inspection']),
@@ -74,11 +83,14 @@ const deskRowSchema = z.object({
   title: z.string(),
   state: z.enum(DESK_STATES),
   at: z.string(),
+  sched: deskSchedSchema.nullable(),
 });
 export type DeskRow = z.infer<typeof deskRowSchema>;
 
-/** The designated person's start page (ofs_desk); null for anyone else. */
-export const ofsDeskSchema = z.object({ rows: z.array(deskRowSchema) }).nullable();
+/** The start page (ofs_desk): the designated person's (designated: the three boxes too), or a requester's own OFS
+ *  requests (0109); null for anyone else. */
+export const ofsDeskSchema = z.object({ rows: z.array(deskRowSchema), designated: z.boolean() }).nullable();
+export type DeskData = NonNullable<z.infer<typeof ofsDeskSchema>>;
 
 /** Where an item is: one of these. */
 export type OfsTarget = { itemId: string } | { rfiId: string } | { fileId: string };

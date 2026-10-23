@@ -13,7 +13,7 @@ import {
   ofsDeskSchema,
   ofsItemSchema,
   ofsReviewRowSchema,
-  type DeskRow,
+  type DeskData,
   type OfsDecision,
   type OfsItem,
   type OfsReviewRow,
@@ -53,12 +53,13 @@ export function useOfsReview(projectId: string | null, enabled = true) {
   return useQuery({ queryKey: qk.ofsPart('review', projectId ?? 'all'), queryFn: enabled ? () => fetchReview(projectId) : skipToken });
 }
 
-async function fetchDesk(projectId: string): Promise<DeskRow[] | null> {
+async function fetchDesk(projectId: string): Promise<DeskData | null> {
   if (isMock()) return mock.desk(projectId);
-  return ofsDeskSchema.parse(throwIfErrorMaybe(await supabase.rpc('ofs_desk', { p_project_id: projectId })))?.rows ?? null;
+  return ofsDeskSchema.parse(throwIfErrorMaybe(await supabase.rpc('ofs_desk', { p_project_id: projectId })));
 }
 
-/** The designated person's start page: what waits on OFS and what came back; null for anyone else. */
+/** The start page: what waits on OFS and what came back (the designated person's, or a requester's own); null for
+ *  anyone else. */
 export function useOfsDesk(projectId: string) {
   return useQuery({ queryKey: qk.ofsPart('desk', projectId), queryFn: () => fetchDesk(projectId) });
 }

@@ -140,7 +140,8 @@ test.describe('OFS request with revs', () => {
     await expect(page.getByTestId('ir-map-make')).toBeDisabled();
 
     // The deputy, once the GC has confirmed it and the inspector has sent it: the step cards (no helper), each wall
-    // his once he confirms it. Fail on one wall needs a reason before anything saves; the rest pass; the request is not approved.
+    // his once he confirms it, every box Pass to start. Fail on one wall needs a reason before it saves; the rest pass;
+    // the request is not approved.
     await toOfs(page, n);
     await openAs(page, 'ahj', `/p/job-s/inspections/mock-ir-${n}`);
     const pane = page.getByTestId('ir-pane');
@@ -153,19 +154,19 @@ test.describe('OFS request with revs', () => {
     await pane.getByTestId('ir-confirm').click();
     await expect(pane.getByTestId('ir-tracker')).toContainText('Confirmed');
     await expect(page.getByTestId('rev-results')).toBeVisible();
-    await expect(page.getByTestId('rev-left')).toHaveText('6 left');
-    await page.getByTestId(`${cell(4, 1)}-failed`).click();
-    for (const [area, item] of [[5, 1], [4, 2], [5, 2], [4, 3], [5, 3]] as const) {
-      await page.getByTestId(`${cell(area, item)}-passed`).click();
+    for (const [area, item] of [[4, 1], [5, 1], [4, 2], [5, 2], [4, 3], [5, 3]] as const) {
+      await expect(page.getByTestId(cell(area, item))).toHaveAttribute('data-state', 'passed');
     }
-    await expect(page.getByTestId('rev-left')).toHaveText('1 left');
+    await page.getByTestId(cell(4, 1)).click();
+    await expect(page.getByTestId('rev-left')).toHaveText('Say why it failed');
+    await expect(page.getByTestId('rev-all-passed')).toBeDisabled();
     await expect(page.getByTestId('ir-outcome')).toHaveCount(0);
     const why = page.getByTestId('rev-note-mock-rev-area-4-mock-rev-item-3-1');
     await why.fill('Sample screws too far apart');
-    await why.blur();
+    await page.getByTestId('rev-all-passed').click();
     await expect(page.getByTestId('ir-outcome')).toContainText('Not approved');
-    await expect(page.getByTestId(`${cell(4, 1)}-failed`)).toHaveAttribute('aria-checked', 'true');
-    await expect(page.getByTestId(`${cell(5, 3)}-passed`)).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByTestId(cell(4, 1))).toHaveAttribute('data-state', 'failed');
+    await expect(page.getByTestId(cell(5, 3))).toHaveAttribute('data-state', 'passed');
     await expect(why).toHaveValue('Sample screws too far apart');
   });
 

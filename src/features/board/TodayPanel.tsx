@@ -13,7 +13,7 @@ import { detectZone, formatDay, todayInZone } from '../../lib/dates';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { TOOL_META } from '../../ui/tools';
-import { bucketByDay, lineChip, lineTime, rangeFor, visibleLines } from '../calendar/model';
+import { IR_MIRRORS, bucketByDay, lineChip, lineTime, rangeFor, visibleLines } from '../calendar/model';
 import { useCalendarNav } from '../calendar/useCalendarNav';
 import { useHomeScope } from './home/useHomeScope';
 import { KindSquare } from './KindSquare';
@@ -96,7 +96,7 @@ export function TodayPanel({ projectId }: TodayPanelProps) {
   const types = layout.data?.choices.calendar_types;
   const groups = useMemo(() => {
     const shown = visibleLines(lines.data ?? [], types ?? [], projects.data ?? [], projectId).filter(
-      (l) => !(l.source_type === 'inspection_request' && onCard?.includes(l.project_id) === true),
+      (l) => !(IR_MIRRORS.includes(l.source_type) && onCard?.includes(l.project_id) === true),
     );
     return byTime(bucketByDay(shown, days).get(today) ?? []);
   }, [lines.data, types, projects.data, projectId, days, today, onCard]);

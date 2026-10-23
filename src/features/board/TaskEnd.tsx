@@ -16,7 +16,7 @@ import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 
 /** Task kinds (create_task's p_kind in the migrations) that the record closes by itself when it moves on. */
-const CLOSED_BY_RECORD = new Set(['rfi', 'correction.reinspect', 'correction.fix', 'safety.tailgate_due', 'requirements.due']);
+const CLOSED_BY_RECORD = new Set(['rfi', 'correction.reinspect', 'correction.fix', 'safety.tailgate_due', 'requirements.due', 'ir.ofs_time']);
 /** The task kind acknowledged in place (bids 0011: acknowledge_addendum closes it). */
 const ADDENDUM_ACK = 'addendum_ack';
 

@@ -1,6 +1,8 @@
 // The designated person's start page (the job's board, for the inspector or the job's OFS duty holder on a job that
-// takes OFS requests): the three boxes, then Waiting on OFS and Back from OFS (approved, not approved, passed, failed),
-// each opening to its groups. A row opens the item where it lives (Files, RFIs, Inspections).
+// takes OFS requests): the three boxes, then Waiting on OFS and Back from OFS (approved, not approved, passed, failed:
+// each failed item to inspect again, 0109), each opening to its groups. A requester with OFS requests sent gets the two
+// lists of his own (no boxes). A row opens the item where it lives (Files, RFIs, Inspections). An inspection shows where
+// its time stands, with Accept when OFS picked another time (0108).
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useOfsDesk } from '../../data/ofs';
@@ -10,18 +12,20 @@ import { entityTarget } from '../../lib/entityTarget';
 import { CLICK_BOX } from '../../ui/box';
 import { ErrorState } from '../../ui/States';
 import { useProjectZones } from '../board/zones';
+import { ScheduleBox } from '../inspections/ScheduleBox';
 import { DeskBoxes } from './DeskBoxes';
 import { Expander } from './Expander';
 import { deskLists, deskTitle, type DeskGroup } from './model';
 
 interface RowProps {
   row: DeskRow;
+  projectId: string;
   zone: string;
   onOpen: (row: DeskRow) => void;
 }
 
-function DeskLine({ row, zone, onOpen }: RowProps) {
-  return (
+function DeskLine({ row, projectId, zone, onOpen }: RowProps) {
+  const button = (
     <button
       type="button"
       data-testid="ofs-desk-row"
@@ -35,10 +39,26 @@ function DeskLine({ row, zone, onOpen }: RowProps) {
       <span className="text-xs text-ink-2">{formatInZone(row.at, zone, 'MMM d, yyyy')}</span>
     </button>
   );
+  if (row.sched === null) return button;
+  // An inspection: where its time stands, with Accept when OFS picked another one (0108).
+  return (
+    <div className="flex flex-col gap-1">
+      {button}
+      <ScheduleBox
+        row={{ id: row.target_id, version: row.sched.version, project_id: projectId }}
+        state={row.sched.state}
+        date={row.sched.date}
+        time={row.sched.time}
+        note={row.sched.note}
+        canAccept
+      />
+    </div>
+  );
 }
 
 interface ListProps {
   id: string;
+  projectId: string;
   label: string;
   groups: readonly DeskGroup[];
   zone: string;
@@ -47,7 +67,7 @@ interface ListProps {
   onOpen: (row: DeskRow) => void;
 }
 
-function DeskList({ id, label, groups, zone, isOpen, toggle, onOpen }: ListProps) {
+function DeskList({ id, projectId, label, groups, zone, isOpen, toggle, onOpen }: ListProps) {
   const count = groups.reduce((n, g) => n + g.rows.length, 0);
   return (
     <Expander id={id} label={label} count={count} open={isOpen(id)} onToggle={toggle}>
@@ -55,7 +75,7 @@ function DeskList({ id, label, groups, zone, isOpen, toggle, onOpen }: ListProps
       {groups.map((g) => (
         <Expander key={g.key} id={`${id}/${g.key}`} label={g.label} count={g.rows.length} open={isOpen(`${id}/${g.key}`)} onToggle={toggle} depth={1}>
           {g.rows.map((r) => (
-            <DeskLine key={r.id} row={r} zone={zone} onOpen={onOpen} />
+            <DeskLine key={r.id} row={r} projectId={projectId} zone={zone} onOpen={onOpen} />
           ))}
         </Expander>
       ))}
@@ -69,9 +89,9 @@ export function OfsDesk({ projectId }: { projectId: string }) {
   const navigate = useNavigate();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   if (desk.isError) return <ErrorState error={desk.error} title="The OFS start page did not load." onRetry={() => void desk.refetch()} />;
-  // Not the designated person (or still asking): the board as it was.
+  // Nobody's start page (or still asking): the board as it was.
   if (!desk.data) return null;
-  const lists = deskLists(desk.data);
+  const lists = deskLists(desk.data.rows);
   const isOpen = (id: string) => opened.has(id);
   const toggle = (id: string) => {
     setOpened((s) => {
@@ -85,10 +105,10 @@ export function OfsDesk({ projectId }: { projectId: string }) {
     const t = entityTarget(row.target_type, row.target_id);
     if (t?.itemId) void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool: t.tool, itemId: t.itemId } });
   };
-  const common = { zone: zoneOf(projectId), isOpen, toggle, onOpen: open };
+  const common = { projectId, zone: zoneOf(projectId), isOpen, toggle, onOpen: open };
   return (
     <section className="flex flex-col gap-3" data-testid="ofs-desk">
-      <DeskBoxes projectId={projectId} />
+      {desk.data.designated ? <DeskBoxes projectId={projectId} /> : null}
       <DeskList id="waiting" label="Waiting on OFS" groups={lists.waiting} {...common} />
       <DeskList id="back" label="Back from OFS" groups={lists.back} {...common} />
     </section>

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { RevRoom, RevRoomWall, RevRooms } from '../../data/revs.rooms';
 import { NO_WALL_DETAILS, type RevArea, type RevSetup } from '../../data/revs.types';
-import { hasRooms, nearGroups, roomCountLabel, roomGroups, shownCount, tapRoom } from './roomPick';
+import { statusIndex } from './revPick';
+import { failedRoomsFirst, hasRooms, nearGroups, roomCountLabel, roomGroups, shownCount, tapRoom } from './roomPick';
 
 const base = { project_id: 'job', version: 1, deleted_at: null };
 const wall = (n: number, level: string, name: string, list = 'l1'): RevArea => ({
@@ -94,5 +95,22 @@ describe('a request that came with walls', () => {
     ]);
     expect(shownCount(near)).toBe(2);
     expect(shownCount(groups)).toBe(4);
+  });
+});
+
+describe('a room that failed last time', () => {
+  it('comes first on its level, marked', () => {
+    const rooms: RevRooms = { rooms: ROOMS.rooms, walls: [link('r134', 3), link('s1', 5)], out: [] };
+    const failed = statusIndex([{ area_id: 'a5', item_id: 'i', status: 'failed', request_id: null, ir_number: null, ofs_number: null, at: null, note: null }]);
+    const plain = roomGroups(SETUP, rooms, 'l1');
+    expect(plain.flatMap((g) => g.rooms.map((r) => r.id))).toEqual(['r134', 's1']);
+    expect(failedRoomsFirst(plain, failed).flatMap((g) => g.rooms.map((r) => [r.id, r.failed]))).toEqual([
+      ['s1', true],
+      ['r134', false],
+    ]);
+    expect(failedRoomsFirst(plain, statusIndex([])).flatMap((g) => g.rooms.map((r) => [r.id, r.failed]))).toEqual([
+      ['r134', false],
+      ['s1', false],
+    ]);
   });
 });
