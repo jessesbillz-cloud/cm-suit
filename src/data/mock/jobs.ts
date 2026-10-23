@@ -91,6 +91,11 @@ export function projectSettings(projectId: string): unknown {
   return projectRows().find((r) => r.id === projectId)?.settings ?? {};
 }
 
+/** A DSA job (projects.is_dsa): only it has CCDs (0111). */
+export function projectIsDsa(projectId: string): boolean {
+  return projectRows().find((r) => r.id === projectId)?.is_dsa ?? false;
+}
+
 export async function project(projectId: string): Promise<ProjectRow> {
   await delay();
   const row = projectRows().find((r) => r.id === projectId);
