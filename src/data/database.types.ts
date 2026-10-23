@@ -12202,6 +12202,10 @@ export type Database = {
       mdr_files_cron: { Args: never; Returns: number }
       mdr_files_kick: { Args: never; Returns: number }
       mdr_files_status: { Args: never; Returns: Json }
+      mdr_fix_year: {
+        Args: { p_created: string; p_value: string }
+        Returns: string
+      }
       mdr_import_one: {
         Args: {
           p_link: Database["public"]["Tables"]["mdr_job_links"]["Row"]
