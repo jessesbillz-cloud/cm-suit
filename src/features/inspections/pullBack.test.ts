@@ -3,7 +3,7 @@ import type { IrRevItem, RevSetup } from '../../data/revs.types';
 import { mayPullBack, pullOpen, pullWalls, takenOffMessage } from './pullBack';
 
 const row = { project_id: 'job', version: 1, deleted_at: null };
-const NONE = { wall_tag: null, rating: null, ul_design: null, fire_area: null, sheet_ref: null, check_note: null };
+const NONE = { wall_tag: null, rating: null, ul_design: null, fire_area: null, sheet_ref: null, check_note: null, field_by: null, field_checked_at: null, field_checked_by: null };
 
 const SETUP: RevSetup = {
   lists: [{ ...row, id: 'l1', name: 'Sample Walls', phase: null, permit_id: null, position: 1 }],
