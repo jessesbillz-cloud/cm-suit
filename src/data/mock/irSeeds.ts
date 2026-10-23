@@ -8,7 +8,7 @@ import { addDays, format, isWeekend, parseISO } from 'date-fns';
 import type { IrRowRaw } from '../inspections.types';
 import type { FileRow } from '../types';
 import type { MockBlock } from './irCalendar';
-import { NO_OFS_CHECKS } from './irRules';
+import { NOT_MIRRORED, NO_OFS_CHECKS } from './irRules';
 import { SEED_PERMIT_S1 } from './permitSeeds';
 
 const REQUESTER = 'mock-user-sub';
@@ -108,7 +108,7 @@ function row(job: string, day: string, number: number, i: number, { time, length
     postponed_at: null, postpone_count: 0, ir_file_id: null, content_hash: null, signed_at: null, signed_by: null,
     pdf_stale: false, pdf_postponed: false, results_sent_at: null, summary: null, permit_id: null,
     requester_name: null, requester_phone: null, requester_email: null, ofs_number: null,
-    ofs_sent_at: null, ofs_sent_by: null, special_required: null, ...NO_OFS_CHECKS,
+    ofs_sent_at: null, ofs_sent_by: null, special_required: null, ...NO_OFS_CHECKS, ...NOT_MIRRORED,
     ...fields(state, day, job, number, i % 11 === 5),
   };
 }
@@ -167,6 +167,22 @@ export function permitJobRequests(today: string): IrRowRaw[] {
       ofs_sent_by: sent ? SENDER : null,
       owner_id: r.owner_id === null ? null : DEPUTY,
       signed_by: r.signed_by === null ? null : DEPUTY,
+    };
+  });
+}
+
+/** Two requests copied from My Daily Reports on Sample Job B, 45 days back (0112), view only: one approved, one not
+ *  approved, neither IR PDF copied yet. MDR's own numbers, below the job's. No requester account, MDR's requester by name. */
+export function mirroredRequests(today: string): IrRowRaw[] {
+  const day = format(addDays(parseISO(today), -45), 'yyyy-MM-dd');
+  const base = (n: number, i: number) => row('job-b', day, n, i, { time: n === 7 ? '07:00' : '10:00', length: 60 }, n === 7 ? 'done' : 'failed');
+  return [7, 8].map((n, k) => {
+    const r = base(n, k * 2);
+    return {
+      ...r, id: `mock-ir-mdr-${String(n)}`, kind: 'ior', special_kind_id: null, requested_by: null, created_by: null,
+      requester_name: 'Sample MDR Requester', owner_id: null, signed_by: null, ir_file_id: null, content_hash: null, signed_at: null,
+      status: 'confirmed', items: n === 7 ? 'Sample deck screws, level 1' : 'Sample duct leakage test',
+      mdr_id: `mock-mdr-${String(n)}`, mdr_updated_at: `${day}T23:00:00Z`,
     };
   });
 }

@@ -5,7 +5,8 @@
 // postpones it (OfsRoute), and the job's OFS duty holder sends it once the inspector has checked it. An OFS request
 // shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
 // shows its walls and items (with their results) and its map; until a result, whoever may takes walls off it there
-// (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal.
+// (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal. A request copied
+// from My Daily Reports (0112) is marked From MDR and shows no step at all: it is view only.
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
@@ -22,6 +23,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
+import { FromMdr } from './FromMdr';
 import { GcActions } from './GcActions';
 import { History } from './History';
 import { InspectorPanel } from './InspectorPanel';
@@ -81,6 +83,8 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const viewer = useFileViewer();
   const names = useIrFileNames(row.project_id, row.attachment_ids);
   const chip = requestChip(row, can.ofsDecide);
+  // Copied from MDR: read only, every step stays in MDR.
+  const acts = row.mdr_id === null;
   const mine = row.requested_by === user.id;
   const atGc = row.status === 'gc_review' || row.status === 'returned';
   const cells = useIrRevItems(row.kind === 'ofs' ? row.id : null);
@@ -92,9 +96,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
   const holder = duty !== undefined && duty.person_id === user.id;
   // My step cards show on this request (InspectorPanel). The deputy records each wall in his Result step as soon as
   // it is with OFS (no Confirm first); everyone else (and he, while it is postponed) sees the walls with their results here.
-  const mySteps = decides && !routesOnly(row) && ownsSteps(row, user.id);
+  const mySteps = acts && decides && !routesOnly(row) && ownsSteps(row, user.id);
   const deciding = mySteps && resultsNow(row);
-  const pulling = revs !== null && !deciding && mayPullBack(row, can, user.id, holder) && pullOpen(row, revs);
+  const pulling = acts && revs !== null && !deciding && mayPullBack(row, can, user.id, holder) && pullOpen(row, revs);
   // A request withdrawn by taking all its walls off comes back by Undo, not Request again (0109).
   const takenOff = useIrRevAllTakenOff(ofs && row.status === 'withdrawn' ? row.id : null);
 
@@ -117,6 +121,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         <span className="flex flex-wrap items-center gap-2">
           {formatDay(row.request_date, 'EEE, MMM d')} · {clockLabel(row.start_time)} · {durationLabel(row.duration_kind, row.duration_min)}
           <StatusChip status={chip.status} label={chip.label} />
+          {acts ? null : <FromMdr />}
         </span>
       }
       attachments={row.attachment_ids.map((id, i) => ({ id, name: names.data?.[id] ?? `Attachment ${String(i + 1)}` }))}
@@ -147,10 +152,10 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
           }}
         />
         {ofs && row.ofs_sent_at !== null ? (
-          <ScheduleBox row={row} state={schedState(row)} date={row.request_date} time={row.start_time} note={row.ofs_sched_note} canAccept={mine || holder || can.decide} />
+          <ScheduleBox row={row} state={schedState(row)} date={row.request_date} time={row.start_time} note={row.ofs_sched_note} canAccept={acts && (mine || holder || can.decide)} />
         ) : null}
         {duties.isError ? <ErrorState error={duties.error} onRetry={() => void duties.refetch()} className="m-0" /> : null}
-        {ofs ? (
+        {ofs && acts ? (
           <OfsChecks
             row={row}
             can={can}
@@ -172,9 +177,9 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
           </PaneSection>
         ) : null}
         {revs !== null ? <RequestWallPhotos projectId={row.project_id} requestId={row.id} /> : null}
-        {mine && can.request ? <RequesterActions row={row} canMove={!decides} canRestore={takenOff.data !== true} /> : null}
-        {can.gcApprove && atGc ? <GcActions row={row} /> : null}
-        <DeciderSteps row={row} can={can} me={user.id} jobName={job.name} revs={revs} holder={holder} />
+        {acts && mine && can.request ? <RequesterActions row={row} canMove={!decides} canRestore={takenOff.data !== true} /> : null}
+        {acts && can.gcApprove && atGc ? <GcActions row={row} /> : null}
+        {acts ? <DeciderSteps row={row} can={can} me={user.id} jobName={job.name} revs={revs} holder={holder} /> : null}
       </div>
     </ReadingPane>
   );

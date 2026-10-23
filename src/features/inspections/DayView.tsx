@@ -112,7 +112,7 @@ export function DayView({ projectId, can, day, today, selectedId, onDay, onOpen,
               row={r}
               selected={r.id !== null && r.id === selectedId}
               ofsDecide={can.ofsDecide}
-              canConfirm={decidesRequest(r, can) && !routesOnly(r)}
+              canConfirm={decidesRequest(r, can) && !routesOnly(r) && r.from_mdr !== true}
               confirming={confirm.isPending && confirm.variables.row.id === r.id}
               onOpen={onOpen}
               onConfirm={doConfirm}

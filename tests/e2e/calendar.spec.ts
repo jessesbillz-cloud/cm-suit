@@ -1,6 +1,7 @@
 // Calendar (SPEC §7.6; MDR's schedule calendar) against the mock data layer. The month shows each day's inspections
-// as banners; a day shows underneath with its requests by state, its other lines and the week's look-ahead; a request
-// opens in the right column with the inspector's steps while the calendar stays; a person with calendar.manage adds a
+// as banners; the selected day (today at first) shows in the right column on a desktop, under the month on a phone,
+// with its requests by state, its other lines and the week's look-ahead; a request opens in the right column in the
+// day's place with the inspector's steps while the calendar stays, and Back to the day returns; a person with calendar.manage adds a
 // line from the day, sees it, deletes it and Undo brings it back; the type toggles hide and show a kind; the week view
 // still lists the week. Runs on desktop and phone (the right column parts on desktop only).
 // Contract with the mock: 'pm' manages the calendar and decides inspections on both sample jobs; the inspections mock
@@ -99,7 +100,11 @@ test.describe('calendar (SPEC §7.6)', () => {
     await expect(page.getByTestId('ir-pane')).toBeVisible();
     await expect(page.getByTestId('calendar')).toBeVisible();
     await expect(page.getByTestId(`cal-day-${wed}`)).toHaveAttribute('aria-pressed', 'true');
-    await expect(card).toHaveClass(/ring-accent/);
+    // The request took the day's place in the right column; one click back to the day.
+    const right = page.getByTestId('right-column');
+    await expect(right.getByTestId('cal-day-detail')).toHaveCount(0);
+    await right.getByTestId('cal-back-day').click();
+    await expect(right.getByTestId('cal-day-detail').getByTestId('cal-request').first()).toBeVisible();
   });
 
   test("the deputy's calendar: the OFS requests sent to OFS, nothing still on its way, no blocked time", async ({ page }) => {

@@ -8,6 +8,7 @@ import { Icon } from '../../ui/Icon';
 import { StatusChip } from '../../ui/StatusChip';
 import { attendanceLabel, firstLine, rowChip, typeLabel } from './model';
 import { clockLabel, durationLabel } from './time';
+import { FromMdr } from './FromMdr';
 
 /** The row open in the right column: a soft accent fill and a 3px accent edge on the left. */
 const SELECTED = 'bg-accent-soft/60 shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
@@ -80,6 +81,11 @@ export function QueueRow({ row, selected, ofsDecide, canConfirm, confirming, onO
         <p className="text-sm">
           <span className="mr-2 tabular-nums text-ink-3">IR {row.number}</span>
           <span className="font-semibold text-ink">{typeLabel(row.kind, row.special_kind)}</span>
+          {row.from_mdr === true ? (
+            <span className="ml-2">
+              <FromMdr />
+            </span>
+          ) : null}
         </p>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-3">
           <span className="mr-1.5 inline-block align-middle sm:hidden">

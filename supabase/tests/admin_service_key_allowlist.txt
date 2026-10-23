@@ -31,6 +31,10 @@ email-events
 inbound-email
 # Cron: queue_health() is not granted to users.
 queue-health
+# Cron (0112): copies the files of requests mirrored from MDR into private storage (storeServerFile: storage + files
+# row) and links them through mdr_file_claim / mdr_file_done / mdr_file_failed, granted to the server only. Nothing a
+# person sends reaches it: requireCron, and links are fetched only from MDR_PUBLIC_HOST.
+mdr-files
 # Public endpoint §6.4 #7: calendar apps have no session; the secret feed token is the gate and calendar_feed_lines()
 # is service-only.
 calendar-feed

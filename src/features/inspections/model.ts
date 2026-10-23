@@ -286,6 +286,9 @@ export function dayMeta(rows: readonly MetaRow[], ofsDecide = false): string {
 
 const ACTIONS: Record<string, string> = {
   submit: 'Requested',
+  // Copied from My Daily Reports (0112), and its files.
+  mdr: 'From MDR',
+  mdr_file: 'File from MDR',
   confirm: 'Confirmed',
   unconfirm: 'Back to pending',
   move: 'Moved',

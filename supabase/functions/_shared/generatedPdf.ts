@@ -27,58 +27,69 @@ export interface StoredPdf {
 }
 
 export async function storeGeneratedPdf(service: Db, pdf: GeneratedPdf): Promise<StoredPdf> {
+  return await storeServerFile(service, { ...pdf, mime: 'application/pdf', scanned: true });
+}
+
+export interface ServerFile extends GeneratedPdf {
+  mime: string;
+  /** True for bytes a server made (stored clean, nothing to scan). False for anything a person once uploaded: the row
+   *  stays pending and unfinished until the caller's own SQL step finishes it and queues the scan. */
+  scanned: boolean;
+}
+
+/** The one way the server stores a file: storage first, then the files row with its sha256. */
+export async function storeServerFile(service: Db, file: ServerFile): Promise<StoredPdf> {
   const folder = must(
-    await service.from('folders').select('id, org_id, project_id').eq('id', pdf.folderId).is('deleted_at', null).single(),
+    await service.from('folders').select('id, org_id, project_id').eq('id', file.folderId).is('deleted_at', null).single(),
     'folder',
   ) as { id: string; org_id: string; project_id: string };
-  if (folder.project_id !== pdf.projectId) throw new HttpError(400, 'That folder is not in this job');
+  if (folder.project_id !== file.projectId) throw new HttpError(400, 'That folder is not in this job');
 
   let version: { version_group_id: string; version_no: number; project_id: string } | null = null;
-  if (pdf.replaces) {
+  if (file.replaces) {
     version = must(
-      await service.from('files').select('version_group_id, version_no, project_id').eq('id', pdf.replaces).single(),
+      await service.from('files').select('version_group_id, version_no, project_id').eq('id', file.replaces).single(),
       'replaced file',
     ) as { version_group_id: string; version_no: number; project_id: string };
-    if (version.project_id !== pdf.projectId) throw new HttpError(400, 'That file is not in this job');
+    if (version.project_id !== file.projectId) throw new HttpError(400, 'That file is not in this job');
   }
 
   const id = crypto.randomUUID();
   const storagePath = await rpc<string>(service, 'file_storage_path', {
-    p_project_id: pdf.projectId,
+    p_project_id: file.projectId,
     p_folder_id: folder.id,
     p_file_id: id,
-    p_name: pdf.name,
+    p_name: file.name,
   });
-  const sha256 = await sha256HexBytes(pdf.bytes);
+  const sha256 = await sha256HexBytes(file.bytes);
 
-  const { error: upErr } = await service.storage.from('files').upload(storagePath, pdf.bytes, {
-    contentType: 'application/pdf',
+  const { error: upErr } = await service.storage.from('files').upload(storagePath, file.bytes, {
+    contentType: file.mime,
     upsert: false,
   });
-  if (upErr) throw storageError(upErr, 'upload generated pdf');
+  if (upErr) throw storageError(upErr, 'upload server file');
 
   must(
     await service.from('files').insert({
       id,
       org_id: folder.org_id,
-      project_id: pdf.projectId,
+      project_id: file.projectId,
       folder_id: folder.id,
       storage_path: storagePath,
-      original_name: pdf.name,
-      mime: 'application/pdf',
-      size: pdf.bytes.length,
+      original_name: file.name,
+      mime: file.mime,
+      size: file.bytes.length,
       sha256,
-      scan_status: 'clean',
-      scanned_at: new Date().toISOString(),
-      text_status: 'none',
-      upload_complete: true,
-      created_by: pdf.createdBy,
+      ...(file.scanned
+        ? { scan_status: 'clean', scanned_at: new Date().toISOString(), text_status: 'none', upload_complete: true }
+        : { scan_status: 'pending', text_status: 'pending', upload_complete: false }),
+      created_by: file.createdBy,
       ...(version ? { version_group_id: version.version_group_id, version_no: version.version_no + 1 } : {}),
     }),
-    'insert generated pdf',
+    'insert server file',
   );
-  if (pdf.replaces) {
-    must(await service.from('files').update({ superseded_by: id }).eq('id', pdf.replaces), 'supersede old pdf');
+  if (file.replaces) {
+    must(await service.from('files').update({ superseded_by: id }).eq('id', file.replaces), 'supersede old version');
   }
   return { id, storage_path: storagePath, sha256 };
 }

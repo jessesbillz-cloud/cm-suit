@@ -38,6 +38,8 @@ export const calendarRowSchema = z.object({
   postpone_until: z.string().nullable(),
   /** An OFS request the inspector has sent to OFS (false on a line I don't read in full). */
   ofs_sent: z.boolean(),
+  /** Copied from My Daily Reports, view only (0112). Only calendar_inspections answers it. */
+  from_mdr: z.boolean().optional(),
 });
 export type CalendarRow = z.infer<typeof calendarRowSchema>;
 
@@ -55,7 +57,7 @@ export type FormContext = z.infer<typeof formContextSchema>;
 
 // One literal, so supabase-js can type the rows from it.
 export const IR_COLS =
-  'id, project_id, number, ofs_number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ofs_sent_at, ofs_sent_by, special_required, ofs_attest_at, ofs_ready_at, ofs_si_at, ofs_sched, ofs_sched_at, ofs_sched_note, ir_special_kinds(name)';
+  'id, project_id, number, ofs_number, version, requested_by, requester_name, requester_phone, requester_email, company, request_date, start_time, duration_kind, duration_min, kind, special_kind_id, items, attachment_ids, status, gc_at, gc_note, owner_id, helper_id, confirm_note, attendance, result, result_note, result_photo_ids, result_at, helper_report, helper_note, postpone_reason, postpone_note, postpone_until, postpone_count, ir_file_id, signed_at, pdf_stale, pdf_postponed, results_sent_at, summary, created_at, ofs_sent_at, ofs_sent_by, special_required, ofs_attest_at, ofs_ready_at, ofs_si_at, ofs_sched, ofs_sched_at, ofs_sched_note, mdr_id, ir_special_kinds(name)';
 
 export type IrRequest = Pick<
   Tables<'inspection_requests'>,
@@ -110,6 +112,7 @@ export type IrRequest = Pick<
   | 'ofs_sched'
   | 'ofs_sched_at'
   | 'ofs_sched_note'
+  | 'mdr_id'
 > & { ir_special_kinds: { name: string } | null };
 
 /** What every IR RPC returns: the whole row (no embedded kind name). */
