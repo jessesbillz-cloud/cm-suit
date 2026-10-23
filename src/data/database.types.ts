@@ -2685,6 +2685,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -2756,6 +2758,8 @@ export type Database = {
           ir_file_id?: string | null
           items: string
           kind: string
+          mdr_id?: string | null
+          mdr_updated_at?: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at?: string | null
@@ -2827,6 +2831,8 @@ export type Database = {
           ir_file_id?: string | null
           items?: string
           kind?: string
+          mdr_id?: string | null
+          mdr_updated_at?: string | null
           notice_ack_at?: string
           number?: number
           ofs_attest_at?: string | null
@@ -3387,6 +3393,152 @@ export type Database = {
           last_seen?: string
         }
         Relationships: []
+      }
+      mdr_file_queue: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          done_at: string | null
+          error: string | null
+          file_id: string | null
+          id: string
+          project_id: string
+          request_id: string
+          role: string
+          status: string
+          tries: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          done_at?: string | null
+          error?: string | null
+          file_id?: string | null
+          id?: string
+          project_id: string
+          request_id: string
+          role: string
+          status?: string
+          tries?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          done_at?: string | null
+          error?: string | null
+          file_id?: string | null
+          id?: string
+          project_id?: string
+          request_id?: string
+          role?: string
+          status?: string
+          tries?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdr_file_queue_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdr_file_queue_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mdr_file_queue_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdr_job_links: {
+        Row: {
+          active: boolean
+          adopt_from: number | null
+          adopt_to: number | null
+          created_at: string
+          mdr_job_id: string
+          project_id: string
+        }
+        Insert: {
+          active?: boolean
+          adopt_from?: number | null
+          adopt_to?: number | null
+          created_at?: string
+          mdr_job_id: string
+          project_id: string
+        }
+        Update: {
+          active?: boolean
+          adopt_from?: number | null
+          adopt_to?: number | null
+          created_at?: string
+          mdr_job_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdr_job_links_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mdr_sync_state: {
+        Row: {
+          cursor_at: string | null
+          last_result: Json | null
+          last_run_at: string | null
+          mdr_job_id: string
+          run_counts: Json
+          run_max_seen: string | null
+          run_min_error: string | null
+          run_started_at: string | null
+        }
+        Insert: {
+          cursor_at?: string | null
+          last_result?: Json | null
+          last_run_at?: string | null
+          mdr_job_id: string
+          run_counts?: Json
+          run_max_seen?: string | null
+          run_min_error?: string | null
+          run_started_at?: string | null
+        }
+        Update: {
+          cursor_at?: string | null
+          last_result?: Json | null
+          last_run_at?: string | null
+          mdr_job_id?: string
+          run_counts?: Json
+          run_max_seen?: string | null
+          run_min_error?: string | null
+          run_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mdr_sync_state_mdr_job_id_fkey"
+            columns: ["mdr_job_id"]
+            isOneToOne: true
+            referencedRelation: "mdr_job_links"
+            referencedColumns: ["mdr_job_id"]
+          },
+        ]
       }
       member_scopes: {
         Row: {
@@ -7712,6 +7864,7 @@ export type Database = {
           company: string
           duration_kind: string
           duration_min: number
+          from_mdr: boolean
           full_detail: boolean
           helper_id: string
           id: string
@@ -7750,6 +7903,36 @@ export type Database = {
           kind: string
           mine: boolean
           number: number
+          owner_id: string
+          postpone_count: number
+          postpone_reason: string
+          postpone_until: string
+          request_date: string
+          result: string
+          special_kind: string
+          start_time: string
+          status: string
+          status_key: string
+          version: number
+        }[]
+      }
+      calendar_inspections_retired_0112: {
+        Args: { p_from: string; p_project_id: string; p_to: string }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string
+          company: string
+          duration_kind: string
+          duration_min: number
+          full_detail: boolean
+          helper_id: string
+          id: string
+          is_block: boolean
+          items: string
+          kind: string
+          mine: boolean
+          number: number
+          ofs_sent: boolean
           owner_id: string
           postpone_count: number
           postpone_reason: string
@@ -8750,6 +8933,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -8836,6 +9021,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -8995,6 +9182,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9075,6 +9264,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9159,6 +9350,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9239,6 +9432,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9319,6 +9514,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9415,6 +9612,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9501,6 +9700,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9586,6 +9787,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9773,6 +9976,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9885,6 +10090,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -9965,6 +10172,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10070,6 +10279,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10175,6 +10386,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10271,6 +10484,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10386,6 +10601,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10499,6 +10716,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10580,6 +10799,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10660,6 +10881,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10740,6 +10963,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10824,6 +11049,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10904,6 +11131,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -10990,6 +11219,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11078,6 +11309,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11180,6 +11413,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11274,6 +11509,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11366,6 +11603,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11458,6 +11697,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11559,6 +11800,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11639,6 +11882,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -11723,6 +11968,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null
@@ -12117,6 +12364,54 @@ export type Database = {
       }
       mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
       may_read_org_brand: { Args: { p_org_id: string }; Returns: boolean }
+      mdr_file_claim: {
+        Args: { p_limit: number }
+        Returns: {
+          folder_id: string
+          id: string
+          number: number
+          project_id: string
+          request_id: string
+          role: string
+          url: string
+        }[]
+      }
+      mdr_file_done: {
+        Args: { p_file_id: string; p_id: string }
+        Returns: undefined
+      }
+      mdr_file_failed: {
+        Args: { p_error: string; p_id: string; p_refused: boolean }
+        Returns: undefined
+      }
+      mdr_files_cron: { Args: never; Returns: number }
+      mdr_files_kick: { Args: never; Returns: number }
+      mdr_files_status: { Args: never; Returns: Json }
+      mdr_fix_year: {
+        Args: { p_created: string; p_value: string }
+        Returns: string
+      }
+      mdr_import_one: {
+        Args: {
+          p_link: Database["public"]["Tables"]["mdr_job_links"]["Row"]
+          p_row: Json
+        }
+        Returns: string
+      }
+      mdr_import_requests: { Args: { p_rows: Json }; Returns: Json }
+      mdr_ir_kind: {
+        Args: { p_special: string; p_types: string[] }
+        Returns: string
+      }
+      mdr_ir_postpone_reason: { Args: { p_reason: string }; Returns: string }
+      mdr_ir_result: { Args: { p_status: string }; Returns: string }
+      mdr_ir_status: {
+        Args: { p_has_pdf: boolean; p_status: string }
+        Returns: string
+      }
+      mdr_sane_date: { Args: { p_value: string }; Returns: string }
+      mdr_sync_begin: { Args: never; Returns: Json }
+      mdr_sync_end: { Args: never; Returns: Json }
       merge_sub_contacts: {
         Args: { p_existing: Json; p_incoming: Json }
         Returns: Json
@@ -16582,6 +16877,8 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_id: string | null
+          mdr_updated_at: string | null
           notice_ack_at: string
           number: number
           ofs_attest_at: string | null

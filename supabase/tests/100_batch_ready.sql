@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(39);
 -- Migration 0114 (Jesse, Oct 23: speed and zero wasted taps). A batch sent from the basket (0113) takes each approval
 -- step in one tap: ir_batch_step calls the single button's own function (ir_ofs_check gc or ready, ir_send_ofs) for
 -- each request of the batch waiting on the caller at that step, with its version, all or nothing. Requests not waiting
@@ -171,6 +171,36 @@ select throws_ok($$ select public.ir_batch_step(pg_temp.batch(), 'send', pg_temp
   'nor sends');
 reset role;
 select is(pg_temp.audits(), 4, 'each batch tap that did something is audited');
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- A copy from My Daily Reports (0112) is never acted on: skipped and reported, the rest of the batch goes on
+-- ---------------------------------------------------------------------------------------------------------------------
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000001144');
+select public.rev_basket_add('c0000000-0000-0000-0000-000000001141', array[pg_temp.rid('B'), pg_temp.rid('C')], array[pg_temp.rid('stuff')]);
+select public.rev_basket_add('c0000000-0000-0000-0000-000000001141', array[pg_temp.rid('A'), pg_temp.rid('B')], array[pg_temp.rid('spray')]);
+delete from sent;
+insert into sent select public.rev_basket_send('c0000000-0000-0000-0000-000000001141',
+  (public.rev_basket_get('c0000000-0000-0000-0000-000000001141') ->> 'version')::int,
+  'Sample Firestop Co', current_date + 3, '09:00', 'timed', 60, true, false);
+delete from ids where k = 'batch';
+insert into ids select 'batch', (v ->> 'batch_id')::uuid from sent;
+insert into ids select 'Q' || k, (r ->> 'id')::uuid
+  from sent, jsonb_array_elements(v -> 'requests') with ordinality x (r, k);
+reset role;
+-- Made a copy as only the import may (it can't be in a basket otherwise).
+select set_config('app.mdr_import', 'on', true);
+update public.inspection_requests set mdr_id = gen_random_uuid() where id = pg_temp.rid('Q2');
+select set_config('app.mdr_import', '', true);
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000001146');
+select is(pg_temp.keys((select jsonb_agg(r) from jsonb_array_elements(public.ir_batch_get(pg_temp.batch()) -> 'requests') r
+                        where (r ->> 'waits')::boolean)), array['Q1'], 'the copy does not wait on the GC');
+delete from step;
+insert into step select public.ir_batch_step(pg_temp.batch(), 'gc', pg_temp.vers(array['Q1', 'Q2']));
+select is(pg_temp.keys((select v from step) -> 'done'), array['Q1'], 'Ready all readies the suite''s own request');
+select is(pg_temp.keys((select v from step) -> 'skipped'), array['Q2'], 'and reports the copy skipped');
+select is((pg_temp.req('Q2')).status, 'gc_review', 'the copy is untouched');
 
 select * from finish();
 rollback;

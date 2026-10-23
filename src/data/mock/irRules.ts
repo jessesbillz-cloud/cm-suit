@@ -14,6 +14,15 @@ export const NO_OFS_CHECKS = {
   ofs_si_at: null, ofs_si_file_id: null, ofs_sched: null, ofs_sched_by: null, ofs_sched_at: null, ofs_sched_note: null,
 } as const;
 
+/** A request filed in the suite, not copied from My Daily Reports (0112). */
+export const NOT_MIRRORED = { mdr_id: null, mdr_updated_at: null } as const;
+
+/** A request copied from MDR is view only (0112): every step refuses it, in the database's words (ir_for_update). */
+export function unmirrored<T extends Pick<Row, 'mdr_id'>>(r: T): T {
+  if (r.mdr_id !== null) throw new DataError('This request comes from MDR. It is view only.', '42501', 'forbidden');
+  return r;
+}
+
 const ASKS: readonly string[] = ['ir.request'];
 /** A mock user who is requester, GC and inspector at once ('pm' and anyone not named below), so one persona can walk
  *  a whole IOR flow. Never the OFS pair: that is the fire marshal's alone, as in the database. */

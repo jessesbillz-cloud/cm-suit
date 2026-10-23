@@ -2,7 +2,8 @@
 -- one batch (0113) is many OFS requests, and each walks the steps on its own: the GC's Ready, then the inspector's Send
 -- to OFS (or his Ready, then the duty holder's send). Nine requests meant nine taps at each step.
 --   1. ir_batch_waits: the request waits on the caller at this step (gc, ready or send), the same gates the single
---      buttons have (ir_ofs_check, ir_send_ofs). It decides what the screens offer and what the batch step acts on.
+--      buttons have (ir_ofs_check, ir_send_ofs), never a copy from My Daily Reports (0112, view only). It decides what
+--      the screens offer and what the batch step acts on.
 --   2. ir_batch_get and ir_batches_waiting: a batch as the caller reads it, one line ("Batch of 9 · <levels> · <items>"),
 --      the step the caller takes on it (the earliest that has requests waiting on him), those requests with their
 --      versions, and every request of it (the ones not waiting on him are listed only).
@@ -23,8 +24,9 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
+  -- A copy from My Daily Reports (0112) is view only: it never waits on anyone (the batch skips it).
   select coalesce(auth.uid() is not null and p_request.kind = 'ofs' and p_request.deleted_at is null
-    and p_request.ofs_sent_at is null and case p_step
+    and p_request.mdr_id is null and p_request.ofs_sent_at is null and case p_step
       -- ir_ofs_check gc: the GC step, while the request is with the GC.
       when 'gc' then p_request.status in ('gc_review', 'returned')
                      and public.has_capability(p_request.project_id, 'ir.gc_approve')
@@ -123,7 +125,7 @@ begin
               from (select distinct c.batch_id
                       from public.inspection_requests q
                       join public.rev_basket_cells c on c.sent_request_id = q.id and c.batch_id is not null
-                     where q.kind = 'ofs' and q.deleted_at is null and q.ofs_sent_at is null
+                     where q.kind = 'ofs' and q.deleted_at is null and q.mdr_id is null and q.ofs_sent_at is null
                        and q.status in ('gc_review', 'returned', 'pending', 'postponed')
                        and (p_project_id is null or q.project_id = p_project_id) and public.is_member(q.project_id)) b) x
      where x.j is not null and x.j ->> 'step' is not null and (x.j ->> 'size')::int >= 2), '[]'::jsonb);

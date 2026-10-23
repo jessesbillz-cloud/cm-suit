@@ -11,7 +11,7 @@ select plan(27);
 create temp table want (t text primary key, p text not null);
 insert into want values
   ('audit_events', ''), ('comments', ''), ('comment_edits', ''), ('ir_link_receipts', ''), ('safety_meetings', ''),
-  ('signin_keys', ''), ('requirements', ''),
+  ('signin_keys', ''), ('requirements', ''), ('mdr_job_links', ''), ('mdr_sync_state', ''), ('mdr_file_queue', ''),
   ('csi_divisions', 'SELECT'), ('csi_sections', 'SELECT'), ('ir_maps', 'SELECT'), ('ir_rev_items', 'SELECT'),
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
   ('rev_signoffs', 'SELECT'), ('rev_rooms', 'SELECT'), ('rev_room_walls', 'SELECT'), ('rev_photos', 'SELECT'),

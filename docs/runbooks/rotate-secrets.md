@@ -2,7 +2,7 @@
 
 | Secret | Where | How |
 |---|---|---|
-| `CRON_SECRET` | Supabase secrets + pg_cron job headers | set new value in both in one deploy |
+| `CRON_SECRET` | Supabase secrets + pg_cron job headers (Vault `cron_secret`, read by `mdr_files_kick`) | set new value in both in one deploy |
 | `RESEND_WEBHOOK_SECRET` (Svix signing secret) | Resend webhook settings + Supabase secrets | rotate in Resend, then set the new `whsec_…` in Supabase secrets right away (requests fail with 401 in between; Resend retries them) |
 | `RESEND_API_KEY` | Resend API keys + Supabase secrets + Auth SMTP password | create the new key, update secrets and SMTP, then delete the old key |
 | Delivery board token | per project, `projects.delivery_token_hash` | project admin: Settings → Deliveries → Rotate (Phase 3) |

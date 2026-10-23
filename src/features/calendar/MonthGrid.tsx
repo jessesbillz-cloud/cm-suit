@@ -1,12 +1,15 @@
-// The month (MDR's schedule calendar): whole weeks, Monday first. Each day of the month shows up to three banners
-// (the inspection type or the line, in its status colors) and "+N"; tapping a day shows it below the grid. Today's
+// The month (MDR's schedule calendar): whole weeks, Monday first. Each day of the month shows up to two banners (three
+// color bars on a phone: the inspection type or the line, in its status colors) and "+N", so the whole month fits
+// beside the day's list without scrolling (Jesse, Oct 23); tapping a day opens its list (right column, phone: below). Today's
 // date is ringed; the selected day is tinted with its date filled. Days of other months stay blank, as in MDR.
 import { formatDay } from '../../lib/dates';
 import { Banner, BannerBar } from './Banner';
 import { bannerOf, isLookahead, type Entry } from './entries';
 import { isWeekendDay } from './model';
 
-const SHOWN = 3;
+/** Banners a day shows on a desktop, and color bars on a phone; the rest are "+N". */
+const SHOWN = 2;
+const SHOWN_PHONE = 3;
 
 interface MonthGridProps {
   days: readonly string[];
@@ -44,7 +47,7 @@ interface CellProps {
 }
 
 function Cell({ day, entries, today, selected, isPhone, onSelect }: CellProps) {
-  const shown = entries.slice(0, SHOWN);
+  const shown = entries.slice(0, isPhone ? SHOWN_PHONE : SHOWN);
   const more = entries.length - shown.length;
   const tint = selected ? 'bg-accent-soft' : isWeekendDay(day) ? 'bg-card-head hover:bg-page/70' : 'bg-card hover:bg-page/50';
   return (
@@ -53,7 +56,7 @@ function Cell({ day, entries, today, selected, isPhone, onSelect }: CellProps) {
       data-testid={`cal-day-${day}`}
       aria-pressed={selected}
       aria-label={`${formatDay(day, 'EEEE, MMMM d')}${entries.length > 0 ? `, ${String(entries.length)} on the calendar` : ''}`}
-      className={`flex min-h-[64px] min-w-0 flex-col gap-1 px-1 pb-1.5 pt-1.5 text-left transition-colors focus-visible:relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:min-h-[118px] sm:gap-[3px] sm:px-1.5 ${tint} ${
+      className={`flex min-h-[64px] min-w-0 flex-col gap-1 px-1 pb-1.5 pt-1.5 text-left transition-colors focus-visible:relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:min-h-[88px] sm:gap-[3px] sm:px-1.5 ${tint} ${
         selected ? 'shadow-[inset_0_-2px_0_theme(colors.accent.DEFAULT)]' : ''
       }`}
       onClick={() => {

@@ -1,12 +1,13 @@
-// The calendar's right column: the add form (item "new"), blocked time, the feed link, a request with the inspector's
-// steps (inspections' RequestPane; the calendar stays beside it), or an opened manual line with its edit form. People
-// without calendar.manage, and module lines opened by address, get the line itself and (for module lines) a way to
-// its item.
+// The calendar's right column: the selected day's list (item "day", desktop), the add form (item "new"), blocked time,
+// the feed link, a request with the inspector's steps (inspections' RequestPane; the calendar stays beside it), or an
+// opened manual line with its edit form. People without calendar.manage, and module lines opened by address, get the
+// line itself and (for module lines) a way to its item. A request or a line opened off the day has Back to the day.
+import { ArrowLeft } from 'lucide-react';
 import { useCalendarLine } from '../../data/calendar.queries';
 import type { CalendarLine } from '../../data/calendar.types';
 import { useCapability } from '../../data/queries';
 import { kindLabel, lineTarget } from '../../lib/calendarKinds';
-import { formatInZone } from '../../lib/dates';
+import { formatDay, formatInZone } from '../../lib/dates';
 import { Button } from '../../ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
@@ -14,9 +15,10 @@ import { TOOL_META } from '../../ui/tools';
 import { RequestPane } from '../inspections/RequestPane';
 import { AddLine } from './AddLine';
 import { BlockPanel } from './BlockPanel';
+import { DayColumn } from './DayColumn';
 import { EditLine } from './EditLine';
 import { KindTile } from './LineRow';
-import { BLOCK_ITEM, lineChip, lineTime, NEW_LINE, parseRequestItem, SUBSCRIBE_ITEM } from './model';
+import { BLOCK_ITEM, DAY_ITEM, lineChip, lineTime, NEW_LINE, parseRequestItem, SUBSCRIBE_ITEM } from './model';
 import { SubscribePanel } from './SubscribePanel';
 import { useCalendarNav, type CalendarNav } from './useCalendarNav';
 
@@ -84,12 +86,41 @@ function OpenLine({ itemId, nav }: { itemId: string; nav: CalendarNav }) {
   return <EditLine key={`${line.data.id}:${String(line.data.version)}`} line={line.data} nav={nav} />;
 }
 
+/** One click back to the day's list this item was opened from (desktop: the list lives in this column). */
+function BackToDay({ nav }: { nav: CalendarNav }) {
+  if (!nav.beside) return null;
+  return (
+    <div className="border-b border-line px-3 py-2">
+      <Button
+        size="sm"
+        variant="quiet"
+        icon={ArrowLeft}
+        data-testid="cal-back-day"
+        onClick={() => {
+          nav.backToDay();
+        }}
+      >
+        {nav.day === null ? 'Today' : formatDay(nav.day, 'EEE, MMM d')}
+      </Button>
+    </div>
+  );
+}
+
 export function CalendarItem({ projectId, itemId }: CalendarItemProps) {
   const nav = useCalendarNav(projectId);
+  if (itemId === DAY_ITEM) return <DayColumn projectId={projectId} nav={nav} />;
   if (itemId === NEW_LINE) return <AddLine projectId={projectId} nav={nav} />;
   if (itemId === BLOCK_ITEM) return <BlockPanel projectId={projectId} nav={nav} />;
   if (itemId === SUBSCRIBE_ITEM) return <SubscribePanel />;
   const request = parseRequestItem(itemId);
-  if (request) return <RequestPane key={itemId} projectId={request.projectId} requestId={request.requestId} />;
-  return <OpenLine itemId={itemId} nav={nav} />;
+  return (
+    <>
+      <BackToDay nav={nav} />
+      {request ? (
+        <RequestPane key={itemId} projectId={request.projectId} requestId={request.requestId} />
+      ) : (
+        <OpenLine itemId={itemId} nav={nav} />
+      )}
+    </>
+  );
 }

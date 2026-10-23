@@ -1,4 +1,4 @@
-// The selected day under the calendar (MDR's day panel): the weekday over the big date and the day's count, Add and
+// The selected day (MDR's day panel), in the right column on a desktop and under the month on a phone: the weekday over the big date and the day's count, Add and
 // Block time, the day's requests by state (each a card that opens in the right column with the inspector's steps),
 // blocked time, the day's other lines under their kind (Deliveries, Meetings, Milestones, Due ...), then the week's
 // look-ahead.
@@ -31,6 +31,8 @@ interface DayDetailProps {
   onBlock: (() => void) | null;
   onOpenRequest: (entry: IrEntry) => void;
   onOpenLine: (line: CalendarLine) => void;
+  /** In the right column (desktop): no card of its own, the column is the box. */
+  bare?: boolean | undefined;
 }
 
 function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetailProps, 'day' | 'today' | 'entries' | 'isPhone' | 'onAdd' | 'onBlock'>) {
@@ -38,14 +40,14 @@ function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetail
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-3.5 sm:px-5">
       <div className="min-w-0">
-        <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
+        <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
           {formatDay(day, 'EEEE')}
-          {day === today ? <span className="text-accent"> · Today</span> : null}
+          {day === today ? <span className="heading rounded bg-accent px-1.5 text-[11px] leading-5 text-white">Today</span> : null}
         </p>
-        <h2 data-testid="cal-day-title" className="text-[26px] font-semibold leading-8 tracking-[-0.015em] text-ink">
+        <h2 data-testid="cal-day-title" className="heading text-[30px] font-semibold leading-9 text-ink">
           {formatDay(day, 'MMMM d')}
         </h2>
-        {count ? <p className="text-[13px] text-ink-2">{count}</p> : null}
+        {count ? <p className="text-[13px] font-medium text-ink-2">{count}</p> : null}
       </div>
       <div className="flex items-center gap-2">
         {onBlock ? (
@@ -82,8 +84,7 @@ export function DayDetail(props: DayDetailProps) {
   const requests = entries.filter((e): e is IrEntry => e.type === 'ir');
   const others = entries.filter((e): e is LineEntry => e.type === 'line' && !isLookahead(e));
   const groups = groupRequests(requests);
-  return (
-    <Card padded={false} className="mt-4">
+  const body = (
       <section data-testid="cal-day-detail" aria-label={formatDay(day, 'EEEE, MMMM d')}>
         <Header {...props} />
         <div className="flex flex-col gap-6 p-4 sm:p-5">
@@ -123,13 +124,17 @@ export function DayDetail(props: DayDetailProps) {
             </div>
           ) : null}
           {groups.length === 0 && others.length === 0 ? (
-            <p data-testid="cal-day-empty" className="py-4 text-center text-sm text-ink-2">
+            <p data-testid="cal-day-empty" className="py-2 text-sm text-ink-3">
               Nothing on this day.
             </p>
           ) : null}
           <LookAhead week={week} entries={lookahead} showJob={showJob} selectedId={openId} onOpen={onOpenLine} />
         </div>
       </section>
+  );
+  return props.bare === true ? body : (
+    <Card padded={false} className="mt-4">
+      {body}
     </Card>
   );
 }

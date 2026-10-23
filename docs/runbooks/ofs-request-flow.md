@@ -216,7 +216,7 @@ S2. **The step for the batch.** `rpc/ir_batch_step`
     the same function, the same board lines), the answer `{ "batch_id", "step", "done": [{id, number, ofs_number,
     status, version}], "skipped": ["<request id>", ...] }`. All or nothing: a stale version, or a request waiting on
     me that is not in `p_versions`, answers `40001` and changes nothing (read S1 again). A request past the step is
-    skipped, so the same call again changes nothing. Without the step's right: `42501`. The fire marshal's steps (7 to
+    skipped, so the same call again changes nothing. A copy from My Daily Reports (0112, view only) never waits on anyone: it is skipped too. Without the step's right: `42501`. The fire marshal's steps (7 to
     12) stay one request at a time.
 
 ## Failed walls

@@ -21,7 +21,8 @@ const sender = (me: string, projectId: string) => holds(me, 'ir.decide') || hold
 
 /** ir_batch_waits */
 function waits(r: IrRowRaw, step: BatchStep, me: string): boolean {
-  if (r.kind !== 'ofs' || r.ofs_sent_at !== null) return false;
+  // A copy from My Daily Reports (0112) is view only: never acted on.
+  if (r.kind !== 'ofs' || r.mdr_id !== null || r.ofs_sent_at !== null) return false;
   if (step === 'gc') return ['gc_review', 'returned'].includes(r.status) && holds(me, 'ir.gc_approve');
   if (!WITH_INSPECTOR.includes(r.status)) return false;
   if (step === 'ready') return r.ofs_ready_at === null && holds(me, 'ir.decide') && ownerOk(me, r);

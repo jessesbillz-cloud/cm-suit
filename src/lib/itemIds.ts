@@ -32,6 +32,8 @@ export const TOPIC_ITEM_PREFIX = 'topic-';
 /** Schedule: a draft's review opens as `draft-<id>` (a page of its own), a published version as `v-<id>` (an activity by its own id). */
 export const DRAFT_ITEM_PREFIX = 'draft-';
 export const VERSION_ITEM_PREFIX = 'v-';
+/** Calendar: a day's list beside the calendar (the day is the URL's ?day=; Jesse, Oct 23). */
+export const DAY_ITEM = 'day';
 /** Calendar: my calendar feed link (the calendar's model re-exports it). */
 export const SUBSCRIBE_ITEM = 'subscribe';
 /** Bids: inviting bidders (the bids model re-exports it). */
@@ -51,6 +53,7 @@ export function itemKindTitle(tool: string, itemId: string): string | null {
     if (itemId === NEW_ITEM) return 'New line';
     if (itemId === BLOCK_ITEM) return 'Block time';
     if (itemId === SUBSCRIBE_ITEM) return 'Subscribe';
+    if (itemId === DAY_ITEM) return 'Day';
     return itemId.startsWith(REQUEST_ITEM_PREFIX) ? 'Inspection' : 'Calendar line';
   }
   if (tool === 'deliveries') return itemId === NEW_ITEM ? 'Post delivery' : 'Delivery';
