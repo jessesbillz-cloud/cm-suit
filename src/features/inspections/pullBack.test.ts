@@ -21,7 +21,7 @@ const SETUP: RevSetup = {
 };
 
 function cell(area: string, item: string, color: number, result: string | null = null): IrRevItem {
-  return { id: `${area}-${item}`, request_id: 'q', area_id: area, item_id: item, color, result, result_note: null, result_at: null, result_by: null, version: 1, pulled_at: null };
+  return { id: `${area}-${item}`, request_id: 'q', area_id: area, item_id: item, color, result, result_note: null, result_at: null, result_by: null, version: 1, pulled_at: null, wall_facts: null };
 }
 
 const OPEN = { status: 'pending', result: null, signed_at: null };

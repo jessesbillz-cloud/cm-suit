@@ -9,9 +9,7 @@ import {
   irLine,
   levelsOf,
   listLines,
-  openRollup,
   parseView,
-  requestSearch,
   wallRevs,
   wallsByList,
 } from './model';
@@ -67,16 +65,6 @@ describe('revs model', () => {
     expect(all.filter(canAsk)).toEqual(['open', 'failed']);
   });
 
-  it('the open rollup: per rev, per item, the walls not passed or N/A', () => {
-    const open = openRollup(SETUP, STATUS);
-    const rev0 = open.find((r) => r.rev.number === 0);
-    expect(rev0?.items.map((i) => [i.item.id, i.walls.map((w) => w.area.id)])).toEqual([['i01', ['a4']]]);
-    const stuff = open.find((r) => r.rev.number === 1)?.items.find((i) => i.item.id === 'i11');
-    expect(stuff?.walls.map((w) => [w.area.id, w.status])).toEqual([['a2', 'requested'], ['a3', 'open'], ['a4', 'open']]);
-    const allDone = indexStatus(SETUP.areas.flatMap((a) => SETUP.items.map((i) => row(a.id, i.id, i.id === 'i13' ? 'na' : 'passed'))));
-    expect(openRollup(SETUP, allDone)).toEqual([]);
-  });
-
   it("the header's line: per list, its count and those complete (every item passed or N/A)", () => {
     const none = new Set<string>();
     // The name says walls.
@@ -126,11 +114,12 @@ describe('revs model', () => {
     expect(wallsByList({ ...SETUP, lists: [list, { ...list, id: 'l2', name: 'Other' }] }).map((g) => g.list.id)).toEqual(['l1']);
   });
 
-  it('views and the request prefill', () => {
-    expect(parseView('open', false)).toBe('open');
+  it('views: the rooms by default (the old Walls and Open too), Setup for a manager, the checklist', () => {
+    expect(parseView('open', false)).toBe('walls');
+    expect(parseView('list', true)).toBe('walls');
+    expect(parseView('checklist', false)).toBe('checklist');
     expect(parseView('setup', false)).toBe('walls');
     expect(parseView('setup', true)).toBe('setup');
     expect(parseView(undefined, true)).toBe('walls');
-    expect(requestSearch(['a1'], [item(1, 2, 'x'), item(1, 4, 'y')])).toEqual({ areas: 'a1', items: 'i12,i14' });
   });
 });

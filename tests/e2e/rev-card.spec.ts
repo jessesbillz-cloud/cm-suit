@@ -74,8 +74,7 @@ test.describe('a room inspection card', () => {
     // The request from the room: only those two items, as boxes.
     await openAs(page, 'sub', '/p/job-s/revs/room-mock-room-205');
     await expect(page.getByTestId('rev-room-card')).toHaveCount(0);
-    await page.getByTestId('rev-room-request').click();
-    await expect(page).toHaveURL(/\/p\/job-s\/inspections\/new\?/);
+    await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-6,mock-rev-area-5&items=');
     const items = page.getByTestId('rev-items-pick');
     await expect(items.getByRole('button')).toHaveCount(2);
     for (const i of PICKED) await expect(items.getByTestId(`rev-item-${i}`)).toHaveAttribute('data-state', 'open');

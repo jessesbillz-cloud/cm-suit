@@ -1,51 +1,53 @@
-// Revs (0056), "Inspection cards" on the rail (Jesse, Oct 12): a fire marshal job's rated walls and the revs each
-// must pass (Jesse, Oct 2: "anyone can see what's left on each wall at any time"). One row of views (Rooms, Walls,
-// Plan, Open, Checklist, and Setup for revs.manage), then one row of level chips (Jesse, Oct 6: "it's supposed to
-// filter from there"): the level picked filters Rooms, Walls, Plan (that level's sheets) and Open; Checklist stays the
-// whole printable sheet. Rooms: a tile per room that opens its page and its walls (0083); Walls: every wall as a
-// callout tile with its items by rev; Plan: the level's sheet with its walls drawn on it (0059); a tap opens the wall's
-// own page (the main area; its own screen on the phone). Open: what is still open and where. Checklist: the fire
-// marshal's sheet, printed letter landscape (0082). The header says, per list, how many and how many are complete. What
-// shows is decided by has_capability, never role names.
+// Revs (0056), "Inspection cards" on the rail (Jesse, Oct 12): a fire marshal job's rated walls and the revs each must
+// pass. Oct 23: "there's redundant information everywhere ... I liked the 3-D image of the wall front and center: click
+// the room, the room opens with each of its walls, click a wall and boom". So it opens on the rooms of the level picked
+// (the level chips; All shows every level), a tile per room that opens its page; a wall's page is the 3-D wall. The
+// Walls and Open views are gone (the rooms and the wall pages show the same). Whoever manages the cards also has the
+// Plan (the level's sheet with its walls: where a wall is placed, which the request maps draw from) and Setup, and the
+// fire marshal's printable Checklist is a button for them (it opens the sheet with Print). Whoever files OFS requests
+// adds a wall on the spot (Add wall) and builds the request as he walks: its bar sits at the bottom of every screen
+// here (0113). The header says, per list, how many and how many are complete. What shows is decided by
+// has_capability, never role names.
 import { useMemo, type ReactNode } from 'react';
-import { Plus, Printer } from 'lucide-react';
+import { ArrowLeft, ListChecks, Plus, Printer } from 'lucide-react';
 import { useCapability, useMyProjects } from '../../data/queries';
 import { useSignoffFiles } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
-import { NEW_ITEM, opensInMain, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
+import { BASKET_ITEM, FIELD_WALL_ITEM, NEW_ITEM, opensInMain, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
 import { Button } from '../../ui/Button';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { TOOL_META } from '../../ui/tools';
+import { BasketBar } from './basket/BasketBar';
+import { BasketReview } from './basket/BasketReview';
+import { useBasket } from './basket/useBasket';
 import { ChecklistView } from './ChecklistView';
-import { LevelChips } from './LevelChips';
-import { jobLevels, onLevel, pickedLevel, planLevel } from './levels';
-import { VIEWS, VIEW_LABELS, indexStatus, listLines, type RevView } from './model';
-import { OpenView } from './OpenView';
-import { PlanView } from './plan/PlanView';
+import { AddWallPage } from './field/AddWallPage';
 import type { ItemChip } from './itemLines';
+import { LevelChips } from './LevelChips';
+import { jobLevels, pickedLevel, planLevel } from './levels';
+import { indexStatus, listLines } from './model';
+import { PlanView } from './plan/PlanView';
 import { indexSignoffFiles } from './revStrip';
 import { RoomPage } from './room/RoomPage';
 import { RoomsView } from './RoomsView';
 import { SetupView } from './SetupView';
 import { useOpenRevFile } from './useOpenRevFile';
-import { useRevsNav, type WallsMode } from './useRevsNav';
+import { useRevsNav } from './useRevsNav';
 import { WallPage } from './WallPage';
-import { WallsView } from './WallsView';
 
 const META = TOOL_META.revs;
 
-/** One row of views, always all there (Jesse, Oct 5: the walls "kind of disappeared" once the views changed): the three
- *  ways to see the walls, then Open, Checklist and Setup. */
-type RevTab = WallsMode | Exclude<RevView, 'walls'>;
+/** A manager's row: the rooms, the plan, setup. */
+type Tab = 'rooms' | 'plan' | 'setup';
 
-const WALLS_TABS: { value: WallsMode; label: string }[] = [
+const TABS: { value: Tab; label: string }[] = [
   { value: 'rooms', label: 'Rooms' },
-  { value: 'list', label: 'Walls' },
   { value: 'plan', label: 'Plan' },
+  { value: 'setup', label: 'Setup' },
 ];
 
 interface RevsToolProps {
@@ -63,7 +65,7 @@ interface ShellProps {
 
 function Shell({ meta, actions, below, children }: ShellProps) {
   return (
-    <div className="flex flex-col" data-testid="revs">
+    <div className="flex min-h-full flex-col" data-testid="revs">
       <PageHeader title={META.label} icon={META.icon} meta={meta} actions={actions} below={below} />
       {children}
     </div>
@@ -86,14 +88,7 @@ interface MainProps extends RevsToolProps {
   canManage: boolean;
 }
 
-interface SetupActionsProps {
-  listIds: string[];
-  onOpen: (id: string) => void;
-  isPhone: boolean;
-}
-
-function SetupActions({ listIds, onOpen, isPhone }: SetupActionsProps) {
-  const hasLists = listIds.length > 0;
+function SetupActions({ hasLists, onOpen, isPhone }: { hasLists: boolean; onOpen: (id: string) => void; isPhone: boolean }) {
   return (
     <>
       {hasLists ? (
@@ -108,31 +103,26 @@ function SetupActions({ listIds, onOpen, isPhone }: SetupActionsProps) {
   );
 }
 
-function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
+function RevsMain({ projectId, isPhone, canManage }: MainProps) {
   const nav = useRevsNav(projectId, canManage);
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const signoffs = useSignoffFiles(projectId);
   const jobs = useMyProjects();
+  const basket = useBasket(projectId);
   const openFile = useOpenRevFile(projectId);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
   const levels = useMemo(() => jobLevels([...(setup.data?.areas ?? []), ...(rooms.data?.rooms ?? [])]), [setup.data, rooms.data]);
-  const tabs: { value: RevTab; label: string }[] = [
-    ...WALLS_TABS,
-    ...VIEWS.filter((v): v is Exclude<RevView, 'walls'> => v !== 'walls' && (v !== 'setup' || canManage)).map((v) => ({ value: v, label: VIEW_LABELS[v] })),
-  ];
   const view = nav.view;
-  const tab: RevTab = view === 'walls' ? nav.mode : view;
+  const tab: Tab = nav.plan ? 'plan' : view === 'setup' ? 'setup' : 'rooms';
   const level = pickedLevel(nav.level, levels);
   const onPlan = planLevel(nav.level, levels, canManage);
   const inRoom = new Set((rooms.data?.walls ?? []).map((w) => w.area_id));
   const meta = setup.data && status.data ? <Meta lines={listLines(setup.data, index, inRoom)} /> : undefined;
   const needsStatus = view !== 'setup';
-  const needsRooms = view === 'walls' && nav.mode === 'rooms';
-  // The level chips filter the walls, the plan and Open; the checklist is the whole sheet. Placing a wall keeps its level.
-  const filtered = view === 'walls' || view === 'open';
+  const needsRooms = view === 'walls' && !nav.plan;
   const placing = nav.plan && canManage && nav.planAt.place !== undefined;
   const chipLevels = nav.plan && onPlan !== null && !levels.includes(onPlan) ? [...levels, onPlan] : levels;
   const toSetup = canManage ? () => { nav.setView('setup'); } : undefined;
@@ -153,7 +143,7 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   } else if (!setup.data || (needsStatus && !status.data) || (needsRooms && !rooms.data)) {
     body = (
       <Card padded={false}>
-        <LoadingState label="Loading revs" />
+        <LoadingState label="Loading the cards" />
       </Card>
     );
   } else if (view === 'setup') {
@@ -161,11 +151,9 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
   } else if (view === 'checklist') {
     const jobName = jobs.data?.find((p) => p.project_id === projectId)?.name ?? '';
     body = <ChecklistView setup={setup.data} index={index} jobName={jobName} onOpen={nav.open} />;
-  } else if (view === 'open') {
-    body = <OpenView setup={{ ...setup.data, areas: onLevel(setup.data.areas, level) }} index={index} selectedId={itemId} onOpen={nav.open} />;
   } else if (nav.plan) {
     body = <PlanView projectId={projectId} setup={setup.data} index={index} level={onPlan} canManage={canManage} isPhone={isPhone} />;
-  } else if (needsRooms && rooms.data) {
+  } else if (rooms.data) {
     body = (
       <RoomsView
         projectId={projectId}
@@ -180,53 +168,71 @@ function RevsMain({ projectId, itemId, isPhone, canManage }: MainProps) {
         onSetup={toSetup}
       />
     );
-  } else {
-    body = <WallsView setup={setup.data} index={index} files={files} level={level} onOpen={nav.open} onChip={onChip} onSetup={toSetup} />;
   }
 
-  return (
-    <Shell
-      meta={meta}
-      actions={
-        view === 'setup' ? (
-          <SetupActions listIds={(setup.data?.lists ?? []).map((l) => l.id)} onOpen={nav.open} isPhone={isPhone} />
-        ) : view === 'checklist' ? (
-          <Button
-            icon={Printer}
-            className={isPhone ? 'h-10' : ''}
-            disabled={!setup.data || !status.data || setup.data.areas.length === 0}
-            data-testid="rev-print"
-            onClick={() => {
-              window.print();
-            }}
-          >
-            Print
+  const checklist = view === 'checklist';
+  // A manager adds walls in Setup and on the Plan; the field adds the one he stands at.
+  const mayAdd = basket.can && !canManage && (setup.data?.lists.length ?? 0) > 0;
+  const actions =
+    view === 'setup' ? (
+      <SetupActions hasLists={(setup.data?.lists ?? []).length > 0} onOpen={nav.open} isPhone={isPhone} />
+    ) : checklist ? (
+      <>
+        <Button icon={ArrowLeft} className={isPhone ? 'h-10' : ''} data-testid="rev-checklist-back" onClick={() => { nav.setView('walls'); }}>
+          Rooms
+        </Button>
+        <Button
+          icon={Printer}
+          className={isPhone ? 'h-10' : ''}
+          disabled={!setup.data || !status.data || setup.data.areas.length === 0}
+          data-testid="rev-print"
+          onClick={() => {
+            window.print();
+          }}
+        >
+          Print
+        </Button>
+      </>
+    ) : (
+      <>
+        {canManage && !nav.plan ? (
+          <Button icon={ListChecks} className={isPhone ? 'h-10' : ''} data-testid="rev-checklist-open" onClick={() => { nav.setView('checklist'); }}>
+            Checklist
           </Button>
-        ) : undefined
-      }
-      below={
-        <div className="flex flex-col gap-2.5">
-          <Segments<RevTab>
+        ) : null}
+        {mayAdd && !nav.plan ? (
+          <Button icon={Plus} className={isPhone ? 'h-10' : ''} data-testid="rev-add-wall" onClick={() => { nav.addWall(); }}>
+            Add wall
+          </Button>
+        ) : null}
+      </>
+    );
+  const below =
+    checklist || placing ? undefined : (
+      <div className="flex flex-col gap-2.5">
+        {canManage ? (
+          <Segments<Tab>
             label="View"
-            options={tabs}
+            options={TABS}
             value={tab}
             onPick={(t) => {
               if (t === 'plan') nav.showPlan({});
-              else if (t === 'rooms' || t === 'list') nav.setMode(t);
-              else nav.setView(t);
+              else nav.setView(t === 'setup' ? 'setup' : 'walls');
             }}
             testId="rev-view"
           />
-          {filtered && !placing ? (
-            <LevelChips levels={chipLevels} level={nav.plan ? onPlan : level} withAll={!nav.plan} onLevel={nav.setLevel} />
-          ) : null}
-        </div>
-      }
-    >
-      {signoffs.isError && filtered ? (
+        ) : null}
+        {view === 'walls' ? <LevelChips levels={chipLevels} level={nav.plan ? onPlan : level} withAll={!nav.plan} onLevel={nav.setLevel} /> : null}
+      </div>
+    );
+
+  return (
+    <Shell meta={meta} actions={actions} below={below}>
+      {signoffs.isError && view === 'walls' ? (
         <ErrorState className="mb-3" error={signoffs.error} title="The OFS IR files did not load." onRetry={() => void signoffs.refetch()} />
       ) : null}
-      {body}
+      <div className="flex-1">{body}</div>
+      <BasketBar basket={basket} onReview={nav.review} isPhone={isPhone} />
     </Shell>
   );
 }
@@ -246,7 +252,7 @@ export function RevsTool({ projectId, itemId, isPhone }: RevsToolProps) {
     return (
       <Shell>
         <Card padded={false}>
-          <LoadingState label="Loading revs" />
+          <LoadingState label="Loading the cards" />
         </Card>
       </Shell>
     );
@@ -255,12 +261,14 @@ export function RevsTool({ projectId, itemId, isPhone }: RevsToolProps) {
     return (
       <Shell>
         <Card>
-          <EmptyState icon={META.icon} title="You can't see revs on this job." />
+          <EmptyState icon={META.icon} title="You can't see inspection cards on this job." />
         </Card>
       </Shell>
     );
   }
-  // A wall or a room is a page of its own: it fills the main area (lib/itemIds opensInMain).
+  // A wall, a room, the request being built and a wall added on the spot are pages of their own (lib/itemIds opensInMain).
+  if (itemId === BASKET_ITEM) return <BasketReview projectId={projectId} isPhone={isPhone} />;
+  if (itemId === FIELD_WALL_ITEM) return <AddWallPage projectId={projectId} isPhone={isPhone} canManage={manage.data === true} />;
   if (itemId !== null && itemId.startsWith(ROOM_ITEM_PREFIX)) {
     return <RoomPage key={itemId} projectId={projectId} roomId={itemId.slice(ROOM_ITEM_PREFIX.length)} isPhone={isPhone} />;
   }

@@ -1,7 +1,7 @@
 // Revs worked out for the screens (Jesse, Oct 2: "anyone can see what's left on each wall at any time"). Every wall
 // needs every item of its list's revs; rev_status gives each wall x item one status (na, passed, requested, failed,
-// open). Here: a wall's revs with their items' statuses, what is still to ask for, the end-of-job rollup (what is
-// still open, and where), the walls by list and level, and the chip for each status (lib/status).
+// open). Here: a wall's revs with their items' statuses, what is still to ask for, the walls by list and level, and
+// the chip for each status (lib/status).
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
 import type { StatusKey } from '../../lib/status';
@@ -9,12 +9,11 @@ import { levelKey } from './levels';
 
 type CellStatus = RevStatusRow['status'];
 
-export const VIEWS = ['walls', 'open', 'checklist', 'setup'] as const;
+const VIEWS = ['walls', 'checklist', 'setup'] as const;
+/** The rooms (walls: the default), the fire marshal's checklist, a manager's setup. The plan is its own (?view=plan). */
 export type RevView = (typeof VIEWS)[number];
 
-export const VIEW_LABELS: Record<RevView, string> = { walls: 'Walls', open: 'Open', checklist: 'Checklist', setup: 'Setup' };
-
-/** The view in the URL; Setup only for those who manage the lists. Walls by default. */
+/** The view in the URL; Setup only for those who manage the lists. The rooms by default (an old ?view=list or open too). */
 export function parseView(v: string | undefined, canManage: boolean): RevView {
   const view = VIEWS.find((x) => x === v) ?? 'walls';
   return view === 'setup' && !canManage ? 'walls' : view;
@@ -77,38 +76,6 @@ export function canAsk(s: CellStatus): boolean {
 /** Not done yet on a wall: open, failed, or asked for and waiting on a result. */
 function stillOpen(s: CellStatus): boolean {
   return s === 'open' || s === 'failed' || s === 'requested';
-}
-
-export interface OpenWall {
-  area: RevArea;
-  status: CellStatus;
-}
-
-interface OpenItem {
-  item: RevItem;
-  walls: OpenWall[];
-}
-
-interface OpenRev {
-  rev: Rev;
-  items: OpenItem[];
-}
-
-/** The end-of-job check: per rev, per item, the walls still open. Items and revs with nothing open are left out. */
-export function openRollup(setup: RevSetup, index: StatusIndex): OpenRev[] {
-  const out: OpenRev[] = [];
-  for (const rev of setup.revs) {
-    const walls = setup.areas.filter((a) => a.list_id === rev.list_id);
-    const items = setup.items
-      .filter((i) => i.rev_id === rev.id)
-      .map((item) => ({
-        item,
-        walls: walls.map((area) => ({ area, status: cellOf(index, area.id, item.id).status })).filter((w) => stillOpen(w.status)),
-      }))
-      .filter((i) => i.walls.length > 0);
-    if (items.length > 0) out.push({ rev, items });
-  }
-  return out;
 }
 
 /** Done: every item of the wall passed or N/A. */
@@ -221,9 +188,4 @@ export function levelsOf(setup: RevSetup, listId: string): LevelGroup[] {
 /** Every list with its walls by level; lists without walls are left out. */
 export function wallsByList(setup: RevSetup): ListGroup[] {
   return setup.lists.map((list) => ({ list, levels: levelsOf(setup, list.id) })).filter((g) => g.levels.length > 0);
-}
-
-/** The new request's prefill (Inspections > new): this wall and its next items, as the route's comma lists. */
-export function requestSearch(areaIds: readonly string[], items: readonly RevItem[]): { areas: string; items: string } {
-  return { areas: areaIds.join(','), items: items.map((i) => i.id).join(',') };
 }

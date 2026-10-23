@@ -1,5 +1,5 @@
 // An OFS request's walls and items: one card per item (its map color, its name), its walls with Passed / Failed and why
-// it failed. The deputy's own result step (RevResults) uses the same cards with Pass / Fail on each wall.
+// it failed, each with its tag, rating, UL and sheet as they were when it was asked for (0113 wall_facts). The deputy's own result step (RevResults) uses the same cards with Pass / Fail on each wall.
 import type { ReactNode } from 'react';
 import type { IrRevItem, RevSetup } from '../../data/revs.types';
 import { useRevSetup } from '../../data/revs.queries';
@@ -46,7 +46,14 @@ function CellList({ cells, setup }: { cells: readonly IrRevItem[]; setup: RevSet
             return (
               <li key={cell.id} className="flex flex-col gap-1 px-3 py-2.5" data-testid={`rev-cell-${cell.area_id}-${cell.item_id}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="break-words text-sm text-ink">{label}</span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="break-words text-sm text-ink">{label}</span>
+                    {cell.wall_facts ? (
+                      <span className="break-words text-[12.5px] text-ink-2" data-testid="rev-cell-facts">
+                        {cell.wall_facts}
+                      </span>
+                    ) : null}
+                  </span>
                   {chip ? <StatusChip status={chip.status} label={chip.label} /> : null}
                 </div>
                 {cell.result === 'failed' && cell.result_note ? <p className="whitespace-pre-wrap break-words text-sm text-ink-2">{cell.result_note}</p> : null}

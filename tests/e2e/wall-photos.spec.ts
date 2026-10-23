@@ -82,8 +82,7 @@ test.describe('wall photos', () => {
   test('a photo and a note on a wall of a new request show on the request and on the wall', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The request opens in the right column of the desktop frame.');
     test.setTimeout(60_000);
-    await openAs(page, 'sub', '/p/job-s/revs/room-mock-room-110');
-    await page.getByTestId('rev-room-request').click();
+    await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-2,mock-rev-area-1&items=');
     await page.getByTestId(`rev-item-${ITEM}`).click();
     await page.getByTestId('ir-special-required-no').click();
     await page.getByTestId('ir-submit').click();

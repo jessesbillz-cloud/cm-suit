@@ -1,47 +1,48 @@
 // One wall's own inspection page (Jesse, Oct 3: "the whole wall gets built out on its own inspection page ... a 3-D
-// version of it sitting there ... Oh, first layer of drywall, there it is"): its callout, the 3-D wall with each part
-// tinted by its state, and every item it needs as a big box in its state, grouped by rev (WallItems: the one place for
-// the revs here; Jesse, Oct 12: the tabs above the model went, "keep the ones on the right"; items not applicable here
-// are not shown, a manager sees them last to switch one back). A tap on an item shows it on the
-// wall with a leader and its facts under the drawing; a tap on the wall shows that part's item. Up to three items still
-// to ask for are picked for Request (Inspections > new, prefilled). On a desktop it fills the main area (the drawing
-// beside the items when there is room); on a phone it is its own screen with the drawing held at the top while the
-// items scroll. A manager renames or removes the wall here (Undo), and signs items or a whole rev off before the app
-// (0082: the form opens over the items). At the top, where it is on the plan, and, unless it was opened from its room
-// (Back goes there), the wall highlighted on its room's image (0083, the little picker: a tap opens it full screen); at
-// the bottom its history, every inspection per item (a tap opens the request or the OFS IR beside the page on a
-// desktop). Opened from an item's chip on its room's row or tile (?item=), that item is shown. Opened from a room, Back
-// goes to the room, else to its level. In its own window (?window=1) there is nothing to go back to.
+// version of it sitting there"; Oct 23: "I liked the 3-D image of the wall front and center ... click a wall and boom,
+// there's its 3-D version"). One compact line (its name, tag and tally), then the 3-D wall large with each part tinted
+// by its state: beside the items on a desktop (most of the screen), held at the top half on a phone or iPad while the
+// items scroll under it. The items are big boxes in their state grouped by rev (WallItems): a tap shows the item on
+// the wall with a leader and its facts under the drawing, a tap on the wall shows that part's item. Whoever files OFS
+// requests has Add under each box still to ask for: it goes in the request being built (0113), whose bar is at the
+// bottom. Everything else is below, quiet: its details and sheet, where it is in its room and on the plan, its
+// photos and every inspection per item. A manager renames or removes the wall from the top line (Undo), checks one
+// added on the spot (Confirm), and signs items or a whole rev off before the app (0082). Opened from an item's chip on
+// its room's row (?item=), that item is shown. Opened from a room, Back goes to the room, else to its level. In its own
+// window (?window=1) there is nothing to go back to.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
-import { ChevronLeft, Plus } from 'lucide-react';
-import { useCapability, useMyProjects } from '../../data/queries';
+import { ChevronLeft } from 'lucide-react';
+import { messageOf } from '../../data/errors';
+import { useCapability, useMyProjects, usePeopleDisplay } from '../../data/queries';
+import { useConfirmFieldWall } from '../../data/revs.field';
 import { useWallHistory } from '../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../data/revs.queries';
 import { useRevRooms } from '../../data/revs.rooms';
-import type { RevArea, RevSetup } from '../../data/revs.types';
-import { Button } from '../../ui/Button';
+import { needsCheck, type RevArea, type RevSetup } from '../../data/revs.types';
 import { Card } from '../../ui/Card';
 import { Icon } from '../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
+import { BasketBar } from './basket/BasketBar';
+import { useBasket, type BasketApi } from './basket/useBasket';
 import { indexStatus, wallRevs, type StatusIndex } from './model';
+import { WallPhotos } from './photos/WallPhotos';
 import { WallThumb } from './plan/WallThumb';
-import { useOpenRevFile } from './useOpenRevFile';
 import { WallRoomPick } from './room/WallRoomPick';
 import { roomLabel } from './rooms';
+import { useOpenRevFile } from './useOpenRevFile';
 import { useRevsNav } from './useRevsNav';
 import { Wall3D } from './wall3d/Wall3D';
 import { useWidth } from './wall3d/useWidth';
-import { WallFacts } from './WallFacts';
-import { WallHeader } from './WallHeader';
-import { WallHistory } from './WallHistory';
-import { WallItems } from './WallItems';
-import { WallPhotos } from './photos/WallPhotos';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
+import { WallFacts } from './WallFacts';
+import { WallHistory } from './WallHistory';
+import { WallInfo } from './WallInfo';
+import { WallItems } from './WallItems';
 import { useWallManage } from './WallManage';
-import { countOf, firstPick, keepAskable, MAX_PICK, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
-import type { WallPart } from './wallParts';
+import { countOf, firstPick, partStates, pickAt, tapPart, wallItems, type WallItem, type WallPick } from './wallPage';
+import { FieldCheck, WallTopLine } from './WallTopLine';
 
 interface WallPageProps {
   projectId: string;
@@ -56,32 +57,21 @@ interface BodyProps {
   index: StatusIndex;
   timeZone: string;
   canManage: boolean;
-  canRequest: boolean;
+  basket: BasketApi;
   isPhone: boolean;
   /** In its own window: nothing opens beside it. */
   alone: boolean;
-  /** The item it opens at (?item=, a chip on its room's row or tile). */
+  /** The item it opens at (?item=, a chip on its room's row). */
   focusItem: string | undefined;
 }
 
-function RequestButton({ picked, onRequest, wide }: { picked: number; onRequest: () => void; wide: boolean }) {
-  return (
-    <Button
-      variant="primary"
-      icon={Plus}
-      size={wide ? 'lg' : 'md'}
-      className={wide ? 'w-full' : 'shrink-0'}
-      disabled={picked === 0}
-      data-testid="rev-request"
-      data-count={picked}
-      onClick={onRequest}
-    >
-      {picked > 0 ? `Request ${String(picked)} of ${String(MAX_PICK)}` : 'Request'}
-    </Button>
-  );
+/** Who added a wall on the spot, as the job's people list names them. */
+function useAdder(projectId: string, area: RevArea, enabled: boolean): string {
+  const people = usePeopleDisplay(enabled ? projectId : null);
+  return people.data?.find((p) => p.user_id === area.field_by)?.full_name ?? 'a member';
 }
 
-function WallBody({ projectId, area, setup, index, timeZone, canManage, canRequest, isPhone, alone, focusItem }: BodyProps) {
+function WallBody({ projectId, area, setup, index, timeZone, canManage, basket, isPhone, alone, focusItem }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const toast = useToast();
   const rooms = useRevRooms(projectId);
@@ -89,11 +79,14 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
   const history = useWallHistory(projectId, area.id);
+  const confirm = useConfirmFieldWall();
+  const checking = canManage && needsCheck(area);
+  const adder = useAdder(projectId, area, checking);
   // A manager also sees what is switched off here (last, dashed), to switch it back. Nobody else sees it.
   const revs = useMemo(() => wallRevs(setup, index, area, canManage), [setup, index, area, canManage]);
   const items = useMemo(() => wallItems(revs), [revs]);
   const states = useMemo(() => partStates(items), [items]);
-  const [chosen, setPick] = useState<WallPick>(() => pickAt(items, focusItem) ?? firstPick(items));
+  const [pick, setPick] = useState<WallPick>(() => pickAt(items, focusItem) ?? firstPick(items));
   // Another item's chip tapped while this wall is open: that item is shown.
   const [opened, setOpened] = useState(focusItem);
   if (focusItem !== opened) {
@@ -103,94 +96,68 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
   }
   const [signing, setSigning] = useState<SignTarget | null>(null);
   const before = useSignoffActions(projectId, area.id);
-  // A picked item that passed or went N/A meanwhile is no longer picked.
-  const pick = keepAskable(chosen, items);
   const shown = items.find((i) => i.item.id === pick.focus) ?? null;
   const count = countOf(items.map((i) => i.cell.status));
-  const askable = count.needed > count.passed + count.requested;
-  const wide = !isPhone && width >= 720;
-
-  const onTap = (item: WallItem) => {
-    if (!canRequest) {
-      setPick({ ...pick, focus: item.item.id, part: item.part });
-      return;
-    }
-    const { next, full } = tapItem(pick, item);
-    setPick(next);
-    if (full) toast.show({ message: `${String(MAX_PICK)} items at most on one request.` });
-  };
+  // Side by side only with room for both; else the drawing over the items, held at the top, like a phone.
+  const wide = !isPhone && width >= 1000;
   const openFile = useOpenRevFile(projectId, beside ? (fileId) => { nav.openBeside(area.id, { fileId }); } : undefined);
   // The decided request opens only for those who may read it (rev_wall_history's can_open).
   const canOpen = (requestId: string) => history.data?.some((r) => r.request_id === requestId && r.can_open) ?? false;
-  const onPart = (part: WallPart) => {
-    setPick(tapPart(pick, part, items));
-  };
-  // In list order (rev, then place): the order the request colors them in.
-  const request = () => {
-    nav.request([area.id], items.filter((i) => pick.picked.includes(i.item.id)).map((i) => i.item));
-  };
-  const button = canRequest && askable ? <RequestButton picked={pick.picked.length} onRequest={request} wide={isPhone} /> : null;
   const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: () => { nav.close(area.level.trim()); } });
-  // Where it is in its room (not again when it was opened from the room: Back goes there), and on the plan: a tap
-  // opens the room full screen, or the plan there; a manager places or redraws it.
-  const roomPick = rooms.data && nav.fromRoom === undefined ? (
-    <WallRoomPick
-      projectId={projectId}
-      area={area}
-      setup={setup}
-      index={index}
-      rooms={rooms.data}
-      isPhone={isPhone}
-      onOpenRoom={nav.openRoom}
-      onOpenWall={nav.openFromRoom}
-    />
-  ) : null;
-  const sheetThumb = (
-    <WallThumb
-      projectId={projectId}
-      area={area}
-      canManage={canManage}
-      isPhone={isPhone}
-      onShow={() => {
-        nav.showPlan({ level: area.level.trim(), wall: area.id });
-      }}
-      onPlace={() => {
-        nav.showPlan({ level: area.level.trim(), place: area.id });
-      }}
-    />
-  );
-  const thumb = (
-    <div className={`flex gap-3 ${isPhone ? 'flex-col' : 'shrink-0 flex-col items-end'}`}>
-      {roomPick}
-      {sheetThumb}
-    </div>
-  );
-
-  return (
-    <div ref={frame} className="flex flex-col gap-4" data-testid="rev-wall-page" data-wide={wide ? 'true' : undefined}>
-      <WallHeader
+  const onTap = (item: WallItem) => {
+    setPick({ focus: item.item.id, part: item.part });
+  };
+  // Where it is in its room (not again when it was opened from the room: Back goes there), and on the plan.
+  const where: ReactNode = (
+    <div className={`flex gap-3 ${isPhone ? 'flex-col' : 'flex-wrap items-start'}`}>
+      {rooms.data && nav.fromRoom === undefined ? (
+        <WallRoomPick
+          projectId={projectId}
+          area={area}
+          setup={setup}
+          index={index}
+          rooms={rooms.data}
+          isPhone={isPhone}
+          onOpenRoom={nav.openRoom}
+          onOpenWall={nav.openFromRoom}
+        />
+      ) : null}
+      <WallThumb
         projectId={projectId}
         area={area}
-        list={setup.lists.find((l) => l.id === area.list_id)}
-        count={count}
-        action={isPhone ? null : button}
-        side={isPhone ? null : thumb}
-        onShowSheet={() => {
-          nav.showPlan({ level: area.level.trim(), wall: area.geom ? area.id : undefined });
-        }}
-        manage={canManage ? manage.buttons : null}
+        canManage={canManage}
+        isPhone={isPhone}
+        onShow={() => { nav.showPlan({ level: area.level.trim(), wall: area.id }); }}
+        onPlace={() => { nav.showPlan({ level: area.level.trim(), place: area.id }); }}
       />
+    </div>
+  );
+  const wallBasket = basket.can ? { has: (itemId: string) => basket.has(area.id, itemId), toggle: (itemId: string) => { basket.toggle(area.id, itemId); }, busy: basket.busy } : null;
+
+  return (
+    <div ref={frame} className="flex flex-col gap-3" data-testid="rev-wall-page" data-wide={wide ? 'true' : undefined}>
+      <WallTopLine area={area} count={count} manage={canManage ? manage.buttons : null} />
+      {checking ? (
+        <FieldCheck
+          by={adder}
+          busy={confirm.isPending || manage.busy}
+          onConfirm={() => {
+            confirm.mutate({ projectId, areaId: area.id }, { onError: (e) => { toast.show({ tone: 'error', message: messageOf(e) }); } });
+          }}
+          onEdit={manage.edit}
+          onRemove={manage.remove}
+        />
+      ) : null}
       {manage.form}
-      {isPhone ? thumb : null}
-      <div className={wide ? 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>
-        <div className={`flex flex-col gap-1 bg-card ${isPhone ? 'sticky top-0 z-10 -mx-4 border-b border-line px-4 pb-2' : wide ? 'sticky top-0' : ''}`}>
+      <div className={wide ? 'grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>
+        <div className={`sticky top-0 z-10 flex flex-col gap-1 bg-card ${isPhone ? '-mx-4 border-b-2 border-ink px-4 pb-2' : wide ? '' : 'border-b-2 border-ink pb-2'}`}>
           <Wall3D
             states={states}
             focus={pick.part ?? undefined}
             focusLabel={shown?.item.name}
-            onPick={onPart}
-            // The drawing, its facts and the top of the items fit on a short window; on a phone the items keep room.
-            maxHeight={isPhone ? '36dvh' : 'max(240px, 100dvh - 330px)'}
+            onPick={(part) => { setPick(tapPart(pick, part, items)); }}
+            // Front and center: most of a desktop window, the top half of a phone or iPad.
+            maxHeight={wide ? 'max(320px, 100dvh - 260px)' : isPhone ? '46dvh' : '54dvh'}
             testId="rev-wall-3d"
           />
           <WallFacts
@@ -205,25 +172,28 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
             onClearBefore={(i) => { before.clear({ itemIds: [i.item.id], label: i.item.name }); }}
           />
         </div>
-        {/* On a phone, an item scrolled to (or focused) lands clear of the drawing held at the top and the bar below. */}
-        <div className={isPhone ? '[&_button]:scroll-mb-24 [&_button]:scroll-mt-[calc(36dvh+7rem)]' : undefined}>
+        {/* An item scrolled to lands clear of the drawing held at the top and the bar below. */}
+        <div className={wide ? undefined : isPhone ? '[&_button]:scroll-mb-28 [&_button]:scroll-mt-[calc(46dvh+7rem)]' : '[&_button]:scroll-mb-28 [&_button]:scroll-mt-[calc(54dvh+7rem)]'}>
           {signing ? (
-            <SignoffForm
-              key={signing.itemIds.join(',')}
-              target={signing}
-              onSave={(v) => before.set(signing, v)}
-              onCancel={() => { setSigning(null); }}
-            />
+            <SignoffForm key={signing.itemIds.join(',')} target={signing} onSave={(v) => before.set(signing, v)} onCancel={() => { setSigning(null); }} />
           ) : null}
           <WallItems
             revs={revs}
             items={items}
             pick={pick}
             onTap={onTap}
+            basket={wallBasket}
             onSignRev={canManage ? (rev, itemIds) => { setSigning({ itemIds, label: `Rev ${String(rev.number)} · ${rev.name}` }); } : undefined}
           />
         </div>
       </div>
+      <WallInfo
+        projectId={projectId}
+        area={area}
+        list={setup.lists.find((l) => l.id === area.list_id)}
+        side={where}
+        onShowSheet={() => { nav.showPlan({ level: area.level.trim(), wall: area.geom ? area.id : undefined }); }}
+      />
       <WallPhotos projectId={projectId} areaId={area.id} isPhone={isPhone} />
       <WallHistory
         projectId={projectId}
@@ -237,7 +207,6 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, canReque
           openFile(row.file_id);
         }}
       />
-      {isPhone && button ? <div className="sticky bottom-0 z-10 -mx-4 border-t border-line bg-card px-4 py-3">{button}</div> : null}
     </div>
   );
 }
@@ -268,16 +237,17 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
   const setup = useRevSetup(projectId);
   const status = useRevStatus(projectId);
   const manage = useCapability(projectId, 'revs.manage');
-  const ask = useCapability(projectId, 'ir.request');
+  const basket = useBasket(projectId);
+  const nav = useRevsNav(projectId, manage.data === true);
   const jobs = useMyProjects();
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const zone = jobs.data?.find((p) => p.project_id === projectId)?.timezone;
 
   let body: ReactNode;
-  const failed = [setup, status, manage, ask, jobs].find((q) => q.isError);
+  const failed = [setup, status, manage, jobs].find((q) => q.isError);
   const area = setup.data?.areas.find((a) => a.id === areaId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
-  else if (!setup.data || !status.data || manage.isPending || ask.isPending || zone === undefined) body = <LoadingState label="Loading the wall" />;
+  else if (!setup.data || !status.data || manage.isPending || zone === undefined) body = <LoadingState label="Loading the wall" />;
   else if (!area) body = <EmptyState title="This wall is no longer on the job." />;
   else {
     body = (
@@ -289,26 +259,29 @@ export function WallPage({ projectId, areaId, isPhone }: WallPageProps) {
         index={index}
         timeZone={zone}
         canManage={manage.data === true}
-        canRequest={ask.data === true}
+        basket={basket}
         isPhone={isPhone}
         alone={own.window === '1'}
         focusItem={own.item}
       />
     );
   }
+  const bar = own.window === '1' ? null : <BasketBar basket={basket} onReview={nav.review} isPhone={isPhone} />;
   // A phone's screen has its own Back (to Revs); opened from a room, the way back to the room is at the top.
   if (isPhone) {
     return (
-      <div className="flex flex-col gap-1 px-4 pt-3">
+      <div className="flex min-h-full flex-col gap-1 px-4 pt-3">
         {own.window !== '1' && own.room !== undefined ? <BackToRevs projectId={projectId} canManage={manage.data === true} level={area?.level.trim()} /> : null}
-        {body}
+        <div className="flex-1">{body}</div>
+        {bar}
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-h-full flex-col gap-2">
       {own.window === '1' ? null : <BackToRevs projectId={projectId} canManage={manage.data === true} level={area?.level.trim()} />}
       <Card>{body}</Card>
+      {bar}
     </div>
   );
 }
