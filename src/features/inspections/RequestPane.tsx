@@ -5,7 +5,8 @@
 // postpones it (OfsRoute), and the job's OFS duty holder sends it once the inspector has checked it. An OFS request
 // shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
 // shows its walls and items (with their results) and its map; until a result, whoever may takes walls off it there
-// (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal.
+// (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal. A request filed in a
+// batch lists the batch, with one tap for its requests waiting on me (BatchPanel, 0114).
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
@@ -22,6 +23,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
+import { BatchPanel } from './BatchPanel';
 import { GcActions } from './GcActions';
 import { History } from './History';
 import { InspectorPanel } from './InspectorPanel';
@@ -150,6 +152,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
           <ScheduleBox row={row} state={schedState(row)} date={row.request_date} time={row.start_time} note={row.ofs_sched_note} canAccept={mine || holder || can.decide} />
         ) : null}
         {duties.isError ? <ErrorState error={duties.error} onRetry={() => void duties.refetch()} className="m-0" /> : null}
+        {ofs ? <BatchPanel row={row} ofsDecide={can.ofsDecide} /> : null}
         {ofs ? (
           <OfsChecks
             row={row}

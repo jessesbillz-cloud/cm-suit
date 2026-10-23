@@ -247,6 +247,15 @@ export function everyRequest(): IrRowRaw[] {
   return read().requests;
 }
 
+/** One transaction for several steps (ir_batch_step): undo puts every request back as it was. */
+export function snapshot(): () => void {
+  const raw = window.sessionStorage.getItem(KEY);
+  return () => {
+    if (raw === null) window.sessionStorage.removeItem(KEY);
+    else window.sessionStorage.setItem(KEY, raw);
+  };
+}
+
 /** ir_for_update: the request, if the signed-in mock user may read it in full. */
 export function readable(requestId: unknown): IrRowRaw {
   const r = read().requests.find((x) => x.id === requestId);

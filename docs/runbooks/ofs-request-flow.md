@@ -198,6 +198,27 @@ wall of the job has brings its rating, UL design and sheet number. Usable in B2 
     `{ "request_id": "<id>", "member_ids": ["<member>", ...], "requester": true, "emails": [] }` (at least one
     recipient). The IR goes as a permanent share link. After: `results_sent_at` set.
 
+## A batch, one tap per step (0114)
+
+The steps 4 to 6 for every request of a batch (B6) at once. Each request still walks them as above, so a request of
+the batch can also be done on its own.
+
+S1. **Read the batches waiting on me.** `rpc/ir_batches_waiting` `{ "p_project_id": "<job>" }` (leave it out: all my
+    jobs). Each: `{ "batch_id", "project_id", "size", "items", "step", "requests": [{id, number, ofs_number, items,
+    status, result, helper_id, ofs_sent_at, version, waits}] }`. `step` is the one I take on it now: `gc` (step 4),
+    `send` (step 6: the inspector, or the duty holder once the inspector checked it), or `ready` (step 5), the earliest
+    with a request waiting on me. `waits` marks those requests. One batch: `rpc/ir_batch_get` `{ "p_batch_id" }`
+    (the batch of a request: B7).
+
+S2. **The step for the batch.** `rpc/ir_batch_step`
+    `{ "p_batch_id": "<batch>", "p_step": "gc"|"ready"|"send", "p_versions": { "<request id>": <version>, ... } }`
+    with the version of every request that `waits` in S1. After: each of them as after its single step (4, 5 or 6,
+    the same function, the same board lines), the answer `{ "batch_id", "step", "done": [{id, number, ofs_number,
+    status, version}], "skipped": ["<request id>", ...] }`. All or nothing: a stale version, or a request waiting on
+    me that is not in `p_versions`, answers `40001` and changes nothing (read S1 again). A request past the step is
+    skipped, so the same call again changes nothing. Without the step's right: `42501`. The fire marshal's steps (7 to
+    12) stay one request at a time.
+
 ## Failed walls
 
 A failed cell stays `failed` in `rev_status` ("Failed — needs re-inspection" on the wall) until it is asked for again

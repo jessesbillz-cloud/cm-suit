@@ -3,9 +3,10 @@
 // each failed item to inspect again, 0109), each opening to its groups. A requester with OFS requests sent gets the two
 // lists of his own (no boxes). A row opens the item where it lives (Files, RFIs, Inspections). An inspection shows where
 // its time stands, with Accept when OFS picked another time (0108). Requests filed together from the request being
-// built (0113) sit together under "Batch of 9".
+// built (0113) sit together under "Batch of 9", with the one tap for those waiting on me (0114).
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { useIrBatchesWaiting } from '../../data/inspections.batch';
 import { useOfsDesk } from '../../data/ofs';
 import { useIrBatches, type BatchOf } from '../../data/revs.basket';
 import type { DeskRow } from '../../data/ofs.types';
@@ -15,6 +16,7 @@ import { CLICK_BOX } from '../../ui/box';
 import { ErrorState } from '../../ui/States';
 import { useProjectZones } from '../board/zones';
 import { ScheduleBox } from '../inspections/ScheduleBox';
+import { BatchHead, waitingById, type WaitingBatches } from './BatchHead';
 import { DeskBoxes } from './DeskBoxes';
 import { Expander } from './Expander';
 import { byBatch, deskLists, deskTitle, type DeskGroup } from './model';
@@ -67,13 +69,14 @@ interface ListProps {
   groups: readonly DeskGroup[];
   zone: string;
   batches: BatchOf;
+  waiting: WaitingBatches;
   isOpen: (id: string) => boolean;
   toggle: (id: string) => void;
   onOpen: (row: DeskRow) => void;
 }
 
 /** A group's rows, the requests filed together (0113) under one "Batch of 9" line. */
-function DeskRows({ rows, batches, ...line }: Omit<RowProps, 'row'> & { rows: readonly DeskRow[]; batches: BatchOf }) {
+function DeskRows({ rows, batches, waiting, ...line }: Omit<RowProps, 'row'> & { rows: readonly DeskRow[]; batches: BatchOf; waiting: WaitingBatches }) {
   return (
     <>
       {byBatch(rows, (r) => (r.kind === 'inspection' ? r.target_id : r.id), batches).map((run) =>
@@ -81,7 +84,7 @@ function DeskRows({ rows, batches, ...line }: Omit<RowProps, 'row'> & { rows: re
           run.rows.map((r) => <DeskLine key={r.id} row={r} {...line} />)
         ) : (
           <div key={run.batch.id} className="flex flex-col gap-1 border-l-[3px] border-ink pl-2" data-testid="ofs-batch" data-size={run.batch.size}>
-            <span className="heading px-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-2">{`Batch of ${String(run.batch.size)}`}</span>
+            <BatchHead batchId={run.batch.id} size={run.batch.size} waiting={waiting} className="px-1" />
             {run.rows.map((r) => (
               <DeskLine key={r.id} row={r} {...line} />
             ))}
@@ -92,14 +95,14 @@ function DeskRows({ rows, batches, ...line }: Omit<RowProps, 'row'> & { rows: re
   );
 }
 
-function DeskList({ id, projectId, label, groups, zone, batches, isOpen, toggle, onOpen }: ListProps) {
+function DeskList({ id, projectId, label, groups, zone, batches, waiting, isOpen, toggle, onOpen }: ListProps) {
   const count = groups.reduce((n, g) => n + g.rows.length, 0);
   return (
     <Expander id={id} label={label} count={count} open={isOpen(id)} onToggle={toggle}>
       {count === 0 ? <p className="px-1 text-sm text-ink-2">None.</p> : null}
       {groups.map((g) => (
         <Expander key={g.key} id={`${id}/${g.key}`} label={g.label} count={g.rows.length} open={isOpen(`${id}/${g.key}`)} onToggle={toggle} depth={1}>
-          <DeskRows rows={g.rows} batches={batches} projectId={projectId} zone={zone} onOpen={onOpen} />
+          <DeskRows rows={g.rows} batches={batches} waiting={waiting} projectId={projectId} zone={zone} onOpen={onOpen} />
         </Expander>
       ))}
     </Expander>
@@ -109,6 +112,7 @@ function DeskList({ id, projectId, label, groups, zone, batches, isOpen, toggle,
 export function OfsDesk({ projectId }: { projectId: string }) {
   const desk = useOfsDesk(projectId);
   const batched = useIrBatches((desk.data?.rows ?? []).filter((r) => r.kind === 'inspection').map((r) => r.target_id));
+  const waitingBatches = useIrBatchesWaiting(projectId);
   const zoneOf = useProjectZones();
   const navigate = useNavigate();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
@@ -130,7 +134,7 @@ export function OfsDesk({ projectId }: { projectId: string }) {
     const t = entityTarget(row.target_type, row.target_id);
     if (t?.itemId) void navigate({ to: '/p/$projectId/$tool/$itemId', params: { projectId, tool: t.tool, itemId: t.itemId } });
   };
-  const common = { projectId, zone: zoneOf(projectId), batches, isOpen, toggle, onOpen: open };
+  const common = { projectId, zone: zoneOf(projectId), batches, waiting: waitingById(waitingBatches.data), isOpen, toggle, onOpen: open };
   return (
     <section className="flex flex-col gap-3" data-testid="ofs-desk">
       {desk.data.designated ? <DeskBoxes projectId={projectId} /> : null}
