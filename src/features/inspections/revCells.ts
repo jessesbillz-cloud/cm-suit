@@ -1,12 +1,13 @@
 // An OFS request's cells (wall x item) for its pane and the deputy's result step: grouped by item (its map color), the
-// walls by level then place, named from the job's setup. The result draft: each cell Pass or Fail, a failed one says why
-// (OSFM: not just a red circle); a save sends every cell (ir_rev_results); "All passed" is one tap; Undo sends the set
-// that was there before. Pure; tested in revCells.test.ts.
+// walls by level then place, named from the job's setup. The result draft (Jesse, Oct 22: "an easy sign-off"): every
+// cell starts as Pass, a tap flips one to Fail and a failed one says why (OSFM: not just a red circle); one save sends
+// every cell (ir_rev_results), so Pass all is one tap and a portion is a few; Undo sends the set that was there
+// before. Pure; tested in revCells.test.ts.
 import type { IrRevItem, RevResult, RevSetup } from '../../data/revs.types';
 import type { MarkupColor } from '../../lib/markup';
 import type { StatusKey } from '../../lib/status';
 
-export type CellResult = 'passed' | 'failed';
+type CellResult = 'passed' | 'failed';
 
 interface CellRow {
   cell: IrRevItem;
@@ -71,50 +72,57 @@ export function cellChip(result: string | null): { status: StatusKey; label: str
 export const cellKey = (c: { area_id: string; item_id: string }) => `${c.area_id}|${c.item_id}`;
 
 export interface CellDraft {
-  result: CellResult | null;
+  result: CellResult;
   note: string;
 }
 
 /** The deputy's changes not saved yet, by cell. */
 export type Edits = Readonly<Record<string, CellDraft>>;
 
+/** What is saved, or Pass before anything is. */
 function savedDraft(cell: IrRevItem): CellDraft {
-  return { result: cell.result === 'passed' || cell.result === 'failed' ? cell.result : null, note: cell.result_note ?? '' };
+  return { result: cell.result === 'failed' ? 'failed' : 'passed', note: cell.result_note ?? '' };
 }
 
 export function draftOf(cell: IrRevItem, edits: Edits): CellDraft {
   return edits[cellKey(cell)] ?? savedDraft(cell);
 }
 
-const isSet = (d: CellDraft) => d.result === 'passed' || (d.result === 'failed' && d.note.trim() !== '');
+/** The same cell the other way: Pass to Fail (its reason kept if it had one), Fail to Pass. */
+export function flip(d: CellDraft): CellDraft {
+  return { result: d.result === 'passed' ? 'failed' : 'passed', note: d.note };
+}
 
-/** Cells still without a result, or failed without saying why. */
-export function leftToDo(cells: readonly IrRevItem[], edits: Edits): number {
+const isSet = (d: CellDraft) => d.result === 'passed' || d.note.trim() !== '';
+
+/** Failed cells that don't say why yet. */
+export function missingReasons(cells: readonly IrRevItem[], edits: Edits): number {
   return cells.filter((c) => !isSet(draftOf(c, edits))).length;
 }
 
+/** How many the draft fails. */
+export function failedCount(cells: readonly IrRevItem[], edits: Edits): number {
+  return cells.filter((c) => draftOf(c, edits).result === 'failed').length;
+}
+
 function toResult(cell: IrRevItem, d: CellDraft): RevResult {
-  return { area_id: cell.area_id, item_id: cell.item_id, result: d.result === 'failed' ? 'failed' : 'passed', note: d.result === 'failed' ? d.note.trim() : null };
+  return { area_id: cell.area_id, item_id: cell.item_id, result: d.result, note: d.result === 'failed' ? d.note.trim() : null };
 }
 
 const same = (a: RevResult, b: RevResult) => a.result === b.result && (a.note ?? '') === (b.note ?? '');
 
-/** Every cell set: the whole set to save. Null while one is still open, or when nothing changed since the last save. */
+/** The whole set to save. Null while a failed one doesn't say why, or when nothing changed since the last save. */
 export function draftToSave(cells: readonly IrRevItem[], edits: Edits): RevResult[] | null {
-  if (leftToDo(cells, edits) > 0) return null;
+  if (missingReasons(cells, edits) > 0) return null;
   const next = cells.map((c) => toResult(c, draftOf(c, edits)));
   const saved = savedResults(cells);
   return saved !== null && next.every((r, i) => saved[i] !== undefined && same(r, saved[i])) ? null : next;
 }
 
-/** What is saved now (for Undo); null when no cell has a result. */
+/** What is saved now (for Undo); null until every cell has a result. */
 export function savedResults(cells: readonly IrRevItem[]): RevResult[] | null {
-  if (!cells.every((c) => isSet(savedDraft(c)))) return null;
+  if (!cells.every((c) => c.result === 'passed' || (c.result === 'failed' && (c.result_note ?? '').trim() !== ''))) return null;
   return cells.map((c) => toResult(c, savedDraft(c)));
-}
-
-export function allPassed(cells: readonly IrRevItem[]): RevResult[] {
-  return cells.map((c) => ({ area_id: c.area_id, item_id: c.item_id, result: 'passed', note: null }));
 }
 
 /** After a save: the changes it carried are saved now; changes made meanwhile stay. */

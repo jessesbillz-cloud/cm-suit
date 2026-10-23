@@ -91,6 +91,7 @@ describe('the OFS route (SPEC §18.4 P1)', () => {
   it('history and receipts name the route', () => {
     expect(actionLabel('send_ofs')).toBe('Sent to OFS');
     expect(actionLabel('unsend_ofs')).toBe('Send undone');
+    expect([actionLabel('pull_back'), actionLabel('put_back')]).toEqual(['Walls taken off', 'Walls put back']);
     expect(waitingOn({ status: 'gc_review', kind: 'ofs' })).toBe('Waiting on the GC.');
     expect(waitingOn({ ...unsent, status: 'pending' })).toBe('Waiting on the inspector.');
     expect(waitingOn({ ...sent, status: 'pending' })).toBe('Waiting on OFS.');

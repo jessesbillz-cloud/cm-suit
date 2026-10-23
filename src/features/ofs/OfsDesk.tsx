@@ -1,6 +1,7 @@
 // The designated person's start page (the job's board, for the inspector or the job's OFS duty holder on a job that
-// takes OFS requests): the three boxes, then Waiting on OFS and Back from OFS (approved, not approved, passed, failed),
-// each opening to its groups. A row opens the item where it lives (Files, RFIs, Inspections). An inspection shows where
+// takes OFS requests): the three boxes, then Waiting on OFS and Back from OFS (approved, not approved, passed, failed:
+// each failed item to inspect again, 0109), each opening to its groups. A requester with OFS requests sent gets the two
+// lists of his own (no boxes). A row opens the item where it lives (Files, RFIs, Inspections). An inspection shows where
 // its time stands, with Accept when OFS picked another time (0108).
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
@@ -88,9 +89,9 @@ export function OfsDesk({ projectId }: { projectId: string }) {
   const navigate = useNavigate();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   if (desk.isError) return <ErrorState error={desk.error} title="The OFS start page did not load." onRetry={() => void desk.refetch()} />;
-  // Not the designated person (or still asking): the board as it was.
+  // Nobody's start page (or still asking): the board as it was.
   if (!desk.data) return null;
-  const lists = deskLists(desk.data);
+  const lists = deskLists(desk.data.rows);
   const isOpen = (id: string) => opened.has(id);
   const toggle = (id: string) => {
     setOpened((s) => {
@@ -107,7 +108,7 @@ export function OfsDesk({ projectId }: { projectId: string }) {
   const common = { projectId, zone: zoneOf(projectId), isOpen, toggle, onOpen: open };
   return (
     <section className="flex flex-col gap-3" data-testid="ofs-desk">
-      <DeskBoxes projectId={projectId} />
+      {desk.data.designated ? <DeskBoxes projectId={projectId} /> : null}
       <DeskList id="waiting" label="Waiting on OFS" groups={lists.waiting} {...common} />
       <DeskList id="back" label="Back from OFS" groups={lists.back} {...common} />
     </section>

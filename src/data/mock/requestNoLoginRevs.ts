@@ -81,7 +81,7 @@ export async function submitOfs(key: LinkKey, v: PublicOfsInput): Promise<Submit
   const cells: Cell[] = open.map(({ a, i }, k) => ({
     id: `mock-ir-rev-item-${row.id}-${String(k)}`, created_at: now, updated_at: now, created_by: null, version: 1, org_id: row.org_id,
     project_id: row.project_id, request_id: row.id, area_id: a.id, item_id: i.id, color: used.indexOf(i) + 1, result: null,
-    result_note: null, result_at: null, result_by: null,
+    result_note: null, result_at: null, result_by: null, pulled_at: null, pulled_by: null,
   }));
   const sheet = v.sheetFileId ?? walls.find((a) => a.sheet_file_id !== null)?.sheet_file_id ?? null;
   write((x) => ({

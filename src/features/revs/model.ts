@@ -138,11 +138,14 @@ export function listLines(setup: RevSetup, index: StatusIndex, inRoom: ReadonlyS
   });
 }
 
-/** Each status's chip: its lib/status colors and its own word. */
+/** A cell whose last result failed, as the card says it (Jesse, Oct 22): it goes on the next request first. */
+const FAILED_NOW = 'Failed — needs re-inspection';
+
+/** Each status's chip: its lib/status colors and its own word (a failed cell: FAILED_NOW). */
 const CHIPS: Record<CellStatus, { key: StatusKey; label: string }> = {
   passed: { key: 'approved', label: 'Passed' },
   requested: { key: 'pending', label: 'Requested' },
-  failed: { key: 'not_approved', label: 'Failed' },
+  failed: { key: 'not_approved', label: FAILED_NOW },
   open: { key: 'step_ahead', label: 'Open' },
   na: { key: 'cancelled', label: 'N/A' },
 };

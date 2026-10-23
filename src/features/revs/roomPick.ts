@@ -5,6 +5,7 @@
 // Pure; tested in roomPick.test.ts.
 import type { RevRooms } from '../../data/revs.rooms';
 import type { RevArea, RevSetup } from '../../data/revs.types';
+import type { StatusIndex } from './revPick';
 import { roomLabel, roomsByList } from './rooms';
 
 export interface PickRoom {
@@ -12,6 +13,8 @@ export interface PickRoom {
   /** "0134 Main Electrical"; the exterior and a shaft by their name. */
   label: string;
   walls: RevArea[];
+  /** An item on one of its walls failed last time (failedRoomsFirst). */
+  failed?: boolean | undefined;
 }
 
 export interface RoomGroup {
@@ -42,6 +45,15 @@ export function roomGroups(setup: RevSetup, rooms: RevRooms, listId: string | nu
       others: l.others,
     }))
     .filter((g) => g.rooms.length > 0 || g.others.length > 0);
+}
+
+/** Each level's rooms with an item that failed last time first (marked), the rest in their order. */
+export function failedRoomsFirst(groups: readonly RoomGroup[], index: StatusIndex): RoomGroup[] {
+  const failedAt = new Set([...index.values()].filter((r) => r.status === 'failed').map((r) => r.area_id));
+  return groups.map((g) => {
+    const rooms = g.rooms.map((r) => ({ ...r, failed: r.walls.some((a) => failedAt.has(a.id)) }));
+    return { ...g, rooms: [...rooms.filter((r) => r.failed), ...rooms.filter((r) => !r.failed)] };
+  });
 }
 
 /** The list has rooms to pick (else the picker shows the walls as today). */

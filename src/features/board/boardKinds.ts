@@ -29,6 +29,7 @@ const SERVER_KINDS = [
   'ir.ofs_confirmed',
   'ir.ofs_proposed',
   'ir.postponed',
+  'ir.pulled_back',
   'ir.requested',
   'ir.results',
   'ir.returned',

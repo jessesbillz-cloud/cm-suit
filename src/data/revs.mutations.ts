@@ -212,7 +212,7 @@ export function useRestoreRev() {
 }
 
 /** After a request-side write: the request, its cells and map, the job's revs, inspections, board and calendar. */
-function useRefreshRequest() {
+export function useRefreshRequest() {
   const qc = useQueryClient();
   return (projectId: string, requestId: string | null) =>
     Promise.all([

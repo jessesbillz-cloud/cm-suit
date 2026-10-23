@@ -67,12 +67,27 @@ async function fetchCells(requestId: string): Promise<IrRevItem[]> {
   return throwIfError(await supabase.from('ir_rev_items').select(IR_REV_ITEM_COLS).eq('request_id', requestId).order('color'));
 }
 
-/** An OFS request's cells (wall x item), each with its color and result. Empty for any other request. */
+const onRequest = (rows: IrRevItem[]) => rows.filter((c) => c.pulled_at === null);
+const allTakenOff = (rows: IrRevItem[]) => rows.length > 0 && rows.every((c) => c.pulled_at !== null);
+
+/** An OFS request's cells (wall x item) still on it, each with its color and result (one taken off, 0109, is left
+ *  out). Empty for any other request. */
 export function useIrRevItems(requestId: string | null) {
   return useQuery({
     queryKey: qk.irRevItems(requestId ?? ''),
     queryFn: requestId ? () => fetchCells(requestId) : skipToken,
     refetchInterval: LIVE_MS,
+    select: onRequest,
+  });
+}
+
+/** Every wall of the request was taken off (it was withdrawn that way: Request again can't bring it back). */
+export function useIrRevAllTakenOff(requestId: string | null) {
+  return useQuery({
+    queryKey: qk.irRevItems(requestId ?? ''),
+    queryFn: requestId ? () => fetchCells(requestId) : skipToken,
+    refetchInterval: LIVE_MS,
+    select: allTakenOff,
   });
 }
 

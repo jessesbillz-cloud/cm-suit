@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_WALL_DETAILS, type RevSetup, type RevStatusRow } from '../../data/revs.types';
 import {
-  applicableGroups, firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
+  FAILED_LAST_TIME, applicableGroups, failedFirst, firstSheet, isDone, itemNeed, itemState, itemsByRev, mapWhat, pickWalls, prefillPick, requestItems, requestWalls,
   sheetCount, statusIndex, titlePreview, toggleItem, wallsByLevel, type RevPick,
 } from './revPick';
 
@@ -132,5 +132,19 @@ describe('picking', () => {
     const p = prefillPick(SETUP, INDEX, 'w2,w1,nope', 'seal,tow,tape,caulk,stuff');
     expect(p).toEqual({ listId: 'l1', areaIds: ['w1', 'w2'], itemIds: ['stuff', 'caulk', 'tape'] });
     expect(prefillPick(SETUP, INDEX, undefined, undefined)).toEqual({ listId: 'l1', areaIds: [], itemIds: [] });
+  });
+});
+
+describe('what failed last time comes first', () => {
+  it('heads the items with what failed on the walls, the rest as they were', () => {
+    const groups = failedFirst(itemsByRev(SETUP, 'l1'), INDEX, ['w2']);
+    expect(groups.map((g) => [g.name, g.items.map((i) => i.id)])).toEqual([
+      [FAILED_LAST_TIME, ['stuff']],
+      ['TOW', ['tow']],
+      ['CJ', ['caulk', 'tape', 'seal']],
+    ]);
+  });
+  it('changes nothing when nothing failed there (asked for again counts as asked)', () => {
+    expect(failedFirst(itemsByRev(SETUP, 'l1'), INDEX, ['w1']).map((g) => g.name)).toEqual(['TOW', 'CJ']);
   });
 });

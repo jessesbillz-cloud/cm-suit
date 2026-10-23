@@ -97,6 +97,7 @@ export function seedCells(): Tables<'ir_rev_items'>[] {
     id: `mock-ir-rev-item-${String(i + 1)}`, created_at: AT, updated_at: AT, created_by: REQUESTER, version: 1, org_id: ORG,
     project_id: REVS_JOB, request_id: revRequestId(req), area_id: areaId(area), item_id: itemId(rev, item), color, result,
     result_note: note ?? null, result_at: result === null ? null : AT, result_by: result === null ? null : DEPUTY,
+    pulled_at: null, pulled_by: null,
   }));
 }
 

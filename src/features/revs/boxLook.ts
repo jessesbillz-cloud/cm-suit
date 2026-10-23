@@ -33,4 +33,4 @@ export function boxLook(state: BoxState, picked = false): BoxLook {
 }
 
 /** Its word, spoken and on hover. */
-export const BOX_WORD: Record<BoxState, string> = { passed: 'Passed', requested: 'Requested', failed: 'Failed', open: 'Open' };
+export const BOX_WORD: Record<BoxState, string> = { passed: 'Passed', requested: 'Requested', failed: 'Failed — needs re-inspection', open: 'Open' };

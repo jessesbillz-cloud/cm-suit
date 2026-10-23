@@ -87,8 +87,10 @@ const deskRowSchema = z.object({
 });
 export type DeskRow = z.infer<typeof deskRowSchema>;
 
-/** The designated person's start page (ofs_desk); null for anyone else. */
-export const ofsDeskSchema = z.object({ rows: z.array(deskRowSchema) }).nullable();
+/** The start page (ofs_desk): the designated person's (designated: the three boxes too), or a requester's own OFS
+ *  requests (0109); null for anyone else. */
+export const ofsDeskSchema = z.object({ rows: z.array(deskRowSchema), designated: z.boolean() }).nullable();
+export type DeskData = NonNullable<z.infer<typeof ofsDeskSchema>>;
 
 /** Where an item is: one of these. */
 export type OfsTarget = { itemId: string } | { rfiId: string } | { fileId: string };
