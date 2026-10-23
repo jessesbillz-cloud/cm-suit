@@ -22,6 +22,8 @@ interface StateBoxProps {
   /** Faded: not pickable now (three picked already). */
   dim?: boolean | undefined;
   size?: 'md' | 'lg' | undefined;
+  /** Fills its cell (a grid of boxes). */
+  wide?: boolean | undefined;
   /** Spoken and on hover; default "<label>: <state>". */
   name?: string | undefined;
   testId?: string | undefined;
@@ -57,7 +59,7 @@ export function StateBox(p: StateBoxProps) {
       data-status={p.statusOnBox ? p.status : undefined}
       data-focus={p.focus ? 'true' : undefined}
       {...p.data}
-      className={`relative inline-flex max-w-full items-center border-2 text-left font-semibold leading-5 shadow-tile wrap-anywhere transition-[box-shadow,transform,filter] duration-150 hover:-translate-y-px hover:shadow-tile-hover hover:brightness-95 active:translate-y-0 active:shadow-press focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:shadow-tile disabled:hover:brightness-100 ${SIZE[size]} ${cls} ${
+      className={`relative ${p.wide ? 'flex w-full' : 'inline-flex max-w-full'} items-center border-2 text-left font-semibold leading-5 shadow-tile wrap-anywhere transition-[box-shadow,transform,filter] duration-150 hover:-translate-y-px hover:shadow-tile-hover hover:brightness-95 active:translate-y-0 active:shadow-press focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:shadow-tile disabled:hover:brightness-100 ${SIZE[size]} ${cls} ${
         p.focus ? 'ring-2 ring-accent ring-offset-2' : ''
       } ${p.dim ? 'opacity-50' : ''}`}
       style={off ? undefined : look.style}

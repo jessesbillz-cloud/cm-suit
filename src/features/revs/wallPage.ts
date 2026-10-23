@@ -1,7 +1,7 @@
 // One wall's page worked out (Jesse, Oct 3: "the whole wall gets built out on its own inspection page"): its items in
 // rev order, each with the part of the wall it inspects; each part's state on the 3-D wall; the tally; what a tap on
-// an item button or on the drawing does (focus it there; an item still to ask for is also picked for the request, up
-// to three, OSFM's three colors); and the wall's callout (its name, the grid in brackets apart).
+// an item box or on the drawing shows (the request being built is apart, 0113: its Add on each box); and the wall's
+// callout (its name, the grid in brackets apart).
 import type { Rev, RevItem, RevStatusRow } from '../../data/revs.types';
 import { canAsk, type WallRev } from './model';
 import type { PartState } from './wall3d/paint';
@@ -57,37 +57,22 @@ export function countLine(c: WallCount): string {
   return `${String(c.passed)} of ${String(c.needed)} passed`;
 }
 
-/** At most this many items on one request: OSFM's three colors on a map. */
-export const MAX_PICK = 3;
-
 export interface WallPick {
   /** The item shown on the drawing, or null when a part no item names was tapped. */
   focus: string | null;
   part: WallPart | null;
-  /** Items picked for the request, in the order picked. */
-  picked: string[];
 }
 
-/** On opening: the next item to ask for is shown (not picked), else the first item. */
+/** On opening: the next item to ask for is shown, else the first item. */
 export function firstPick(items: readonly WallItem[]): WallPick {
   const first = items.find((i) => canAsk(i.cell.status)) ?? items[0];
-  return { focus: first?.item.id ?? null, part: first?.part ?? null, picked: [] };
+  return { focus: first?.item.id ?? null, part: first?.part ?? null };
 }
 
-/** Opened at an item (a chip on its room's row or tile): that item shown, nothing picked; null when it isn't the wall's. */
+/** Opened at an item (a chip on its room's row): that item shown; null when it isn't the wall's. */
 export function pickAt(items: readonly WallItem[], itemId: string | undefined): WallPick | null {
   const at = itemId === undefined ? undefined : items.find((i) => i.item.id === itemId);
-  return at ? { focus: at.item.id, part: at.part, picked: [] } : null;
-}
-
-/** A tap on an item's button: it is shown; one still to ask for is picked or dropped. full: a fourth was refused. */
-export function tapItem(state: WallPick, item: WallItem, max = MAX_PICK): { next: WallPick; full: boolean } {
-  const id = item.item.id;
-  const shown = { focus: id, part: item.part };
-  if (!canAsk(item.cell.status)) return { next: { ...state, ...shown }, full: false };
-  if (state.picked.includes(id)) return { next: { ...shown, picked: state.picked.filter((p) => p !== id) }, full: false };
-  if (state.picked.length >= max) return { next: { ...state, ...shown }, full: true };
-  return { next: { ...shown, picked: [...state.picked, id] }, full: false };
+  return at ? { focus: at.item.id, part: at.part } : null;
 }
 
 /** A tap on a part of the drawing: its first item is shown; tapping it again steps to its next item. */
@@ -97,13 +82,6 @@ export function tapPart(state: WallPick, part: WallPart, items: readonly WallIte
   const at = its.findIndex((i) => i.item.id === state.focus);
   const next = its[(at + 1) % its.length] ?? its[0];
   return { ...state, focus: next?.item.id ?? null, part };
-}
-
-/** Picked items no longer to ask for (passed or N/A since) are dropped. */
-export function keepAskable(state: WallPick, items: readonly WallItem[]): WallPick {
-  const ok = new Set(items.filter((i) => canAsk(i.cell.status)).map((i) => i.item.id));
-  const picked = state.picked.filter((id) => ok.has(id));
-  return picked.length === state.picked.length ? state : { ...state, picked };
 }
 
 const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

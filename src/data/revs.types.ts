@@ -9,9 +9,9 @@ export const REV_LIST_COLS = 'id, project_id, name, phase, permit_id, position, 
 export const REV_COLS = 'id, project_id, list_id, number, name, version, deleted_at';
 export const REV_ITEM_COLS = 'id, project_id, rev_id, name, company, position, version, deleted_at';
 export const REV_AREA_COLS =
-  'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at, wall_tag, rating, ul_design, fire_area, sheet_ref, check_note';
+  'id, project_id, list_id, level, name, sheet_file_id, sheet_page, geom, position, version, deleted_at, wall_tag, rating, ul_design, fire_area, sheet_ref, check_note, field_by, field_checked_at, field_checked_by';
 export const REV_MARK_COLS = 'id, project_id, area_id, item_id, kind, set_up, version, deleted_at';
-export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version, pulled_at';
+export const IR_REV_ITEM_COLS = 'id, request_id, area_id, item_id, color, result, result_note, result_at, result_by, version, pulled_at, wall_facts';
 
 export type RevList = Pick<Tables<'rev_lists'>, 'id' | 'project_id' | 'name' | 'phase' | 'permit_id' | 'position' | 'version' | 'deleted_at'>;
 export type Rev = Pick<Tables<'revs'>, 'id' | 'project_id' | 'list_id' | 'number' | 'name' | 'version' | 'deleted_at'>;
@@ -22,12 +22,33 @@ export type RevItem = Pick<Tables<'rev_items'>, 'id' | 'project_id' | 'rev_id' |
 export const WALL_DETAIL_MAX = { wall_tag: 20, rating: 80, ul_design: 40, fire_area: 120, sheet_ref: 20, check_note: 300 } as const;
 export type WallDetailKey = keyof typeof WALL_DETAIL_MAX;
 export type WallDetails = Pick<Tables<'rev_areas'>, WallDetailKey>;
-export const NO_WALL_DETAILS: WallDetails = { wall_tag: null, rating: null, ul_design: null, fire_area: null, sheet_ref: null, check_note: null };
+
+/** A wall added on the spot (0113): who added it, and when a manager checked it (null: still to check). */
+type FieldMark = Pick<Tables<'rev_areas'>, 'field_by' | 'field_checked_at' | 'field_checked_by'>;
+
+/** A wall with no details, set up by a manager (no mark to check). */
+export const NO_WALL_DETAILS: WallDetails & FieldMark = {
+  wall_tag: null, rating: null, ul_design: null, fire_area: null, sheet_ref: null, check_note: null,
+  field_by: null, field_checked_at: null, field_checked_by: null,
+};
 
 type RevAreaRow = Pick<
   Tables<'rev_areas'>,
-  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'sheet_page' | 'geom' | 'position' | 'version' | 'deleted_at' | WallDetailKey
+  'id' | 'project_id' | 'list_id' | 'level' | 'name' | 'sheet_file_id' | 'sheet_page' | 'geom' | 'position' | 'version' | 'deleted_at' | WallDetailKey | keyof FieldMark
 >;
+
+/** Added on the spot and not checked by a manager yet. */
+export function needsCheck(a: FieldMark): boolean {
+  return a.field_by !== null && a.field_checked_at === null;
+}
+
+/** The wall's facts as a request names them (0113 rev_wall_facts): "F6a · 1 HR · UL U419 · A201", "UL —" without a UL. */
+export function wallFacts(a: Pick<WallDetails, 'wall_tag' | 'rating' | 'ul_design' | 'sheet_ref'>): string {
+  const t = (v: string | null) => (v === null || v.trim() === '' ? null : v.trim());
+  const ul = t(a.ul_design);
+  const ulPart = ul === null ? 'UL —' : /^UL\b/i.test(ul) ? ul : `UL ${ul}`;
+  return [t(a.wall_tag), t(a.rating), ulPart, t(a.sheet_ref)].filter((x): x is string => x !== null).join(' · ');
+}
 
 /**
  * A wall's line on its plan sheet (0059): 2 to 50 points [x, y], fractions 0..1 of the sheet page (`sheet_page`) as it
@@ -50,7 +71,7 @@ export function parseArea<T extends RevAreaRow>(row: T): Omit<T, 'geom'> & { geo
 type RevMark = Pick<Tables<'rev_marks'>, 'id' | 'project_id' | 'area_id' | 'item_id' | 'kind' | 'set_up' | 'version' | 'deleted_at'>;
 export type IrRevItem = Pick<
   Tables<'ir_rev_items'>,
-  'id' | 'request_id' | 'area_id' | 'item_id' | 'color' | 'result' | 'result_note' | 'result_at' | 'result_by' | 'version' | 'pulled_at'
+  'id' | 'request_id' | 'area_id' | 'item_id' | 'color' | 'result' | 'result_note' | 'result_at' | 'result_by' | 'version' | 'pulled_at' | 'wall_facts'
 >;
 
 /** A job's whole setup: what useRevSetup answers (live rows only, in order). */

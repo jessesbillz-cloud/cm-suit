@@ -1,6 +1,6 @@
 // The fire marshal's list as cascading groups (Jesse, Oct 22: "in a cascading or expanding list"): Waiting and Done
 // (Approved, Not approved), each with Submittals by spec section and RFIs by number. And the designated person's lists:
-// Waiting on OFS and Back from OFS. Pure, unit-tested.
+// Waiting on OFS and Back from OFS, the requests filed together kept together (0113 batches). Pure, unit-tested.
 import type { DeskRow, DeskState, OfsReviewRow } from '../../data/ofs.types';
 
 interface SectionGroup {
@@ -109,4 +109,31 @@ export function deskLists(rows: readonly DeskRow[]): { waiting: DeskGroup[]; bac
 export function deskTitle(r: DeskRow): string {
   if (r.kind === 'inspection') return r.number === null ? r.title : `OFS ${String(r.number)} · ${r.title}`;
   return r.kind === 'rfi' && r.number !== null ? `RFI ${pad(r.number)} · ${r.title}` : r.title;
+}
+
+interface BatchRun<T> {
+  /** The batch these went in (0113), or null for one on its own. */
+  batch: { id: string; size: number } | null;
+  rows: T[];
+}
+
+/** Rows that went in one batch together, in the place of the first of them; the rest one by one, in their order. */
+export function byBatch<T>(rows: readonly T[], idOf: (row: T) => string, batchOf: ReadonlyMap<string, { batchId: string; size: number }>): BatchRun<T>[] {
+  const out: BatchRun<T>[] = [];
+  const runs = new Map<string, BatchRun<T>>();
+  for (const r of rows) {
+    const b = batchOf.get(idOf(r));
+    if (b === undefined || b.size < 2) {
+      out.push({ batch: null, rows: [r] });
+      continue;
+    }
+    const run = runs.get(b.batchId);
+    if (run) run.rows.push(r);
+    else {
+      const fresh = { batch: { id: b.batchId, size: b.size }, rows: [r] };
+      runs.set(b.batchId, fresh);
+      out.push(fresh);
+    }
+  }
+  return out;
 }

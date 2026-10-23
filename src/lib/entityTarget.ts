@@ -50,6 +50,8 @@ const HOMES: Record<string, Home> = {
   requirement: { tool: 'requirements' },
   // The fire marshal's review (0106): an item that reached him (the rail's count).
   ofs_item: { tool: 'review' },
+  // A wall added on the spot (0113): the managers' line to check it opens the wall's page.
+  rev_area: { tool: 'revs' },
 };
 
 /** Where a record opens, or null when nothing owns that type (or the id is missing). */

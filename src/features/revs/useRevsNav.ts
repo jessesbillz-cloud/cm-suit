@@ -1,15 +1,14 @@
-// Where the revs tool is: the view (?view=) and the level (?level=, the one row of level chips; none = the first level,
-// "all" = every level) live in the URL; the open wall, room (or a setup form) is the frame's item. The Walls view is the
-// rooms (0083, the default), the list (?view=list) or the plan (?view=plan, with a wall to center on and a wall being
-// placed: ?wall=&place=), so a wall opened from the plan comes back to the same plan, and a wall opened from a room
-// (?room=) back to that room. A wall opened from an item's chip on its row or tile opens at that item (?item=). Every
-// move keeps the level, so Back and links land where they were. On a desktop a wall's request or OFS IR opens beside
-// its page, in the right column (?side=). A new request opens in Inspections, prefilled with the wall and its next
-// items. A room's card is set up on the room's page (?view=card). Router only.
+// Where the revs tool is: the view (?view=: none = the rooms, plan, checklist, or setup for a manager) and the level
+// (?level=, the one row of level chips; none = the first level, "all" = every level) live in the URL; the open wall,
+// room, the request being built (0113) or a setup form is the frame's item. The plan has a wall to center on and a
+// wall being placed (?wall=&place=), so a wall opened from the plan comes back to the same plan, and a wall opened from
+// a room (?room=) back to that room. A wall opened from an item's chip on its room's row opens at that item (?item=).
+// Every move keeps the level, so Back and links land where they were. On a desktop a wall's request or OFS IR opens
+// beside its page, in the right column (?side=). A room's card is set up on the room's page (?view=card). A wall added
+// on the spot is its own screen (from a room: ?room=). Router only.
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import type { RevItem } from '../../data/revs.types';
-import { NEW_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX } from '../../lib/itemIds';
-import { parseView, requestSearch, type RevView } from './model';
+import { BASKET_ITEM, FIELD_WALL_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX } from '../../lib/itemIds';
+import { parseView, type RevView } from './model';
 
 interface RevsSearch {
   view?: string | undefined;
@@ -19,7 +18,7 @@ interface RevsSearch {
   room?: string | undefined;
 }
 
-/** The item a wall's page opens at (?item=, a chip on its room's row or tile). */
+/** The item a wall's page opens at (?item=, a chip on its room's row). */
 const atItem = (itemId: string | undefined): Record<string, string> => (itemId ? { item: itemId } : {});
 
 /** The plan's place in the URL. */
@@ -40,18 +39,14 @@ function planSearch(at: PlanAt): Record<string, string> {
   };
 }
 
-/** How the Walls view shows them. */
-export type WallsMode = 'rooms' | 'list' | 'plan';
-
 export function useRevsNav(projectId: string, canManage: boolean) {
   const navigate = useNavigate();
   const search: RevsSearch = useSearch({ strict: false });
   const plan = search.view === 'plan';
-  const mode: WallsMode = plan ? 'plan' : search.view === 'list' ? 'list' : 'rooms';
-  const view = parseView(mode === 'rooms' ? search.view : 'walls', canManage);
+  const view = parseView(plan ? undefined : search.view, canManage);
   const levelPart = (level = search.level): Record<string, string> => (level ? { level } : {});
-  const viewPart: Record<string, string> = plan ? { view: 'plan' } : mode === 'list' ? { view: 'list' } : view === 'walls' ? {} : { view };
-  // A wall opened from the plan comes back to the plan, from the list the list, each at its level.
+  const viewPart: Record<string, string> = plan ? { view: 'plan' } : view === 'walls' ? {} : { view };
+  // A wall opened from the plan comes back to the plan, from the rooms the rooms, each at its level.
   const kept = (level = search.level): Record<string, string> => ({ ...viewPart, ...levelPart(level) });
   const params = { projectId, tool: 'revs' };
   const item = (itemId: string, s: Record<string, string>, replace = false) => {
@@ -60,8 +55,7 @@ export function useRevsNav(projectId: string, canManage: boolean) {
 
   return {
     view,
-    mode,
-    /** The Walls view as the plan. */
+    /** The level's plan sheet with its walls. */
     plan,
     /** The level in the URL, as typed there (levels.ts reads it). */
     level: search.level,
@@ -70,9 +64,6 @@ export function useRevsNav(projectId: string, canManage: boolean) {
     fromRoom: search.room,
     setView: (v: RevView) => {
       void navigate({ to: '/p/$projectId/$tool', params, search: { ...(v === 'walls' ? {} : { view: v }), ...levelPart() } });
-    },
-    setMode: (m: WallsMode) => {
-      void navigate({ to: '/p/$projectId/$tool', params, search: { ...(m === 'rooms' ? {} : { view: m }), ...levelPart() } });
     },
     /** Another level, in the same view; the browser's Back leaves Revs rather than stepping through levels. */
     setLevel: (level: string) => {
@@ -94,9 +85,9 @@ export function useRevsNav(projectId: string, canManage: boolean) {
     openCard: (roomId: string) => {
       item(`${ROOM_ITEM_PREFIX}${roomId}`, { ...levelPart(), view: 'card' });
     },
-    /** A wall from its room's page (at one of its items): its Back comes to the room. */
-    openFromRoom: (areaId: string, roomId: string, focusItem?: string) => {
-      item(areaId, { room: roomId, ...levelPart(), ...atItem(focusItem) });
+    /** A wall from its room's page (at one of its items): its Back comes to the room. `replace`: in place of this screen. */
+    openFromRoom: (areaId: string, roomId: string, focusItem?: string, replace = false) => {
+      item(areaId, { room: roomId, ...levelPart(), ...atItem(focusItem) }, replace);
     },
     /** Back to Revs: the view and level it came from, or else the level of the wall or room it leaves. */
     close: (level?: string) => {
@@ -111,13 +102,13 @@ export function useRevsNav(projectId: string, canManage: boolean) {
       const value = 'requestId' in side ? `inspections:${side.requestId}` : `revs:${REV_FILE_PREFIX}${side.fileId}`;
       item(areaId, { ...(search.room ? { room: search.room } : {}), ...kept(), side: value });
     },
-    /** A new request in Inspections for these walls and items. */
-    request: (areaIds: readonly string[], items: readonly RevItem[]) => {
-      void navigate({
-        to: '/p/$projectId/$tool/$itemId',
-        params: { projectId, tool: 'inspections', itemId: NEW_ITEM },
-        search: requestSearch(areaIds, items),
-      });
+    /** The request being built (0113): its review. */
+    review: () => {
+      item(BASKET_ITEM, levelPart());
+    },
+    /** A wall added on the spot (0113), from a room or from the cards. */
+    addWall: (roomId?: string) => {
+      item(FIELD_WALL_ITEM, { ...levelPart(), ...(roomId ? { room: roomId } : {}) });
     },
   };
 }

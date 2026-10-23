@@ -34,9 +34,7 @@ async function openAs(page: Page, who: string, path: string): Promise<void> {
  *  the request's path. */
 async function sentToOfs(page: Page): Promise<string> {
   await page.goto('/');
-  await openAs(page, 'sub', '/p/job-s/revs');
-  await page.getByTestId('rev-rooms').getByTestId('rev-room-mock-room-110').click();
-  await page.getByTestId('rev-room-request').click();
+  await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-2,mock-rev-area-1&items=');
   await expect(page.getByTestId('rev-picker')).toBeVisible();
   await page.getByTestId(`rev-item-${ITEM}`).click();
   await page.getByTestId('ir-special-required-no').click();
@@ -127,9 +125,7 @@ test.describe('OFS: Not ready, and the easy sign-off', () => {
     await expect(page.getByTestId('ofs-desk-row').filter({ hasText: 'Sample screws too far apart' })).toContainText('Corridor 110 north wall');
 
     // The next request for the room: the room and the item first, as Failed last time.
-    await openAs(page, 'sub', '/p/job-s/revs');
-    await page.getByTestId('rev-rooms').getByTestId('rev-room-mock-room-110').click();
-    await page.getByTestId('rev-room-request').click();
+    await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-2,mock-rev-area-1&items=');
     await expect(page.getByTestId('rev-pick-room-mock-room-110-failed')).toBeVisible();
     const first = page.getByTestId('rev-items-pick').getByRole('group').first();
     await expect(first).toHaveAccessibleName('Failed last time');

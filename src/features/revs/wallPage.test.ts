@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Rev, RevItem, RevStatusRow } from '../../data/revs.types';
 import type { WallRev } from './model';
-import { calloutOf, countLine, countOf, firstPick, keepAskable, partStates, pickAt, tapItem, tapPart, wallItems, type WallItem } from './wallPage';
+import { calloutOf, countLine, countOf, firstPick, partStates, pickAt, tapPart, wallItems } from './wallPage';
 
 const base = { project_id: 'job', version: 1, deleted_at: null };
 const rev = (n: number, name: string): Rev => ({ ...base, id: `r${String(n)}`, list_id: 'l1', number: n, name });
@@ -33,11 +33,6 @@ const REVS: WallRev[] = [
   },
 ];
 const ITEMS = wallItems(REVS);
-const byId = (id: string): WallItem => {
-  const hit = ITEMS.find((i) => i.item.id === id);
-  if (!hit) throw new Error(id);
-  return hit;
-};
 
 describe('a wall page', () => {
   it('lists every item in rev order with the part it inspects', () => {
@@ -70,38 +65,15 @@ describe('a wall page', () => {
     expect(countLine(c)).toBe('2 of 7 passed');
   });
 
-  it('opens on the next item to ask for, picked for nothing yet', () => {
-    expect(firstPick(ITEMS)).toEqual({ focus: 'i12', part: 'head_of_wall_cavity', picked: [] });
-    expect(firstPick([])).toEqual({ focus: null, part: null, picked: [] });
+  it('opens on the next item to ask for', () => {
+    expect(firstPick(ITEMS)).toEqual({ focus: 'i12', part: 'head_of_wall_cavity' });
+    expect(firstPick([])).toEqual({ focus: null, part: null });
   });
 
-  it('opened at an item (a chip on its row): that item shown, nothing picked', () => {
-    expect(pickAt(ITEMS, 'i01')).toEqual({ focus: 'i01', part: 'deck_flutes', picked: [] });
+  it('opened at an item (a chip on its row): that item shown', () => {
+    expect(pickAt(ITEMS, 'i01')).toEqual({ focus: 'i01', part: 'deck_flutes' });
     expect(pickAt(ITEMS, 'gone')).toBeNull();
     expect(pickAt(ITEMS, undefined)).toBeNull();
-  });
-
-  it('a tap shows an item; one still to ask for is picked, a second tap drops it', () => {
-    let s = firstPick(ITEMS);
-    s = tapItem(s, byId('i31')).next;
-    expect(s).toEqual({ focus: 'i31', part: 'board_s1_l1', picked: ['i31'] });
-    s = tapItem(s, byId('i01')).next;
-    expect(s).toEqual({ focus: 'i01', part: 'deck_flutes', picked: ['i31'] });
-    s = tapItem(s, byId('i31')).next;
-    expect(s.picked).toEqual([]);
-    expect(s.focus).toBe('i31');
-    // A requested item is shown, never picked again.
-    expect(tapItem(s, byId('i21')).next.picked).toEqual([]);
-  });
-
-  it('picks three at most (OSFM: three colors on a map); the fourth is shown, not picked', () => {
-    let s = firstPick(ITEMS);
-    for (const id of ['i12', 'i22', 'i31']) s = tapItem(s, byId(id)).next;
-    expect(s.picked).toEqual(['i12', 'i22', 'i31']);
-    const fourth = tapItem(s, byId('i32'));
-    expect(fourth.full).toBe(true);
-    expect(fourth.next.picked).toEqual(['i12', 'i22', 'i31']);
-    expect(fourth.next.focus).toBe('i32');
   });
 
   it("a tap on the drawing shows that part's first item, and steps through its items", () => {
@@ -113,14 +85,7 @@ describe('a wall page', () => {
     s = tapPart(s, 'control_joint', ITEMS);
     expect(s.focus).toBe('i21');
     // A part no item names: just the part.
-    expect(tapPart(s, 'studs', ITEMS)).toEqual({ focus: null, part: 'studs', picked: [] });
-  });
-
-  it('drops a picked item that passed or went N/A meanwhile', () => {
-    const s = { focus: 'i22', part: 'control_joint' as const, picked: ['i22', 'i31'] };
-    expect(keepAskable(s, ITEMS)).toBe(s);
-    const later = ITEMS.map((i) => (i.item.id === 'i31' ? { ...i, cell: { ...i.cell, status: 'na' as const } } : i));
-    expect(keepAskable(s, later).picked).toEqual(['i22']);
+    expect(tapPart(s, 'studs', ITEMS)).toEqual({ focus: null, part: 'studs' });
   });
 
   it("splits a wall's name from its grid or room in brackets", () => {

@@ -1,12 +1,14 @@
 // A revs item: a setup form for those who manage the lists (a new list from the legend, walls to add; the right column
-// on a desktop), a wall's or a room's page on the phone (full screen) and in its own window (on a desktop it fills the
+// on a desktop), the request being built or a wall added on the spot (0113), a wall's or a room's page on the phone (full screen) and in its own window (on a desktop it fills the
 // main area), or a sign-off's OFS IR beside a wall's page (the right column, 0083).
 import type { ReactNode } from 'react';
 import { useCapability } from '../../data/queries';
-import { NEW_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
+import { BASKET_ITEM, FIELD_WALL_ITEM, NEW_ITEM, REV_FILE_PREFIX, ROOM_ITEM_PREFIX, WALLS_ITEM } from '../../lib/itemIds';
 import { Card } from '../../ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { AddWalls } from './AddWalls';
+import { BasketReview } from './basket/BasketReview';
+import { AddWallPage } from './field/AddWallPage';
 import { NewList } from './NewList';
 import { RevFilePane } from './room/RevFilePane';
 import { RoomPage } from './room/RoomPage';
@@ -49,6 +51,9 @@ export function RevsItem({ projectId, itemId, isPhone, onOpenWindow }: RevsItemP
       </ManagersOnly>
     );
   }
+  // The request being built and a wall added on the spot (0113): their own screens on the phone and in a window.
+  if (itemId === BASKET_ITEM) return <BasketReview projectId={projectId} isPhone={isPhone} />;
+  if (itemId === FIELD_WALL_ITEM) return <AddWallPage projectId={projectId} isPhone={isPhone} />;
   if (itemId.startsWith(REV_FILE_PREFIX)) {
     return <RevFilePane key={itemId} projectId={projectId} fileId={itemId.slice(REV_FILE_PREFIX.length)} onOpenWindow={onOpenWindow} />;
   }

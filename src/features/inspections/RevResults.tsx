@@ -104,7 +104,8 @@ function RevResultsBody({ row, cells, setup }: BodyProps) {
                 <StateBox
                   key={cell.id}
                   state={draft.result}
-                  label={label}
+                  // The wall's UL and sheet with it (0113): what the fire marshal checks it against.
+                  label={cell.wall_facts ? `${label} · ${cell.wall_facts}` : label}
                   name={`${label}: ${draft.result === 'passed' ? 'Pass' : 'Fail'}`}
                   disabled={set.isPending}
                   testId={`rev-cell-${cell.area_id}-${cell.item_id}`}

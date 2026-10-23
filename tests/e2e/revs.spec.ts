@@ -3,6 +3,9 @@
 // the three Level 01 walls (IR 5), HOW cavity stuff and spray on two of them with spray failed on Corridor 110 (IR 6),
 // and CJ requested on two Level 02 walls (IR 7). 'pm' reads and requests; 'inspector' also manages (revs.manage). An
 // OFS request answers one question before it is sent (0061: ir-special-required-<yes|no>).
+// Oct 23 (0113): the rooms are the one way in; a manager's row is rev-view-<rooms|plan|setup> and rev-checklist-open;
+// a wall's top line has rev-wall-name, rev-wall-tag-top and rev-wall-progress; Add under a box is rev-add-<item>
+// (data-in when in the request), the bar basket-bar / basket-line / basket-review.
 // Test ids: rev-view-<view>, rev-wall-<area> (a tile; data-failed), rev-wall-page (the wall's own page), rev-wall-name,
 // rev-wall-progress (data-passed / data-needed), rev-wall-3d (the drawing; data-focus = the part shown; each part a
 // [data-part] with data-state), wall3d-label, rev-facts (data-status), rev-item-<item> (a button; aria-pressed when
@@ -71,34 +74,19 @@ async function openAs(page: Page, who: string, path: string): Promise<void> {
 test.describe('revs', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test("walls are tiles with their tally; a wall's own page fills the main area and points at its next item", async ({ page }, testInfo) => {
+  test("the rooms first, no row of views for a reader; a wall's own page fills the main area and points at its next item", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'The main area beside the docked panel is the desktop frame; the phone has its own test.');
-    await openAs(page, 'pm', '/p/job-s/revs?view=list');
-    await expect(page.getByTestId('rev-view-setup')).toHaveCount(0);
+    await openAs(page, 'pm', '/p/job-s/revs');
+    // Oct 23: one way in, the rooms; no Walls, Open, Checklist or Setup for a reader.
+    await expect(page.getByTestId('rev-rooms')).toBeVisible();
+    for (const v of ['rooms', 'list', 'plan', 'open', 'checklist', 'setup']) await expect(page.getByTestId(`rev-view-${v}`)).toHaveCount(0);
+    await expect(page.getByTestId('rev-checklist-open')).toHaveCount(0);
     // The first level by default; the header counts per list.
     await expect(page.getByTestId('rev-level-Level 01')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('rev-meta')).toHaveText('Sample Rated Walls 6 · 0 complete');
-    await expect(page.getByTestId('rev-wall-mock-rev-area-4')).toHaveCount(0);
 
-    const corridor = page.getByTestId('rev-wall-mock-rev-area-2');
-    await expect(corridor).toContainText('Corridor 110 north wall');
-    await expect(corridor).toHaveAttribute('data-failed', 'true');
-    // Its items by rev, each in its own state: TOW's speed plugs passed (IR 5, OFS 0005), HOW cavity stuff passed (IR 6)
-    // and its spray failed, the rest open, in the list's order, by their short names.
-    const items = corridor.getByTestId('rev-items');
-    await expect(items.getByTestId('rev-line-label')).toHaveCount(8);
-    await expect(items.locator('[data-status]')).toHaveCount(21);
-    await expect(items.getByTestId('rev-line-0').getByTestId('rev-line-label')).toHaveText('Rev 0 · TOW');
-    await expect(items.getByTestId('rev-line-5').getByTestId('rev-line-label')).toHaveText('Rev 5 · In-Wall Final');
-    const plugs = items.getByTestId('rev-item-chip-mock-rev-item-0-1');
-    await expect(plugs).toHaveAttribute('data-status', 'passed');
-    await expect(plugs).toHaveText('Speed Plugs · 0005');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-1')).toHaveText('Stuff · 0006');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveAttribute('data-status', 'failed');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-1-2')).toHaveText('Spray');
-    await expect(items.getByTestId('rev-item-chip-mock-rev-item-2-1')).toHaveAttribute('data-status', 'open');
-
-    await corridor.getByTestId('rev-wall-open').click();
+    await page.getByTestId('rev-room-mock-room-110').click();
+    await page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-2').getByTestId('rev-wall-open').click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs\/mock-rev-area-2/);
     const wall = page.getByTestId('main-area').getByTestId('rev-wall-page');
     await expect(wall.getByTestId('rev-wall-name')).toHaveText('Corridor 110 north wall B / 2–5');
@@ -120,33 +108,28 @@ test.describe('revs', () => {
     await expect(wall.getByTestId('rev-na')).toHaveCount(0);
   });
 
-  test('a tap shows an item on the wall and picks it; three at most; a tap on the wall shows its part; Request carries them', async ({ page }, testInfo) => {
+  test('a tap shows an item on the wall; Add puts it in the request (no cap), a tap takes it out; a tap on the wall shows its part', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
     await openAs(page, 'pm', '/p/job-s/revs/mock-rev-area-2');
     const wall = page.getByTestId('rev-wall-page');
     const drawing = wall.getByTestId('rev-wall-3d');
-    const request = wall.getByTestId('rev-request');
-    await expect(request).toBeDisabled();
+    await expect(page.getByTestId('basket-bar')).toHaveCount(0);
 
     const firstLayer = wall.getByTestId('rev-item-mock-rev-item-3-1');
     await firstLayer.click();
-    await expect(firstLayer).toHaveAttribute('aria-pressed', 'true');
     await expect(drawing).toHaveAttribute('data-focus', 'board_s1_l1');
     await expect(drawing.getByTestId('wall3d-label')).toHaveText('First Side - First Layer');
     await expect(wall.getByTestId('rev-facts')).toHaveAttribute('data-status', 'open');
 
-    // A passed item is shown, not picked.
-    await wall.getByTestId('rev-item-mock-rev-item-0-1').click();
-    await expect(drawing).toHaveAttribute('data-focus', 'deck_flutes');
-    await expect(wall.getByTestId('rev-item-mock-rev-item-0-1')).toHaveAttribute('aria-pressed', 'false');
-
-    await wall.getByTestId('rev-item-mock-rev-item-1-3').click();
-    await wall.getByTestId('rev-item-mock-rev-item-1-2').click();
-    await expect(request).toHaveAttribute('data-count', '3');
-    const fourth = wall.getByTestId('rev-item-mock-rev-item-2-1');
-    await fourth.click();
-    await expect(fourth).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByText('3 items at most on one request.')).toBeVisible();
+    // A passed item has no Add; the failed one and the open ones do.
+    await expect(wall.getByTestId('rev-add-mock-rev-item-0-1')).toHaveCount(0);
+    for (const id of ['3-1', '1-3', '1-2', '2-1']) await wall.getByTestId(`rev-add-mock-rev-item-${id}`).click();
+    await expect(wall.getByTestId('rev-add-mock-rev-item-2-1')).toHaveAttribute('data-in', 'true');
+    await expect(wall.getByTestId('rev-add-mock-rev-item-2-1')).toHaveText('In request');
+    await expect(page.getByTestId('basket-line')).toHaveText('4 items on 1 wall');
+    await wall.getByTestId('rev-add-mock-rev-item-2-1').click();
+    await expect(page.getByTestId('basket-line')).toHaveText('3 items on 1 wall');
+    await expect(wall.getByTestId('rev-add-mock-rev-item-2-1')).not.toHaveAttribute('data-in', 'true');
 
     // Tapping the drawing: the electrical box is BOX Caulking.
     await drawing.locator('[data-part="box"]').click();
@@ -154,12 +137,10 @@ test.describe('revs', () => {
     await expect(drawing.getByTestId('wall3d-label')).toHaveText('BOX Caulking');
     await expect(wall.getByTestId('rev-item-mock-rev-item-6-3')).toHaveAttribute('data-focus', 'true');
 
-    await request.click();
-    await expect(page).toHaveURL(/\/p\/job-s\/inspections\/new\?/);
-    const url = new URL(page.url());
-    expect(url.searchParams.get('areas')).toBe('mock-rev-area-2');
-    // In list order: the order the request colors them in.
-    expect(url.searchParams.get('items')).toBe('mock-rev-item-1-2,mock-rev-item-1-3,mock-rev-item-3-1');
+    // Review: one OFS request per item, on this wall.
+    await page.getByTestId('basket-review').click();
+    await expect(page).toHaveURL(/\/p\/job-s\/revs\/request/);
+    await expect(page.getByTestId('basket-group')).toHaveCount(3);
   });
 
   test("an item's request opens in Inspections", async ({ page }, testInfo) => {
@@ -172,45 +153,39 @@ test.describe('revs', () => {
     await expect(page).toHaveURL(/\/p\/job-s\/inspections\/mock-ir-revs-5/);
   });
 
-  test('Open: per item, how many walls are still open and which; a tap opens the wall', async ({ page }) => {
-    await openAs(page, 'pm', '/p/job-s/revs');
-    await page.getByTestId('rev-view-open').click();
-    // Level 01 first: TOW passed on all three of its walls, so it is not open there.
-    await expect(page.getByTestId('rev-level-Level 01')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('rev-open-item-mock-rev-item-2-1')).toHaveAttribute('data-count', '3');
-    await expect(page.getByTestId('rev-open-item-mock-rev-item-0-1')).toHaveCount(0);
-    await page.getByTestId('rev-level-all').click();
-    await expect(page).toHaveURL(/view=open.*level=all/);
-    const tow = page.getByTestId('rev-open-item-mock-rev-item-0-1');
-    await expect(tow).toHaveAttribute('data-count', '3');
-    const stuffing = page.getByTestId('rev-open-item-mock-rev-item-2-1');
-    await expect(stuffing).toHaveAttribute('data-count', '6');
-    await expect(stuffing.locator('[data-testid="rev-open-wall"][data-status="requested"]')).toHaveCount(2);
-    await expect(page.getByTestId('rev-open-item-mock-rev-item-1-2').locator('[data-status="failed"]')).toHaveCount(1);
-    await tow.getByTestId('rev-open-wall').first().click();
-    await expect(page.getByTestId('rev-wall-page').getByTestId('rev-wall-name')).toHaveText('Shaftwall at Stair 2 C–D / 3–4');
+  test('the views removed are gone: a manager has Rooms, Plan, Setup and a Checklist button; old links land on the rooms', async ({ page }) => {
+    await openAs(page, 'inspector', '/p/job-s/revs?view=open');
+    await expect(page.getByTestId('rev-rooms')).toBeVisible();
+    await expect(page.getByTestId('rev-view-rooms')).toHaveAttribute('aria-selected', 'true');
+    for (const v of ['plan', 'setup']) await expect(page.getByTestId(`rev-view-${v}`)).toBeVisible();
+    for (const v of ['list', 'open', 'checklist']) await expect(page.getByTestId(`rev-view-${v}`)).toHaveCount(0);
+    await expect(page.getByTestId('rev-checklist-open')).toBeVisible();
+    await openAs(page, 'inspector', '/p/job-s/revs?view=list&level=all');
+    await expect(page.getByTestId('rev-rooms')).toBeVisible();
+    await expect(page.getByTestId('rev-level-all')).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test('phone: the walls, then a wall as its own screen; the drawing stays in view while the items scroll', async ({ page }, testInfo) => {
+  test('phone: a wall is its own screen; the drawing stays in view while the items scroll; Add and the bar in thumb reach', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'Phone only.');
-    await openAs(page, 'pm', '/p/job-s/revs?view=list');
-    await page.getByTestId('rev-wall-mock-rev-area-1').getByTestId('rev-wall-open').click();
+    await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
+    await page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-1').getByTestId('rev-wall-open').click();
     const wall = page.getByTestId('rev-wall-page');
     const drawing = wall.getByTestId('rev-wall-3d');
     await expect(drawing).toBeVisible();
-    const request = wall.getByTestId('rev-request');
-    await expect(request).toBeDisabled();
 
     await wall.getByTestId('rev-item-mock-rev-item-2-1').click();
     await expect(drawing).toHaveAttribute('data-focus', 'control_joint');
-    await expect(request).toBeEnabled();
-    await expect(request).toHaveAttribute('data-count', '1');
+    const add = wall.getByTestId('rev-add-mock-rev-item-2-1');
+    const box = await add.boundingBox();
+    expect(box !== null && box.height >= 44).toBe(true);
+    await add.click();
+    await expect(page.getByTestId('basket-bar')).toBeInViewport();
 
     // The last item, far down: the drawing is still on screen to show it.
     await wall.getByTestId('rev-item-mock-rev-item-7-1').click();
     await expect(drawing).toHaveAttribute('data-focus', 'whole_wall');
     await expect(drawing).toBeInViewport();
-    await expect(request).toBeInViewport();
+    await expect(page.getByTestId('basket-review')).toBeInViewport();
   });
 
   test('a manager marks the shown item N/A for a wall, and Undo puts it back', async ({ page }, testInfo) => {
@@ -250,8 +225,8 @@ test.describe('revs', () => {
   });
 
   test("Plan: a level's sheet with its walls in their colors; a wall opens its page, whose thumbnail opens the plan on it", async ({ page }) => {
-    await openAs(page, 'pm', '/p/job-s/revs');
-    await page.getByTestId('rev-view-plan').click();
+    // A reader reaches the plan from a wall's sheet or thumbnail (no Plan tab: Oct 23); its link still opens it.
+    await openAs(page, 'pm', '/p/job-s/revs?view=plan');
     const plan = page.getByTestId('rev-plan');
     await expect(plan).toHaveAttribute('data-level', 'Level 01');
     await expect(plan.locator('[data-wall]')).toHaveCount(3);
@@ -382,14 +357,14 @@ test.describe('revs', () => {
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(wall.getByTestId('rev-wall-name')).toHaveText('Corridor 210 north wall B / 2–5');
 
-    // Back to the wall's level.
+    // Back to the wall's level; its room no longer has it, until Undo.
     await wall.getByTestId('rev-wall-remove').click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs\?level=Level(%20|\+)02$/);
-    await page.getByTestId('rev-view-list').click();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-4')).toBeVisible();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toHaveCount(0);
+    await page.getByTestId('rev-room-mock-room-210').click();
+    await expect(page.getByTestId('rev-room-page')).toBeVisible();
+    await expect(page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-5')).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo' }).click();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toBeVisible();
+    await expect(page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-5')).toBeVisible();
   });
 
   test("a wall in its own window has no way back to a list it isn't in", async ({ page }, testInfo) => {
@@ -482,9 +457,8 @@ test.describe('revs', () => {
     await expect(wall.getByTestId('rev-wall-check-note')).toHaveCount(0);
     await wall.getByTestId('rev-wall-check').click();
     await expect(wall.getByTestId('rev-wall-check-note')).toHaveText('Sample head of wall joint');
-    await page.getByTestId('rev-wall-back').click();
-    await page.getByTestId('rev-view-list').click();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-5').getByTestId('rev-wall-tag')).toHaveText('F6a');
+    // The tag sits in the wall's one line at the top, the name without it.
+    await expect(wall.getByTestId('rev-wall-tag-top')).toHaveText('F6a');
   });
 
   test('a manager signs an item and a whole rev off before the app, each with Undo; others see them done', async ({ page }, testInfo) => {
@@ -542,7 +516,8 @@ test.describe('revs', () => {
   test('Checklist: per level, walls by rev with done, failed, requested, open and totals; a sign-off shows done; it prints', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Desktop frame.');
     await openAs(page, 'inspector', '/p/job-s/revs');
-    await page.getByTestId('rev-view-checklist').click();
+    // Oct 23: a button for those who need it, not a tab.
+    await page.getByTestId('rev-checklist-open').click();
     const list = page.getByTestId('rev-checklist');
     const row = (n: number) => list.getByTestId(`rev-check-row-mock-rev-area-${String(n)}`);
     await expect(row(1).getByTestId('rev-check-0')).toHaveAttribute('data-mark', 'done');
