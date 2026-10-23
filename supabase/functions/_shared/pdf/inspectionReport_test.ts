@@ -1,6 +1,6 @@
 // `deno test --config supabase/functions/deno.json supabase/functions/_shared/pdf` — the IR builder on synthetic data.
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import { buildInspectionReport, type InspectionReportInput, pdfSafe, wrapText } from './inspectionReport.ts';
+import { buildInspectionReport, type InspectionReportInput, pdfSafe, plainSpaces, wrapText } from './inspectionReport.ts';
 import { stampSignature } from './stamp.ts';
 
 function check(ok: boolean, what: string): void {
@@ -69,9 +69,20 @@ Deno.test('IR: a photo that is not JPEG or PNG is refused', async () => {
 
 Deno.test('IR: text the standard fonts cannot draw is replaced, not thrown', async () => {
   check(pdfSafe('Grid A\tok 中文') === 'Grid A ok ??', 'tab to space, CJK to ?');
-  check(pdfSafe('4:05\u202fPM\u2009PDT') === '4:05 PM PDT', 'the hosted runtime\'s narrow space before PM is a plain space');
+  const [nnbsp, thin] = [String.fromCharCode(0x202f), String.fromCharCode(0x2009)];
+  check(pdfSafe(`4:05${nnbsp}PM${thin}PDT`) === '4:05 PM PDT', 'the hosted runtime\'s narrow space before PM is a plain space');
   const bytes = await buildInspectionReport(sample({ items: 'Anchors 中 — “quoted”', company: 'Sample Co ✓' }));
   check((await pages(bytes)) === 1, 'builds');
+});
+
+Deno.test('IR: plainSpaces turns every Unicode space into a plain one and leaves the rest', () => {
+  const spaces = [0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x202f, 0x205f, 0x3000];
+  for (const cp of spaces) {
+    check(plainSpaces(`a${String.fromCharCode(cp)}b`) === 'a b', `U+${cp.toString(16).toUpperCase()} becomes a space`);
+  }
+  const kept = [0x00a0, 0x200b, 0x1fff, 0x200c, 0x2028, 0x3001].map((cp) => String.fromCharCode(cp)).join('');
+  check(plainSpaces(`x${kept}\t\ny`) === `x${kept}\t\ny`, 'other characters, tabs and newlines stay');
+  check(plainSpaces('Grid A 中') === 'Grid A 中', 'plain text is unchanged');
 });
 
 Deno.test('IR: wrapText keeps breaks and splits long words', async () => {

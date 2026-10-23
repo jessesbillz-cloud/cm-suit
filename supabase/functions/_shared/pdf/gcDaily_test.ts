@@ -258,7 +258,7 @@ Deno.test('gc daily pdf: a renamed, a hidden, a reordered and an added field and
 
 Deno.test('gc daily pdf: a label the fonts cannot draw is cleaned, not a crash', async () => {
   const odd = setupOf((s) => {
-    for (const f of s.fields) if (f.key === 'notes') f.label = 'Notes \u202f\u4e2d';
+    for (const f of s.fields) if (f.key === 'notes') f.label = `Notes ${String.fromCharCode(0x202f, 0x4e2d)}`;
   });
   const { drawn } = await build(input(companyForm(GC, odd), GC_DAY));
   check(drawn.some((d) => d.text === 'Notes  ?'), `the label goes through clean() (${drawn.map((d) => d.text).filter((t) => t.startsWith('Notes')).join(' | ')})`);
