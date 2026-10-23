@@ -7,7 +7,7 @@
 // the file's pane, New window on it, Full screen from its row, the arrows and Escape; Delete with Undo, Rename, and no Delete on a signed record. Runs only against the e2e
 // mock data layer. Delete and Move on the rows (migration 0096): a row's Delete with Undo, checked rows moved to another
 // folder or deleted together, one toast with Undo for all. Who reads what (migration 0099): a file named for an RFI
-// lands in RFIs, the fire marshal reads a stamp as Approved or Not approved, a sub sees Submittals.
+// lands in RFIs, a sub sees Submittals, the fire marshal browses no Submittals (0106: his come through For review).
 import process from 'node:process';
 import { expect, test, type JSHandle, type Page } from '@playwright/test';
 
@@ -150,7 +150,7 @@ test.describe('files: sections', () => {
     await expect(section(page, 'To sort').getByTestId('section-count')).toHaveText('1');
   });
 
-  test('the fire marshal reads a stamp as Approved or Not approved', async ({ page }) => {
+  test('the fire marshal browses no Submittals: the marked ones reach him in For review (0106)', async ({ page }) => {
     // The PM files two submittals on the fire marshal's job, then the fire marshal (a later init script wins) opens Files.
     await signIn(page, 'pm', '/p/job-s/files');
     await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
@@ -171,12 +171,8 @@ test.describe('files: sections', () => {
       window.localStorage.setItem('e2e-mock-user', 'ahj');
     });
     await page.goto('/p/job-s/files');
-    // He doesn't see every RFI (Jesse, Oct 12): no RFIs section.
-    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'CCDs']);
-    await section(page, 'Submittals').click();
-    await expect(stamp('Sample Board')).toHaveText('Approved');
-    await expect(stamp('Sample Plaster')).toHaveText('Not approved');
-    await expect(page.getByTestId('file-row-stamp').filter({ hasText: /NET|MCN|RNR/ })).toHaveCount(0);
+    // He doesn't see every RFI (Jesse, Oct 12) or every submittal (Oct 22): no RFIs or Submittals section.
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'CCDs']);
   });
 
   test('a sub sees Submittals the way they see Plans, with the stamps', async ({ page }) => {

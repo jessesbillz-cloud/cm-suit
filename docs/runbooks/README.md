@@ -5,3 +5,4 @@
 - `rotate-secrets.md` — CRON_SECRET, webhook credentials, delivery/request tokens.
 - `ofs-job-setup.md` — set up a fire marshal job's walls, rooms, revs and past sign-offs (the per-job setup).
 - `ofs-request-flow.md` — an OFS inspection request from asking to passed in Revs and the signed IR, one call per step.
+- `ofs-review.md` — a fire / life safety RFI or submittal from upload to the fire marshal's Approved or Not approved.

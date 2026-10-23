@@ -31,13 +31,20 @@ export const PROJECT_SETTINGS_DEFAULTS = {
   /** Inspections: the words a sub confirms before an OFS request goes to the GC. Null: the database's standard wording
    *  (ir_ofs_attest_wording, 0091), which the form and the settings box read from the database. */
   ir_ofs_attest_text: null as string | null,
+  /** OFS review (0106): the divisions and sections (2, 4 or 6 digits) whose RFIs and submittals are suggested fire / life
+   *  safety. Null: the database's standard list (ofs_fire_default), which the settings box reads from the database. */
+  ofs_fire_sections: null as string[] | null,
 };
+
+/** One entry of the job's fire list: a division ("21"), a level 2 ("0784") or a section ("078100"). */
+const FIRE_ENTRY = /^[0-4]\d(\d{2}){0,2}$/;
 
 const projectSettingsSchema = z.object({
   show_ball_in_court: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.show_ball_in_court),
   ir_gc_approval: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_gc_approval),
   ir_ofs_allowed: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_allowed),
   ir_ofs_attest_text: z.string().trim().min(1).max(1000).nullable().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_attest_text),
+  ofs_fire_sections: z.array(z.string().regex(FIRE_ENTRY)).min(1).max(100).nullable().catch(PROJECT_SETTINGS_DEFAULTS.ofs_fire_sections),
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -51,4 +58,14 @@ export function parseOrgSettings(v: unknown): OrgSettings {
 
 export function parseProjectSettings(v: unknown): ProjectSettings {
   return projectSettingsSchema.parse({ ...PROJECT_SETTINGS_DEFAULTS, ...asObject(v) });
+}
+
+/**
+ * The fire list as typed in the job's settings ("21, 28, 07 81 00"): its entries, each once and sorted, and what is not
+ * an entry. Nothing typed: null (the standard list).
+ */
+export function parseFireList(text: string): { list: string[] | null; bad: string[] } {
+  const parts = text.split(/[,;\n]+/).map((p) => p.replace(/\s+/g, '')).filter((p) => p !== '');
+  const good = [...new Set(parts.filter((p) => FIRE_ENTRY.test(p)))].sort();
+  return { list: good.length > 0 ? good : null, bad: parts.filter((p) => !FIRE_ENTRY.test(p)) };
 }

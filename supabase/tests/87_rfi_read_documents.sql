@@ -59,10 +59,10 @@ select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000873'), '{plan,rfi_d
   'special inspector: Plans, Submittals and RFI documents (no Reports)');
 select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000873'), '{plans,specs,submittals,rfis,ccd}'::text[],
   'special inspector: an RFIs section');
-select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000874'), '{plan,submittal}'::text[],
-  'fire marshal: still no RFI documents');
-select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000874'), '{plans,specs,submittals,ccd}'::text[],
-  'fire marshal: still no RFIs section');
+select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000874'), '{plan}'::text[],
+  'fire marshal: still no RFI documents, and no unmarked submittal (0106)');
+select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000874'), '{plans,specs,ccd}'::text[],
+  'fire marshal: still no RFIs section, no Submittals section (0106)');
 reset role;
 
 select is((select array_agg(role order by role) from public.role_permissions where capability = 'rfi.read_documents'),

@@ -283,6 +283,8 @@ Fable writes the DDL. This section fixes the entities, the key columns and the a
 | `rfi.sign_issue` | pm, pe, project_admin |
 | `rfi.answer` | architect |
 | `rfi.read_documents` | every role that reads Plans and Specs except ahj (0100) |
+| `files.read_submittals` | every role that reads Plans and Specs except ahj (0106): the Submittals section |
+| `ofs.review` | ahj (0106): fire / life safety RFIs and submittals once answered, Approved or Not approved |
 | `rfi.view_internal_research` | project_admin, pm, pe, estimator |
 | `files.*` | per-folder access list (§5.6) |
 | `members.manage` | project_admin |

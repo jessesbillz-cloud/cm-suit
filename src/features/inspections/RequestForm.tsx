@@ -16,6 +16,8 @@ import { useIrAccess } from './useIrAccess';
 interface PrefillSearch {
   areas?: string | undefined;
   items?: string | undefined;
+  /** Start as an OFS request (0106: the designated person's Request inspection). */
+  kind?: string | undefined;
 }
 
 type Common = Omit<BodyProps, 'revs'>;
@@ -45,7 +47,7 @@ export function RequestForm({ projectId }: { projectId: string }) {
   if (access.state === 'error') return <ErrorState error={access.error} onRetry={access.retry} />;
   if (ctx.isError) return <ErrorState error={ctx.error} onRetry={() => void ctx.refetch()} />;
   if (access.state === 'loading' || !ctx.data) return <LoadingState label="Loading the form" />;
-  const props = { projectId, job: access.job, ctx: ctx.data, day, inspector: access.can.decide };
+  const props = { projectId, job: access.job, ctx: ctx.data, day, inspector: access.can.decide, ofsFirst: search.kind === 'ofs' };
   // A new link from Revs (other walls, other items) starts a new form.
   const key = `${projectId}|${search.areas ?? ''}|${search.items ?? ''}`;
   return ctx.data.ofs ? <OfsRequestForm key={key} {...props} /> : <RequestFormBody key={projectId} {...props} revs={null} />;

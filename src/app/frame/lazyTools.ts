@@ -8,6 +8,7 @@ import type { Tool } from '../../lib/layout';
 
 // The main area, one screen per tool.
 export const Board = lazyRouteComponent(() => import('../../features/board/Board').then((m) => ({ default: m.Board })));
+export const ReviewTool = lazyRouteComponent(() => import('../../features/ofs/ReviewTool').then((m) => ({ default: m.ReviewTool })));
 export const FilesTool = lazyRouteComponent(() => import('../../features/files/FilesTool').then((m) => ({ default: m.FilesTool })));
 export const BidPipeline = lazyRouteComponent(() =>
   import('../../features/bids/BidPipeline').then((m) => ({ default: m.BidPipeline })),
@@ -47,6 +48,7 @@ export const TimesheetsTool = lazyRouteComponent(() =>
 
 // An opened item: the right column, the phone's full screen, or its own window.
 export const BoardItem = lazyRouteComponent(() => import('../../features/board/BoardItem').then((m) => ({ default: m.BoardItem })));
+export const ReviewItem = lazyRouteComponent(() => import('../../features/ofs/ReviewItem').then((m) => ({ default: m.ReviewItem })));
 export const FileItem = lazyRouteComponent(() => import('../../features/files/FileItem').then((m) => ({ default: m.FileItem })));
 export const BidsItem = lazyRouteComponent(() => import('../../features/bids/BidsItem').then((m) => ({ default: m.BidsItem })));
 export const CalendarItem = lazyRouteComponent(() =>
@@ -93,6 +95,8 @@ function partsOf(tool: Tool, onJob: boolean): readonly Part[] {
   switch (tool) {
     case 'board':
       return [Board, BoardItem];
+    case 'review':
+      return [ReviewTool, ReviewItem];
     case 'files':
       return [FilesTool, FileItem];
     case 'bids':

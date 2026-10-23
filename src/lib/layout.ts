@@ -7,6 +7,7 @@ import { z } from 'zod';
 /** Every tool the frame can show in the main area. */
 const TOOLS = [
   'board',
+  'review',
   'files',
   'bids',
   'calendar',
@@ -30,6 +31,7 @@ export type Tool = (typeof TOOLS)[number];
 /** Tools a person may put on the rail. Settings is pinned at the bottom of the rail, not a choice. */
 export const RAIL_TOOLS = [
   'board',
+  'review',
   'files',
   'bids',
   'calendar',

@@ -38,6 +38,7 @@ import {
   InspectionsItem,
   PermitItem,
   RequirementsItem,
+  ReviewItem,
   RevsItem,
   RfiItem,
   SafetyItem,
@@ -63,7 +64,7 @@ interface ToolItemProps extends ItemViewProps {
  * Panes that draw their own "Open in new window" (in their footer or head, or a file's New window on its box). Every
  * other item gets it in the right column's header (SPEC §7.2: every item has it); never on a phone, which has no windows.
  */
-const OWN_WINDOW_BUTTON: readonly Tool[] = ['board', 'files', 'inspections', 'corrections', 'rfis', 'permits'];
+const OWN_WINDOW_BUTTON: readonly Tool[] = ['board', 'review', 'files', 'inspections', 'corrections', 'rfis', 'permits'];
 
 /** The tool's item opens with its own "Open in new window" button, or the frame draws one. */
 export function itemHasOwnWindowButton(tool: Tool, itemId: string): boolean {
@@ -102,6 +103,9 @@ function ToolItem({ model, tool, itemId, standalone, isPhone }: ToolItemProps) {
   if (tool === 'files') {
     // After a Delete the pane closes (in its own window there is nothing to go back to).
     return <FileItem key={itemId} fileId={itemId} onOpenWindow={openWindow} onClose={standalone ? undefined : model.closeItem} />;
+  }
+  if (tool === 'review' && projectId !== null) {
+    return <ReviewItem key={itemId} projectId={projectId} itemId={itemId} onOpenWindow={openWindow} />;
   }
   if (tool === 'bids' && projectId !== null) return <BidsItem projectId={projectId} itemId={itemId} />;
   if (tool === 'calendar') return <CalendarItem key={itemId} projectId={projectId} itemId={itemId} />;
@@ -180,6 +184,7 @@ function bidsTitle(itemId: string, view: string | undefined): string {
 export function itemTitle(tool: Tool, itemId: string, view?: string): string {
   if (tool === 'board' || boardLineOf(itemId) !== null) return 'From the board';
   if (tool === 'files') return 'File';
+  if (tool === 'review') return 'For review';
   if (tool === 'bids') return bidsTitle(itemId, view);
   const kind = itemKindTitle(tool, itemId);
   if (kind !== null) return kind;

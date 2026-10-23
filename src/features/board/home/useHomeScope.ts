@@ -1,7 +1,7 @@
 // What the home (All my jobs) holds, decided job by job by my capabilities there (my_capabilities, has_capability),
 // never by role names (Jesse, Oct 12: "I would never use Bids"). Someone with several roles across jobs gets each
 // job's share: inspections today where I inspect or request, RFIs waiting where I write or issue them, open bids
-// where I run bids. A tool the job has off counts nowhere.
+// where I run bids, For review where I review for OFS. A tool the job has off counts nowhere.
 import { useMemo } from 'react';
 import { useJobsWithCapability, useMyProjects } from '../../../data/queries';
 import { toolIsOn } from '../../../lib/jobs';
@@ -13,6 +13,8 @@ interface HomeScope {
   ofs: string[] | undefined;
   rfis: string[] | undefined;
   bids: string[] | undefined;
+  /** The jobs where I review fire / life safety items for OFS (ofs.review): For review leads my home. */
+  review: string[] | undefined;
   error: Error | null;
   refetch: () => void;
 }
@@ -28,7 +30,7 @@ export function useHomeScope(enabled = true): HomeScope {
   const on = useMemo(() => {
     const jobs = enabled ? (projects.data ?? []) : [];
     const ids = (tool: string) => jobs.filter((p) => toolIsOn(tool, p.modules)).map((p) => p.project_id);
-    return { inspections: ids('inspections'), rfis: ids('rfis'), bids: ids('bids') };
+    return { inspections: ids('inspections'), rfis: ids('rfis'), bids: ids('bids'), all: jobs.map((p) => p.project_id) };
   }, [enabled, projects.data]);
 
   const decide = useJobsWithCapability(on.inspections, 'ir.decide');
@@ -37,7 +39,8 @@ export function useHomeScope(enabled = true): HomeScope {
   const draft = useJobsWithCapability(on.rfis, 'rfi.create_draft');
   const issue = useJobsWithCapability(on.rfis, 'rfi.sign_issue');
   const bids = useJobsWithCapability(on.bids, 'bids.manage');
-  const all = [decide, ofs, ask, draft, issue, bids];
+  const review = useJobsWithCapability(on.all, 'ofs.review');
+  const all = [decide, ofs, ask, draft, issue, bids, review];
   const known = !enabled || projects.data !== undefined;
 
   return {
@@ -45,6 +48,7 @@ export function useHomeScope(enabled = true): HomeScope {
     ofs: known ? ofs.ids : undefined,
     rfis: known ? union(draft.ids, issue.ids) : undefined,
     bids: known ? bids.ids : undefined,
+    review: known ? review.ids : undefined,
     error: all.find((r) => r.error !== null)?.error ?? null,
     refetch: () => {
       for (const r of all) r.refetch();

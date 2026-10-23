@@ -45,6 +45,8 @@ export interface BodyProps {
   inspector: boolean;
   /** The job's revs, when it has walls to pick (an OFS job). */
   revs: OfsRevs | null;
+  /** Start as an OFS request (the designated person's Request inspection, ?kind=ofs). */
+  ofsFirst?: boolean | undefined;
 }
 
 interface Sent {
@@ -59,12 +61,12 @@ function kindOptions(ofs: boolean): { value: IrKind; label: string }[] {
   return [{ value: 'ior', label: 'IOR' }, { value: 'special', label: 'Special' }, ...(ofs ? [{ value: 'ofs' as const, label: 'OFS' }] : [])];
 }
 
-export function RequestFormBody({ projectId, job, ctx, day, inspector, revs }: BodyProps) {
+export function RequestFormBody({ projectId, job, ctx, day, inspector, revs, ofsFirst }: BodyProps) {
   const submit = useSubmitIr();
   const submitOfs = useSubmitOfs();
   const track = useOpenRequest(projectId);
   const linked = revs !== null && (revs.start.areaIds.length > 0 || revs.start.itemIds.length > 0);
-  const [kind, setKind] = useState<IrKind>(linked ? 'ofs' : 'ior');
+  const [kind, setKind] = useState<IrKind>(linked || (ofsFirst === true && ctx.ofs) ? 'ofs' : 'ior');
   const [when, setWhen] = useState<WhenPick>(() => startWhen(kind, day, ctx.today, recallWhen(projectId)));
   // A day picked by hand stays when the type changes; else the day follows the type.
   const [dayPicked, setDayPicked] = useState(false);

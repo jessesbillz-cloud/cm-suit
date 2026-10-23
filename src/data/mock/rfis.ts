@@ -62,6 +62,8 @@ export function has(cap: string, m: Me = me()): boolean {
 
 export async function capability(cap: string): Promise<boolean> {
   await delay();
+  // rfi.read_documents (0100): every Plans reader but the fire marshal (and the bidder, who reads no RFI).
+  if (cap === 'rfi.read_documents') return !['ahj', 'bidder'].includes(me().role);
   return has(cap);
 }
 

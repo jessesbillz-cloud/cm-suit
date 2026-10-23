@@ -157,6 +157,8 @@ export const PUBLIC_TABLES = [
   'requirements', 'requirement_reminders',
   // Weather on dailies (0071): where the job is, and each day's weather
   'project_places', 'project_weather',
+  // The fire marshal's review (0106): an item's mark, and his decisions
+  'ofs_items', 'ofs_decisions',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -409,4 +411,29 @@ export const FILE_VIEWER_RPCS: [string, Record<string, unknown>][] = [
   ['file_spec_section_set', { p_file_id: ZERO_UUID, p_version: 1, p_section: '092900' }],
   ['file_spec_sections_fill', { p_items: [{ file_id: ZERO_UUID, section: '092900' }] }],
   ['file_spec_section_may', { p_file_id: ZERO_UUID }],
+];
+
+/** The fire marshal's review (0106): marks, decisions, his list, the designated person's page, and their helpers. */
+export const OFS_REVIEW_RPCS: [string, Record<string, unknown>][] = [
+  ['ofs_fire_standard', {}],
+  ['ofs_item_state', { p_file_id: ZERO_UUID }],
+  ['ofs_mark', { p_on: true, p_file_id: ZERO_UUID, p_version: 0 }],
+  ['ofs_suggest', { p_file_ids: [ZERO_UUID] }],
+  ['ofs_decide', { p_item_id: ZERO_UUID, p_version: 1, p_decision: 'approved', p_key: ZERO_UUID }],
+  ['ofs_review_list', {}],
+  ['ofs_desk', { p_project_id: ZERO_UUID }],
+  ['ofs_waiting', {}],
+  ['ofs_file_readable', { p_file_id: ZERO_UUID }],
+  ['ofs_item_may_see', { p_rfi_id: ZERO_UUID, p_file_id: ZERO_UUID }],
+  ['ofs_fire_default', {}],
+  ['ofs_fire_list', { p_project_id: ZERO_UUID }],
+  ['ofs_section_is_fire', { p_project_id: ZERO_UUID, p_section: '211313' }],
+  ['ofs_section_of_text', { p_text: '21 13 13' }],
+  ['ofs_file_kind', { p_file_id: ZERO_UUID }],
+  ['ofs_rfi_marked', { p_rfi_id: ZERO_UUID }],
+  ['ofs_item_sent', { p_item_id: ZERO_UUID }],
+  ['ofs_may_mark_rfi', { p_rfi_id: ZERO_UUID }],
+  ['ofs_may_mark_file', { p_file_id: ZERO_UUID }],
+  ['ofs_item_json', { p_item_id: ZERO_UUID }],
+  ['folder_nearest_kind', { p_folder_id: ZERO_UUID }],
 ];
