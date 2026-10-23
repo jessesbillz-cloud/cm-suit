@@ -8,6 +8,7 @@ import { formatDay } from '../../lib/dates';
 import { ErrorState } from '../../ui/States';
 import { chipOf } from './model';
 import type { WallItem } from './wallPage';
+import { SECTION_HEAD } from '../../ui/PageHeader';
 
 interface WallHistoryProps {
   projectId: string;
@@ -73,7 +74,7 @@ export function WallHistory({ projectId, areaId, items, onRequest, onFile }: Wal
   if (groups.length === 0) return null;
   return (
     <section className="flex flex-col gap-2" data-testid="rev-history">
-      <h2 className="px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">History</h2>
+      <h2 className={SECTION_HEAD}>History</h2>
       <ul className="flex flex-col gap-2">
         {groups.map((g) => (
           <li key={g.item.item.id} className="flex flex-col gap-0.5" data-testid={`rev-history-${g.item.item.id}`}>

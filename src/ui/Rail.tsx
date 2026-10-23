@@ -2,7 +2,7 @@
 // and timesheets when they apply to me). On a job, only that job (Jesse, Oct 3: "once you're on a job, it should all be
 // specific to that job"): its name, the tools I chose for it (each with a count of what needs me), More for its other
 // tools, and Edit to choose them. Settings is pinned at the bottom. The product mark on top is Home: back to All my
-// jobs (Jesse, Oct 5). A dark navy strip down the whole left edge; it collapses to icons only (the job's name
+// jobs (Jesse, Oct 5). A black strip down the whole left edge; it collapses to icons only (the job's name
 // becomes a thin line). Nobody drags or resizes it.
 import { useEffect, useRef, useState } from 'react';
 import { ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
@@ -159,7 +159,7 @@ function JobHead({ label, compact }: JobHeadProps) {
     <p
       aria-hidden="true"
       data-testid="job-rail-label"
-      className="mb-1 w-[80px] shrink-0 text-balance break-words border-b border-rail-line px-1 pb-2 text-center text-[11px] font-semibold uppercase leading-[14px] tracking-wide text-white wrap-anywhere"
+      className="heading mb-1 w-[80px] shrink-0 text-balance break-words border-b-2 border-accent px-1 pb-2 text-center text-[12px] font-semibold leading-[15px] tracking-[0.06em] text-white wrap-anywhere"
     >
       {label}
     </p>

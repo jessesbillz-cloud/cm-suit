@@ -50,7 +50,7 @@ export function MarkToggle({ projectId, target, item }: MarkToggleProps) {
       data-on={on ? 'true' : 'false'}
       disabled={mark.isPending}
       className={`flex min-h-11 items-center gap-2 self-start rounded-lg px-3.5 py-2 text-sm font-semibold ${
-        on ? `border border-accent bg-accent text-white shadow-tile ${FOCUS_RING}` : `${CLICK_BOX} text-ink`
+        on ? `border-[1.5px] border-accent bg-accent text-white shadow-primary ${FOCUS_RING}` : `${CLICK_BOX} text-ink`
       }`}
       onClick={() => {
         set(!on, item.version);

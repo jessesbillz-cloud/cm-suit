@@ -13,7 +13,7 @@ export function Icon({ icon: Glyph, size = 18, label, className }: IconProps) {
   return (
     <Glyph
       size={size}
-      strokeWidth={1.75}
+      strokeWidth={2}
       className={className}
       aria-hidden={label ? undefined : true}
       aria-label={label}

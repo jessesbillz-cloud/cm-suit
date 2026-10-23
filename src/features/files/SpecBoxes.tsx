@@ -31,7 +31,7 @@ export function SpecBoxes({ query, data, onOpen }: SpecBoxesProps) {
   }
   const counts = hubCounts(data.sources);
   return (
-    <ul data-testid="spec-hub-boxes" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul data-testid="spec-hub-boxes" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {found.map((s) => {
         const n = counts.get(s.key) ?? 0;
         return (

@@ -1,12 +1,12 @@
-// Form fields with one look: short label above, 40px control (a button's height), accent focus ring. Forms that need
+// Form fields with one look: short label above, 40px control (a button's height) with a crisp edge, an ink edge and accent ring on focus. Forms that need
 // their own control (a textarea) take the same classes from here, so every field looks alike. Every date and time box
 // is TextField or DateInput: a tap anywhere in it opens the picker (lint bans a bare date input elsewhere).
 import type { HTMLInputTypeAttribute, InputHTMLAttributes, MouseEvent } from 'react';
 
-const FOCUS = 'outline-none transition-[border-color,box-shadow] focus:border-accent focus:ring-[3px] focus:ring-accent/20';
-export const FIELD_CONTROL = `h-10 rounded-lg border border-line-strong bg-card px-3 text-sm font-normal text-ink shadow-control placeholder:text-ink-3/50 disabled:bg-card-head disabled:text-ink-3/50 ${FOCUS}`;
-export const FIELD_AREA = `rounded-lg border border-line-strong bg-card px-3 py-2 text-sm font-normal leading-6 text-ink shadow-control placeholder:text-ink-3/50 ${FOCUS}`;
-export const FIELD_LABEL = 'flex flex-col gap-1.5 text-[13px] font-medium text-ink-2';
+const FOCUS = 'outline-none transition-[border-color,box-shadow] duration-150 hover:border-ink-3 focus:border-ink focus:ring-[3px] focus:ring-accent/25';
+export const FIELD_CONTROL = `h-10 rounded-md border-[1.5px] border-line-strong bg-card px-3 text-sm font-normal text-ink shadow-control placeholder:text-ink-3/50 disabled:bg-card-head disabled:text-ink-3/50 ${FOCUS}`;
+export const FIELD_AREA = `rounded-md border-[1.5px] border-line-strong bg-card px-3 py-2 text-sm font-normal leading-6 text-ink shadow-control placeholder:text-ink-3/50 ${FOCUS}`;
+export const FIELD_LABEL = 'flex flex-col gap-1.5 text-[13px] font-medium text-ink';
 const CONTROL = FIELD_CONTROL;
 const LABEL = FIELD_LABEL;
 /** Field screens on a phone (the public request page): 48px controls and 16px text, which phones don't zoom into. */

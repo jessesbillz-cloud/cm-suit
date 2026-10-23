@@ -7,6 +7,7 @@ import { phoneRail } from '../../lib/jobs';
 import { phoneTabs, type Tool } from '../../lib/layout';
 import { HomeMark } from '../../ui/BrandMark';
 import { JobPicker } from '../../ui/JobPicker';
+import { OrgLogoSlot } from '../../ui/OrgLogoSlot';
 import { JobToolsEdit } from '../../ui/JobToolsEdit';
 import { ViewAs } from '../../ui/ViewAs';
 import { PanelBack, PanelMoreSheet, PanelScreen, PanelTabBar } from '../../ui/Panel';
@@ -63,6 +64,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
             />
           </div>
           <ViewAs />
+          <OrgLogoSlot />
         </div>
       }
       bottom={
@@ -110,7 +112,7 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
         </>
       }
     >
-      <main data-testid="main-area" data-tool={loc.tool} className="p-3">
+      <main data-testid="main-area" data-tool={loc.tool} className="px-2 py-3">
         <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone />
       </main>
     </PanelScreen>

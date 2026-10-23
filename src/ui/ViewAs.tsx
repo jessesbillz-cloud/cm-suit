@@ -15,8 +15,8 @@ export function ViewAs() {
   const viewing = state.data.viewing;
   return (
     <label
-      className={`flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2 text-sm ${
-        viewing ? 'border-accent text-accent' : 'border-line text-ink-2'
+      className={`flex h-8 shrink-0 items-center gap-1.5 rounded-md border-[1.5px] bg-card px-2 text-sm shadow-tile ${
+        viewing ? 'border-accent text-accent' : 'border-card text-ink-2'
       }`}
     >
       <Icon icon={Eye} size={14} />

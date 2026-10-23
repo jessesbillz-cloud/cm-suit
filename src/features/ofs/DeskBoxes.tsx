@@ -12,12 +12,15 @@ import { UploadList } from '../files/UploadList';
 import { useFileDrop } from '../files/useFileDrop';
 import { useDeskUpload, type DeskKind } from './useDeskUpload';
 
-const BOX = `flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-xl px-4 py-5 text-center text-[17px] font-semibold text-ink ${CLICK_BOX}`;
+// The boldest things on the page (Jesse, Oct 23): tall boxes, the words in the display face, a thick accent base.
+const BOX = `heading flex min-h-40 w-full flex-col items-center justify-center gap-3 rounded-card border-b-[6px] border-b-accent px-5 py-6 text-center text-[24px] font-semibold leading-7 tracking-[0.06em] text-ink max-sm:min-h-28 ${CLICK_BOX}`;
 
 function BoxFace({ icon, label }: { icon: LucideIcon; label: string }) {
   return (
     <>
-      <Icon icon={icon} size={28} className="text-accent" />
+      <span className="flex h-14 w-14 items-center justify-center rounded-md bg-rail text-white shadow-tile">
+        <Icon icon={icon} size={30} />
+      </span>
       {label}
     </>
   );
@@ -46,7 +49,7 @@ function UploadBox({ projectId, kind, label, icon, testId }: UploadBoxProps) {
         type="button"
         data-testid={testId}
         disabled={up.loading || up.folder === null}
-        className={`${BOX} ${drop.over ? 'ring-2 ring-accent' : ''}`}
+        className={`${BOX} ${drop.over ? 'ring-4 ring-accent' : ''}`}
         onClick={() => {
           input.current?.click();
         }}
@@ -74,7 +77,7 @@ function UploadBox({ projectId, kind, label, icon, testId }: UploadBoxProps) {
 export function DeskBoxes({ projectId }: { projectId: string }) {
   const navigate = useNavigate();
   return (
-    <div className="grid gap-3 sm:grid-cols-3" data-testid="ofs-desk-boxes">
+    <div className="grid gap-4 sm:grid-cols-3" data-testid="ofs-desk-boxes">
       <button
         type="button"
         data-testid="ofs-desk-request"

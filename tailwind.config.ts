@@ -1,52 +1,63 @@
 import type { Config } from 'tailwindcss';
 
 // Design tokens (SPEC §7.1). Status colors are NOT here; they come from src/lib/status.ts.
-// Near-white page, white cards with a hairline edge and a deep layered shadow, card headers on a faint tint,
-// one accent color. The font is self-hosted IBM Plex Sans (public/fonts, @font-face in src/app/styles.css).
+// The look (Jesse, Oct 23: "deep shadow boxes, bold hard lines ... like it was purposely designed"): a light gray page,
+// white boxes with a crisp edge and a deep layered shadow, square-ish corners, a black rail and top bar with a thin red
+// line, one accent (a deep red), black primary buttons. The type pairs a condensed display face for titles, section
+// heads, rail labels and buttons (`font-display`, the `heading` class in src/app/styles.css) with a plain sans for body
+// and data. Both self-hosted (public/fonts, @font-face in src/app/styles.css).
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        page: '#E9EDF2',
-        card: { DEFAULT: '#FFFFFF', head: '#F8F9FB' },
+        page: '#E8E9EB',
+        card: { DEFAULT: '#FFFFFF', head: '#F5F5F6' },
         // Readable ink only (Jesse, Oct 5: "you like to hide things and put things in super light lettering"): ink for
         // what matters, ink-2 for a second line, ink-3 for small print. Placeholders and disabled use ink-3 at half.
-        ink: { DEFAULT: '#111827', 2: '#374151', 3: '#4B5563' },
-        line: { DEFAULT: '#DFE3E9', strong: '#C4CAD3' },
-        accent: { DEFAULT: '#2563EB', hover: '#1D4ED8', soft: '#EFF6FF' },
-        danger: { DEFAULT: '#DC2626', soft: '#FEF2F2' },
+        ink: { DEFAULT: '#16181B', 2: '#3B3E43', 3: '#53565B' },
+        // line: a static box's edge and dividers. strong: a field's edge.
+        line: { DEFAULT: '#D1D3D4', strong: '#A7A9AC' },
+        // The one accent: the selected place, focus, links, counts, the bar's thin line. Not a failure: failures keep
+        // lib/status's deeper red and always carry their word.
+        accent: { DEFAULT: '#C91235', hover: '#A30E2B', soft: '#FBECEF' },
+        danger: { DEFAULT: '#B42318', soft: '#FEF3F2' },
         // The one amber highlight: impact claimed (row, box edge, icon).
         impact: { row: '#FFF7E6', edge: '#F3D7A6', ink: '#B45309' },
-        // The tool rail: a dark navy strip down the left, so the white work area reads as the page.
-        rail: { DEFAULT: '#0F1A2B', hover: '#1B2A40', active: '#24364F', ink: '#D3DBE6', line: '#22324A' },
+        // The rail and the top bar: one black strip down the left and across the top.
+        rail: { DEFAULT: '#141618', hover: '#24272B', active: '#2F3338', ink: '#D1D3D4', line: '#34383D' },
       },
       boxShadow: {
-        // Deep, layered boxes (Jesse, Oct 4 and Oct 12: "deep shadows and very distinct clickable boxes"): a hairline edge,
-        // a contact shadow, a short drop and a long soft lift.
-        card: '0 0 0 1px rgba(16,24,40,.10), 0 1px 2px rgba(16,24,40,.10), 0 6px 12px -2px rgba(16,24,40,.14), 0 18px 36px -8px rgba(16,24,40,.28)',
-        // A clickable card under the pointer: the same box lifted higher.
-        lift: '0 0 0 1px rgba(16,24,40,.14), 0 2px 4px rgba(16,24,40,.12), 0 10px 20px -4px rgba(16,24,40,.18), 0 28px 52px -10px rgba(16,24,40,.38)',
-        // A clickable box inside a card (a secondary button, a tile, a chip): its own edge and drop, a lift on hover,
-        // pressed in on press.
-        tile: '0 1px 2px rgba(16,24,40,.16), 0 4px 8px -2px rgba(16,24,40,.18)',
-        'tile-hover': '0 2px 4px rgba(16,24,40,.16), 0 10px 20px -4px rgba(16,24,40,.28)',
-        press: 'inset 0 1px 3px rgba(16,24,40,.18)',
+        // Deep, layered boxes (Jesse, Oct 4, Oct 12, Oct 23): a crisp 1.5px edge, a contact shadow, a drop and a long
+        // soft lift.
+        card: '0 0 0 1.5px #CBCDCF, 0 2px 3px rgba(16,18,20,.12), 0 10px 18px -6px rgba(16,18,20,.22), 0 26px 44px -14px rgba(16,18,20,.36)',
+        // A clickable card under the pointer: a black edge, lifted higher.
+        lift: '0 0 0 2px #16181B, 0 4px 6px rgba(16,18,20,.16), 0 16px 28px -8px rgba(16,18,20,.30), 0 34px 60px -16px rgba(16,18,20,.45)',
+        // A clickable box (ui/box CLICK_BOX, secondary buttons, tiles; the edge is its own border): a hard contact
+        // line and a drop; deeper on hover; pressed in on press.
+        tile: '0 1px 0 rgba(16,18,20,.28), 0 3px 6px -1px rgba(16,18,20,.20), 0 10px 18px -8px rgba(16,18,20,.34)',
+        'tile-hover': '0 2px 0 rgba(16,18,20,.30), 0 8px 14px -4px rgba(16,18,20,.26), 0 22px 34px -12px rgba(16,18,20,.46)',
+        press: 'inset 0 2px 4px rgba(16,18,20,.26)',
         // Menus and toasts float highest.
-        pop: '0 0 0 1px rgba(16,24,40,.10), 0 6px 12px -2px rgba(16,24,40,.12), 0 24px 48px -8px rgba(16,24,40,.30)',
-        control: '0 1px 2px rgba(16,24,40,.10), 0 2px 4px -1px rgba(16,24,40,.06)',
-        primary: 'inset 0 1px 0 rgba(255,255,255,.20), 0 1px 2px rgba(16,24,40,.24), 0 4px 10px -3px rgba(37,99,235,.45)',
-        'primary-hover': 'inset 0 1px 0 rgba(255,255,255,.20), 0 2px 4px rgba(16,24,40,.24), 0 8px 18px -4px rgba(37,99,235,.55)',
+        pop: '0 0 0 1.5px #16181B, 0 8px 14px -4px rgba(16,18,20,.22), 0 30px 56px -12px rgba(16,18,20,.45)',
+        control: '0 1px 2px rgba(16,18,20,.12)',
+        // A filled button (black primary, a picked chip): a hard bottom line and a deep drop.
+        primary: 'inset 0 1px 0 rgba(255,255,255,.14), 0 1px 0 rgba(0,0,0,.45), 0 4px 10px -2px rgba(16,18,20,.38), 0 12px 22px -10px rgba(16,18,20,.50)',
+        'primary-hover':
+          'inset 0 1px 0 rgba(255,255,255,.14), 0 2px 0 rgba(0,0,0,.45), 0 8px 16px -4px rgba(16,18,20,.42), 0 22px 34px -12px rgba(16,18,20,.55)',
       },
-      borderRadius: { card: '10px' },
-      fontFamily: { sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'] },
-      // The right column grows on wide screens: 420px, 560px from `wide`.
-      width: { rail: '96px', 'rail-open': '208px', right: '420px', 'right-wide': '560px' },
-      // `tool`: the one width every tool screen is capped at (app/frame/Frame), so the left edge never jumps between
-      // tools. `frame`: the main area (a tool plus its padding) and the widest right column together; past it the pair
-      // centers on the page. `reading`: an opened item at full width, or alone in its own window.
-      maxWidth: { tool: '72rem', frame: '109rem', reading: '56rem' },
-      screens: { wide: '1600px' },
+      // Square-ish corners everywhere: a card 8px, a big box no rounder than 10px.
+      borderRadius: { card: '8px', xl: '10px', '2xl': '12px' },
+      fontFamily: {
+        sans: ['Roboto', 'system-ui', 'sans-serif'],
+        display: ['Oswald', '"Arial Narrow"', 'Roboto', 'sans-serif'],
+      },
+      // The right column opens wide enough to read a page of a PDF: a third of the window, 420px to 800px.
+      width: { rail: '96px', 'rail-open': '208px', right: 'clamp(420px, 32vw, 800px)' },
+      // Tool screens use the whole main area (Jesse, Oct 23: "open to the max viewing"). `reading`: the most a form or a
+      // page of text spreads at full screen or alone in its own window (a file there fills the window).
+      maxWidth: { reading: '72rem' },
+      transitionDuration: { DEFAULT: '150ms' },
     },
   },
   plugins: [],

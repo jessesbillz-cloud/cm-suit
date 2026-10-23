@@ -64,7 +64,7 @@ function FrameSwitch({ loc, folderId, windowMode }: FrameSwitchProps) {
   if (windowMode && loc.itemId !== null) {
     // A file's box (data-fill) fills the window below the item's header; the page itself does not scroll.
     return (
-      <main className="mx-auto min-h-screen max-w-reading bg-card shadow-card has-[[data-fill]]:h-[100dvh] has-[[data-fill]]:min-h-0 has-[[data-fill]]:overflow-hidden">
+      <main className="mx-auto min-h-screen max-w-reading bg-card shadow-card has-[[data-fill]]:h-[100dvh] has-[[data-fill]]:max-w-none has-[[data-fill]]:min-h-0 has-[[data-fill]]:overflow-hidden">
         <ItemView model={model} tool={loc.tool} itemId={loc.itemId} standalone />
       </main>
     );

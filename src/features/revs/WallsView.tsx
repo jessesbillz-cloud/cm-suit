@@ -14,6 +14,7 @@ import { itemLines, type ItemChip } from './itemLines';
 import type { SignoffFiles } from './revStrip';
 import { WallItemChips } from './WallItemChips';
 import { calloutOf, countOf } from './wallPage';
+import { SECTION_HEAD } from '../../ui/PageHeader';
 
 interface WallsViewProps {
   setup: RevSetup;
@@ -76,9 +77,9 @@ export function WallTile({ area, setup, index, files, onOpen, onChip }: WallTile
 /** "Level 01 · 6 walls": a level's heading. */
 export function LevelHead({ title, count }: { title: string; count: string }) {
   return (
-    <h2 className="flex items-baseline gap-2 px-1 text-[12px] font-bold uppercase leading-5 tracking-[0.06em] text-ink">
+    <h2 className={`flex items-baseline gap-2 ${SECTION_HEAD}`}>
       <span className="break-words">{title}</span>
-      <span className="font-bold normal-case tracking-normal text-ink">{count}</span>
+      <span className="font-sans text-[13px] font-bold normal-case tracking-normal text-ink-2">{count}</span>
     </h2>
   );
 }
@@ -126,7 +127,7 @@ export function NothingHere() {
   );
 }
 
-export const TILE_GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3';
+export const TILE_GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
 
 export function WallsView({ setup, index, files, level, onOpen, onChip, onSetup }: WallsViewProps) {
   const groups = wallsByList({ ...setup, areas: onLevel(setup.areas, level) });

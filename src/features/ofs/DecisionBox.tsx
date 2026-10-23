@@ -23,10 +23,10 @@ export function DecisionBox({ decision, history, zone }: DecisionBoxProps) {
       <div
         data-testid="ofs-decision"
         data-decision={k}
-        className="rounded-lg border-2 px-4 py-3 shadow-control"
-        style={{ background: `var(--status-${k}-solid)`, color: `var(--status-${k}-on-solid)`, borderColor: `var(--status-${k}-solid)` }}
+        className="rounded-card border-2 border-ink px-4 py-3 shadow-tile"
+        style={{ background: `var(--status-${k}-solid)`, color: `var(--status-${k}-on-solid)` }}
       >
-        <p className="text-[17px] font-semibold leading-6">{LABEL[k]}</p>
+        <p className="heading text-[20px] font-semibold leading-7 tracking-[0.06em]">{LABEL[k]}</p>
         {decision.comment ? (
           <p data-testid="ofs-decision-comment" className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
             {decision.comment}

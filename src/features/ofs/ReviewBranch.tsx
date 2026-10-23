@@ -38,7 +38,7 @@ function ReviewRow({ row, zone, selected, onOpen }: RowProps) {
       data-kind={row.kind}
       aria-current={selected ? 'true' : undefined}
       className={`flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left ${
-        selected ? `border border-accent bg-accent-soft shadow-tile ${FOCUS_RING}` : CLICK_BOX
+        selected ? `border-[1.5px] border-accent bg-accent-soft shadow-[inset_4px_0_0_theme(colors.accent.DEFAULT)] ${FOCUS_RING}` : CLICK_BOX
       }`}
       onClick={() => {
         onOpen(row);

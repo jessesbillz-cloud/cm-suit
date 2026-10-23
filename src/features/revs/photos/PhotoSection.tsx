@@ -7,6 +7,7 @@ import { useMyProjects } from '../../../data/queries';
 import type { RevPhoto } from '../../../data/revs.photos';
 import { ErrorState, LoadingState } from '../../../ui/States';
 import { PhotoList } from './PhotoList';
+import { SECTION_HEAD } from '../../../ui/PageHeader';
 
 /** The job's time zone (every time shown goes through it), once the jobs are loaded. */
 function useJobZone(projectId: string): string | undefined {
@@ -37,7 +38,7 @@ export function PhotoSection({ projectId, photos, may, box, wallNames, onOpenReq
   else strip = <PhotoList projectId={projectId} photos={photos.data} timeZone={zone} wallNames={wallNames} onOpenRequest={onOpenRequest} />;
   return (
     <section className="flex flex-col gap-2" data-testid={testId} data-count={photos.data?.length}>
-      <h2 className="px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">Photos</h2>
+      <h2 className={SECTION_HEAD}>Photos</h2>
       {add}
       {strip}
     </section>
