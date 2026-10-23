@@ -21,7 +21,7 @@ import { RenameFolder } from './RenameFolder';
 import { SectionFiles } from './SectionFiles';
 import { SectionNav } from './SectionNav';
 import { SpecMain } from './SpecMain';
-import { moveTargets, shownSections, uploadFolder } from './sections';
+import { hasCcds, moveTargets, shownSections, uploadFolder } from './sections';
 import { UploadButtons } from './UploadButtons';
 import { useFilesNav } from './useFilesNav';
 import { useSortUpload } from './useSortUpload';
@@ -67,7 +67,7 @@ export function SectionScreen(props: SectionScreenProps) {
     manager,
     revs: revs.data === true,
   });
-  const naming = useSubmittalNaming(projectId, kind, sort);
+  const naming = useSubmittalNaming(projectId, kind, hasCcds(sections), sort);
   const where = useFilesNav(projectId);
   const finding = where.spec !== null || where.query.trim() !== '';
   const shown = shownSections(sections);

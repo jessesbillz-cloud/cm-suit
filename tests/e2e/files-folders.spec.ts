@@ -1,5 +1,5 @@
-// Files: a job's fixed sections with their counts (migration 0097: Plans, Specs, Submittals, RFIs, CCDs, Reports, Photos,
-// To sort while something waits in it), a section the app fills has no Upload, and a new folder asks one question.
+// Files: a job's fixed sections with their counts (migration 0097: Plans, Specs, Submittals, RFIs, CCDs on a DSA job only
+// (0111), Reports, Photos, To sort while something waits in it), a section the app fills has no Upload, and a new folder asks one question.
 // Submittals show Section, No., Stamp and a company filter; a mixed drop lands in each section. Uploads: files dropped
 // on the list go up,
 // a file storage refuses says so in one short line, and an upload that was refused, stopped or left unfinished can
@@ -58,7 +58,7 @@ test.describe('files: sections', () => {
     await expect(names.first()).toHaveText('Plans');
     await expect(section(page, 'To sort')).toBeVisible();
     const shown = await names.allTextContents();
-    expect(shown.slice(0, 8)).toEqual(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs', 'Reports', 'Photos', 'To sort']);
+    expect(shown.slice(0, 7)).toEqual(['Plans', 'Specs', 'Submittals', 'RFIs', 'Reports', 'Photos', 'To sort']);
     await expect(page.getByTestId('section').first()).toHaveAttribute('aria-current', 'true');
     await expect(section(page, 'Plans').getByTestId('section-count')).toHaveText('4');
     await expect(section(page, 'Submittals').getByTestId('section-count')).toHaveText('4');
@@ -172,12 +172,28 @@ test.describe('files: sections', () => {
     });
     await page.goto('/p/job-s/files');
     // He doesn't see every RFI (Jesse, Oct 12) or every submittal (Oct 22): no RFIs or Submittals section.
-    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'CCDs']);
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs']);
+  });
+
+  test('a job that is not DSA has no CCDs: a file named for one goes to To sort (Jesse, Oct 23)', async ({ page }) => {
+    await signIn(page, 'pm', '/p/job-a/files');
+    await expect(page.getByRole('button', { name: 'Upload', exact: true })).toBeVisible();
+    await expect(section(page, 'CCDs')).toHaveCount(0);
+    const dataTransfer = await page.evaluateHandle(() => {
+      const dt = new DataTransfer();
+      dt.items.add(new File([new Uint8Array(1024)], 'CCD 3 Sample change.pdf', { type: 'application/pdf' }));
+      return dt;
+    });
+    await page.getByTestId('files-drop').dispatchEvent('drop', { dataTransfer });
+    await expect(page.getByRole('status').filter({ hasText: 'Sorted: 1 To sort' })).toBeVisible();
+    await section(page, 'To sort').click();
+    await expect(fileNamed(page, 'CCD 3 Sample change.pdf')).toHaveCount(1);
+    await expect(section(page, 'CCDs')).toHaveCount(0);
   });
 
   test('a sub sees Submittals the way they see Plans, with the stamps', async ({ page }) => {
     await signIn(page, 'sub', '/p/job-b/files');
-    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs', 'CCDs']);
+    await expect(page.getByTestId('section-name')).toHaveText(['Plans', 'Specs', 'Submittals', 'RFIs']);
     await expect(section(page, 'Submittals').getByTestId('section-count')).toHaveText('4');
     await section(page, 'Submittals').click();
     await expect(page.getByTestId('file-row')).toHaveCount(4);

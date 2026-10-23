@@ -15,9 +15,9 @@ export interface Unnamed {
 }
 
 /** The files of a drop that land in Submittals with no section in their names, in drop order. */
-export function unnamedSubmittals(dropped: readonly DroppedFile[], viewing: SectionKind): Unnamed[] {
+export function unnamedSubmittals(dropped: readonly DroppedFile[], viewing: SectionKind, ccds: boolean): Unnamed[] {
   const going = new Set<DroppedFile>();
-  for (const g of sortDrop(dropped, viewing)) {
+  for (const g of sortDrop(dropped, viewing, ccds)) {
     if ((g.kind ?? viewing) === 'submittals') for (const d of g.items) going.add(d);
   }
   return dropped.flatMap((d, at) => {

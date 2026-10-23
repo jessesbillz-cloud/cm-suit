@@ -22,6 +22,8 @@ interface Asking {
 export function useSubmittalNaming(
   projectId: string,
   viewing: SectionKind,
+  /** The job has CCDs (hasCcds). */
+  ccds: boolean,
   send: (dropped: DroppedFile[], after: AfterUpload) => void,
 ) {
   const [asking, setAsking] = useState<Asking | null>(null);
@@ -36,13 +38,13 @@ export function useSubmittalNaming(
       if (d) byText.set(d.file, section);
     }
     const after = fileSectionStep(byText);
-    const items = unnamedSubmittals(dropped, viewing).filter((i) => !found.has(i.at));
+    const items = unnamedSubmittals(dropped, viewing, ccds).filter((i) => !found.has(i.at));
     if (items.length === 0) send(dropped, after);
     else setAsking({ dropped, items, after });
   };
 
   const start = (dropped: DroppedFile[]) => {
-    const at = toRead(dropped, viewing);
+    const at = toRead(dropped, viewing, ccds);
     if (at.length === 0) {
       go(dropped, new Map());
       return;
