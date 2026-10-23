@@ -38,14 +38,14 @@ function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetail
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-line px-4 py-3.5 sm:px-5">
       <div className="min-w-0">
-        <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
+        <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
           {formatDay(day, 'EEEE')}
-          {day === today ? <span className="text-accent"> · Today</span> : null}
+          {day === today ? <span className="heading rounded bg-accent px-1.5 text-[11px] leading-5 text-white">Today</span> : null}
         </p>
-        <h2 data-testid="cal-day-title" className="text-[26px] font-semibold leading-8 tracking-[-0.015em] text-ink">
+        <h2 data-testid="cal-day-title" className="heading text-[30px] font-semibold leading-9 text-ink">
           {formatDay(day, 'MMMM d')}
         </h2>
-        {count ? <p className="text-[13px] text-ink-2">{count}</p> : null}
+        {count ? <p className="text-[13px] font-medium text-ink-2">{count}</p> : null}
       </div>
       <div className="flex items-center gap-2">
         {onBlock ? (
@@ -123,7 +123,7 @@ export function DayDetail(props: DayDetailProps) {
             </div>
           ) : null}
           {groups.length === 0 && others.length === 0 ? (
-            <p data-testid="cal-day-empty" className="py-4 text-center text-sm text-ink-2">
+            <p data-testid="cal-day-empty" className="py-2 text-sm text-ink-3">
               Nothing on this day.
             </p>
           ) : null}

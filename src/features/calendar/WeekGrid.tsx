@@ -1,10 +1,11 @@
-// The week: seven columns, Monday first, every entry in full as a banner with its time (and job on "All my jobs").
+// The week: seven columns, Monday first, the whole main area wide. Each entry is a box (WeekEvent): the time on the
+// left, the title in the display face, who or where under it, a bar in its status color. Today's heading is filled in
+// the accent; the selected day is tinted with a dark line under its heading. An empty day stays quiet.
 // A request opens in the right column; a line opens where it lives; a column's date shows that day below.
 import { formatDay } from '../../lib/dates';
-import { clockLabel } from '../inspections/time';
-import { Banner } from './Banner';
-import { bannerOf, isLookahead, type Entry } from './entries';
-import { isWeekendDay, lineTime } from './model';
+import { isLookahead, type Entry } from './entries';
+import { isWeekendDay } from './model';
+import { WeekEvent } from './WeekEvent';
 
 interface WeekGridProps {
   days: readonly string[];
@@ -16,58 +17,42 @@ interface WeekGridProps {
   onOpen: (entry: Entry) => void;
 }
 
-function timeOf(e: Entry): string {
-  if (e.type === 'line') return lineTime(e.line);
-  if (e.row.duration_kind === 'all_day') return 'All day';
-  return clockLabel(e.row.start_time);
+function headClass(isToday: boolean, isSel: boolean): string {
+  const fill = isToday ? 'bg-accent text-white hover:bg-accent-hover' : 'text-ink hover:bg-page/60';
+  const mark = isSel ? 'shadow-[inset_0_-3px_0_theme(colors.ink.DEFAULT)]' : '';
+  return `flex flex-col items-center justify-center border-b border-line py-2 ${fill} ${mark}`;
 }
 
 export function WeekGrid({ days, byDay, today, selected, showJob, onSelect, onOpen }: WeekGridProps) {
   return (
-    <div className="grid grid-cols-7 divide-x divide-line">
+    <div className="grid w-full grid-cols-7 divide-x divide-line">
       {days.map((day) => {
         const isSel = day === selected;
-        const tint = isSel ? 'bg-accent-soft/50' : isWeekendDay(day) ? 'bg-card-head' : '';
+        const isToday = day === today;
+        const entries = (byDay.get(day) ?? []).filter((e) => !isLookahead(e));
+        const tint = isSel ? 'bg-accent-soft/40' : isWeekendDay(day) ? 'bg-card-head' : '';
         return (
-          <div key={day} data-testid={`cal-day-${day}`} className={`flex min-h-80 min-w-0 flex-col ${tint}`}>
+          <div key={day} data-testid={`cal-day-${day}`} className={`flex min-h-[26rem] min-w-0 flex-col ${tint}`}>
             <button
               type="button"
               aria-pressed={isSel}
-              className={`flex h-12 items-center justify-center gap-1.5 border-b border-line hover:bg-page/60 ${
-                isSel ? 'shadow-[inset_0_-2px_0_theme(colors.accent.DEFAULT)]' : ''
-              }`}
+              className={headClass(isToday, isSel)}
               onClick={() => {
                 onSelect(day);
               }}
             >
-              <span className={`text-[12px] font-medium uppercase tracking-wide ${day === today ? 'text-accent' : 'text-ink-2'}`}>
-                {formatDay(day, 'EEE')}
+              <span className={`heading text-[12px] font-medium leading-4 ${isToday ? 'text-white' : 'text-ink-2'}`}>
+                {isToday ? 'Today' : formatDay(day, 'EEE')}
               </span>
-              <span
-                className={`flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm font-semibold tabular-nums ${
-                  isSel ? 'bg-accent text-white' : day === today ? 'text-accent ring-[1.5px] ring-inset ring-accent' : 'text-ink'
-                }`}
-              >
-                {formatDay(day, 'd')}
-              </span>
+              <span className="heading text-[22px] font-semibold leading-7 tabular-nums">{formatDay(day, 'd')}</span>
             </button>
-            <div className="flex flex-col gap-1 p-1.5">
-              {(byDay.get(day) ?? [])
-                .filter((e) => !isLookahead(e))
-                .map((e) => (
-                  <button
-                    key={e.key}
-                    type="button"
-                    data-testid="cal-line"
-                    className="block w-full rounded-[5px] text-left hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                    onClick={() => {
-                      onOpen(e);
-                    }}
-                  >
-                    <Banner banner={bannerOf(e)} time={timeOf(e)} job={showJob ? e.projectName : undefined} />
-                  </button>
+            {entries.length > 0 ? (
+              <div className="flex flex-col gap-1.5 p-1.5">
+                {entries.map((e) => (
+                  <WeekEvent key={e.key} entry={e} showJob={showJob} onOpen={onOpen} />
                 ))}
-            </div>
+              </div>
+            ) : null}
           </div>
         );
       })}

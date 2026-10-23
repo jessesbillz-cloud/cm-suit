@@ -55,7 +55,7 @@ function requestRow(r: IrRowRaw, src: Source, v: Viewer): CalendarRow {
     ...seen, id: r.id, number: r.number, version: r.version, full_detail: true, special_kind: src.kindName(r.special_kind_id),
     status: r.status, result: r.result, attendance: r.attendance, company: r.company, items: r.items, owner_id: r.owner_id,
     helper_id: r.helper_id, postpone_reason: r.postpone_reason, postpone_until: r.postpone_until,
-    ofs_sent: r.ofs_sent_at !== null,
+    ofs_sent: r.ofs_sent_at !== null, from_mdr: r.mdr_id !== null,
   };
 }
 

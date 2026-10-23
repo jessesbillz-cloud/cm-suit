@@ -121,6 +121,9 @@ verify_jwt = true
 # --- Cron (x-cron-secret; the caller also sends a platform key as Bearer to pass verify_jwt) ---
 [functions.queue-health]
 verify_jwt = true
+# mdr-files: copies the files of requests mirrored from MDR (0112), MDR_PUBLIC_HOST only.
+[functions.mdr-files]
+verify_jwt = true
 
 # --- Public endpoint (SPEC §6.4 #7) ---
 # calendar-feed: calendar apps subscribe to a URL and fetch it with no session or headers of ours, so the platform JWT

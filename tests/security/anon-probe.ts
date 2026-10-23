@@ -303,7 +303,7 @@ const RPCS: [string, Record<string, unknown>][] = [
 
 /** Edge functions that require a signed-in user: no token means 401. */
 const AUTHED_FUNCTIONS = [
-  'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health', 'invite-bidders', 'issue-addendum', 'extract-bid',
+  'download', 'invite-member', 'revoke-member', 'send-transmittal', 'queue-health', 'mdr-files', 'invite-bidders', 'issue-addendum', 'extract-bid',
   'import-subs', 'submit-daily', 'email-daily', 'ir-pdf', 'ir-send', 'rfis', 'timesheets', 'permit-stamp', 'safety-meeting', 'schedule-import', 'requirements-extract', 'job-weather',
 ];
 /** SPEC §6.4 public endpoints: an empty body is refused (never 200). calendar-feed is GET-only, so a POST is a 400. */
