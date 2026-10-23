@@ -1,5 +1,5 @@
 // Files (SPEC §8.1; Jesse, Oct 11: "that whole files page we need to redesign"): the job's fixed sections (0097
-// files_sections), Plans, Specs, Submittals, RFIs, CCDs, Reports, Photos, then To sort, and Bids received and Emailed in
+// files_sections), Plans, Specs, Submittals, RFIs, CCDs (a DSA job's only, 0111), Reports, Photos, then To sort, and Bids received and Emailed in
 // while something is in them, each with its file count. A section's list is every file in it as one flat list, its
 // folders a filter above it (SectionScreen, SectionFiles). The URL's folder says the section, and the filter when it is
 // a folder under the section, so every link to a folder in Files still lands there. Folders another tool owns (Room

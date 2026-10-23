@@ -12,7 +12,7 @@ import { useFolders } from '../../data/queries';
 import { useUploadQueue, type AfterUpload } from '../../data/UploadQueue';
 import { useToast } from '../../ui/Toast';
 import type { DroppedFile } from '../files/collectDrop';
-import { uploadFolder } from '../files/sections';
+import { hasCcds, uploadFolder } from '../files/sections';
 import { useSubmittalNaming } from '../files/useSubmittalNaming';
 
 export type DeskKind = 'submittals' | 'rfis';
@@ -58,7 +58,7 @@ export function useDeskUpload(projectId: string, kind: DeskKind) {
       },
     );
   };
-  const naming = useSubmittalNaming(projectId, kind, send);
+  const naming = useSubmittalNaming(projectId, kind, hasCcds(sections.data ?? []), send);
 
   return {
     loading: sections.isPending || folders.isPending || writable.isPending || missing,

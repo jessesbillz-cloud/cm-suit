@@ -74,7 +74,7 @@ export function useSaveProject(projectId: string) {
     },
     onSuccess: async (row, patch) => {
       qc.setQueryData(qk.project(projectId), withSettings(row));
-      // Name, number, stage and modules show in the job picker and the rail; turning DSA on adds its folders.
+      // Name, number, stage and modules show in the job picker and the rail; DSA adds its folders and Files' CCDs (0111).
       await qc.invalidateQueries({ queryKey: qk.myProjects });
       if (patch.is_dsa !== undefined) await qc.invalidateQueries({ queryKey: qk.folders(projectId) });
       // A tool switched on joins its recommended spot on the rail, not More.

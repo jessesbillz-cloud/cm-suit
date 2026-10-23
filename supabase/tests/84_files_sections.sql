@@ -26,9 +26,10 @@ select pg_temp.mk_user('a0000000-0000-0000-0000-000000000844', 'probe+fs-out@exa
 
 insert into public.orgs (id, name, kind, created_by) values
   ('b0000000-0000-0000-0000-000000000841', 'Sample Section Builders', 'gc', 'a0000000-0000-0000-0000-000000000841');
-insert into public.projects (id, org_id, name, stage, timezone, created_by) values
+-- A DSA job: it has a CCDs section (0111).
+insert into public.projects (id, org_id, name, stage, timezone, is_dsa, created_by) values
   ('c0000000-0000-0000-0000-000000000841', 'b0000000-0000-0000-0000-000000000841', 'Sample Section Job', 'construction',
-   'America/Los_Angeles', 'a0000000-0000-0000-0000-000000000841');
+   'America/Los_Angeles', true, 'a0000000-0000-0000-0000-000000000841');
 insert into public.project_members (org_id, project_id, user_id, invite_email, role, status)
 select 'b0000000-0000-0000-0000-000000000841', 'c0000000-0000-0000-0000-000000000841', u::uuid, e, r, 'active'
   from (values ('a0000000-0000-0000-0000-000000000842', 'probe+fs-pm@example.test', 'pm'),

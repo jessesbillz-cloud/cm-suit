@@ -14,13 +14,13 @@ describe('the Submittals naming rule', () => {
       drop('RFI 014 Sample.pdf'),
       drop('Sample anchors.pdf', ['092000 - Framing - Sample Co']),
     ];
-    expect(unnamedSubmittals(dropped, 'submittals')).toEqual([
+    expect(unnamedSubmittals(dropped, 'submittals', true)).toEqual([
       { at: 0, name: 'Gypsum board shop drawings.pdf', offered: '' },
       { at: 5, name: 'Sample anchors.pdf', offered: '092000' },
     ]);
     // Elsewhere, a loose file without a section goes where the person is looking: nothing to ask.
-    expect(unnamedSubmittals([drop('Gypsum board shop drawings.pdf')], 'plans')).toEqual([]);
-    expect(unnamedSubmittals([drop('Sample notes.pdf', ['Approved Submittals'])], 'plans')).toEqual([{ at: 0, name: 'Sample notes.pdf', offered: '' }]);
+    expect(unnamedSubmittals([drop('Gypsum board shop drawings.pdf')], 'plans', true)).toEqual([]);
+    expect(unnamedSubmittals([drop('Sample notes.pdf', ['Approved Submittals'])], 'plans', true)).toEqual([{ at: 0, name: 'Sample notes.pdf', offered: '' }]);
   });
 
   it('reads the typed section and renames with it, the words kept', () => {

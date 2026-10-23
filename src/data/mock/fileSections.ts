@@ -1,11 +1,13 @@
 // e2e mock of files_sections (0097): the job's sections in their order, each section's folder found, adopted (a
 // top-level folder of people's own named like it) or made, with the folders in it and its file count. To sort holds
 // every other top-level folder but the ones a tool owns. Each person gets the folders they read (folder_row_can_read):
-// RFIs is its Uploaded folder to someone who doesn't browse the RFI tool's own (0099). Nothing real in it.
+// RFIs is its Uploaded folder to someone who doesn't browse the RFI tool's own (0099). CCDs only on a DSA job (0111):
+// elsewhere none is made, and a CCD folder the job has shows in To sort while files are in it. Nothing real in it.
 import type { FileSection } from '../fileSections';
 import type { FileRow, FolderRow } from '../types';
 import * as api from './api';
 import { sectionFolderReadable } from './fileAccess';
+import { projectIsDsa } from './jobs';
 import * as mockRfis from './rfis';
 import { writeMock } from './store';
 
@@ -26,8 +28,9 @@ const MADE: readonly [string, string, readonly string[]][] = [
 const TOOL_KINDS = new Set(['approved_plans', 'stamping', 'permit_uploads', 'bid_forms', 'safety', 'schedule', 'requirements', 'addenda',
   'transmittals', 'system']);
 
-async function makeMissing(projectId: string): Promise<void> {
+async function makeMissing(projectId: string, dsa: boolean): Promise<void> {
   for (const [kind, name, aliases] of MADE) {
+    if (kind === 'ccd' && !dsa) continue;
     const list = await api.folders(projectId);
     const top = list.filter((f) => f.parent_id === null);
     if (top.some((f) => f.kind === kind)) continue;
@@ -53,19 +56,23 @@ function subtree(rootId: string, list: readonly FolderRow[]): string[] {
 }
 
 export async function sections(projectId: string): Promise<FileSection[]> {
-  await makeMissing(projectId);
+  const dsa = projectIsDsa(projectId);
+  await makeMissing(projectId, dsa);
+  const kinds = dsa ? KINDS : KINDS.filter((k) => k !== 'ccd');
   const list = await api.folders(projectId);
   const top = list.filter((f) => f.parent_id === null);
   const rootOf = (kind: string) => top.find((f) => f.kind === kind);
-  const roots = KINDS.flatMap((k) => rootOf(k)?.id ?? []);
-  const loose = top.filter((f) => !roots.includes(f.id) && !f.app_only && !TOOL_KINDS.has(f.kind));
+  const roots = kinds.flatMap((k) => rootOf(k)?.id ?? []);
   const files = await sectionFiles(list.map((f) => f.id));
+  // A CCD folder on a job that is not DSA: in To sort only while files are in it.
+  const holds = (id: string) => files.some((x) => x.upload_complete && subtree(id, list).includes(x.folder_id));
+  const loose = top.filter((f) => !roots.includes(f.id) && !f.app_only && !TOOL_KINDS.has(f.kind) && (f.kind !== 'ccd' || holds(f.id)));
   const rfi = { signs: mockRfis.has('rfi.sign_issue'), writesOrAnswers: mockRfis.has('rfi.create_draft') || mockRfis.has('rfi.answer') };
   const reads = (id: string) => {
     const f = list.find((x) => x.id === id);
     return f !== undefined && sectionFolderReadable(f, list, rfi);
   };
-  return KINDS.flatMap((kind) => {
+  return kinds.flatMap((kind) => {
     const root = rootOf(kind);
     // A section needs its own folder read, but RFIs: its Uploaded folder is enough (0099).
     if (!root || (kind !== 'rfis' && !reads(root.id))) return [];

@@ -1,4 +1,5 @@
-// What the spec section search and a section's page read: the files of Submittals, RFIs and CCDs (the same lists, and
+// What the spec section search and a section's page read: the files of Submittals, RFIs and CCDs (a DSA job's only,
+// 0111: no CCDs section, no CCDs group) (the same lists, and
 // the same access, as Files), the RFI tool's RFIs I may see, the spec books' sections and the CSI titles. The RFI
 // tool's own PDFs in RFIs stand for their RFIs and are not listed twice.
 import { useQuery } from '@tanstack/react-query';

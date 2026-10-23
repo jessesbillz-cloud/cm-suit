@@ -2,7 +2,8 @@
 // own name says it first ("Approved Submittals", "Specs"), then the file's name: OFS_IR... is an OFS IR (Reports), a
 // submittal's own number or S-0147.0-079200 is a submittal, then the word RFI (Jesse, Oct 12), a spec section at the
 // start (a submittal), the word CCD, a picture is a photo, a sheet number at the start is a plan. Anything else goes where the person is looking. A dropped folder stays together and goes where
-// most of its files point.
+// most of its files point. CCDs are a DSA form: on a job without them (Jesse, Oct 23: "No CCDs on a CSU job"), what
+// names a CCD goes to To sort.
 import { parseSheet, stripExt } from './fileNames';
 
 /** The sections of Files, in their order (0097 files_sections). */
@@ -52,9 +53,11 @@ function byFolderWord(dir: readonly string[]): SectionKind | null {
 /**
  * The section an upload belongs in, or null for "where the person is looking". `dir` is the dropped folders the file
  * sat in, outermost first. A spec section dropped while Specs is open stays a spec (a submittal names its number too).
+ * `ccds`: the job has CCDs (a DSA job, hasCcds).
  */
-export function classifyUpload(name: string, dir: readonly string[] = [], viewing?: SectionKind): SectionKind | null {
+export function classifyUpload(name: string, dir: readonly string[], viewing: SectionKind | undefined, ccds: boolean): SectionKind | null {
   const found = byFolderWord(dir) ?? byName(name) ?? dir.map((d) => byName(d)).find((k) => k !== null) ?? null;
+  if (found === 'ccd' && !ccds) return 'unsorted';
   if (found === 'submittals' && viewing === 'specs' && byFolderWord(dir) === null && !S_FORM.test(name) && !SUBMITTAL_NO.test(name)) {
     return 'specs';
   }
@@ -94,14 +97,14 @@ interface SortedGroup<T extends Dropped> {
 }
 
 /** Loose files each go their own way; each dropped folder goes where most of its files point, as one. */
-export function sortDrop<T extends Dropped>(dropped: readonly T[], viewing?: SectionKind): SortedGroup<T>[] {
+export function sortDrop<T extends Dropped>(dropped: readonly T[], viewing: SectionKind | undefined, ccds: boolean): SortedGroup<T>[] {
   const out: SortedGroup<T>[] = [];
   const loose = new Map<SectionKind | null, T[]>();
   const trees = new Map<string, T[]>();
   for (const d of dropped) {
     const top = d.dir[0];
     if (top === undefined) {
-      const k = classifyUpload(d.file.name, [], viewing);
+      const k = classifyUpload(d.file.name, [], viewing, ccds);
       loose.set(k, [...(loose.get(k) ?? []), d]);
     } else {
       trees.set(top, [...(trees.get(top) ?? []), d]);
@@ -109,7 +112,7 @@ export function sortDrop<T extends Dropped>(dropped: readonly T[], viewing?: Sec
   }
   for (const [kind, items] of loose) out.push({ kind, tree: false, intoSection: false, items });
   for (const [top, items] of trees) {
-    const kind = mostOf(items.map((d) => classifyUpload(d.file.name, d.dir, viewing)));
+    const kind = mostOf(items.map((d) => classifyUpload(d.file.name, d.dir, viewing, ccds)));
     out.push({ kind, tree: true, intoSection: kind !== null && byFolderWord([top]) === kind, items });
   }
   return out;
