@@ -481,11 +481,14 @@ Both probes run in CI on every PR and after every staging deploy.
 ## 7. UX system (from Jesse's design sessions)
 
 ### 7.1 Look
-- **Surfaces:**
-  - Near-white page (`#E9EDF2`).
-  - White cards with a hairline edge and a deep layered shadow (`shadow-card` in `tailwind.config.ts`), an 8px radius, and headers on a faint tint.
-  - Anything clickable reads as a box: an edge, a shadow, a lift on hover, pressed in on press, a focus ring (`src/ui/box.ts`). Text that does nothing stays flat.
-  - IBM Plex Sans (self-hosted, `public/fonts`), gray secondary text, one accent color.
+- **Surfaces (Jesse, Oct 23: "deep shadow boxes, bold hard lines ... like it was purposely designed"):**
+  - Light gray page (`#E8E9EB`); a black rail and top bar (`#141618`) with a thin accent line under the bar.
+  - White cards with a crisp 1.5px light edge and a deep layered shadow (`shadow-card` in `tailwind.config.ts`), an 8px radius; a card's title in the display face over a hard 2px ink rule. A page title the same, over its own rule.
+  - Anything clickable reads as a box: a crisp near-black edge, a deep shadow, a lift on hover, pressed in on press, a strong focus ring (`src/ui/box.ts`), 150 ms (none with reduced motion). Text that does nothing stays flat.
+  - One accent, a deep red (`#C91235`): the selected place, focus, links, counts, the bar's line. Primary buttons are black with white words. Failure (not approved, blocked, late) keeps `lib/status`'s darker red and always its word.
+  - Type, self-hosted (`public/fonts`, SIL OFL): Oswald (condensed, upper case, letter-spaced: the `heading` class) for page titles, section heads, rail labels, big boxes and buttons; Roboto for body and data, numbers tabular where they line up.
+  - Max viewing: every tool fills the main area (no narrow centered column); the right column is a third of the window (420px to 800px); a form opened full screen keeps a readable width, a file fills it. Phone: nearly edge to edge.
+  - The organization's logo (uploaded in Settings) sits at the right of the top bar (`ui/OrgLogoSlot`); no customer logo or name is in the code.
 - **Nothing comical:** no emojis, illustrations, mascots or celebration animations. Lucide line icons, only where they carry meaning.
 - **Status colors come only from `src/lib/status.ts`** (it generates CSS variables). They appear as status chips and calendar marks:
   - pending: yellow

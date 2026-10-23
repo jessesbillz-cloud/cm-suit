@@ -28,7 +28,9 @@ export function Receipt({ row, specialName, onTrack, onAnother, onAgain, childre
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="ir-receipt">
       <p className="flex items-center gap-2 text-sm text-ink-2">
-        <Icon icon={CircleCheck} size={18} className="text-accent" />
+        <span className="flex shrink-0" style={{ color: 'var(--status-step_done-dot)' }}>
+          <Icon icon={CircleCheck} size={18} />
+        </span>
         Sent
       </p>
       <h2 className="flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tabular-nums text-ink">

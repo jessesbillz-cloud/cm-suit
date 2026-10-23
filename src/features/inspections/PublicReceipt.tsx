@@ -26,7 +26,9 @@ export function PublicReceipt({ projectId, receipt, onAnother, children }: Publi
     <Card>
       <div className="flex flex-col gap-4" data-testid="public-receipt">
         <p className="flex items-center gap-2 text-sm font-medium text-ink-2">
-          <Icon icon={CircleCheck} size={18} className="text-accent" />
+          <span className="flex shrink-0" style={{ color: 'var(--status-step_done-dot)' }}>
+            <Icon icon={CircleCheck} size={18} />
+          </span>
           Sent
         </p>
         <RequestFactsView facts={receipt} />

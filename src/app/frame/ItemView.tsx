@@ -140,14 +140,14 @@ export function ItemView({ model, tool, itemId, standalone }: ItemViewProps) {
   const full = standalone || isPhone || model.rightFull;
   const target = full && projectId !== null && boardLineOf(itemId) === null ? commentTarget(tool, itemId) : null;
   // One wrapper either way, so going full width never remounts the item. With comments the item takes its own height
-  // and the whole view scrolls; without, it fills the column as before. At full width (and alone in its window) the item
-  // sits in one centered, readable column, its header and footer with it. An item holding a file's box (data-fill)
-  // always fills: the box takes the height, the comments sit under it in a strip of their own (at most 35%), and the
+  // and the whole view scrolls; without, it fills the column as before. At full width (and alone in its window) a form
+  // or text sits in one centered column (max-w-reading), its header and footer with it; a file fills the width. An item
+  // holding a file's box (data-fill) always fills: the box takes the height, the comments sit under it in a strip of their own (at most 35%), and the
   // view itself never scrolls (Jesse, Oct 12: one scroll per screen).
   const centered = full && !isPhone;
   const fills = 'has-[[data-fill]]:flex has-[[data-fill]]:h-full has-[[data-fill]]:flex-col';
   return (
-    <div data-testid="item-view" className={`${target === null ? 'h-full' : ''} ${fills} ${centered ? 'mx-auto w-full max-w-reading' : ''}`}>
+    <div data-testid="item-view" className={`${target === null ? 'h-full' : ''} ${fills} ${centered ? 'mx-auto w-full max-w-reading has-[[data-fill]]:max-w-none' : ''}`}>
       <Suspense fallback={<LoadingState />}>
         <ToolItem model={model} tool={tool} itemId={itemId} standalone={standalone} isPhone={isPhone} />
       </Suspense>

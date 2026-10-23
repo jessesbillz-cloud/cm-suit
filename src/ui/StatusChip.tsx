@@ -10,15 +10,15 @@ interface StatusChipProps {
 export function StatusChip({ status, label }: StatusChipProps) {
   return (
     <span
-      className="inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-xs font-medium leading-none"
+      className="inline-flex h-6 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2 text-xs font-semibold leading-none"
       style={{
         color: `var(--status-${status}-fg)`,
         background: `var(--status-${status}-bg)`,
         // A hairline in the chip's own color keeps pale chips from dissolving into white cards.
-        boxShadow: `inset 0 0 0 1px color-mix(in srgb, var(--status-${status}-dot) 28%, transparent)`,
+        boxShadow: `inset 0 0 0 1px color-mix(in srgb, var(--status-${status}-dot) 45%, transparent)`,
       }}
     >
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: `var(--status-${status}-dot)` }} />
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: `var(--status-${status}-dot)` }} />
       {label ?? STATUS[status].label}
     </span>
   );

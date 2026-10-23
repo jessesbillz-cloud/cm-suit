@@ -1,6 +1,6 @@
-// The one look for logs and lists (SPEC §7.4): small uppercase column headers, rows at least 52px, a hover tint with a
+// The one look for logs and lists (SPEC §7.4): column headers in the display face over a hard ink rule, rows at least 52px, a hover tint with a
 // gray edge bar (ui/box ROW_HOVER), and
-// the row open in the right column marked with the accent tint and a 3px accent bar on its left edge. Amber stays
+// the row open in the right column marked with the accent tint and a 4px accent bar on its left edge. Amber stays
 // amber (impact claimed) and gets the bar too. Numbers are tabular. Titles wrap; nothing is cut off.
 import type { ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
@@ -8,14 +8,14 @@ import { ROW_HOVER } from './box';
 import { Icon } from './Icon';
 
 export const TABLE = 'w-full table-fixed border-collapse text-sm';
-export const HEAD_ROW = 'border-b border-line bg-card-head text-left';
-export const TH = 'h-10 px-3 text-[12px] font-bold uppercase tracking-wide text-ink';
+export const HEAD_ROW = 'border-b-2 border-ink bg-card text-left';
+export const TH = 'heading h-10 px-3 text-[13px] font-medium tracking-[0.08em] text-ink';
 /** A cell. Its text wraps, even a long name with no spaces (a number or date cell adds whitespace-nowrap to stay whole). */
 export const TD = 'px-3 py-3 align-middle wrap-anywhere';
 /** A number or date cell. */
 export const TD_NUM = `${TD} tabular-nums`;
 
-const BAR = 'shadow-[inset_3px_0_0_theme(colors.accent.DEFAULT)]';
+const BAR = 'shadow-[inset_4px_0_0_theme(colors.accent.DEFAULT)]';
 
 /** A clickable row: `selected` = open in the right column; `impact` = the amber row. */
 export function rowClass(selected: boolean, impact = false): string {
@@ -49,7 +49,7 @@ export function SortTh({ title, active, dir, onSort, className = '', testId, ali
       <button
         type="button"
         data-testid={testId}
-        className={`inline-flex h-7 items-center gap-1 rounded uppercase tracking-wide hover:text-ink ${active ? 'text-ink-2' : ''}`}
+        className={`inline-flex h-7 items-center gap-1 rounded tracking-[0.08em] hover:text-accent ${active ? 'text-accent' : ''}`}
         onClick={onSort}
       >
         {title}

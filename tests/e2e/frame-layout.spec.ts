@@ -1,5 +1,5 @@
-// The frame on a desktop (SPEC §7.2; audit Oct 4, Jesse: "opened things were not centered on the desktop"). Every tool
-// has the same width, so the left edge never jumps between tools; a line of the board docked beside another tool opens
+// The frame on a desktop (SPEC §7.2; audit Oct 4, Jesse: "opened things were not centered on the desktop"; Oct 23: "open
+// to the max viewing"). Every tool fills the main area, so the left edge never jumps between tools; a line of the board docked beside another tool opens
 // in the right column without leaving that tool, and Close brings the board back; every opened item has Open in new
 // window; More offers only the tools the role may read. Runs against the e2e mock.
 // Contract with the mock: 'pm' on job-a has the board lines "Sample Plan Set A.pdf was added to Plans" and "Delivery #3:
@@ -29,7 +29,7 @@ async function toolBox(page: Page): Promise<{ x: number; width: number; max: str
 test.describe('the frame on a desktop', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test('Files and the Board share one width: the left edge stays put between tools', async ({ page, isMobile }) => {
+  test('Files and the Board both fill the main area: the left edge stays put between tools', async ({ page, isMobile }) => {
     test.skip(isMobile, 'The desktop frame.');
     await signIn(page, 'pm');
     await page.setViewportSize({ width: 2400, height: 1000 });
@@ -39,13 +39,16 @@ test.describe('the frame on a desktop', () => {
     await page.goto('/p/job-a/board');
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'board');
     const board = await toolBox(page);
-    expect(files.max).not.toBe('none');
-    expect(board.max).toBe(files.max);
+    expect(files.max).toBe('none');
+    expect(board.max).toBe('none');
     expect(board.x).toBe(files.x);
     expect(board.width).toBe(files.width);
-    // On a wide screen the right column grows (420px, wider from 1600px).
+    // No narrow centered column: the tool takes the main area's whole width (less its padding).
+    const main = await page.getByTestId('main-area').boundingBox();
+    expect(board.width).toBeGreaterThan((main?.width ?? 0) - 64);
+    // The right column grows with the window (a third of it, 420px to 800px).
     const right = await page.getByTestId('right-column').boundingBox();
-    expect(right?.width ?? 0).toBeGreaterThan(420);
+    expect(right?.width ?? 0).toBeGreaterThan(700);
   });
 
   test('a docked board line opens beside the tool I am in; Close brings the board back and keeps the tool', async ({ page, isMobile }) => {

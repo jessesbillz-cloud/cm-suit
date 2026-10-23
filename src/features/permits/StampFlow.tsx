@@ -41,7 +41,9 @@ function Done({ result, stamped, isPhone, onClose }: { result: RecordResult; sta
   return (
     <div className="flex flex-col gap-3" data-testid="stamp-result">
       <p className="flex items-center gap-2 text-[14.5px] font-semibold text-ink">
-        <Icon icon={CircleCheck} size={18} className="text-accent" />
+        <span className="flex shrink-0" style={{ color: 'var(--status-step_done-dot)' }}>
+          <Icon icon={CircleCheck} size={18} />
+        </span>
         {doneLabel(result)}
       </p>
       <ul className="flex flex-col gap-0.5 text-[13px] leading-5 text-ink-2">

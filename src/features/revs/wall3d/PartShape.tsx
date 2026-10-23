@@ -1,6 +1,6 @@
 // One layer of the 3-D wall (a part, or the slab, deck or beam around it): its faces filled and shaded, its lines thin
-// at any size. A focused part is drawn in the accent color (currentColor) over white; a hidden part (behind the wall
-// from this side) is a dashed line. Round pieces are shaded without facet lines and get one outline.
+// at any size. A focused part is drawn in ink (currentColor, never the accent red, which would read as failed) over
+// white; a hidden part (behind the wall from this side) is a dashed line. Round pieces are shaded without facet lines and get one outline.
 import type { ReactNode } from 'react';
 import type { Layer, Piece } from './assembly';
 import { pathOf, shadeOf, type Face } from './iso';
@@ -62,7 +62,7 @@ function PieceShape({ piece, paint, focused, texture }: { piece: Piece; paint: P
   );
 }
 
-/** A hidden part: its outline dashed, in its state's line color (or the accent when focused). */
+/** A hidden part: its outline dashed, in its state's line color (or ink when focused). */
 function HiddenShape({ layer, paint, focused }: { layer: Layer; paint: Paint; focused: boolean }) {
   return (
     <>
@@ -96,7 +96,7 @@ export function PartShape({ layer, paint, focused, textures }: PartShapeProps) {
   );
 }
 
-/** The focused part again over everything: where it runs behind other parts, a dashed accent outline. */
+/** The focused part again over everything: where it runs behind other parts, a dashed ink outline. */
 export function PartGhost({ layer }: { layer: Layer }) {
   return (
     <g pointerEvents="none" data-testid="wall3d-ghost">

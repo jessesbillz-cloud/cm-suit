@@ -6,7 +6,7 @@ import type { Box, Pt } from './iso';
 
 const LINE = { vectorEffect: 'non-scaling-stroke' as const, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
-/** In the SVG: a white halo under a thin accent line from the part to the shoulder, the shoulder, and a dot on the part. */
+/** In the SVG: a white halo under a thin ink line from the part to the shoulder, the shoulder, and a dot on the part. */
 export function Leader({ from, placed, slot }: { from: Pt; placed: Placed; slot: Slot }) {
   const [sx, sy] = placed.shoulder;
   const y = slot === 'top' ? placed.box.maxY : placed.box.minY;
@@ -39,7 +39,7 @@ export function CalloutLabel({ text, placed, slot, view }: CalloutLabelProps) {
   return (
     <p
       data-testid="wall3d-label"
-      className={`pointer-events-none absolute break-words px-1 text-center text-[13px] font-semibold leading-[17px] text-accent ${
+      className={`pointer-events-none absolute break-words px-1 text-center text-[13px] font-semibold leading-[17px] text-ink ${
         slot === 'top' ? 'pb-1' : 'pt-1'
       }`}
       style={{ left: pct((box.minX - view.minX) / w), width: pct((box.maxX - box.minX) / w), ...vertical }}

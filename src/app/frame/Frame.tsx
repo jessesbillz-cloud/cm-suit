@@ -7,6 +7,7 @@ import { opensInMain, sideItem } from '../../lib/itemIds';
 import { openItemWindow } from '../../lib/itemWindow';
 import { Button } from '../../ui/Button';
 import { JobPicker } from '../../ui/JobPicker';
+import { OrgLogoSlot } from '../../ui/OrgLogoSlot';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
 import { LoadingState } from '../../ui/States';
@@ -108,7 +109,8 @@ export function Frame({ model, folderId }: FrameProps) {
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-line bg-card px-3">
+        {/* The top bar: black with the accent line under it, one piece with the rail (Jesse, Oct 23). */}
+        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b-[3px] border-accent bg-rail px-3">
           <JobPicker
             projects={model.projects}
             recentIds={choices.recent_project_ids}
@@ -129,14 +131,15 @@ export function Frame({ model, folderId }: FrameProps) {
               Back
             </Button>
           ) : null}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <ViewAs />
+            <OrgLogoSlot />
           </div>
         </header>
-        {/* The main area and the right column are one pair, centered as a whole on a very wide screen. Every tool
-            gets the same width (max-w-tool), so the left edge never jumps between tools. */}
-        <div className="flex min-h-0 flex-1 justify-center">
-          <div data-testid="frame-pair" className={`flex min-h-0 w-full ${rightFull ? '' : 'max-w-frame'}`}>
+        {/* The main area and the right column fill the window (Jesse, Oct 23: "open to the max viewing"). Every tool
+            gets the whole main area, so the left edge never jumps between tools. */}
+        <div className="flex min-h-0 flex-1">
+          <div data-testid="frame-pair" className="flex min-h-0 w-full">
           {/* At full screen the main area only hides: Back finds it exactly as it was, scrolled where it was. A page
               holding a file's box (FilePreview, data-fill: a draft beside its source) fills it and does not scroll. */}
           <main
@@ -145,7 +148,7 @@ export function Frame({ model, folderId }: FrameProps) {
             hidden={rightFull}
             className={`min-w-0 flex-1 overflow-auto p-4 [scrollbar-gutter:stable] has-[[data-fill]]:overflow-hidden ${rightFull ? 'hidden' : ''}`}
           >
-            <div data-testid="tool-width" className="mx-auto w-full max-w-tool has-[[data-fill]]:h-full">
+            <div data-testid="tool-width" className="w-full has-[[data-fill]]:h-full">
               <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone={false} />
             </div>
           </main>
