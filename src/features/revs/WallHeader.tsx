@@ -98,7 +98,7 @@ export function WallHeader({ projectId, area, list, count, action, side, onShowS
           ) : null}
         </div>
         <div className="flex items-start gap-3">
-          <h1 className="min-w-0 flex-1 break-words text-[24px] font-semibold leading-8 tracking-[-0.015em] text-ink" data-testid="rev-wall-name">
+          <h1 className="heading min-w-0 flex-1 break-words text-[28px] font-semibold leading-9 text-ink" data-testid="rev-wall-name">
             {title}
             {sub ? (
               <>

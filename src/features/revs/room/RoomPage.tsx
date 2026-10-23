@@ -35,6 +35,7 @@ import { RoomImage } from './RoomImage';
 import { RoomWallRow } from './RoomWallRow';
 import { useRoomActions } from './useRoomActions';
 import { RoomPhotos } from '../photos/RoomPhotos';
+import { SECTION_HEAD } from '../../../ui/PageHeader';
 
 interface RoomPageProps {
   projectId: string;
@@ -103,7 +104,7 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
           {meta.join(' · ')}
         </span>
         <div className="flex items-start gap-3">
-          <h1 className="min-w-0 flex-1 break-words text-[24px] font-semibold leading-8 tracking-[-0.015em] text-ink" data-testid="rev-room-name">
+          <h1 className="heading min-w-0 flex-1 break-words text-[28px] font-semibold leading-9 text-ink" data-testid="rev-room-name">
             {roomLabel(room)}
           </h1>
           {canManage ? (
@@ -169,8 +170,8 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
         />
       ) : null}
       <section className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="flex-1 px-1 text-[12px] font-semibold uppercase leading-5 tracking-[0.06em] text-ink-2">Walls</h2>
+        <div className={`flex flex-wrap items-center gap-2 ${SECTION_HEAD}`}>
+          <h2 className="flex-1">Walls</h2>
           {canManage ? <AddRoomWall setup={setup} room={room} walls={walls} busy={act.busy} onAdd={act.add} /> : null}
         </div>
         {walls.length === 0 ? <EmptyState title="No walls in this room yet." /> : null}

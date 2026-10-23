@@ -12,7 +12,7 @@ export function CountTitle({ label, count, testId }: CountTitleProps) {
       {count === null ? null : (
         <span
           data-testid={testId}
-          className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-page px-1.5 text-[12px] font-semibold tabular-nums text-ink-2 ring-1 ring-inset ring-line"
+          className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-[5px] bg-ink px-1.5 font-sans text-[13px] font-bold tabular-nums tracking-normal text-white"
         >
           {String(count)}
         </span>

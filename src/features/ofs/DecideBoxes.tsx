@@ -7,11 +7,12 @@ import { Check, X, type LucideIcon } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useOfsDecide } from '../../data/ofs';
 import type { OfsDecision, OfsItem } from '../../data/ofs.types';
+import { FOCUS_RING } from '../../ui/box';
 import { FIELD_AREA, FIELD_LABEL } from '../../ui/Fields';
 import { Icon } from '../../ui/Icon';
 
-const BOX =
-  'flex min-h-16 flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-[17px] font-semibold shadow-control hover:brightness-95 active:shadow-press disabled:cursor-wait disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
+// The boldest things on the screen (Jesse, Oct 23): tall solid boxes with a black edge, the words in the display face.
+const BOX = `heading flex min-h-20 flex-1 items-center justify-center gap-3 rounded-card border-2 border-ink px-5 py-4 text-[24px] font-semibold tracking-[0.06em] shadow-tile transition-[box-shadow,transform,filter] duration-150 hover:-translate-y-px hover:shadow-tile-hover hover:brightness-110 active:translate-y-0 active:shadow-press disabled:translate-y-0 disabled:cursor-wait disabled:opacity-70 ${FOCUS_RING}`;
 
 interface DecideBoxesProps {
   projectId: string;
@@ -49,13 +50,12 @@ export function DecideBoxes({ projectId, item }: DecideBoxesProps) {
       style={{
         background: `var(--status-${decision}-solid)`,
         color: `var(--status-${decision}-on-solid)`,
-        borderColor: `var(--status-${decision}-solid)`,
       }}
       onClick={() => {
         record(decision);
       }}
     >
-      <Icon icon={icon} size={20} />
+      <Icon icon={icon} size={28} />
       {label}
     </button>
   );

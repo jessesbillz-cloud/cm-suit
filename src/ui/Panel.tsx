@@ -6,7 +6,7 @@ import type { Tool } from '../lib/layout';
 import { countOf, type ToolCounts } from '../lib/toolCounts';
 import { Button } from './Button';
 import { CountBadge } from './CountBadge';
-import { CLICK_EDGE } from './box';
+import { CLICK_EDGE, FOCUS_RING } from './box';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
 
@@ -19,7 +19,7 @@ interface PanelScreenProps {
 export function PanelScreen({ top, children, bottom }: PanelScreenProps) {
   return (
     <div className="flex h-[100dvh] flex-col bg-page">
-      <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-line bg-card px-2 pt-[env(safe-area-inset-top)]">
+      <div className="flex min-h-14 shrink-0 items-center gap-2 border-b-[3px] border-accent bg-rail px-2 pt-[env(safe-area-inset-top)]">
         {top}
       </div>
       {/* Holding a file's box (FilePreview, data-fill), the screen does not scroll: the box does. */}
@@ -31,7 +31,7 @@ export function PanelScreen({ top, children, bottom }: PanelScreenProps) {
 
 export function PanelBack({ label, onBack }: { label: string; onBack: () => void }) {
   return (
-    <button type="button" className="flex h-10 items-center gap-1 px-1 text-sm text-accent" onClick={onBack}>
+    <button type="button" className={`heading flex h-10 items-center gap-1 rounded-md px-1.5 text-[15px] font-medium text-white ${FOCUS_RING}`} onClick={onBack}>
       <Icon icon={ChevronLeft} size={18} />
       {label}
     </button>
@@ -72,7 +72,7 @@ function TabButton({ testId, badgeId, label, icon, count, active, onClick, onPre
       onPointerEnter={onPreload}
       onFocus={onPreload}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs ${active ? 'text-accent' : 'text-ink-2'}`}
+      className={`heading relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium tracking-[0.05em] ${active ? 'text-ink shadow-[inset_0_3px_0_theme(colors.accent.DEFAULT)] [&>svg]:text-accent' : 'text-ink-2'}`}
       onClick={onClick}
     >
       <Icon icon={icon} size={22} />
@@ -86,7 +86,7 @@ export function PanelTabBar({ tools, current, onSelect, counts, moreTools, onMor
   return (
     <nav
       aria-label="Tools"
-      className="flex shrink-0 items-stretch justify-around border-t border-line bg-card pb-[env(safe-area-inset-bottom)]"
+      className="flex shrink-0 items-stretch justify-around border-t-2 border-ink bg-card pb-[env(safe-area-inset-bottom)]"
     >
       {tools.map((t) => (
         <TabButton
@@ -132,7 +132,7 @@ interface PanelMoreSheetProps {
 /** The tools that don't fit on the bar, as big buttons above it, each with its count; on a job, Edit tools. */
 export function PanelMoreSheet({ tools, current, counts, onSelect, onEdit }: PanelMoreSheetProps) {
   return (
-    <div data-testid="phone-more" className="grid shrink-0 grid-cols-3 gap-2 border-t border-line bg-card p-3">
+    <div data-testid="phone-more" className="grid shrink-0 grid-cols-3 gap-2 border-t-2 border-ink bg-card p-3">
       {tools.map((t) => (
         <button
           key={t}
@@ -140,7 +140,7 @@ export function PanelMoreSheet({ tools, current, counts, onSelect, onEdit }: Pan
           data-testid={`phone-more-${t}`}
           aria-current={t === current ? 'page' : undefined}
           className={`relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-md text-sm ${CLICK_EDGE} ${
-            t === current ? 'border-accent bg-accent-soft text-accent' : 'border-line-strong bg-card text-ink-2'
+            t === current ? 'border-accent bg-accent-soft text-accent' : 'border-ink bg-card text-ink'
           }`}
           onClick={() => {
             onSelect(t);

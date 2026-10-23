@@ -85,7 +85,7 @@ export function CardSetup({ room, setup, index, rooms, isPhone, onDone }: CardSe
 
   return (
     <div className="flex flex-col gap-5" data-testid="rev-card-setup">
-      <h1 className="break-words text-[22px] font-semibold leading-7 text-ink">{roomLabel(room)}</h1>
+      <h1 className="heading break-words text-[26px] font-semibold leading-8 text-ink">{roomLabel(room)}</h1>
       <section className="flex flex-col gap-2">
         <h2 className={HEAD}>Walls</h2>
         {walls.length === 0 ? <EmptyState title="No walls in this room yet." /> : null}

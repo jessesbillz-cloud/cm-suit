@@ -10,19 +10,19 @@ describe('status', () => {
   });
   it('emits css variables', () => {
     expect(statusCssVariables()).toContain('--status-pending-dot:#EAB308');
-    expect(statusCssVariables()).toContain('--status-confirmed-solid:#16A34A');
+    expect(statusCssVariables()).toContain('--status-confirmed-solid:#15803D');
     expect(statusCssVariables()).toContain('--status-pending-on-solid:#422006');
     expect(statusLabel('postponed')).toBe('Postponed');
     expect(statusLabel('gc_review')).toBe('GC review');
   });
   it('has the tracker colors (the MDR pipeline): done green, has it a gold ring, ahead grey, late red', () => {
-    expect(STATUS.step_done.solid).toBe('#16A34A');
+    expect(STATUS.step_done.solid).toBe('#15803D');
     expect(STATUS.step_current.dot).toBe('#EAB308');
     expect(STATUS.step_current.bg).toBe('#FFFFFF');
     expect(STATUS.step_ahead.bg).toBe('#FFFFFF');
     expect(STATUS.step_ahead.dot).not.toBe(STATUS.step_current.dot);
-    expect(STATUS.late.fg).toBe('#DC2626');
-    expect(statusCssVariables()).toContain('--status-step_done-solid:#16A34A');
+    expect(STATUS.late.fg).toBe('#B91C1C');
+    expect(statusCssVariables()).toContain('--status-step_done-solid:#15803D');
   });
   it("colors a submittal's stamp: done green, attention amber, back red (the furthest back wins)", () => {
     expect(stampStatus('NET')).toBe('approved');

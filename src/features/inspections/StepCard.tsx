@@ -6,7 +6,7 @@ import { Icon } from '../../ui/Icon';
 import type { CardState } from './model';
 
 const BUBBLE: Record<CardState, string> = {
-  done: 'bg-accent text-white',
+  done: 'bg-ink text-white',
   current: 'bg-accent-soft text-accent ring-1 ring-inset ring-accent',
   open: 'bg-page text-ink-2',
   todo: 'bg-page text-ink-3',

@@ -5,6 +5,7 @@ import { useRef, useState, type KeyboardEvent } from 'react';
 import { Ellipsis, type LucideIcon } from 'lucide-react';
 import type { RailTool, Tool } from '../lib/layout';
 import { countOf, type ToolCounts } from '../lib/toolCounts';
+import { FOCUS_RING } from './box';
 import { CountBadge } from './CountBadge';
 import { Icon } from './Icon';
 import { TOOL_META } from './tools';
@@ -25,7 +26,7 @@ interface RailItemProps {
   onPreload?: (() => void) | undefined;
 }
 
-/** Icon over a short name (a longer one wraps and the item grows; or the icon alone), the count at the icon's corner, an accent bar when it's open. */
+/** Icon over a short name in the display face (a longer one wraps and the item grows; or the icon alone), the count at the icon's corner; open: white on a lighter black with the accent bar down its left edge. */
 export function RailItem({ testId, label, icon, count, badgeId, active, compact, onClick, expanded, onPreload }: RailItemProps) {
   return (
     <button
@@ -37,20 +38,20 @@ export function RailItem({ testId, label, icon, count, badgeId, active, compact,
       aria-current={active ? 'page' : undefined}
       aria-haspopup={expanded === undefined ? undefined : 'menu'}
       aria-expanded={expanded}
-      className={`relative flex shrink-0 items-center justify-center rounded-lg transition-[background-color,color,box-shadow] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ${
+      className={`relative flex shrink-0 items-center justify-center rounded-md transition-[background-color,color,box-shadow] duration-150 ${FOCUS_RING} ${
         compact ? 'h-10 w-10' : 'min-h-[60px] w-[80px] flex-col gap-1 [@media(max-height:820px)]:min-h-12 [@media(max-height:820px)]:gap-0.5'
       } ${
         active || expanded
-          ? 'bg-rail-active text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.10),0_2px_6px_rgba(0,0,0,.35)]'
-          : 'text-rail-ink hover:bg-rail-hover hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)] active:bg-rail-active'
+          ? 'bg-rail-active text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.12),0_2px_8px_rgba(0,0,0,.45)]'
+          : 'text-rail-ink hover:bg-rail-hover hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,.10)] active:bg-rail-active'
       }`}
       onClick={onClick}
     >
       {active ? (
-        <span aria-hidden="true" className={`absolute left-0 w-[3px] rounded-r bg-accent ${compact ? 'top-2 h-6' : 'top-3 h-9'}`} />
+        <span aria-hidden="true" className="absolute inset-y-1 left-0 w-1 rounded-r-sm bg-accent" />
       ) : null}
       <Icon icon={icon} size={compact ? 20 : 22} />
-      <span className={compact ? 'sr-only' : 'text-center text-[12px] font-semibold leading-4'}>{label}</span>
+      <span className={compact ? 'sr-only' : 'heading text-center text-[12px] font-medium leading-4 tracking-[0.06em]'}>{label}</span>
       <CountBadge
         n={count}
         testId={badgeId}
@@ -131,7 +132,7 @@ export function RailMore({ tools, counts, current, compact, onSelect, onPreload 
                 data-testid={`rail-more-${t}`}
                 aria-current={t === current ? 'page' : undefined}
                 className={`flex h-10 w-full items-center gap-3 px-3.5 text-left text-sm outline-none focus-visible:bg-page ${
-                  t === current ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-page'
+                  t === current ? 'bg-accent-soft font-medium text-accent shadow-[inset_4px_0_0_theme(colors.accent.DEFAULT)]' : 'text-ink hover:bg-page'
                 }`}
                 onClick={() => {
                   close();

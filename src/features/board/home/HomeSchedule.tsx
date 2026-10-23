@@ -6,6 +6,7 @@ import { useIsPhone } from '../../../app/frame/useIsPhone';
 import { detectZone, todayInZone } from '../../../lib/dates';
 import { entityTarget } from '../../../lib/entityTarget';
 import { OfsSchedule } from '../../inspections/OfsSchedule';
+import { SECTION_HEAD } from '../../../ui/PageHeader';
 
 export function HomeSchedule() {
   // On All my jobs, today is this device's (the calendar's rule).
@@ -15,7 +16,7 @@ export function HomeSchedule() {
   const openTarget = useOpenTarget();
   return (
     <section className="flex flex-col gap-2" aria-label="OFS schedule" data-testid="home-ofs-schedule">
-      <h2 className="px-1 text-[15px] font-semibold text-ink">OFS schedule</h2>
+      <h2 className={SECTION_HEAD}>OFS schedule</h2>
       <OfsSchedule
         projectId={null}
         day={day}
