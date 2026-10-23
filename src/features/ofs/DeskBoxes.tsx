@@ -13,7 +13,7 @@ import { useFileDrop } from '../files/useFileDrop';
 import { useDeskUpload, type DeskKind } from './useDeskUpload';
 
 // The boldest things on the page (Jesse, Oct 23): tall boxes, the words in the display face, a thick accent base.
-const BOX = `heading flex min-h-40 w-full flex-col items-center justify-center gap-3 rounded-card border-b-[6px] border-b-accent px-5 py-6 text-center text-[24px] font-semibold leading-7 tracking-[0.06em] text-ink max-sm:min-h-28 ${CLICK_BOX}`;
+const BOX = `heading flex min-h-40 w-full sm:h-44 flex-col items-center justify-center gap-3 rounded-card border-b-[6px] border-b-accent px-5 py-6 text-center text-[24px] font-semibold leading-7 tracking-[0.06em] text-ink max-sm:min-h-28 ${CLICK_BOX}`;
 
 function BoxFace({ icon, label }: { icon: LucideIcon; label: string }) {
   return (
