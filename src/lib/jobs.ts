@@ -149,19 +149,26 @@ export function jobRail(
   modules: readonly string[],
   readable: readonly string[] | null = null,
 ): RailModel {
-  const on = railForJob(JOB_TOOLS, modules).filter((t) => readable === null || readable.includes(t));
+  // A tool for one capability only (For review) shows once the answer says I hold it, never while it is not known.
+  const on = railForJob(JOB_TOOLS, modules).filter((t) => (readable === null ? !CAPABILITY_TOOLS.includes(t) : readable.includes(t)));
   const chosen = choice ?? defaultJobTools(recommended);
-  // A pinned tool the list doesn't name joins the end.
-  const at = (t: string) => (chosen.includes(t) ? chosen.indexOf(t) : chosen.length);
+  // A pinned tool the list doesn't name joins the end, For review the front.
+  const at = (t: string) => (chosen.includes(t) ? chosen.indexOf(t) : t === 'review' ? -1 : chosen.length);
   const job = on.filter((t) => chosen.includes(t) || isPinnedJobTool(t)).sort((a, b) => at(a) - at(b));
   return { general: [], job, more: on.filter((t) => !job.includes(t)) };
 }
 
 /**
  * Tools always under the job's name when the job has them on and my role may read them: never under More, never taken
- * off with Edit. Revs (Jesse, Oct 5: "I lost how to get back to the walls that we made").
+ * off with Edit. Revs (Jesse, Oct 5: "I lost how to get back to the walls that we made"), For review (Oct 22).
  */
-const PINNED_JOB_TOOLS: readonly string[] = ['revs'];
+const PINNED_JOB_TOOLS: readonly string[] = ['revs', 'review'];
+
+/**
+ * Tools no position is recommended and no module switches: only the capability decides (my_readable_tools). For review
+ * (0106, ofs.review): the fire marshal's, first under the job's name.
+ */
+const CAPABILITY_TOOLS: readonly string[] = ['review'];
 
 export function isPinnedJobTool(tool: string): boolean {
   return PINNED_JOB_TOOLS.includes(tool);

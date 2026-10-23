@@ -26,6 +26,7 @@ import {
   PermitsTool,
   RevsTool,
   RequirementsTool,
+  ReviewTool,
   RfisTool,
   SafetyTool,
   ScheduleTool,
@@ -79,6 +80,9 @@ function ToolScreen({ model, tool, folderId, isPhone }: ToolViewProps) {
           }}
         />
       );
+    case 'review':
+      if (projectId === null) return <NeedsJob what="items for review" />;
+      return <ReviewTool projectId={projectId} itemId={itemId} />;
     case 'files':
       if (projectId === null) return <NeedsJob what="files" />;
       return (

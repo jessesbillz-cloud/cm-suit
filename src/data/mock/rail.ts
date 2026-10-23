@@ -6,6 +6,7 @@ import { tasks } from './api';
 import { capability } from './bids';
 import { projects } from './jobs';
 import { me, waiting } from './rfis';
+import { waitingIds as ofsWaiting } from './ofs';
 import { myOpenMeetings } from './safety';
 
 /** Synthetic copy of the starting table for the roles the mock users take. */
@@ -37,13 +38,14 @@ export async function recommendedTools(): Promise<{ project_id: string; tools: s
 /** my_readable_tools (0081): the job tools whose read capability the mock user holds (the same list as the migration). */
 const READ_CAPS: readonly (readonly [string, readonly string[] | null])[] = [
   ['board', null],
+  ['review', ['ofs.review']],
   ['files', ['files.read_project', 'files.write_project', 'files.manage']],
   ['bids', ['bids.manage', 'bids.submit']],
   ['calendar', ['calendar.read']],
   ['dailies', ['dailies.read_all', 'dailies.write']],
   ['inspections', ['ir.request', 'ir.view_all', 'ir.decide', 'ir.ofs_decide', 'ir.ofs_view']],
   ['revs', ['revs.read']],
-  ['rfis', ['rfi.create_draft', 'rfi.sign_issue', 'rfi.answer', 'files.read_project']],
+  ['rfis', ['rfi.create_draft', 'rfi.sign_issue', 'rfi.answer', 'rfi.read_documents']],
   ['permits', ['permits.read']],
   ['deliveries', ['deliveries.view', 'deliveries.post']],
   ['corrections', ['corrections.view']],
@@ -74,5 +76,6 @@ export async function toolCounts(projectId: string | null): Promise<TypeCount[]>
   for (const t of await tasks(projectId)) add(t.entity_type, t.entity_id ?? t.id);
   for (const w of await waiting()) if (projectId === null || w.project_id === projectId) add('rfi', w.id);
   for (const id of myOpenMeetings(projectId)) add('safety_meeting', id);
+  for (const id of await ofsWaiting(projectId)) add('ofs_item', id);
   return [...records].map(([entity_type, ids]) => ({ entity_type, n: ids.size }));
 }

@@ -43,6 +43,8 @@ const MATRIX: Record<string, readonly Role[]> = {
   'rfi.sign_issue': ['pm', 'pe', 'project_admin', 'inspector_admin'],
   'rfi.answer': ['architect'],
   'rfi.read_documents': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'architect', 'owner_rep', 'inspector', 'inspector_admin', 'special_inspector', 'estimator', 'viewer'],
+  // 0106: Submittals for every Plans reader but the fire marshal, and his review (he is the extra 'fire' user, none of these).
+  'files.read_submittals': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'sub', 'architect', 'owner_rep', 'inspector', 'inspector_admin', 'special_inspector', 'estimator', 'viewer'], 'ofs.review': [],
   'rfi.view_internal_research': ['project_admin', 'pm', 'pe', 'estimator', 'inspector_admin'],
   'members.manage': ['project_admin', 'inspector_admin'],
   'deliveries.view': ROLES.filter((r) => r !== 'bidder' && r !== 'requester'),

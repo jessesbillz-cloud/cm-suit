@@ -33,6 +33,8 @@ const SERVER_KINDS = [
   'member.invited',
   'member.joined',
   'member.revoked',
+  'ofs.approved',
+  'ofs.not_approved',
   'permit.approved_set',
   'permit.comment',
   'permit.created',

@@ -57,10 +57,10 @@ select 'b0000000-0000-0000-0000-000000000861', 'c0000000-0000-0000-0000-00000000
                ('a0000000-0000-0000-0000-000000000865', 'probe+fa-viewer@example.test', 'viewer'),
                ('a0000000-0000-0000-0000-000000000866', 'probe+fa-ahj@example.test', 'ahj')) v(u, e, r);
 
-select ok(public.folder_kind_is_document('submittals') and public.folder_kind_is_document('plans')
-          and public.folder_kind_is_document('ccd') and not public.folder_kind_is_document('reports')
+select ok(public.folder_kind_is_document('plans') and public.folder_kind_is_document('ccd')
+          and not public.folder_kind_is_document('submittals') and not public.folder_kind_is_document('reports')
           and not public.folder_kind_is_document('rfis') and not public.folder_kind_is_document('photos'),
-  'Submittals are one of the job''s documents, Reports, Photos and the RFI tool''s folder are not');
+  'Plans and CCDs are documents, Submittals are read by files.read_submittals (0106), Reports, Photos, RFIs are not');
 select ok(not has_function_privilege('authenticated', 'public.files_rfi_uploads_make(uuid, uuid)', 'EXECUTE')
           and not has_function_privilege('anon', 'public.folder_kind_is_document(text)', 'EXECUTE'),
   'the helpers: internal, and nothing for anon');
@@ -128,7 +128,7 @@ select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000864'),
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000865'),
   '{ccd,photo,plan,report,rfi_doc,submittal,submittal_top}'::text[], 'viewer: the same as Plans');
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000866'),
-  '{ccd,plan,submittal,submittal_top}'::text[], 'fire marshal: Plans, Submittals, CCDs, no RFI documents, Reports or Photos');
+  '{ccd,plan}'::text[], 'fire marshal: Plans and CCDs, no Submittals (0106: only marked ones), RFI documents, Reports or Photos');
 select is(pg_temp.files_of('a0000000-0000-0000-0000-000000000867'), '{}'::text[], 'someone not on the job: nothing');
 
 select ok(pg_temp.can_read_as('a0000000-0000-0000-0000-000000000863', pg_temp.rid('trade'))
@@ -152,8 +152,8 @@ select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000866', pg_tem
 -- ---------------------------------------------------------------------------------------------------------------------
 select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000863'), '{plans,specs,submittals,rfis,ccd}'::text[],
   'sub: Plans, Specs, Submittals, RFIs and CCDs');
-select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000866'), '{plans,specs,submittals,ccd}'::text[],
-  'fire marshal: no RFIs section');
+select is(pg_temp.kinds_of('a0000000-0000-0000-0000-000000000866'), '{plans,specs,ccd}'::text[],
+  'fire marshal: no RFIs section, no Submittals section (0106: For review)');
 select ok(not pg_temp.can_read_as('a0000000-0000-0000-0000-000000000866', pg_temp.rid('uploaded')),
   'fire marshal: an uploaded RFI document''s folder stays closed');
 select ok(pg_temp.can_read_as('a0000000-0000-0000-0000-000000000863', pg_temp.rid('uploaded'))

@@ -77,5 +77,8 @@ export function sectionFolderReadable(folder: FolderRow, all: readonly FolderRow
     const parent: string | null = at.parent_id;
     at = parent === null ? undefined : all.find((f) => f.id === parent);
   }
-  return !docsOnly || DOC_KINDS.includes(nearestKind(folder, all));
+  const kind = nearestKind(folder, all);
+  // Submittals (0106): files.read_submittals, every Plans reader but the fire marshal (his come through For review).
+  if (kind === 'submittals' && persona === 'ahj') return false;
+  return !docsOnly || DOC_KINDS.includes(kind);
 }

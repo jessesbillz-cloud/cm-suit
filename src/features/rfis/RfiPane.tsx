@@ -25,6 +25,7 @@ import { RfiHead } from './RfiHead';
 import { RfiHistory } from './RfiHistory';
 import { RfiImpact } from './RfiImpact';
 import { RfiWhere } from './RfiWhere';
+import { OfsPanel } from '../ofs/OfsPanel';
 import { useRfisNav } from './useRfisNav';
 
 interface RfiPaneProps {
@@ -140,6 +141,7 @@ export function RfiPane({ projectId, itemId, isPhone, onOpenWindow }: RfiPanePro
           </PaneSection>
         ) : null}
         <RfiImpact detail={d} timeZone={tz} now={now} />
+        <OfsPanel projectId={projectId} target={{ rfiId: d.rfi.id }} />
         {editingTitle === null ? <RfiActions detail={d} isPhone={isPhone} onEdit={() => { setEditingTitle(d.rfi.title); }} /> : null}
         <BehindLink label="History" testId="rfi-history-link">
           <RfiHistory events={d.events} timeZone={tz} />

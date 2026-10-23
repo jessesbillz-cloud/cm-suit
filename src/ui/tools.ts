@@ -15,6 +15,7 @@ import {
   NotebookPen,
   ReceiptText,
   Settings,
+  ShieldCheck,
   Stamp,
   Truck,
   Users,
@@ -24,6 +25,7 @@ import type { Tool } from '../lib/layout';
 
 export const TOOL_META: Record<Tool, { label: string; icon: LucideIcon }> = {
   board: { label: 'Board', icon: MessagesSquare },
+  review: { label: 'For review', icon: ShieldCheck },
   files: { label: 'Files', icon: Folder },
   bids: { label: 'Bids', icon: Gavel },
   calendar: { label: 'Calendar', icon: CalendarDays },

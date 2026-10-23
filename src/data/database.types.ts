@@ -3402,6 +3402,146 @@ export type Database = {
           },
         ]
       }
+      ofs_decisions: {
+        Row: {
+          comment: string | null
+          content_hash: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          item_id: string
+          org_id: string
+          project_id: string
+          request_key: string
+        }
+        Insert: {
+          comment?: string | null
+          content_hash?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          item_id: string
+          org_id: string
+          project_id: string
+          request_key: string
+        }
+        Update: {
+          comment?: string | null
+          content_hash?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          item_id?: string
+          org_id?: string
+          project_id?: string
+          request_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofs_decisions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "ofs_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofs_decisions_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+        ]
+      }
+      ofs_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decision_id: string | null
+          file_id: string | null
+          id: string
+          kind: string
+          marked: boolean
+          marked_at: string
+          marked_by: string
+          org_id: string
+          project_id: string
+          rfi_id: string | null
+          source: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          file_id?: string | null
+          id?: string
+          kind: string
+          marked: boolean
+          marked_at?: string
+          marked_by: string
+          org_id: string
+          project_id: string
+          rfi_id?: string | null
+          source: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decision_id?: string | null
+          file_id?: string | null
+          id?: string
+          kind?: string
+          marked?: boolean
+          marked_at?: string
+          marked_by?: string
+          org_id?: string
+          project_id?: string
+          rfi_id?: string | null
+          source?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ofs_items_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "ofs_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofs_items_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: true
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ofs_items_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "ofs_items_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: true
+            referencedRelation: "rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_invites: {
         Row: {
           accepted_at: string | null
@@ -8308,6 +8448,7 @@ export type Database = {
         Args: { p_name: string; p_parent_id: string; p_project_id: string }
         Returns: boolean
       }
+      folder_nearest_kind: { Args: { p_folder_id: string }; Returns: string }
       folder_person: { Args: { p_folder_id: string }; Returns: string }
       folder_row_can_read: {
         Args: {
@@ -11331,6 +11472,73 @@ export type Database = {
       next_number: {
         Args: { p_kind: string; p_project_id: string }
         Returns: number
+      }
+      ofs_decide: {
+        Args: {
+          p_comment?: string
+          p_decision: string
+          p_item_id: string
+          p_key?: string
+          p_version: number
+        }
+        Returns: Json
+      }
+      ofs_desk: { Args: { p_project_id: string }; Returns: Json }
+      ofs_file_kind: { Args: { p_file_id: string }; Returns: string }
+      ofs_file_readable: { Args: { p_file_id: string }; Returns: boolean }
+      ofs_fire_default: { Args: never; Returns: string[] }
+      ofs_fire_list: { Args: { p_project_id: string }; Returns: string[] }
+      ofs_fire_standard: { Args: never; Returns: string[] }
+      ofs_item_json: { Args: { p_item_id: string }; Returns: Json }
+      ofs_item_may_see: {
+        Args: { p_file_id: string; p_rfi_id: string }
+        Returns: boolean
+      }
+      ofs_item_sent: { Args: { p_item_id: string }; Returns: boolean }
+      ofs_item_state: {
+        Args: { p_file_id?: string; p_item_id?: string; p_rfi_id?: string }
+        Returns: Json
+      }
+      ofs_mark: {
+        Args: {
+          p_file_id?: string
+          p_on: boolean
+          p_rfi_id?: string
+          p_version?: number
+        }
+        Returns: Json
+      }
+      ofs_may_mark_file: { Args: { p_file_id: string }; Returns: boolean }
+      ofs_may_mark_rfi: { Args: { p_rfi_id: string }; Returns: boolean }
+      ofs_review_list: {
+        Args: { p_project_id?: string }
+        Returns: {
+          decided_at: string
+          decision: string
+          file_id: string
+          id: string
+          kind: string
+          number: number
+          project_id: string
+          rfi_id: string
+          section: string
+          sent_at: string
+          title: string
+          version: number
+        }[]
+      }
+      ofs_rfi_marked: { Args: { p_rfi_id: string }; Returns: boolean }
+      ofs_section_is_fire: {
+        Args: { p_project_id: string; p_section: string }
+        Returns: boolean
+      }
+      ofs_section_of_text: { Args: { p_text: string }; Returns: string }
+      ofs_suggest: { Args: { p_file_ids: string[] }; Returns: number }
+      ofs_waiting: {
+        Args: { p_project_id?: string }
+        Returns: {
+          id: string
+        }[]
       }
       open_addenda_folder: { Args: { p_project_id: string }; Returns: string }
       open_bid_forms: { Args: { p_project_id: string }; Returns: string }

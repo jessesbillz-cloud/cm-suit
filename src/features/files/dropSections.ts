@@ -3,10 +3,12 @@
 // In order: its name (sectionOfName), else, for a PDF bound for Submittals, RFIs or CCDs, the words of its first 2 pages
 // read here with pdf.js (sectionOfText, the job's spec book's sections first). Only when both say nothing does
 // Submittals ask (SectionPrompt). The section goes into the file's hidden field right after the upload (0105 fill); a
-// section from the words leaves the visible name as it is.
+// section from the words leaves the visible name as it is. A section on the job's fire list marks the file fire / life
+// safety (0106 ofs_suggest).
 import type { AfterUpload } from '../../data/UploadQueue';
 import { fillFileSections } from '../../data/fileSection';
 import { messageOf } from '../../data/errors';
+import { suggestOfs } from '../../data/ofs';
 import { leadText } from '../../lib/pdf/pdfjs';
 import { sectionKey, sectionOfName } from '../specs/sections';
 import { sectionOfText } from '../specs/sectionOfText';
@@ -58,9 +60,16 @@ export function fileSectionStep(byText: ReadonlyMap<File, string>): AfterUpload 
     if (key === null) return null;
     try {
       await fillFileSections([{ fileId, section: key }]);
-      return null;
     } catch (e) {
       return `Spec section not saved: ${messageOf(e)}`;
+    }
+    // A section on the job's fire list: marked fire / life safety, so it goes to the fire marshal (0106, the database
+    // decides, never a file already marked or cleared).
+    try {
+      await suggestOfs([fileId]);
+      return null;
+    } catch (e) {
+      return `Not checked for OFS: ${messageOf(e)}`;
     }
   };
 }

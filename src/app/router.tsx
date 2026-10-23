@@ -63,6 +63,8 @@ interface ToolSearch {
   range?: string;
   /** Requirements (0069, 0073): All's grouping (section or company; absent = by kind). */
   by?: 'section' | 'company';
+  /** Inspections > new request (0106): start the form as an OFS request (the designated person's Request inspection). */
+  kind?: 'ofs';
 }
 
 function str(v: unknown): string | undefined {
@@ -117,6 +119,7 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
     ...(side && sideItem(side) !== null ? { side } : {}),
     ...(range === '2m' ? { range } : {}),
     ...(by === 'section' || by === 'company' ? { by } : {}),
+    ...(s['kind'] === 'ofs' ? { kind: 'ofs' as const } : {}),
   };
 }
 

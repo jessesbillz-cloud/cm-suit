@@ -18,6 +18,7 @@ import { filterKinds } from './boardKinds';
 import { BoardLineRow } from './BoardLineRow';
 import { HomeCards } from './home/HomeCards';
 import { NeedsYou } from './NeedsYou';
+import { OfsDesk } from '../ofs/OfsDesk';
 import { useNeedsYou } from './useNeedsYou';
 import { WhatsNew } from './WhatsNew';
 import { useProjectZones } from './zones';
@@ -120,8 +121,10 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
     <div>
       <PageHeader title={TOOL_META.board.label} icon={TOOL_META.board.icon} meta={meta} />
       <div className="flex flex-col gap-4">
-        {/* All my jobs: the cards for what my roles work (home/HomeCards); a job's board: what needs me there. */}
-        {projectId === null ? <HomeCards /> : <NeedsYou projectId={projectId} />}
+        {/* All my jobs: the cards for what my roles work (home/HomeCards); a job's board: what needs me there, under the
+            OFS start page for the job's designated person (0106). */}
+        {projectId === null ? <HomeCards /> : <OfsDesk projectId={projectId} />}
+        {projectId === null ? null : <NeedsYou projectId={projectId} />}
         <Card title="Activity" actions={filter} padded={false}>
           {whatsNewEnabled && feed.isSuccess ? (
             <WhatsNew

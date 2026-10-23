@@ -80,6 +80,9 @@ export const qk = {
   bidPipeline: ['bid_pipeline'] as const,
   /** The CSI MasterFormat reference (the same for every job). */
   csi: ['csi'] as const,
+  /** The fire marshal's review (0106): every item, list and start page under one prefix, one refresh after any mark or decision. */
+  ofs: ['ofs'] as const,
+  ofsPart: (part: string, id = '') => ['ofs', part, id] as const,
   /** Every RFI query of a job sits under this prefix: one invalidation after any RFI write. */
   rfis: (projectId: string) => ['rfis', projectId] as const,
   rfisPart: (projectId: string, part: string, id = '') => ['rfis', projectId, part, id] as const,

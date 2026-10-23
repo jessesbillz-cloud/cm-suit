@@ -4,6 +4,7 @@
 // stamped sheet) never offers Rename or Delete. A sheet in Plans or a spec book in Specs is not drawn in the pane (too
 // small to read): Full screen opens it, and the footer has Open in new window. A submittal whose section is in the job's
 // spec book has "Spec 09 29 00" in the footer, which opens the book there, and Related, its section's page (Jesse, Oct 12).
+// A submittal or an RFI document has its OFS part (0106): Fire / life safety, and what OFS decided.
 import { useState } from 'react';
 import { Maximize2, Pencil, Trash2 } from 'lucide-react';
 import { useUser } from '../../data/auth';
@@ -21,6 +22,7 @@ import { ReadingPane } from '../../ui/ReadingPane';
 import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useProjectZones } from '../board/zones';
+import { OfsPanel } from '../ofs/OfsPanel';
 import { SpecButton, SpecHubButton } from '../specs/SpecButton';
 import { useOpenSpec } from '../specs/useOpenSpec';
 import { useSpecFor } from '../specs/useSpecFor';
@@ -184,6 +186,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
             Full screen
           </Button>
         ) : null}
+        <OfsPanel projectId={f.project_id} target={{ fileId: f.id }} />
         {facts.isError ? <ErrorState error={facts.error} onRetry={() => void facts.refetch()} className="m-0" /> : null}
         {facts.data ? <EarlierVersions versions={facts.data.earlier} timeZone={zone} /> : null}
         {boxed ? <FilePreview item={item} onOpenWindow={onOpenWindow} /> : null}

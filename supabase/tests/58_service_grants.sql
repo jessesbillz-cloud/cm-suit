@@ -21,7 +21,7 @@ insert into want values
   ('folder_templates', 'SELECT'), ('owner_lookup', 'SELECT'), ('security_switches', 'SELECT'),
   ('signin_allowlist', 'SELECT'), ('testing_superusers', 'SELECT'), ('testing_role_home', 'SELECT'),
   ('permit_stamped_copies', 'INSERT,SELECT'), ('permit_approved_sets', 'INSERT,SELECT'),
-  ('permit_stage_events', 'INSERT,SELECT'), ('requirement_reminders', 'INSERT,SELECT'),
+  ('permit_stage_events', 'INSERT,SELECT'), ('ofs_decisions', 'INSERT,SELECT'), ('requirement_reminders', 'INSERT,SELECT'),
   ('calendar_feed_tokens', 'DELETE,INSERT,SELECT,UPDATE'), ('corrections', 'DELETE,INSERT,SELECT,UPDATE'),
   ('correction_history', 'DELETE,INSERT,SELECT,UPDATE'), ('email_events', 'DELETE,INSERT,SELECT,UPDATE');
 

@@ -158,6 +158,7 @@ describe('jobs', () => {
   it("job tools: every rail tool but Timesheets, the job's own Board and Calendar too (the database's job_rail_tools)", () => {
     expect(JOB_TOOLS).toEqual([
       'board',
+      'review',
       'files',
       'bids',
       'calendar',
@@ -210,6 +211,16 @@ describe('jobs', () => {
     expect(railModel('s', s, pm, {}, { s: ['board', 'files'] }).job).toEqual(['files']);
     expect(isPinnedJobTool('revs')).toBe(true);
     expect(isPinnedJobTool('files')).toBe(false);
+  });
+  it('For review: only for whoever may read it, first under the job name, never while that is not known (0106)', () => {
+    const s = [{ project_id: 's', modules: ['files', 'calendar', 'inspections', 'revs'] }];
+    const ahj = { s: ['board', 'calendar', 'inspections', 'files'] };
+    expect(railModel('s', s, ahj, {}).job).not.toContain('review');
+    expect(railModel('s', s, ahj, {}).more).not.toContain('review');
+    expect(railModel('s', s, ahj, {}, { s: ['board', 'review', 'calendar', 'files'] }).job).toEqual(['review', 'calendar', 'files']);
+    expect(railModel('s', s, ahj, { s: ['files'] }, { s: ['review', 'files'] }).job).toEqual(['review', 'files']);
+    expect(railModel('s', s, ahj, {}, { s: ['board', 'calendar', 'files'] }).job).toEqual(['calendar', 'files']);
+    expect(isPinnedJobTool('review')).toBe(true);
   });
   it('Safety: a job tool after Corrections, on for jobs being built (0060), after Dailies for the field positions', () => {
     expect(JOB_TOOLS.indexOf('safety')).toBe(JOB_TOOLS.indexOf('corrections') + 1);
