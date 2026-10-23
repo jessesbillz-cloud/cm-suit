@@ -453,3 +453,12 @@ export const OFS_SCHEDULE_RPCS: [string, Record<string, unknown>][] = [
   ['ir_ofs_tell_side', { p_request: {}, p_kind: 'probe', p_summary: 'probe' }],
   ['ir_ofs_calendar_sync', { p_request_id: ZERO_UUID }],
 ];
+
+/** The letterhead and the job's brand (0110). */
+export const ORG_BRAND_RPCS: [string, Record<string, unknown>][] = [
+  ['set_org_letterhead', { p_org_id: ZERO_UUID, p_version: 0, p_print_name: 'probe', p_address: null, p_phone: null, p_website: null }],
+  ['job_brand', { p_project_id: ZERO_UUID }],
+  ['job_brand_choices', { p_project_id: ZERO_UUID }],
+  ['set_job_brand', { p_project_id: ZERO_UUID, p_org_id: ZERO_UUID }],
+  ['may_read_org_brand', { p_org_id: ZERO_UUID }],
+];
