@@ -1,5 +1,5 @@
 begin;
-select plan(34);
+select plan(35);
 -- Migration 0080 (Oct 4 audit): a sheet in use stays on file (a live wall's sheet, a request's map), Setup's Up / Down
 -- as one save (rev_move), a backcheck taken back (permit_review_withdraw) and opened again with the same number, and
 -- the plan sheet's download through Revs' own gate: a fire marshal who may not read the plans folder still gets the
@@ -121,6 +121,10 @@ insert into ids select 'r', (public.ir_submit_ofs('c0000000-0000-0000-0000-00000
 update public.ir_maps set sheet_file_id = 'e0000000-0000-0000-0000-000000000802' where request_id = pg_temp.rid('r');
 select throws_ok($$ update public.files set deleted_at = now() where id = 'e0000000-0000-0000-0000-000000000802' $$, '22023',
   'An inspection map is on this sheet.', 'nor a request map''s sheet');
+-- 0107: a removed request's map no longer holds the sheet.
+update public.inspection_requests set deleted_at = now() where id = pg_temp.rid('r');
+select lives_ok($$ update public.files set deleted_at = now() where id = 'e0000000-0000-0000-0000-000000000802' $$,
+  'a removed request''s map sheet may go');
 select ok(not has_function_privilege('authenticated', 'public.tg_files_keep_rev_sheet()', 'EXECUTE'),
   'the keep rule is internal');
 
