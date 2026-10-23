@@ -20,7 +20,9 @@ export function useCreateOrg() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (v: { name: string; kind: string }) => createOrg(v.name, v.kind),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.myOrgs }),
+    // A company I run can be a job's brand (0110).
+    onSuccess: () =>
+      Promise.all([qc.invalidateQueries({ queryKey: qk.myOrgs }), qc.invalidateQueries({ queryKey: qk.jobBrandChoicesAll })]),
   });
 }
 

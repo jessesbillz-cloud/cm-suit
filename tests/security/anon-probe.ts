@@ -218,6 +218,12 @@ const RPCS: [string, Record<string, unknown>][] = [
   ['rfi_tell', { p_rfi_id: U, p_kind: 'probe', p_summary: 'probe', p_people: [] }],
   ['set_org_logo', { p_org_id: U, p_path: null }],
   ['org_logo_org', { p_name: `org/${U}/logo` }],
+  // The letterhead and the job's brand (0110)
+  ['set_org_letterhead', { p_org_id: U, p_version: 0, p_print_name: 'probe', p_address: null, p_phone: null, p_website: null }],
+  ['job_brand', { p_project_id: U }],
+  ['job_brand_choices', { p_project_id: U }],
+  ['set_job_brand', { p_project_id: U, p_org_id: U }],
+  ['may_read_org_brand', { p_org_id: U }],
   // Hours, billing and invoices (0043)
   ['set_daily_hours', { p_report_id: U, p_version: 1, p_hours: 8 }],
   ['save_hours_budget', { p_project_id: U, p_contract: 1, p_baseline: 0, p_through: null }],

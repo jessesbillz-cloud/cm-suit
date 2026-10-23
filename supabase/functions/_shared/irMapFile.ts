@@ -17,6 +17,7 @@ import { buildIrMap, mapTitle, SheetError } from './pdf/irMap.ts';
 import { pdfSafe } from './pdf/inspectionReport.ts';
 import { type IrRow, reportFolder, signedAtLabel } from './inspections.ts';
 import { looksLikePdf } from './permitStamp.ts';
+import { jobLetterhead, letterheadKey } from './brand.ts';
 
 /** Bigger than any single sheet; a whole set is refused before a byte is read. */
 const SHEET_MAX_BYTES = 40 * 1024 * 1024;
@@ -82,14 +83,15 @@ export function permitLine(facts: Pick<MapFacts, 'permit_number'>): string | nul
 }
 
 /**
- * Everything the map PDF shows: its content hash says whether the map on file is still this picture. The permit only
- * when there is one, so a map made before 0061 keeps its hash.
+ * Everything the map PDF shows: its content hash says whether the map on file is still this picture. The permit and
+ * the job's brand letterhead (0110, letterheadKey) only when there is one, so a map made before keeps its hash.
  */
-export function mapContent(facts: MapFacts, signed: MapSigner | null): Record<string, unknown> {
+export function mapContent(facts: MapFacts, signed: MapSigner | null, brand: Record<string, unknown> | null = null): Record<string, unknown> {
   return {
     kind: 'ir_map', request_id: facts.request_id, sheet_file_id: facts.sheet_file_id, page: facts.page, strokes: facts.strokes,
     title: titleOf(facts), legend: facts.legend, signed: signed && { by: signed.by, at: signed.at, ir_content_hash: signed.irHash },
     ...(facts.permit_number ? { permit: facts.permit_number } : {}),
+    ...(brand ? { brand } : {}),
   };
 }
 
@@ -142,7 +144,8 @@ export interface MapMaker {
 /** The current map's file id: the one on file when it already shows exactly this, else a new version made now. */
 export async function ensureMap(service: Db, facts: MapFacts, made: MapMaker): Promise<string> {
   if (facts.strokes.length === 0) throw new HttpError(400, 'Mark the walls first.');
-  const hash = await contentHash(mapContent(facts, made.signed));
+  const letterhead = await jobLetterhead(service, facts.project_id);
+  const hash = await contentHash(mapContent(facts, made.signed, await letterheadKey(letterhead)));
   const onFile = must(
     await service.from('ir_maps').select('content_hash, map_file_id').eq('request_id', facts.request_id).maybeSingle(),
     'map lookup',
@@ -165,6 +168,7 @@ export async function ensureMap(service: Db, facts: MapFacts, made: MapMaker): P
   const { signed, job } = made;
   const pdf = await buildIrMap({
     sheet: bytes, page: facts.page, strokes: facts.strokes, title: titleOf(facts), legend: facts.legend, permit: permitLine(facts),
+    letterhead,
     stamp: signed && {
       signaturePng: await signatureOf(service, signed.by), name: pdfSafe(signed.name), signedAtLabel: signedAtLabel(signed.at, job.timezone),
     },

@@ -18,8 +18,9 @@
 // report by finish_daily_submit; a submitted report is rendered again from that saved form, so a later change to the
 // company's form never changes what it prints.
 //
-// Service client (listed in admin_service_key_allowlist.txt): reading photo and logo bytes from private storage,
-// storing the PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not
+// Service client (listed in admin_service_key_allowlist.txt): reading photo and logo bytes from private storage and
+// the job's brand letterhead on the work log and the built-in forms (0110, _shared/brand.ts, the VIS form keeps its own
+// company logo), storing the PDF (users cannot write storage objects for files they didn't upload) and finish_daily_submit (not
 // user-callable).
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, storageError } from '../_shared/db.ts';
@@ -27,6 +28,7 @@ import { requireCapability, requireUser, signingConfirmed } from '../_shared/aut
 import { parseJson, uuid, z } from '../_shared/validate.ts';
 import { contentHash } from '../_shared/crypto.ts';
 import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
+import { jobLetterhead } from '../_shared/brand.ts';
 import { buildFilename } from '../_shared/buildFilename.ts';
 import {
   asPdfName,
@@ -208,7 +210,7 @@ async function render(form: ReportFormId | null, i: RenderInput): Promise<{ byte
     const rows = new Map(content.work.map((w) => [w.key, w.company.trim()]));
     const bytes = await buildDailyReportPdf({
       header, number: i.number, dateLabel: dayLabel(i.report.report_date), content, photosPerPage: settings.photos_per_page,
-      photos: stampedPhotos(i, (key) => rows.get(key) || null),
+      photos: stampedPhotos(i, (key) => rows.get(key) || null), letterhead: await jobLetterhead(i.service, i.report.project_id),
     });
     return { bytes, at: undefined };
   }
@@ -221,7 +223,7 @@ async function render(form: ReportFormId | null, i: RenderInput): Promise<{ byte
         form: f, header, number: i.number, dateLabel: dayLabel(i.report.report_date),
         day: dailyValues(f, content.fields, content.standing_note), tables: content.tables,
         inspections: content.inspections.map((e) => e.text), photosPerPage: settings.photos_per_page,
-        photos: stampedPhotos(i, () => null),
+        photos: stampedPhotos(i, () => null), letterhead: await jobLetterhead(i.service, i.report.project_id),
       });
       return { bytes, at: undefined };
     }

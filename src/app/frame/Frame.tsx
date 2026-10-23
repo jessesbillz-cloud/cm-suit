@@ -7,6 +7,7 @@ import { opensInMain, sideItem } from '../../lib/itemIds';
 import { openItemWindow } from '../../lib/itemWindow';
 import { Button } from '../../ui/Button';
 import { JobPicker } from '../../ui/JobPicker';
+import { OrgLogo } from '../../ui/OrgLogo';
 import { Rail } from '../../ui/Rail';
 import { RightColumn } from '../../ui/RightColumn';
 import { LoadingState } from '../../ui/States';
@@ -116,6 +117,7 @@ export function Frame({ model, folderId }: FrameProps) {
             onPick={model.pickJob}
             onNewJob={model.newJob}
           />
+          <OrgLogo projectId={loc.projectId} />
           {search.back === 'board' ? (
             <Button
               size="sm"

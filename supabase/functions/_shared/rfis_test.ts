@@ -3,6 +3,7 @@
 import {
   calendarDay, dateInZone, impactDaysOf, type RfiDetail, rfiFilename, rfiHash, type RfiJob, rfiPdfKey, rfiPdfPlan, type RfiRow,
 } from './rfis.ts';
+import { contentHash } from './crypto.ts';
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error(`failed: ${what}`);
@@ -19,7 +20,7 @@ const ROW: RfiRow = {
 
 const JOB: RfiJob = {
   name: 'Sample Job A', number: 'S-100', address: '100 Sample Way', timezone: 'America/Los_Angeles',
-  orgName: 'Sample Builders', logoPath: null,
+  orgName: 'Sample Builders', logoPath: null, letterhead: [],
 };
 
 function detail(over: Partial<RfiRow> = {}): Omit<RfiDetail, 'raw'> {
@@ -81,6 +82,9 @@ Deno.test('plan: issued and answered carry both signatures and the answer; the k
   check(plan.text.answer === null && plan.text.dueLabel === 'Oct 6, 2026', 'awaiting the answer, due date');
   const key = await rfiPdfKey(plan);
   check(key === (await rfiPdfKey(rfiPdfPlan(issued, JOB))), 'the same RFI, the same key');
+  check(key === (await contentHash({
+    v: 1, text: plan.text, photos: plan.photos.map((p) => p.id), logo: plan.logoPath, stamps: plan.stamps, filename: plan.filename,
+  })), 'no letterhead lines: the key an RFI had before 0110');
   const answered = rfiPdfPlan(detail({
     ...issued.rfi, status: 'answered', answer: 'The embed governs.', answered_at: '2026-10-01T17:00:00Z', answered_by: 'u3',
     impact_until: '2026-10-08T17:00:00Z',
@@ -88,6 +92,8 @@ Deno.test('plan: issued and answered carry both signatures and the answer; the k
   check(answered.text.answer?.by === 'Ann Sample' && answered.text.to === 'Ann Sample', 'answered by');
   check(key !== (await rfiPdfKey(answered)), 'answering makes a new PDF');
   check(key !== (await rfiPdfKey(rfiPdfPlan(issued, { ...JOB, logoPath: 'org/o1/logo' }))), 'a new logo makes a new PDF');
+  check(key !== (await rfiPdfKey(rfiPdfPlan(issued, { ...JOB, letterhead: ['1 Sample Way'] }))), 'letterhead lines make a new PDF');
+  check(key !== (await rfiPdfKey(rfiPdfPlan(issued, { ...JOB, orgName: 'Sample Office' }))), 'another brand makes a new PDF');
   const voided = rfiPdfPlan(detail({ ...issued.rfi, status: 'void', void_note: 'Duplicate' }), JOB);
   check(voided.text.mark === 'VOID', 'void is marked');
 });

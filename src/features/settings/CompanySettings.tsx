@@ -1,5 +1,5 @@
-// Settings > Company: my company's name and type, saved as I go, and its logo. Shown only for companies I run
-// (is_org_admin).
+// Settings > Company: my company's name and type, saved as I go, its logo and its letterhead (0110). Shown only for
+// companies I run (is_org_admin). Add company starts another one I run.
 import { useState } from 'react';
 import { messageOf } from '../../data/errors';
 import { useSaveOrg } from '../../data/jobs.mutations';
@@ -10,6 +10,8 @@ import { Card } from '../../ui/Card';
 import { SelectField, TextField } from '../../ui/Fields';
 import { SaveState } from '../../ui/SaveState';
 import { ErrorState, LoadingState } from '../../ui/States';
+import { AddCompany } from './AddCompany';
+import { CompanyLetterhead } from './CompanyLetterhead';
 import { CompanyLogo } from './CompanyLogo';
 import { FIELD_ROW } from './SettingRow';
 
@@ -65,6 +67,7 @@ function CompanyCard({ org, titled }: { org: MyOrg; titled: boolean }) {
       <div className="flex flex-col">
         <CompanyFields key={org.org_id} org={org} commit={commit} />
         <CompanyLogo orgId={org.org_id} />
+        <CompanyLetterhead orgId={org.org_id} />
       </div>
     </Card>
   );
@@ -80,6 +83,7 @@ export function CompanySettings() {
       {orgs.data.map((o) => (
         <CompanyCard key={o.org_id} org={o} titled={orgs.data.length > 1} />
       ))}
+      <AddCompany />
     </>
   );
 }

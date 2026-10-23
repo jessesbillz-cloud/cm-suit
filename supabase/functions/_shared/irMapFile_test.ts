@@ -75,3 +75,15 @@ Deno.test('content (0061): a map with no permit keeps its hash; the permit moves
   const stray = mapFactsSchema.parse({ ...FACTS, readiness: { previous: 'yes', trade: 'yes', gc: 'yes', ior: 'na', special: 'na' } });
   check(base === await contentHash(mapContent(stray, null)), 'a stray checklist never moves the hash');
 });
+
+Deno.test('content (0110): a job without a letterhead keeps its hash; the brand letterhead moves it', async () => {
+  const facts: MapFacts = mapFactsSchema.parse(FACTS);
+  const base = await contentHash(mapContent(facts, null));
+  check(base === await contentHash(mapContent(facts, null, null)), 'no letterhead: same hash');
+  const brand = { name: 'Sample Office', lines: ['1 Sample Way'], logo: null };
+  check(base !== await contentHash(mapContent(facts, null, brand)), 'the letterhead');
+  check(
+    await contentHash(mapContent(facts, null, brand)) !== await contentHash(mapContent(facts, null, { ...brand, logo: 'a'.repeat(64) })),
+    'a new logo',
+  );
+});

@@ -1,10 +1,11 @@
 // The RFI PDF (SPEC §14.1, §8.2): our clean format. Pure: data in, bytes out (pdf-lib, standard fonts). The job's
-// company logo and name head it; DRAFT (before issue) or VOID runs across every page. Rendered only by the rfis function
+// brand (0110: its logo, name and letterhead lines, letterhead.ts) heads it; DRAFT (before issue) or VOID runs across every page. Rendered only by the rfis function
 // from saved content; the two signatures go on afterwards through the one stamp (stamp.ts), the originator's bottom
 // left and the PM / PE's bottom right, so the bottom of every page is kept clear for them. Overflow flows onto
 // continuation pages, never cut off.
 import { degrees, PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import { pdfSafe, wrapText } from './inspectionReport.ts';
+import { layoutLetterhead } from './letterhead.ts';
 
 /** Everything the PDF says (no bytes): what the stored PDF's key is made of. */
 export interface RfiPdfText {
@@ -35,6 +36,8 @@ export interface RfiPdfText {
 export interface RfiPdfInput extends RfiPdfText {
   /** The company logo, PNG or JPEG. */
   logo: Uint8Array | null;
+  /** The letterhead lines under the name (address, phone, website), when the brand has them. */
+  letterhead: readonly string[];
   /** JPEG or PNG bytes; anything else is refused. */
   photos: readonly Uint8Array[];
 }
@@ -44,8 +47,6 @@ const MARGIN = 48;
 /** Kept clear at the bottom of every page for the two signature stamps and the page line. */
 const BOTTOM = 112;
 const WIDTH = SIZE[0] - 2 * MARGIN;
-const LOGO_W = 150;
-const LOGO_H = 48;
 const INK = rgb(0.07, 0.09, 0.15);
 const GRAY = rgb(0.42, 0.45, 0.5);
 const LINE = rgb(0.85, 0.87, 0.9);
@@ -121,30 +122,17 @@ function embedImage(doc: PDFDocument, bytes: Uint8Array, what: string): Promise<
   return Promise.reject(new Error(`The ${what} is not a JPEG or PNG.`));
 }
 
-/** Logo and company name at the left; "Request for Information" and the number (or DRAFT) at the right. */
+/** The letterhead (logo, name, lines) at the left; "Request for Information" and the number (or DRAFT) at the right. */
 async function header(c: Cursor, input: RfiPdfInput): Promise<void> {
   const { bold } = c.fonts;
   const top = c.y;
-  let x = MARGIN;
-  let height = 40;
-  if (input.logo) {
-    const img = await embedImage(c.doc, input.logo, 'company logo');
-    const scale = Math.min(LOGO_W / img.width, LOGO_H / img.height);
-    const w = img.width * scale;
-    const h = img.height * scale;
-    c.page.drawImage(img, { x, y: top - h, width: w, height: h });
-    x += w + 12;
-    height = Math.max(height, h);
-  }
-  const nameLines = wrapText(input.orgName, bold, 12, WIDTH - (x - MARGIN) - 190);
-  nameLines.slice(0, 3).forEach((line, i) => {
-    c.page.drawText(line, { x, y: top - 14 - i * 15, size: 12, font: bold, color: INK });
-  });
+  const lh = await layoutLetterhead(c.doc, c.fonts, { name: input.orgName, lines: input.letterhead, logo: input.logo }, WIDTH - 190);
+  lh.draw(c.page, MARGIN, top);
   const kind = 'REQUEST FOR INFORMATION';
   c.page.drawText(kind, { x: MARGIN + WIDTH - bold.widthOfTextAtSize(kind, 8), y: top - 10, size: 8, font: bold, color: GRAY });
   const label = input.number === null ? 'DRAFT' : rfiLabel(input.number);
   c.page.drawText(label, { x: MARGIN + WIDTH - bold.widthOfTextAtSize(label, 18), y: top - 32, size: 18, font: bold, color: INK });
-  c.y = top - Math.max(height, nameLines.slice(0, 3).length * 15 + 4) - 10;
+  c.y = top - Math.max(40, lh.height) - 10;
   c.rule();
   c.text([input.job.name, input.job.number].filter(Boolean).join(' · '), { size: 11, bold: true });
   if (input.job.address) c.text(input.job.address, { size: 9, color: GRAY });

@@ -1,5 +1,5 @@
 begin;
-select plan(190);
+select plan(191);
 -- RFIs (migration 0038): the module and rail, route settings, the RFIs folder, drafts (p_key repeats, versions),
 -- visibility per role (sub originator, inspector reviewer on the route, super reviewer later, PE issuer, architect from
 -- 'open', another sub only once answered), draft -> send -> forward -> send back -> send -> forward -> issue (numbers
@@ -83,7 +83,7 @@ select ok((select not ('rfis' = any (modules)) from public.projects where id = '
 select ok((select bool_and('rfis' = any (recommended_tools)) from public.roles where name in ('pm', 'pe', 'sub', 'architect')),
   'rail: RFIs are recommended to those who write, issue and answer them');
 select results_eq($$ select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'org-logos' $$,
-  $$ values (false, 2097152::bigint, array['image/png', 'image/jpeg']) $$, 'org-logos: private, 2 MB, PNG or JPEG');
+  $$ values (false, 1048576::bigint, array['image/png', 'image/jpeg']) $$, 'org-logos: private, 1 MB (0110), PNG or JPEG');
 
 set local role authenticated;
 
@@ -556,6 +556,8 @@ select is((public.set_org_logo('b0000000-0000-0000-0000-000000000321', 'org/b000
   'org/b0000000-0000-0000-0000-000000000321/logo', 'logo: set');
 select is((select count(*)::int from storage.objects where bucket_id = 'org-logos'), 1, 'logo: the company''s members read it');
 select pg_temp.login('a0000000-0000-0000-0000-000000000322');
+select is((select count(*)::int from storage.objects where bucket_id = 'org-logos'), 1, 'logo: people on the job read it (0110)');
+select pg_temp.login('a0000000-0000-0000-0000-000000000329');
 select is((select count(*)::int from storage.objects where bucket_id = 'org-logos'), 0, 'logo: other companies do not');
 select pg_temp.login('a0000000-0000-0000-0000-000000000321');
 select is((public.set_org_logo('b0000000-0000-0000-0000-000000000321', null)).logo_path, null, 'logo: removed');

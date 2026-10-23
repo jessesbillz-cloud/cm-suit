@@ -17,6 +17,7 @@ function sample(over: Partial<RfiPdfInput> = {}): RfiPdfInput {
   return {
     orgName: 'Sample Builders',
     logo: null,
+    letterhead: [],
     job: { name: 'Sample Job A', number: 'S-100', address: '100 Sample Way' },
     number: null,
     mark: 'DRAFT',

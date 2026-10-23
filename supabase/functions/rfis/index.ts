@@ -13,8 +13,8 @@
 //             viewer shows it and pages through it. Only the RFI's own server-made PDF, through the same gate (logged).
 //   download: a photo, answer file or the PDF of that RFI: rfi_authorize_file() as the caller (who may see the RFI,
 //             the scan rules, logs the download), then a fresh signed URL.
-// Service client (admin_service_key_allowlist.txt): storing and recording the PDF, reading photo, logo and signature
-// bytes from private storage, and signing download URLs; each only after the caller-run checks above.
+// Service client (admin_service_key_allowlist.txt): storing and recording the PDF, the job's brand (0110,
+// _shared/brand.ts), reading photo, logo and signature bytes from private storage, and signing download URLs; each only after the caller-run checks above.
 import { handle, HttpError, ok, refuse } from '../_shared/http.ts';
 import { type Db, must, rpc, serviceClient, signedDownloadUrl, signedViewUrl, storageError } from '../_shared/db.ts';
 import { requireCapability, requireUser, signingConfirmed } from '../_shared/auth.ts';
@@ -23,6 +23,7 @@ import { storeGeneratedPdf } from '../_shared/generatedPdf.ts';
 import { buildRfiPdf } from '../_shared/pdf/rfi.ts';
 import { pdfSafe } from '../_shared/pdf/inspectionReport.ts';
 import { stampSignature } from '../_shared/pdf/stamp.ts';
+import { jobBrand } from '../_shared/brand.ts';
 import {
   loadRfi, loadRfiDetail, parseRfi, type RfiFileRef, rfiHash, type RfiJob, type RfiPdfPlan, rfiPdfKey, rfiPdfPlan,
 } from '../_shared/rfis.ts';
@@ -42,14 +43,17 @@ interface Authorized {
   mime: string;
 }
 
-async function jobOf(client: Db, projectId: string): Promise<RfiJob> {
+/** The job as the caller reads it, and its brand (0110) read with the server key once the caller has seen the RFI. */
+async function jobOf(client: Db, service: Db, projectId: string): Promise<RfiJob> {
   const p = must(
-    await client.from('projects').select('name, number, address, timezone, org_id').eq('id', projectId).single(),
+    await client.from('projects').select('name, number, address, timezone').eq('id', projectId).single(),
     'project lookup',
-  ) as { name: string; number: string | null; address: string | null; timezone: string; org_id: string };
-  const o = must(await client.from('orgs').select('name, logo_path').eq('id', p.org_id).single(), 'company lookup') as
-    { name: string; logo_path: string | null };
-  return { name: p.name, number: p.number, address: p.address, timezone: p.timezone, orgName: o.name, logoPath: o.logo_path };
+  ) as { name: string; number: string | null; address: string | null; timezone: string };
+  const brand = await jobBrand(service, projectId);
+  return {
+    name: p.name, number: p.number, address: p.address, timezone: p.timezone, orgName: brand.name, logoPath: brand.logoPath,
+    letterhead: brand.lines,
+  };
 }
 
 async function bytesOf(service: Db, bucket: string, path: string, what: string): Promise<Uint8Array> {
@@ -93,7 +97,7 @@ async function signatureOf(service: Db, signerId: string): Promise<Uint8Array | 
 async function render(client: Db, service: Db, plan: RfiPdfPlan, projectId: string): Promise<Uint8Array> {
   const logo = plan.logoPath ? await bytesOf(service, 'org-logos', plan.logoPath, 'logo download') : null;
   const photos = await photoBytes(client, service, projectId, plan.photos);
-  let bytes = await buildRfiPdf({ ...plan.text, logo, photos });
+  let bytes = await buildRfiPdf({ ...plan.text, logo, letterhead: plan.letterhead, photos });
   for (const s of plan.stamps) {
     bytes = await stampSignature(bytes, {
       signaturePng: await signatureOf(service, s.signerId), name: pdfSafe(s.name), signedAtLabel: s.signedAtLabel, align: s.align,
@@ -116,14 +120,14 @@ async function folderOf(client: Db, projectId: string): Promise<string> {
 async function ensurePdf(client: Db, userId: string, rfiId: string): Promise<{ fileId: string; rfi: Row }> {
   const detail = await loadRfiDetail(client, rfiId);
   const r = detail.rfi;
-  const plan = rfiPdfPlan(detail, await jobOf(client, r.project_id));
+  const service = serviceClient();
+  const plan = rfiPdfPlan(detail, await jobOf(client, service, r.project_id));
   const key = await rfiPdfKey(plan);
   if (r.pdf_file_id !== null && r.pdf_hash === key) {
     const stored = must(await client.from('files').select('id').eq('id', r.pdf_file_id).is('deleted_at', null).maybeSingle(),
       'pdf lookup') as { id: string } | null;
     if (stored) return { fileId: stored.id, rfi: detail.raw };
   }
-  const service = serviceClient();
   const bytes = await render(client, service, plan, r.project_id);
   const folderId = await folderOf(client, r.project_id);
   const stored = await storeGeneratedPdf(service, {

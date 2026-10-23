@@ -16,7 +16,7 @@ insert into want values
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
   ('rev_signoffs', 'SELECT'), ('rev_rooms', 'SELECT'), ('rev_room_walls', 'SELECT'), ('rev_photos', 'SELECT'), ('project_duties', 'SELECT'), ('spec_sections', 'SELECT'),
   ('safety_signins', 'SELECT'), ('safety_topics', 'SELECT'), ('schedule_activities', 'SELECT'),
-  ('project_places', 'SELECT'), ('project_weather', 'SELECT'),
+  ('project_places', 'SELECT'), ('project_weather', 'SELECT'), ('org_letterheads', 'SELECT'),
   ('schedule_versions', 'SELECT'), ('role_permissions', 'SELECT'), ('roles', 'SELECT'), ('job_kinds', 'SELECT'),
   ('folder_templates', 'SELECT'), ('owner_lookup', 'SELECT'), ('security_switches', 'SELECT'),
   ('signin_allowlist', 'SELECT'), ('testing_superusers', 'SELECT'), ('testing_role_home', 'SELECT'),
@@ -59,7 +59,7 @@ select is_empty(
        ('email_outbound', 'INSERT,SELECT,UPDATE'), ('email_suppressions', 'SELECT,INSERT,UPDATE'),
        ('file_pages', 'INSERT,UPDATE,SELECT'), ('files', 'INSERT,SELECT,UPDATE'), ('folders', 'SELECT,INSERT,UPDATE'),
        ('folder_access', 'INSERT'), ('ir_maps', 'SELECT'), ('member_scopes', 'INSERT,UPDATE,SELECT'),
-       ('orgs', 'SELECT'), ('permit_stamped_copies', 'INSERT'), ('profiles', 'SELECT'),
+       ('orgs', 'SELECT'), ('org_letterheads', 'SELECT'), ('permit_stamped_copies', 'INSERT'), ('profiles', 'SELECT'),
        ('project_members', 'INSERT,SELECT,UPDATE'), ('projects', 'SELECT'), ('role_permissions', 'SELECT'),
        ('roles', 'SELECT'), ('share_links', 'INSERT,SELECT,UPDATE'), ('sub_history', 'INSERT'),
        ('subs', 'INSERT,SELECT'), ('tasks', 'SELECT'), ('transmittals', 'INSERT,UPDATE,SELECT')

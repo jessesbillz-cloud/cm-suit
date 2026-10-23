@@ -159,6 +159,8 @@ export const PUBLIC_TABLES = [
   'project_places', 'project_weather',
   // The fire marshal's review (0106): an item's mark, and his decisions
   'ofs_items', 'ofs_decisions',
+  // A company's letterhead (0110)
+  'org_letterheads',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
