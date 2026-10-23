@@ -29,6 +29,7 @@ A construction-management suite (bids, daily reports, inspection scheduling, del
      - admin functions named in `supabase/tests/admin_service_key_allowlist.txt`, which must call `requireCapability` first.
    - Queues (`pgmq`) are never exposed to the API. Jobs are enqueued only through the `enqueue_job` RPC.
    - Outside people get in through permanent access links plus an email code (SPEC §6.4). Never through magic links, which expire and get burned by email scanners.
+   - No printable `\u` escapes in function source: the deploy tool rewrites them, so build those characters at run time.
 5. **The app talks to Supabase only through `src/data/`**, which holds the generated types, queries and mutations. Lint bans `fetch(` and Supabase URLs anywhere else.
 6. **Errors are loud.**
    - No empty or swallowing catch blocks.
