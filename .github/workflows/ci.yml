@@ -128,19 +128,20 @@ jobs:
       - name: DEBUG look pictures 0
         if: always()
         run: |
-          for f in test-results/look/desktop-0*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+          pip install -q pillow
+          for f in test-results/look/desktop-0*.png; do [ -f "$f" ] || continue; python3 -c "import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert('RGB');w=760 if im.width>800 else im.width;im=im.resize((w,int(im.height*w/im.width)));im.save('/tmp/x.jpg',quality=55)" "$f"; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
       - name: DEBUG look pictures 1
         if: always()
         run: |
-          for f in test-results/look/desktop-1*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+          for f in test-results/look/desktop-1*.png; do [ -f "$f" ] || continue; python3 -c "import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert('RGB');w=760 if im.width>800 else im.width;im=im.resize((w,int(im.height*w/im.width)));im.save('/tmp/x.jpg',quality=55)" "$f"; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
       - name: DEBUG look pictures 2
         if: always()
         run: |
-          for f in test-results/look/phone-0*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+          for f in test-results/look/phone-0*.png; do [ -f "$f" ] || continue; python3 -c "import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert('RGB');w=760 if im.width>800 else im.width;im=im.resize((w,int(im.height*w/im.width)));im.save('/tmp/x.jpg',quality=55)" "$f"; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
       - name: DEBUG look pictures 3
         if: always()
         run: |
-          for f in test-results/look/phone-1*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+          for f in test-results/look/phone-1*.png; do [ -f "$f" ] || continue; python3 -c "import sys;from PIL import Image;im=Image.open(sys.argv[1]).convert('RGB');w=760 if im.width>800 else im.width;im=im.resize((w,int(im.height*w/im.width)));im.save('/tmp/x.jpg',quality=55)" "$f"; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
       # The look: pictures of the fire marshal's screens (tests/e2e/look.spec.ts), kept on every run.
       - uses: actions/upload-artifact@v4
         if: always()
