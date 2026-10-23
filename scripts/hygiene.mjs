@@ -58,6 +58,15 @@ for (const f of files.filter((p) => /^supabase\/migrations\/\d{14}_.*\.sql$/.tes
   });
 }
 
+// The edge function deploy tool rewrites an escape for a printable character into the character itself, so a deployed
+// file no longer matches the repo (inspectionReport.ts plainSpaces, Oct 23). Control-character escapes survive.
+const PRINTABLE_ESCAPE = /\\u(?!00[01][0-9a-fA-F]|007[fF])[0-9a-fA-F]{4}|\\u\{/;
+for (const f of files.filter((p) => p.startsWith('supabase/functions/') && p.endsWith('.ts'))) {
+  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+    if (PRINTABLE_ESCAPE.test(line)) problems.push(`printable \\u escape (the deploy tool rewrites it, build it at run time): ${f}:${i + 1}`);
+  });
+}
+
 // Embedded prompt copies match prompts/<task>.md, and every task has synthetic fixtures.
 problems.push(...checkPrompts());
 

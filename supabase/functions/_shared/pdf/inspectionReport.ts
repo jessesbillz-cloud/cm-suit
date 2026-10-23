@@ -47,10 +47,16 @@ const AMBER = rgb(0.76, 0.35, 0.05);
 // WinAnsi (the standard fonts' encoding): printable ASCII, Latin-1 and the extra punctuation it maps.
 const WIN_ANSI_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ');
 
+/** The Unicode spaces: U+1680, U+2000 to U+200A, U+202F, U+205F, U+3000. Built from their code points, because the
+ *  deploy tool rewrites an escape for a printable character into the character itself. */
+const UNICODE_SPACE: ReadonlySet<number> = new Set([0x1680, ...Array.from({ length: 11 }, (_, i) => 0x2000 + i), 0x202f, 0x205f, 0x3000]);
+
 /** Every Unicode space as a plain one. The hosted runtime's date formatter puts a narrow no-break space (U+202F) before
  *  "AM" / "PM"; a local Deno writes a plain space, so only the hosted function ever saw it. */
 export function plainSpaces(text: string): string {
-  return text.replace(/[\u1680\u2000-\u200a\u202f\u205f\u3000]/g, ' ');
+  let out = '';
+  for (const ch of text) out += UNICODE_SPACE.has(ch.codePointAt(0) ?? 0) ? ' ' : ch;
+  return out;
 }
 
 /** Text the standard fonts can draw: tabs and Unicode spaces become spaces, anything else outside WinAnsi becomes '?'. */

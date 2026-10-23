@@ -49,7 +49,7 @@ Deno.test('stamp: a fixed spot (a company form\'s signature line) stamps that pa
 
 Deno.test('stamp: a time the hosted runtime formats (narrow no-break space before PM) still signs', async () => {
   // What broke on staging: "WinAnsi cannot encode (0x202f)" stopped every signature; a local Deno writes a plain space.
-  const hosted = { name: 'Pat Sample', signedAtLabel: 'Oct 4, 2026, 7:32\u202fAM PDT' };
+  const hosted = { name: 'Pat Sample', signedAtLabel: `Oct 4, 2026, 7:32${String.fromCharCode(0x202f)}AM PDT` };
   check(signedByLine(hosted) === 'Signed by Pat Sample · Oct 4, 2026, 7:32 AM PDT', 'the line reads with a plain space');
   check(signedByLine({ name: 'Pat 中', signedAtLabel: 'now' }) === 'Signed by Pat ? · now', 'a letter the font lacks never stops it');
   const out = await stampSignature(await twoPages(), { signaturePng: PNG_1PX, ...hosted });
