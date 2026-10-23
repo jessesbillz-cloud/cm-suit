@@ -134,6 +134,43 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     });
   }
 
+  // The calendar's day beside it (Jesse, Oct 23: "when you click a day on the calendar I still have to scroll"): today's
+  // list is in the right column from the start, another day's is 1 click, an inspection from it 1 more, and the day is
+  // 1 click back. The list is never under the calendar.
+  test('calendar: a day = 1 click, an inspection from it = 1 more, back to the day = 1', async ({ page }) => {
+    await page.goto('/p/job-a/calendar'); // setup: the calendar
+    const right = page.getByTestId('right-column');
+    await expect(right.getByTestId('cal-day-detail')).toBeVisible();
+    await expect(page.getByTestId('main-area').getByTestId('cal-day-detail')).toHaveCount(0);
+    // Setup: special inspections shown too, so the day has requests whichever kinds the mock put on it.
+    const specials = page.getByTestId('cal-type-special_inspections');
+    if ((await specials.getAttribute('aria-pressed')) === 'false') await specials.click();
+    await expect(specials).toHaveAttribute('aria-pressed', 'true');
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+    const d = new Date(`${today}T12:00:00Z`);
+    // A weekday of this month other than today (the mock seeds requests on weekdays).
+    d.setUTCDate(d.getUTCDate() + (d.getUTCDate() > 20 ? -1 : 1));
+    while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + (d.getUTCDate() > 20 ? -1 : 1));
+    const other = d.toISOString().slice(0, 10);
+    await resetTaps(page);
+
+    const counter = { n: 0 };
+    await tap(page.getByTestId(`cal-day-${other}`), counter);
+    await expect(page).toHaveURL(new RegExp(`/calendar/day\\?.*day=${other}`));
+    const card = right.getByTestId('cal-day-detail').getByTestId('cal-request').first();
+    await expect(card).toBeVisible();
+    expect(counter.n).toBe(1);
+
+    await tap(card.getByRole('button').first(), counter);
+    await expect(right.getByTestId('ir-pane')).toBeVisible();
+    expect(counter.n).toBe(2);
+
+    await tap(right.getByTestId('cal-back-day'), counter);
+    await expect(right.getByTestId('cal-day-detail')).toBeVisible();
+    expect(counter.n).toBe(3);
+    expect(await taps(page)).toBe(3);
+  });
+
   // Home from inside a job is the mark, top-left (Jesse, Oct 5): one click, from any tool.
   test('home from a job = 1 click', async ({ page }) => {
     await openTool(page, 'files'); // setup: a job's tool

@@ -1,4 +1,4 @@
-// The selected day under the calendar (MDR's day panel): the weekday over the big date and the day's count, Add and
+// The selected day (MDR's day panel), in the right column on a desktop and under the month on a phone: the weekday over the big date and the day's count, Add and
 // Block time, the day's requests by state (each a card that opens in the right column with the inspector's steps),
 // blocked time, the day's other lines under their kind (Deliveries, Meetings, Milestones, Due ...), then the week's
 // look-ahead.
@@ -31,6 +31,8 @@ interface DayDetailProps {
   onBlock: (() => void) | null;
   onOpenRequest: (entry: IrEntry) => void;
   onOpenLine: (line: CalendarLine) => void;
+  /** In the right column (desktop): no card of its own, the column is the box. */
+  bare?: boolean | undefined;
 }
 
 function Header({ day, today, entries, isPhone, onAdd, onBlock }: Pick<DayDetailProps, 'day' | 'today' | 'entries' | 'isPhone' | 'onAdd' | 'onBlock'>) {
@@ -82,8 +84,7 @@ export function DayDetail(props: DayDetailProps) {
   const requests = entries.filter((e): e is IrEntry => e.type === 'ir');
   const others = entries.filter((e): e is LineEntry => e.type === 'line' && !isLookahead(e));
   const groups = groupRequests(requests);
-  return (
-    <Card padded={false} className="mt-4">
+  const body = (
       <section data-testid="cal-day-detail" aria-label={formatDay(day, 'EEEE, MMMM d')}>
         <Header {...props} />
         <div className="flex flex-col gap-6 p-4 sm:p-5">
@@ -130,6 +131,10 @@ export function DayDetail(props: DayDetailProps) {
           <LookAhead week={week} entries={lookahead} showJob={showJob} selectedId={openId} onOpen={onOpenLine} />
         </div>
       </section>
+  );
+  return props.bare === true ? body : (
+    <Card padded={false} className="mt-4">
+      {body}
     </Card>
   );
 }

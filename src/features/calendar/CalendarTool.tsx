@@ -1,13 +1,13 @@
 // Calendar (SPEC §7.6, §12.3; MDR's schedule calendar, Jesse Sep 28). The month (default) or the week: each day shows
-// its inspections as banners in their status colors, and the selected day opens underneath with its requests, other
-// lines and the week's look-ahead. "All my jobs" (projectId null) merges every job, which is how double-booking shows.
-// Days and times are each job's own (projects.timezone). The phone gets the same month and day, one column.
-import { useMemo } from 'react';
+// its inspections as banners in their status colors. The selected day's list (its requests, other lines and the week's
+// look-ahead) opens in the right column on a desktop, today's from the start, so the calendar never scrolls to show it
+// (Jesse, Oct 23); on a phone it sits under the month. "All my jobs" (projectId null) merges every job, which is how
+// double-booking shows. Days and times are each job's own (projects.timezone).
+import { useEffect, useMemo } from 'react';
 import { useCalendarKinds } from '../../data/calendar.queries';
 import type { CalendarLine } from '../../data/calendar.types';
-import { useCapability, useJobsWithCapability, useMyProjects } from '../../data/queries';
+import { useJobsWithCapability, useMyProjects } from '../../data/queries';
 import { detectZone, todayInZone } from '../../lib/dates';
-import { toolIsOn } from '../../lib/jobs';
 import { Card } from '../../ui/Card';
 import { PageHeader } from '../../ui/PageHeader';
 import { Segments } from '../../ui/Segments';
@@ -22,6 +22,7 @@ import { MonthGrid } from './MonthGrid';
 import { TypeFilter } from './TypeFilter';
 import { useCalendarData } from './useCalendarData';
 import { useCalendarNav } from './useCalendarNav';
+import { useDayActions } from './useDayActions';
 import { WeekGrid } from './WeekGrid';
 
 interface CalendarToolProps {
@@ -44,16 +45,14 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const days = useMemo(() => visibleDays(view, selected), [view, selected]);
   const week = useMemo(() => visibleDays('week', selected), [selected]);
   const data = useCalendarData(projectId, days);
-  const manage = useCapability(projectId, 'calendar.manage');
   const kinds = useCalendarKinds();
   const offered = useMemo(() => offeredKinds(kinds.data, projects.data ?? [], projectId), [kinds.data, projects.data, projectId]);
-  // All my jobs: Add shows only when some job with the calendar on lets me add lines (as Block time does).
-  const calendarJobs = useMemo(
-    () => (projectId === null ? (projects.data ?? []).filter((p) => toolIsOn('calendar', p.modules)).map((p) => p.project_id) : []),
-    [projects.data, projectId],
-  );
-  const managers = useJobsWithCapability(calendarJobs, 'calendar.manage');
-  const deciders = useJobsWithCapability(data.irJobs, 'ir.decide');
+  const actions = useDayActions(projectId, data.irJobs);
+  // Desktop: the right column is never empty here; with nothing open it shows the selected day (today at first).
+  const showDay = !isPhone && itemId === null ? nav.showDay : null;
+  useEffect(() => {
+    if (showDay) showDay();
+  }, [showDay]);
   // Share is the job team's (the GC team and inspectors: ir.view_all), not every requester's.
   const team = useJobsWithCapability(data.irJobs, 'ir.view_all');
 
@@ -100,9 +99,6 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
   const shareJobs = (data.projects.data ?? [])
     .filter((p) => (team.ids ?? []).includes(p.project_id))
     .map((p) => ({ project_id: p.project_id, name: p.name }));
-  // All my jobs: the add form picks the job; one job: only with calendar.manage.
-  const canAdd = projectId === null ? (managers.ids ?? []).length > 0 : manage.data === true;
-  const canBlock = (deciders.ids ?? []).length > 0;
   const lookahead = week.flatMap((d) => byDay.get(d) ?? []).filter((e): e is LineEntry => isLookahead(e));
 
   function openEntry(e: Entry) {
@@ -131,7 +127,7 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
         ) : null}
         <CalendarFooter jobs={shareJobs} onSubscribe={nav.subscribe} />
       </Card>
-      {!loading ? (
+      {!loading && isPhone ? (
         <DayDetail
           day={selected}
           today={today}
@@ -142,13 +138,13 @@ export function CalendarTool({ projectId, itemId, isPhone }: CalendarToolProps) 
           openId={itemId}
           isPhone={isPhone}
           onAdd={
-            canAdd
+            actions.canAdd
               ? () => {
                   nav.add(selected);
                 }
               : null
           }
-          onBlock={canBlock ? nav.block : null}
+          onBlock={actions.canBlock ? nav.block : null}
           onOpenRequest={(e) => {
             if (e.row.id !== null) nav.openRequest(e.projectId, e.row.id);
           }}

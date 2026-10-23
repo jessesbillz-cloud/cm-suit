@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BLOCK_ITEM, boardLineItem, boardLineOf, DRAFT_ITEM_PREFIX, itemKindTitle, NEW_ITEM, opensInMain, SUBSCRIBE_ITEM, VERSION_ITEM_PREFIX, WALLS_ITEM,
+  BLOCK_ITEM, boardLineItem, DAY_ITEM, boardLineOf, DRAFT_ITEM_PREFIX, itemKindTitle, NEW_ITEM, opensInMain, SUBSCRIBE_ITEM, VERSION_ITEM_PREFIX, WALLS_ITEM,
 } from './itemIds';
 
 describe('opensInMain', () => {
@@ -23,6 +23,7 @@ describe('itemKindTitle', () => {
     expect(itemKindTitle('calendar', NEW_ITEM)).toBe('New line');
     expect(itemKindTitle('calendar', BLOCK_ITEM)).toBe('Block time');
     expect(itemKindTitle('calendar', SUBSCRIBE_ITEM)).toBe('Subscribe');
+    expect(itemKindTitle('calendar', DAY_ITEM)).toBe('Day');
     expect(itemKindTitle('calendar', 'ir.job-a.req-1')).toBe('Inspection');
     expect(itemKindTitle('calendar', 'line-1')).toBe('Calendar line');
   });
