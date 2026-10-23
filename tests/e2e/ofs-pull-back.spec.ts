@@ -116,7 +116,8 @@ test.describe('OFS: Not ready, and the easy sign-off', () => {
     const wall = page.getByTestId('rev-wall-page');
     await expect(wall.getByTestId(`rev-item-${ITEM}`)).toHaveAttribute('data-state', 'failed');
     await wall.getByTestId(`rev-item-${ITEM}`).click();
-    await expect(wall.getByTestId('rev-facts')).toContainText('Failed — needs re-inspection: Sample screws too far apart');
+    await expect(wall.getByTestId('rev-facts')).toContainText('Failed — needs re-inspection:');
+    await expect(wall.getByTestId('rev-item-note')).toHaveText('Sample screws too far apart');
 
     // The sub's start page: Back from OFS, Failed, the item itself.
     await openAs(page, 'sub', '/p/job-s/board');
