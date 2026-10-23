@@ -10348,6 +10348,10 @@ export type Database = {
           ofs_number: number | null
           ofs_ready_at: string | null
           ofs_ready_by: string | null
+          ofs_sched: string | null
+          ofs_sched_at: string | null
+          ofs_sched_by: string | null
+          ofs_sched_note: string | null
           ofs_sent_at: string | null
           ofs_sent_by: string | null
           ofs_si_at: string | null
@@ -10424,6 +10428,10 @@ export type Database = {
           ofs_number: number | null
           ofs_ready_at: string | null
           ofs_ready_by: string | null
+          ofs_sched: string | null
+          ofs_sched_at: string | null
+          ofs_sched_by: string | null
+          ofs_sched_note: string | null
           ofs_sent_at: string | null
           ofs_sent_by: string | null
           ofs_si_at: string | null
