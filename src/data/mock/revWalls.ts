@@ -7,6 +7,7 @@ import type { Tables } from '../database.types';
 import { parseArea, WALL_DETAIL_MAX, type RevArea, type WallDetailKey, type WallDetails } from '../revs.types';
 import type { RevSignoff, SignoffValues } from '../revs.walls';
 import { bump, checkVersion, clean, fail, has, must, newId, read, stamp, write, type RevMockState } from './revs';
+import { mockUser } from './index';
 import { delay } from './store';
 
 const WHAT: Record<WallDetailKey, string> = {
@@ -29,7 +30,10 @@ export async function saveDetails(area: RevArea, details: WallDetails): Promise<
   const keys = Object.keys(WALL_DETAIL_MAX) as WallDetailKey[];
   const next = Object.fromEntries(keys.map((k) => [k, tidy(k, details[k])])) as WallDetails;
   if (keys.every((k) => next[k] === current[k])) return parseArea(current);
-  const saved = bump(current, next);
+  // A manager's edit of a wall added on the spot checks it (0113).
+  const check = current.field_by !== null && current.field_checked_at === null
+    ? { field_checked_at: new Date().toISOString(), field_checked_by: mockUser().id } : {};
+  const saved = bump(current, { ...next, ...check });
   write((x) => ({ ...x, areas: x.areas.map((a) => (a.id === saved.id ? saved : a)) }));
   return parseArea(saved);
 }

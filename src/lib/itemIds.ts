@@ -22,6 +22,9 @@ export const WALLS_ITEM = 'walls';
 /** Revs (0083): a room opens as `room-<id>` (a page of its own), a wall's file beside it as `file-<id>`. */
 export const ROOM_ITEM_PREFIX = 'room-';
 export const REV_FILE_PREFIX = 'file-';
+/** Revs (0113): the request being built, its review; a wall added on the spot. */
+export const BASKET_ITEM = 'request';
+export const FIELD_WALL_ITEM = 'add-wall';
 /** Safety: a new topic for the company's library. */
 export const NEW_TOPIC_ITEM = 'new-topic';
 /** Safety: a library topic opens as `topic-<id>` (a meeting opens by its own id). */

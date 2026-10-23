@@ -71,19 +71,15 @@ test.describe('revs rooms', () => {
     // The elevator shaft is in no room: it is still there.
     await expect(rooms.getByTestId('rev-other-walls')).toBeVisible();
     await expect(rooms.getByTestId('rev-wall-mock-rev-area-3')).toBeVisible();
-    await expect(page.getByTestId('rev-view-list')).toBeVisible();
+    // Oct 23: the rooms are the one way in (no Walls or Open view; a reader has no row of views at all).
+    await expect(page.getByTestId('rev-view-list')).toHaveCount(0);
+    await expect(page.getByTestId('rev-view-rooms')).toHaveCount(0);
 
     await page.getByTestId('rev-level-Level 02').click();
     await expect(page).toHaveURL(/level=Level(%20|\+)02/);
     await expect(rooms.getByTestId('rev-room-mock-room-s2')).toHaveAttribute('data-kind', 'shaft');
     await expect(rooms.getByTestId('rev-room-mock-room-s2')).toContainText('Shaft');
     await expect(rooms.getByTestId('rev-room-mock-room-110')).toHaveCount(0);
-    // The level stays from view to view.
-    await page.getByTestId('rev-view-list').click();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-5')).toBeVisible();
-    await expect(page.getByTestId('rev-wall-mock-rev-area-2')).toHaveCount(0);
-    await page.getByTestId('rev-view-rooms').click();
-    await expect(page.getByTestId('rev-level-Level 02')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('rev-level-Level 01').click();
 
     await corridor.click();

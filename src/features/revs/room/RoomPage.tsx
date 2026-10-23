@@ -5,9 +5,10 @@
 // that you can follow") and one bubble per rev (Oct 11). No picture: nothing for readers, a slim place for a manager's (RoomImage).
 // A manager renames or removes the room (Undo), adds a wall of its level or takes one out (Undo), and draws a wall's
 // line on the picture (tap its points, Done). On a desktop it fills the main area; on a phone it is its own screen.
-// Request inspection (those who may ask, ir.request; Jesse, Oct 10: "do it for the whole room very easily") opens a new
-// OFS request with every wall of the room picked, the items to pick first. Set up card (a manager; 0101, Jesse Oct 12)
-// opens the room's card on its own screen (CardSetup, ?view=card): the walls tracked here and the items they need.
+// Whoever files OFS requests adds an item for the whole room to the request being built (0113; Jesse, Oct 23: "top of
+// wall for the entire room"; RoomRequest), and adds a wall of the room on the spot (Add wall); the request's bar is at
+// the bottom. Set up card (a manager; 0101, Jesse Oct 12) opens the room's card on its own screen (CardSetup,
+// ?view=card): the walls tracked here and the items they need.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { ChevronLeft, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -35,6 +36,10 @@ import { RoomImage } from './RoomImage';
 import { RoomWallRow } from './RoomWallRow';
 import { useRoomActions } from './useRoomActions';
 import { RoomPhotos } from '../photos/RoomPhotos';
+import { BasketBar } from '../basket/BasketBar';
+import { roomItems } from '../basket/basketModel';
+import { useBasket, type BasketApi } from '../basket/useBasket';
+import { RoomRequest } from './RoomRequest';
 import { SECTION_HEAD } from '../../../ui/PageHeader';
 
 interface RoomPageProps {
@@ -51,8 +56,8 @@ interface BodyProps {
   rooms: RevRooms;
   files: SignoffFiles;
   canManage: boolean;
-  /** May ask for inspections (ir.request). */
-  canRequest: boolean;
+  /** The request being built (those who file OFS requests). */
+  basket: BasketApi;
   isPhone: boolean;
 }
 
@@ -62,10 +67,18 @@ const FRAME_SIZE = `${FRAME} h-[32dvh] min-h-[200px] sm:h-[320px]`;
 // Full screen of nothing is no use: the slim place has none.
 const FRAME_NONE = `${FRAME} h-16 [&_div:has(>[data-testid=sheet-full])]:hidden`;
 
-function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canRequest, isPhone }: BodyProps) {
+function RoomBody({ projectId, room, setup, index, rooms, files, canManage, basket, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const walls = useMemo(() => roomWalls(setup, index, rooms, room.id), [setup, index, rooms, room.id]);
   const count = roomCount(walls);
+  // Whole room: the items still to ask for on some wall, or in the request already.
+  const whole = useMemo(
+    () =>
+      roomItems(setup, index, walls.map((w) => w.area), basket.keys)
+        .map((r) => ({ ...r, items: r.items.filter((i) => i.toAdd > 0 || i.inIt > 0) }))
+        .filter((r) => r.items.length > 0),
+    [setup, index, walls, basket.keys],
+  );
   const act = useRoomActions(projectId, room, walls);
   const setupActions = useSetupActions(projectId);
   const openFile = useOpenRevFile(projectId);
@@ -129,17 +142,10 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
         </div>
         <WallProgress count={count} withLine testId="rev-room-progress" />
         <div className={`flex flex-wrap gap-2 ${isPhone ? 'flex-col' : ''}`}>
-          {canRequest && count.needed > count.passed + count.requested ? (
-            <Button
-              variant="primary"
-              icon={Plus}
-              size={isPhone ? 'lg' : 'md'}
-              data-testid="rev-room-request"
-              onClick={() => {
-                nav.request(walls.map((w) => w.area.id), []);
-              }}
-            >
-              Request inspection
+          {/* A manager adds an existing wall under Walls (AddRoomWall) or a new one in Setup. */}
+          {basket.can && !canManage ? (
+            <Button icon={Plus} size={isPhone ? 'lg' : 'md'} data-testid="rev-room-add-wall" onClick={() => { nav.addWall(room.id); }}>
+              Add wall
             </Button>
           ) : null}
           {canManage ? (
@@ -200,6 +206,15 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, canR
           ))}
         </ul>
       </section>
+      {basket.can ? (
+        <RoomRequest
+          revs={whole}
+          busy={basket.busy}
+          onAdd={(itemId, name) => {
+            basket.addRoom(room.id, itemId, name);
+          }}
+        />
+      ) : null}
       <RoomPhotos projectId={projectId} roomId={room.id} walls={walls} isPhone={isPhone} />
     </div>
   );
@@ -233,17 +248,17 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const status = useRevStatus(projectId);
   const rooms = useRevRooms(projectId);
   const manage = useCapability(projectId, 'revs.manage');
-  const ask = useCapability(projectId, 'ir.request');
+  const basket = useBasket(projectId);
   const signoffs = useSignoffFiles(projectId);
   const nav = useRevsNav(projectId, manage.data === true);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
 
   let body: ReactNode;
-  const failed = [setup, status, rooms, manage, ask, signoffs].find((q) => q.isError);
+  const failed = [setup, status, rooms, manage, signoffs].find((q) => q.isError);
   const room = rooms.data?.rooms.find((r) => r.id === roomId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
-  else if (!setup.data || !status.data || !rooms.data || manage.isPending || ask.isPending) body = <LoadingState label="Loading the room" />;
+  else if (!setup.data || !status.data || !rooms.data || manage.isPending) body = <LoadingState label="Loading the room" />;
   else if (!room) body = <EmptyState title="This room is no longer on the job." />;
   else if (own.view === 'card' && manage.data === true) {
     body = <CardSetup key={room.id} room={room} setup={setup.data} index={index} rooms={rooms.data} isPhone={isPhone} onDone={() => { nav.openRoom(room.id, true); }} />;
@@ -258,17 +273,26 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
         rooms={rooms.data}
         files={files}
         canManage={manage.data === true}
-        canRequest={ask.data === true}
+        basket={basket}
         isPhone={isPhone}
       />
     );
   }
+  const bar = own.view === 'card' ? null : <BasketBar basket={basket} onReview={nav.review} isPhone={isPhone} />;
   // A phone's screen has its own Back.
-  if (isPhone) return <div className="px-4 pt-3">{body}</div>;
+  if (isPhone) {
+    return (
+      <div className="flex min-h-full flex-col px-4 pt-3">
+        <div className="flex-1">{body}</div>
+        {bar}
+      </div>
+    );
+  }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-h-full flex-col gap-2">
       <BackToRevs projectId={projectId} canManage={manage.data === true} level={room?.level.trim()} />
       <Card>{body}</Card>
+      {bar}
     </div>
   );
 }

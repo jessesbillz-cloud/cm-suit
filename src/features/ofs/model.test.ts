@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DeskRow, OfsReviewRow } from '../../data/ofs.types';
-import { deskLists, deskTitle, reviewTree, rfiNo, rowTitle, sectionLabel } from './model';
+import { byBatch, deskLists, deskTitle, reviewTree, rfiNo, rowTitle, sectionLabel } from './model';
 
 function row(p: Partial<OfsReviewRow> & Pick<OfsReviewRow, 'id' | 'kind' | 'title'>): OfsReviewRow {
   return {
@@ -65,5 +65,22 @@ describe("the designated person's lists", () => {
     ]);
     expect(l.back.map((g) => g.label)).toEqual(['Approved', 'Failed']);
     expect(deskTitle(desk({ id: 'd', kind: 'inspection', state: 'failed', number: 31, title: 'Level 2 walls' }))).toBe('OFS 31 · Level 2 walls');
+  });
+});
+
+describe('requests filed together', () => {
+  it('stay together in the place of the first, the rest one by one', () => {
+    const batches = new Map([
+      ['b', { batchId: 'x', size: 3 }],
+      ['d', { batchId: 'x', size: 3 }],
+      ['e', { batchId: 'y', size: 1 }],
+    ]);
+    const runs = byBatch(['a', 'b', 'c', 'd', 'e'], (r) => r, batches);
+    expect(runs.map((r) => [r.batch?.id ?? null, r.batch?.size ?? null, r.rows])).toEqual([
+      [null, null, ['a']],
+      ['x', 3, ['b', 'd']],
+      [null, null, ['c']],
+      [null, null, ['e']],
+    ]);
   });
 });

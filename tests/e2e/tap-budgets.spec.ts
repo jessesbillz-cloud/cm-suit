@@ -283,7 +283,8 @@ test.describe('setup: first company and job, new job (SPEC §5.1)', () => {
 
 // Jesse, Oct 10 (the fire marshal's demo): a whole room, two items, from the room in Revs. Before: open a wall, its
 // items, Request, then each other wall of the room, the notice box, the question, Request, I confirm (12 for a room of
-// four walls). Now: room, Request inspection, 2 items, No, Request, I confirm = 7, on the desktop and the phone.
+// four walls). Oct 10: room, Request inspection, 2 items, No, Request, I confirm = 7. Oct 23 (the request being
+// built, 0113): room, Add for the whole room twice, Review, No, Send, I confirm = 7, on the desktop and the phone.
 test.describe('tap budgets, OFS request from a room', () => {
   test.skip(!MOCK, 'Tap budgets run only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run them.');
 
@@ -296,15 +297,16 @@ test.describe('tap budgets, OFS request from a room', () => {
 
     const counter = { n: 0 };
     await tap(room, counter);
-    await tap(page.getByTestId('rev-room-request'), counter);
-    await expect(page.getByTestId('rev-pick-room-mock-room-110')).toHaveAttribute('aria-pressed', 'true');
-    await tap(page.getByTestId('rev-item-mock-rev-item-3-1'), counter);
-    await tap(page.getByTestId('rev-item-mock-rev-item-3-2'), counter);
+    await tap(page.getByTestId('rev-room-add-mock-rev-item-3-1'), counter);
+    await expect(page.getByTestId('rev-room-add-mock-rev-item-3-1')).toHaveAttribute('data-in', 'true');
+    await tap(page.getByTestId('rev-room-add-mock-rev-item-3-2'), counter);
+    await expect(page.getByTestId('basket-line')).toHaveText('4 items on 2 walls');
+    await tap(page.getByTestId('basket-review'), counter);
     await tap(page.getByTestId('ir-special-required-no'), counter);
-    await tap(page.getByTestId('ir-submit'), counter);
+    await tap(page.getByTestId('basket-send'), counter);
     await tap(page.getByTestId('ir-attest-confirm'), counter);
 
-    await expect(page.getByTestId('ir-receipt-number')).toHaveText(/^IR \d+$/);
+    await expect(page.getByTestId('basket-sent')).toHaveAttribute('data-count', '2');
     expect(counter.n).toBe(7);
     expect(await taps(page)).toBe(7);
   });

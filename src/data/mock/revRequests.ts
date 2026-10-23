@@ -10,7 +10,7 @@ import { FunctionError } from '../functions';
 import type { Tables } from '../database.types';
 import type { IrRef } from '../inspections.mutations';
 import type { IrRequest, IrRowRaw } from '../inspections.types';
-import type { IrMapContext, IrRevItem, IrStroke, NewOfsRequest, RevResult, RevStatusRow } from '../revs.types';
+import { wallFacts, type IrMapContext, type IrRevItem, type IrStroke, type NewOfsRequest, type RevResult, type RevStatusRow } from '../revs.types';
 import { mockUser } from './index';
 import * as mockIr from './inspections';
 import { decideCap, holds } from './irRules';
@@ -112,9 +112,15 @@ function canDraw(q: IrRequest, mine: Cell[]): boolean {
   return holds(me, decideCap(q)) || (q.requested_by === me && q.result === null && mine.every((c) => c.result === null));
 }
 
+/** A wall as ir_ofs_items_text names it: with its facts in brackets when it has any (0113). */
+function wallName(a: Tables<'rev_areas'>): string {
+  const any = [a.wall_tag, a.rating, a.ul_design, a.sheet_ref].some((v) => v !== null && v.trim() !== '');
+  return any ? `${a.name} (${wallFacts(a)})` : a.name;
+}
+
 /** ir_ofs_items_text: the levels, the items joined with " & ", the walls. */
 export function itemsText(walls: readonly Tables<'rev_areas'>[], items: readonly Tables<'rev_items'>[]): string {
-  return `${[...new Set(walls.map((a) => a.level))].sort().join(', ')} · ${items.map((i) => i.name).join(' & ')} · ${walls.map((a) => a.name).join(', ')}`;
+  return `${[...new Set(walls.map((a) => a.level))].sort().join(', ')} · ${items.map((i) => i.name).join(' & ')} · ${walls.map(wallName).join(', ')}`;
 }
 
 /** ir_submit_ofs in short form. */
@@ -149,7 +155,7 @@ export async function submit(v: NewOfsRequest): Promise<IrRowRaw> {
   const added: Cell[] = open.map(({ a, i }, k) => ({
     id: `mock-ir-rev-item-${row.id}-${String(k)}`, created_at: now, updated_at: now, created_by: me, version: 1, org_id: row.org_id,
     project_id: row.project_id, request_id: row.id, area_id: a.id, item_id: i.id, color: used.indexOf(i) + 1, result: null,
-    result_note: null, result_at: null, result_by: null, pulled_at: null, pulled_by: null,
+    result_note: null, result_at: null, result_by: null, pulled_at: null, pulled_by: null, wall_facts: wallFacts(a),
   }));
   const sheet = v.sheetFileId ?? walls.find((a) => a.sheet_file_id !== null)?.sheet_file_id ?? null;
   // The page of the first wall on that sheet, one drawn on the plan first (0059).

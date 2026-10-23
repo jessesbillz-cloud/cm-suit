@@ -29,6 +29,60 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
    `passed`, `na`. Only `open` and `failed` cells can be asked for (a `requested` one already is).
 3. `rpc/ir_ofs_attest_text` `{ "p_project_id": <job> }`: the job's attestation wording (shown to the requester).
 
+## Walk and tap: the request being built (0113)
+
+The way the app files OFS requests from Inspection cards (Jesse, Oct 23): the requester walks the job and taps what is
+ready, then sends it all at once. It ends in step 2 below, once per request, so steps 3 to 12 follow as usual. Who: the
+requester (`ir.request` and `revs.read`, on a job with `ir_ofs_allowed`). Every answer below is the basket:
+`{ "version", "cells": [{area_id, item_id}], "groups": [{item_id, area_ids, ofs_number}], "may_number" }`.
+
+B1. **Read the basket.** `rpc/rev_basket_get` `{ "p_project_id": "<job>" }`. `version` 0 and no cells: none yet.
+    Cells asked for, passed or switched off since they were added are left out of every answer.
+
+B2. **JUDGMENT: add a wall's items.** `rpc/rev_basket_add`
+    `{ "p_project_id": "<job>", "p_area_ids": ["<wall>"], "p_item_ids": ["<item>", ...] }`. Each wall x item that is
+    `open` or `failed` in `rev_status` and not in the basket goes in; the rest is skipped (`added` says how many). The
+    same call again adds nothing. Repeat per wall.
+
+B3. **JUDGMENT, optional: add an item for a whole room.** `rpc/rev_basket_add`
+    `{ "p_project_id": "<job>", "p_area_ids": [], "p_item_ids": ["<item>"], "p_room_id": "<room>" }`. Every wall of
+    the room's card (`rev_room_walls`, live) is used, with the same skips.
+
+B4. **Optional: take out.** `rpc/rev_basket_remove` `{ "p_project_id", "p_area_ids": [...], "p_item_ids": [...] }`
+    (the Undo of B2 and B3). `removed` says how many.
+
+B5. **Read what Send will file.** B1 again: `groups` is one OFS request per item and plan sheet page (walls with no
+    sheet: per level), in rev and item order, each with the OFS number the database would give it (the next ones in
+    turn). Keep `version`.
+
+B6. **Send.** `rpc/rev_basket_send`
+    ```json
+    { "p_project_id": "<job>", "p_version": <version from B5>, "p_company": "<requester's company>",
+      "p_request_date": "yyyy-MM-dd", "p_start_time": "HH:mm", "p_duration_kind": "timed", "p_duration_min": 60,
+      "p_notice_ack": true, "p_special_required": false }
+    ```
+    Leave out `p_start_time` for Flexible. The inspector filing it himself adds `"p_inspector_ack": true`. Whoever
+    sends OFS requests (`may_number` true) may add `"p_ofs_numbers": [<n>, ...]`, one per group in B5's order, each
+    unused on the job. After: one `inspection_requests` row per group, each made by `ir_submit_ofs` exactly as step 2
+    (same rules, statements and first status), each with its own OFS number and map; the basket is empty; the answer
+    is `{ "batch_id", "requests": [{id, number, ofs_number, items, status, version}] }`. A stale `version` answers
+    `40001` (read B5 again). The same call again with the same version answers the same batch and files nothing.
+
+B7. **Read a batch.** `rpc/ir_batches` `{ "p_request_ids": ["<request>", ...] }` answers `{request_id, batch_id,
+    size}` for the requests the caller reads (size: the batch's requests not withdrawn). The schedule and the start page
+    show a batch together ("Batch of 9"). Each request goes on from step 3 on its own.
+
+Each request cell keeps the wall's tag, rating, UL design and sheet number as they were when it was asked for
+(`ir_rev_items.wall_facts`, e.g. "F6a · 1 HR · UL U419 · A201", "UL —" when not known), and the request's `items` line
+names them after each wall that has any, so the OFS IR prints them.
+
+A wall not on the card yet: `rpc/rev_field_wall_add` `{ "p_list_id", "p_level", "p_room_id" (or null with
+"p_room_number" and "p_room_name"), "p_side": "north"|"south"|"east"|"west"|"other", "p_name" (other only),
+"p_wall_tag", "p_rating" }` answers `{ area_id, room_id, added }` (the same wall again: `added` false). A tag another
+wall of the job has brings its rating, UL design and sheet number. Usable in B2 at once. Added by someone without
+`revs.manage`, each manager gets a Needs you task `revs.wall_check` until one calls `rpc/rev_field_confirm`
+`{ "p_area_id" }`, saves its details (`rpc/rev_area_details_save`) or removes it (`rpc/rev_remove`).
+
 ## Steps
 
 1. **JUDGMENT: what to inspect.** Pick 1 to 3 item ids of one list (OSFM: three colors at most on one map) and 1 to

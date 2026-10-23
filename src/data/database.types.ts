@@ -3211,6 +3211,7 @@ export type Database = {
           result_note: string | null
           updated_at: string
           version: number
+          wall_facts: string | null
         }
         Insert: {
           area_id: string
@@ -3230,6 +3231,7 @@ export type Database = {
           result_note?: string | null
           updated_at?: string
           version?: number
+          wall_facts?: string | null
         }
         Update: {
           area_id?: string
@@ -3249,6 +3251,7 @@ export type Database = {
           result_note?: string | null
           updated_at?: string
           version?: number
+          wall_facts?: string | null
         }
         Relationships: [
           {
@@ -5164,6 +5167,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -5187,6 +5193,9 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          field_by?: string | null
+          field_checked_at?: string | null
+          field_checked_by?: string | null
           fire_area?: string | null
           geom?: Json | null
           id?: string
@@ -5210,6 +5219,9 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          field_by?: string | null
+          field_checked_at?: string | null
+          field_checked_by?: string | null
           fire_area?: string | null
           geom?: Json | null
           id?: string
@@ -5249,6 +5261,152 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "files"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      rev_basket_cells: {
+        Row: {
+          area_id: string
+          basket_id: string
+          batch_id: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          item_id: string
+          org_id: string
+          project_id: string
+          removed_at: string | null
+          removed_by: string | null
+          sent_at: string | null
+          sent_request_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          area_id: string
+          basket_id: string
+          batch_id?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          item_id: string
+          org_id: string
+          project_id: string
+          removed_at?: string | null
+          removed_by?: string | null
+          sent_at?: string | null
+          sent_request_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          area_id?: string
+          basket_id?: string
+          batch_id?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          item_id?: string
+          org_id?: string
+          project_id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          sent_at?: string | null
+          sent_request_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_basket_cells_area_id_project_id_fkey"
+            columns: ["area_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_areas"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_basket_cells_basket_id_project_id_fkey"
+            columns: ["basket_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "rev_baskets"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "rev_basket_cells_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "rev_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rev_basket_cells_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
+          },
+          {
+            foreignKeyName: "rev_basket_cells_sent_request_id_fkey"
+            columns: ["sent_request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rev_baskets: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          last_batch_id: string | null
+          last_sent_version: number | null
+          org_id: string
+          owner_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          id?: string
+          last_batch_id?: string | null
+          last_sent_version?: number | null
+          org_id: string
+          owner_id: string
+          project_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          id?: string
+          last_batch_id?: string | null
+          last_sent_version?: number | null
+          org_id?: string
+          owner_id?: string
+          project_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rev_baskets_project_id_org_id_fkey"
+            columns: ["project_id", "org_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "org_id"]
           },
         ]
       }
@@ -5597,6 +5755,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           id: string
           image_file_id: string | null
           image_name: string | null
@@ -5617,6 +5778,9 @@ export type Database = {
           created_at?: string
           created_by: string
           deleted_at?: string | null
+          field_by?: string | null
+          field_checked_at?: string | null
+          field_checked_by?: string | null
           id?: string
           image_file_id?: string | null
           image_name?: string | null
@@ -5637,6 +5801,9 @@ export type Database = {
           created_at?: string
           created_by?: string
           deleted_at?: string | null
+          field_by?: string | null
+          field_checked_at?: string | null
+          field_checked_by?: string | null
           id?: string
           image_file_id?: string | null
           image_name?: string | null
@@ -8911,6 +9078,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      ir_batches: {
+        Args: { p_request_ids: string[] }
+        Returns: { batch_id: string; request_id: string; size: number }[]
       }
       ir_calendar: {
         Args: { p_from: string; p_project_id: string; p_to: string }
@@ -13738,6 +13909,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -13777,6 +13951,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -13815,6 +13992,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -13854,6 +14034,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -13891,6 +14074,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -13916,6 +14102,69 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      rev_basket_add: {
+        Args: { p_area_ids: string[]; p_item_ids: string[]; p_project_id: string; p_room_id?: string }
+        Returns: Json
+      }
+      rev_basket_batch_json: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
+      rev_basket_get: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
+      rev_basket_groups: {
+        Args: { p_basket_id: string; p_project_id: string }
+        Returns: { area_ids: string[]; item_id: string; k: number }[]
+      }
+      rev_basket_json: {
+        Args: { p_basket_id: string; p_project_id: string }
+        Returns: Json
+      }
+      rev_basket_live: {
+        Args: { p_basket_id: string; p_project_id: string }
+        Returns: { added_at: string; area_id: string; item_id: string }[]
+      }
+      rev_basket_may_build: {
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
+      rev_basket_may_see: {
+        Args: { p_company: string; p_owner: string; p_project_id: string }
+        Returns: boolean
+      }
+      rev_basket_mine: {
+        Args: { p_make: boolean; p_project_id: string }
+        Returns: {
+          company: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          id: string
+          last_batch_id: string | null
+          last_sent_version: number | null
+          org_id: string
+          owner_id: string
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_baskets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_basket_remove: {
+        Args: { p_area_ids: string[]; p_item_ids: string[]; p_project_id: string }
+        Returns: Json
+      }
+      rev_basket_send: {
+        Args: { p_company: string; p_duration_kind?: string; p_duration_min?: number; p_inspector_ack?: boolean; p_notice_ack?: boolean; p_ofs_numbers?: number[]; p_project_id: string; p_request_date: string; p_special_required?: boolean; p_start_time?: string; p_version: number }
+        Returns: Json
+      }
       rev_card_cell: {
         Args: {
           p_area_id: string
@@ -13934,6 +14183,10 @@ export type Database = {
         Args: { p_area_id: string; p_item_id: string }
         Returns: boolean
       }
+      rev_card_managers: {
+        Args: { p_project_id: string }
+        Returns: string[]
+      }
       rev_card_save: {
         Args: {
           p_area_ids: string[]
@@ -13949,6 +14202,45 @@ export type Database = {
       }
       rev_card_walls: { Args: { p_room_id: string }; Returns: string[] }
       rev_clean: { Args: { p_text: string }; Returns: string }
+      rev_field_confirm: {
+        Args: { p_area_id: string }
+        Returns: {
+          check_note: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
+          fire_area: string | null
+          geom: Json | null
+          id: string
+          level: string
+          list_id: string
+          name: string
+          org_id: string
+          position: number
+          project_id: string
+          rating: string | null
+          sheet_file_id: string | null
+          sheet_page: number
+          sheet_ref: string | null
+          ul_design: string | null
+          updated_at: string
+          version: number
+          wall_tag: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_areas"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_field_wall_add: {
+        Args: { p_level: string; p_list_id: string; p_name: string; p_rating: string; p_room_id: string; p_room_name: string; p_room_number: string; p_side: string; p_wall_tag: string }
+        Returns: Json
+      }
       rev_file_link: { Args: { p_file_id: string }; Returns: Json }
       rev_files_folder: {
         Args: { p_project_id: string; p_which: string }
@@ -14328,6 +14620,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           id: string
           image_file_id: string | null
           image_name: string | null
@@ -14361,6 +14656,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           id: string
           image_file_id: string | null
           image_name: string | null
@@ -14390,6 +14688,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           id: string
           image_file_id: string | null
           image_name: string | null
@@ -14620,6 +14921,9 @@ export type Database = {
           created_at: string
           created_by: string
           deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
           fire_area: string | null
           geom: Json | null
           id: string
@@ -14683,6 +14987,14 @@ export type Database = {
       rev_version_ok: {
         Args: { p_have: number; p_want: number }
         Returns: undefined
+      }
+      rev_wall_facts: {
+        Args: { p_area_id: string }
+        Returns: string
+      }
+      rev_wall_has_facts: {
+        Args: { p_area_id: string }
+        Returns: boolean
       }
       rev_wall_history: {
         Args: { p_area_id: string }

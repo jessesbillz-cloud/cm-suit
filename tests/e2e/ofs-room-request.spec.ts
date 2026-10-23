@@ -1,13 +1,13 @@
 // An OFS request from a room (Jesse, Oct 10, for the fire marshal's demo) against the e2e mock (job-s, Sample Science
 // Building; src/data/mock/revRooms.ts: room 110 Corridor on Level 01 holds the corridor's north wall, mock-rev-area-2,
-// and the stair shaftwall, mock-rev-area-1). The room's Request inspection opens the form with every wall of the room
-// picked; what to inspect comes first, items with their short names under "Rev N · name", the limit said once; the
+// and the stair shaftwall, mock-rev-area-1). The form opened with every wall of the room picked (?areas=, as Inspections
+// > New takes them; the room page itself adds to the request being built since 0113, request-basket.spec.ts); what to inspect comes first, items with their short names under "Rev N · name", the limit said once; the
 // room below, already picked (room first), its Walls show its walls, a tap takes one off, Add walls shows the rest of
 // the list. An OFS request starts on the next working day,
 // and the sub's one I confirm states the job's attestation and the notice (no box). The receipt files another like this
 // in one tap: same walls, items, time and answer, the next working day. The fire marshal records All passed without
 // Confirm first. Mock users: 'sub' asks, 'pm' is the GC, 'inspector' routes, 'ahj' is the fire marshal's deputy.
-// Test ids: rev-room-request (the room page's button), rev-items-pick, rev-items-max, rev-rooms-pick, rev-pick-room-<room>
+// Test ids: rev-items-pick, rev-items-max, rev-rooms-pick, rev-pick-room-<room>
 // (and -walls, its Walls), rev-walls-more,
 // ir-attest-notice, ir-again (the receipt's File another like this).
 import process from 'node:process';
@@ -54,12 +54,10 @@ async function receiptNumber(page: Page): Promise<string> {
   return ((await page.getByTestId('ir-receipt-number').textContent()) ?? '').replace('IR ', '');
 }
 
-/** From Revs as the sub: room 110, then Request inspection. */
+/** As the sub: the form with every wall of room 110 picked. */
 async function requestRoom(page: Page): Promise<void> {
   await page.goto('/');
-  await openAs(page, 'sub', '/p/job-s/revs');
-  await page.getByTestId('rev-rooms').getByTestId('rev-room-mock-room-110').click();
-  await page.getByTestId('rev-room-request').click();
+  await openAs(page, 'sub', '/p/job-s/inspections/new?areas=mock-rev-area-2,mock-rev-area-1&items=');
   await expect(page.getByTestId('rev-picker')).toBeVisible();
 }
 
@@ -163,22 +161,15 @@ test.describe('OFS request from a room', () => {
     await expect(pane.getByTestId('rev-all-passed')).toBeDisabled();
   });
 
-  test('on a phone: the room button fills the width, the form fits; the fire marshal has no button', async ({ page }, testInfo) => {
+  test('on a phone: the form fits; the fire marshal has no whole-room Add', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'Phone width (390).');
-    await page.goto('/');
-    await openAs(page, 'sub', '/p/job-s/revs');
-    await page.getByTestId('rev-rooms').getByTestId('rev-room-mock-room-110').click();
-    const button = page.getByTestId('rev-room-request');
-    await expect(button).toBeInViewport();
-    const box = await button.boundingBox();
-    expect(box !== null && box.width > 300 && box.height >= 44).toBe(true);
-    await button.click();
+    await requestRoom(page);
     await expect(page.getByTestId('rev-items-pick')).toBeInViewport();
     const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(wide).toBeLessThanOrEqual(0);
 
     await openAs(page, 'ahj', '/p/job-s/revs/room-mock-room-110');
     await expect(page.getByTestId('rev-room-name')).toHaveText('110 Corridor');
-    await expect(page.getByTestId('rev-room-request')).toHaveCount(0);
+    await expect(page.getByTestId('rev-room-whole')).toHaveCount(0);
   });
 });
