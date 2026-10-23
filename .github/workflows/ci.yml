@@ -117,7 +117,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       # The github reporter turns each failure into an annotation (readable without the log or the report artifact).
-      - run: npm run test:e2e -- --reporter=github,list
+      - run: npm run test:e2e -- --reporter=github,list tests/e2e/look.spec.ts tests/e2e/rev-card.spec.ts --retries=0
         env:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_PUBLISHABLE_KEY: e2e-placeholder
@@ -125,6 +125,22 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: playwright-report }
+      - name: DEBUG look pictures 0
+        if: always()
+        run: |
+          for f in test-results/look/desktop-0*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+      - name: DEBUG look pictures 1
+        if: always()
+        run: |
+          for f in test-results/look/desktop-1*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+      - name: DEBUG look pictures 2
+        if: always()
+        run: |
+          for f in test-results/look/phone-0*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
+      - name: DEBUG look pictures 3
+        if: always()
+        run: |
+          for f in test-results/look/phone-1*.png; do [ -f "$f" ] || continue; convert "$f" -resize 760x -quality 50 /tmp/x.jpg; echo "::notice title=$(basename "$f")::$(base64 -w0 /tmp/x.jpg)"; done
       # The look: pictures of the fire marshal's screens (tests/e2e/look.spec.ts), kept on every run.
       - uses: actions/upload-artifact@v4
         if: always()
