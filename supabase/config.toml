@@ -124,6 +124,9 @@ verify_jwt = true
 # mdr-files: copies the files of requests mirrored from MDR (0112), MDR_PUBLIC_HOST only.
 [functions.mdr-files]
 verify_jwt = true
+# spec-text: reads spec books' text layer into file_pages and parses their sections (0118), one step a call.
+[functions.spec-text]
+verify_jwt = true
 
 # --- Public endpoint (SPEC §6.4 #7) ---
 # calendar-feed: calendar apps subscribe to a URL and fetch it with no session or headers of ours, so the platform JWT

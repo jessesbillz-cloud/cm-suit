@@ -15,7 +15,6 @@ import { fileViewerItem } from '../../files/viewerItems';
 import { SpecViewerBar } from '../../specs/SpecButton';
 import { SpecLink } from '../../specs/SpecLink';
 import { useOpenSpec } from '../../specs/useOpenSpec';
-import { useSpecHub } from '../../specs/useSpecHub';
 import { useSpecFor } from '../../specs/useSpecFor';
 import { EntityPane, Facts, type KindProps } from '../EntityPane';
 
@@ -28,7 +27,6 @@ export function FileEntity({ frame, id }: KindProps) {
   const preview = usePreviewFetch();
   const specFor = useSpecFor(frame.projectId);
   const openSpec = useOpenSpec(frame.projectId);
-  const hub = useSpecHub(frame.projectId);
 
   if (file.isPending) return <LoadingState label="Loading the file" />;
   if (file.isError) return <ErrorState error={file.error} onRetry={() => void file.refetch()} />;
@@ -47,9 +45,6 @@ export function FileEntity({ frame, id }: KindProps) {
         section={section}
         onSpec={() => {
           openSpec({ section });
-        }}
-        onHub={() => {
-          hub(section);
         }}
       />
     );

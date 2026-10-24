@@ -43,7 +43,7 @@ export async function openSheet(url: string): Promise<PDFDocumentLoadingTask> {
 }
 
 /** One page's text, a line per line of the page (pdf.js marks each line's end). */
-export async function pageText(doc: PDFDocumentProxy, number: number): Promise<string> {
+async function pageText(doc: PDFDocumentProxy, number: number): Promise<string> {
   const page = await doc.getPage(number);
   const content = await page.getTextContent();
   let out = '';

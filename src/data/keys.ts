@@ -169,4 +169,6 @@ export const qk = {
   requirementsPart: (projectId: string, part: string) => ['requirements', projectId, part] as const,
   /** The job's spec books with their sections (0088). */
   specBooks: (projectId: string) => ['spec_books', projectId] as const,
+  /** One section's text (0118), by its book and first page. */
+  specSectionText: (fileId: string, firstPage: number) => ['spec_section_text', fileId, firstPage] as const,
 };

@@ -1,7 +1,6 @@
-// A spec section as the hub (Jesse, Oct 12: "as long as there's a search bar and you can search the spec section, or
-// click a spec section and say show me all the RFIs and submittals associated with this"). The search at the top of
-// Files shows the matching sections as boxes; a box opens the section's page with its submittals, RFIs and CCDs, and
-// Open spec. The naming rule: a file going into Submittals with no spec section in its name is asked for one and goes
+// A spec section as the hub (Jesse, Oct 12: "click a spec section and say show me all the RFIs and submittals associated
+// with this"): its submittals, RFIs and CCDs under the section's text in the spec reader (0118), or alone for a section
+// the book lacks. The naming rule: a file going into Submittals with no spec section in its name is asked for one and goes
 // up as "<section>_<their name>"; one already there gets Add spec section. A PDF whose first page names its section
 // (0105) goes up without the question, its name as it was; a scan with no words is still asked. The PDFs are made in the
 // test. Runs only against the e2e mock data layer.
@@ -73,22 +72,15 @@ const section = (page: Page, name: string) =>
 test.describe('spec section hub', () => {
   test.skip(!MOCK, 'Runs only against the e2e mock data layer. Set VITE_E2E_MOCK=true to run it.');
 
-  test("searching 0929 finds the section; its page lists its submittal and RFI, and opens the spec", async ({ page }) => {
+  test("a section's page lists its submittal and RFI under its text; a section the book lacks lists only what is filed", async ({ page }) => {
     await signIn(page, 'pm', '/p/job-b/files');
     await dropFiles(page, ['RFI 012 - 09 29 00 Sample board joint.pdf']);
     await expect(page.getByRole('status').filter({ hasText: 'Sorted: 1 RFIs' })).toBeVisible();
 
-    await page.getByTestId('spec-search').fill('0929');
-    const boxes = page.getByTestId('spec-hub-box');
-    await expect(boxes).toHaveCount(1);
-    await expect(boxes.first()).toContainText('09 29 00');
-    await expect(boxes.first()).toContainText('Gypsum Board');
-    await expect(boxes.first().getByTestId('spec-hub-box-count')).toHaveText('2');
-    await boxes.first().click();
-
-    const heading = page.getByTestId('spec-hub-title');
-    await expect(heading).toContainText('09 29 00');
-    await expect(heading).toContainText('Gypsum Board');
+    await section(page, 'Submittals').click();
+    await page.getByTestId('file-row').filter({ hasText: 'Gypsum Board PD Acoustic Sealant' }).getByRole('button', { name: 'Spec 09 29 00' }).click();
+    await expect(page.getByTestId('spec-section-number')).toHaveText('09 29 00');
+    await expect(page.getByTestId('spec-part').first()).toBeVisible();
     const submittals = page.getByTestId('spec-hub-submittals');
     await expect(submittals.getByTestId('spec-hub-count')).toHaveText('1');
     await expect(submittals.getByTestId('spec-hub-row')).toContainText('092900_04.0_Gypsum Board_PD_Acoustic Sealant_NET.pdf');
@@ -96,19 +88,16 @@ test.describe('spec section hub', () => {
     await expect(rfis.getByTestId('spec-hub-row')).toContainText('RFI 012 - 09 29 00 Sample board joint.pdf');
     await expect(page.getByTestId('spec-hub-ccds')).toHaveCount(0);
 
-    // Back returns to the boxes.
-    await page.goBack();
-    await expect(page.getByTestId('spec-hub-box')).toHaveCount(1);
-    await page.goForward();
+    // A submittal from the list opens beside the section; Close brings the book back.
+    await submittals.getByTestId('spec-hub-row').click();
+    await expect(page.getByTestId('right-column-title')).not.toHaveText('Spec book');
+    await expect(page.getByTestId('spec-section-number')).toHaveText('09 29 00');
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.getByTestId('right-column-title')).toHaveText('Spec book');
 
-    await page.getByTestId('spec-hub-spec').click();
-    const viewer = page.getByTestId('file-viewer');
-    await expect(viewer.getByTestId('viewer-name')).toHaveText('Sample Project Manual B.pdf');
-    await expect(viewer.getByTestId('viewer-page')).toHaveText('Page 3 of 3');
-    // The book's section panel opens the same page.
-    await viewer.getByTestId('spec-side').getByTestId('spec-hub-open').click();
-    await expect(viewer).toHaveCount(0);
-    await expect(page.getByTestId('spec-hub-title')).toContainText('09 29 00');
+    await page.goto('/p/job-b/files?spec=092400');
+    await expect(page.getByTestId('spec-hub-title')).toContainText('09 24 00');
+    await expect(page.getByTestId('spec-section-number')).toHaveCount(0);
   });
 
   test('a file dropped into Submittals without a section is asked for one and named with it', async ({ page }) => {
@@ -163,9 +152,8 @@ test.describe('spec section hub', () => {
     await expect(page.getByTestId('section-prompt')).toHaveCount(0);
     await expect(row.getByTestId('file-row-add-section')).toHaveCount(0);
 
-    await page.getByTestId('spec-search').fill('0929');
-    await page.getByTestId('spec-hub-box').first().click();
-    await expect(page.getByTestId('spec-hub-title')).toContainText('09 29 00');
+    await row.getByRole('button', { name: 'Spec 09 29 00' }).click();
+    await expect(page.getByTestId('spec-section-number')).toHaveText('09 29 00');
     await expect(page.getByTestId('spec-hub-submittals').getByTestId('spec-hub-row').filter({ hasText: 'Shop drawings.pdf' })).toHaveCount(1);
   });
 

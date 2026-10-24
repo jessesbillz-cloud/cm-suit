@@ -1,5 +1,5 @@
-// Finding a section in a spec book (Jesse, Oct 12: "type in the numbers, and clickable boxes on the left populate with
-// which section you want to go to ... it kind of cascades open"). Numbers match by their digits, spaces and dots
+// Finding a section in a spec book (Jesse, Oct 12: "type in the numbers, and clickable boxes ... populate with which
+// section you want to go to", the book's search box, 0118). Numbers match by their digits, spaces and dots
 // ignored ("0929", "09 29", "092900" all find 09 29 00); words match the section's title or its division's. The sections
 // come back by division, in book order, each with its place in the book. `first` is where Enter goes: the first section
 // whose number starts with what was typed, else the first that matches.

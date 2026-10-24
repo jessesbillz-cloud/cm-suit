@@ -6968,6 +6968,51 @@ export type Database = {
         }
         Relationships: []
       }
+      spec_section_texts: {
+        Row: {
+          body: Json
+          file_id: string
+          parsed_at: string
+          parser: number
+          source_hash: string
+          spec_section_id: string
+          status: string
+        }
+        Insert: {
+          body?: Json
+          file_id: string
+          parsed_at?: string
+          parser: number
+          source_hash: string
+          spec_section_id: string
+          status: string
+        }
+        Update: {
+          body?: Json
+          file_id?: string
+          parsed_at?: string
+          parser?: number
+          source_hash?: string
+          spec_section_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spec_section_texts_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spec_section_texts_spec_section_id_fkey"
+            columns: ["spec_section_id"]
+            isOneToOne: true
+            referencedRelation: "spec_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spec_sections: {
         Row: {
           file_id: string
@@ -7015,6 +7060,54 @@ export type Database = {
           },
           {
             foreignKeyName: "spec_sections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spec_text_queue: {
+        Row: {
+          claimed_at: string | null
+          error: string | null
+          file_id: string
+          next_page: number
+          project_id: string
+          status: string
+          tries: number
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          error?: string | null
+          file_id: string
+          next_page?: number
+          project_id: string
+          status?: string
+          tries?: number
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          error?: string | null
+          file_id?: string
+          next_page?: number
+          project_id?: string
+          status?: string
+          tries?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spec_text_queue_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: true
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spec_text_queue_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -17077,7 +17170,64 @@ export type Database = {
           text_ready: boolean
         }[]
       }
+      spec_section_read: {
+        Args: { p_file_id: string; p_first_page: number }
+        Returns: {
+          body: Json
+          status: string
+        }[]
+      }
       spec_sections_find: { Args: { p_file_id: string }; Returns: number }
+      spec_text_claim: {
+        Args: never
+        Returns: {
+          file_id: string
+          next_page: number
+          page_count: number
+          project_id: string
+          size: number
+          storage_path: string
+          text_done: boolean
+        }[]
+      }
+      spec_text_cron: { Args: never; Returns: number }
+      spec_text_end: {
+        Args: { p_error: string; p_file_id: string; p_status: string }
+        Returns: undefined
+      }
+      spec_text_enqueue: { Args: { p_file_id: string }; Returns: boolean }
+      spec_text_enqueue_project: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      spec_text_kick: { Args: never; Returns: number }
+      spec_text_pages_put: {
+        Args: {
+          p_file_id: string
+          p_next: number
+          p_page_count: number
+          p_pages: Json
+        }
+        Returns: string
+      }
+      spec_text_ready: { Args: { p_file_id: string }; Returns: boolean }
+      spec_text_running: { Args: { p_file_id: string }; Returns: Json }
+      spec_text_save: {
+        Args: { p_file_id: string; p_items: Json }
+        Returns: number
+      }
+      spec_text_todo: {
+        Args: { p_file_id: string; p_limit: number; p_parser: number }
+        Returns: {
+          first_page: number
+          last_page: number
+          pages: Json
+          section: string
+          source_hash: string
+          spec_section_id: string
+          title: string
+        }[]
+      }
       spec_title_clean: { Args: { p: string }; Returns: string }
       submit_bid: {
         Args: { p_file_id: string; p_package_id: string }

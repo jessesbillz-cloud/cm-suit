@@ -35,6 +35,10 @@ queue-health
 # row) and links them through mdr_file_claim / mdr_file_done / mdr_file_failed, granted to the server only. Nothing a
 # person sends reaches it: requireCron, and links are fetched only from MDR_PUBLIC_HOST.
 mdr-files
+# Cron (0118): reads a spec book's PDF from private storage and stores its page text and parsed sections through
+# spec_text_claim / pages_put / running / todo / save / end / cron, granted to the server only. requireCron, and nothing
+# a person sends reaches it.
+spec-text
 # Public endpoint §6.4 #7: calendar apps have no session; the secret feed token is the gate and calendar_feed_lines()
 # is service-only.
 calendar-feed

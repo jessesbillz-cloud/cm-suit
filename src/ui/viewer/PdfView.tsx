@@ -1,10 +1,10 @@
 // A PDF in the viewer: every page, one under another, scrolled; + and - zoom (a trackpad's pinch too), Fit shows a
 // whole page (never narrower than a readable letter page, never wider than the window), and "Page N of M" follows the
-// scroll. pdf.js loads with the first PDF (lib/pdf, its own chunk). It can open at a page, and an item's own bar
-// (pageBar) sits over the pages and its panel (pageSide) left of them; both move through them. Scrolling past the last page never moves the screen behind it.
+// scroll. pdf.js loads with the first PDF (lib/pdf, its own chunk). It can open at a page, show only a run of its pages
+// (pageRange: a spec section's), and an item's own bar (pageBar) sits over the pages and moves through them. Scrolling past the last page never moves the screen behind it.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { pageText, type PDFDocumentProxy } from '../../lib/pdf/pdfjs';
+import type { PDFDocumentProxy } from '../../lib/pdf/pdfjs';
 import type { PageNav } from '../FileViewer';
 import { Icon } from '../Icon';
 import { PdfPage } from './PdfPage';
@@ -17,8 +17,8 @@ interface PdfViewProps {
   url: string;
   tone: 'dark' | 'light';
   startPage?: number | undefined;
+  pageRange?: { first: number; last: number } | undefined;
   pageBar?: ((nav: PageNav) => ReactNode) | undefined;
-  pageSide?: ((nav: PageNav) => ReactNode) | undefined;
 }
 
 const PAD = 16;
@@ -38,15 +38,17 @@ interface PagesProps {
   aspect: number;
   tone: 'dark' | 'light';
   startPage?: number | undefined;
+  pageRange?: { first: number; last: number } | undefined;
   pageBar?: ((nav: PageNav) => ReactNode) | undefined;
-  pageSide?: ((nav: PageNav) => ReactNode) | undefined;
 }
 
-function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) {
+function Pages({ doc, aspect, tone, startPage, pageRange, pageBar }: PagesProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const size = useBoxSize(scroller);
+  const first = Math.min(Math.max(1, pageRange?.first ?? 1), doc.numPages);
+  const last = Math.min(Math.max(first, pageRange?.last ?? doc.numPages), doc.numPages);
   const [zoom, setZoom] = useState(1);
-  const [current, setCurrent] = useState(1);
+  const [current, setCurrent] = useState(first);
   const width = size.w > 0 ? Math.round(fitWidth(size, aspect) * zoom) : 0;
   const lastWidth = useRef(width);
 
@@ -87,7 +89,7 @@ function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) 
     if (pin && Math.abs(el.scrollTop - pin.top) < 2) return;
     jumped.current = null;
     const line = el.scrollTop + el.clientHeight / 3;
-    let n = 1;
+    let n = first;
     for (const p of el.querySelectorAll<HTMLElement>('[data-page]')) {
       if (p.offsetTop <= line) n = Number(p.dataset['page']);
       else break;
@@ -98,7 +100,7 @@ function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) 
   // A page's top at the top of the view (the pages above it keep their laid-out height, so it lands right away).
   const goTo = (n: number) => {
     const el = scroller.current;
-    const to = Math.min(Math.max(1, Math.round(n)), doc.numPages);
+    const to = Math.min(Math.max(first, Math.round(n)), last);
     const p = el?.querySelector<HTMLElement>(`[data-page="${String(to)}"]`);
     if (!el || !p) return;
     el.scrollTop = Math.max(0, p.offsetTop - GAP);
@@ -115,16 +117,15 @@ function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) 
   useLayoutEffect(() => {
     if (opened.current || width <= 0) return;
     opened.current = true;
-    if (startPage !== undefined && startPage > 1) goToRef.current(startPage);
+    if (startPage !== undefined && startPage > first) goToRef.current(startPage);
   }, [width, startPage]);
 
-  const pages = Array.from({ length: doc.numPages }, (_, i) => i + 1);
-  const nav: PageNav = { page: current, pages: doc.numPages, goTo, text: (n) => pageText(doc, n) };
+  const pages = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+  const nav: PageNav = { page: current, pages: doc.numPages, goTo };
   return (
     <div className="flex h-full w-full flex-col">
       {pageBar?.(nav)}
       <div className="flex min-h-0 w-full flex-1">
-        {pageSide?.(nav)}
         <div className="relative min-h-0 min-w-0 flex-1">
           <div
             ref={scroller}
@@ -146,7 +147,7 @@ function Pages({ doc, aspect, tone, startPage, pageBar, pageSide }: PagesProps) 
   );
 }
 
-export function PdfView({ url, tone, startPage, pageBar, pageSide }: PdfViewProps) {
+export function PdfView({ url, tone, startPage, pageRange, pageBar }: PdfViewProps) {
   const pdf = usePdfDoc(url);
   if (pdf.status === 'loading') {
     return (
@@ -163,5 +164,5 @@ export function PdfView({ url, tone, startPage, pageBar, pageSide }: PdfViewProp
       </p>
     );
   }
-  return <Pages doc={pdf.doc} aspect={pdf.aspect} tone={tone} startPage={startPage} pageBar={pageBar} pageSide={pageSide} />;
+  return <Pages doc={pdf.doc} aspect={pdf.aspect} tone={tone} startPage={startPage} pageRange={pageRange} pageBar={pageBar} />;
 }
