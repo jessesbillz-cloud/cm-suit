@@ -94,5 +94,11 @@ test.describe('the look of the fire marshal screens', () => {
     await openAs(page, 'pm', `/p/${JOB}/files`);
     await expect(page.getByTestId('main-area')).toHaveAttribute('data-tool', 'files');
     await shot(page, '11-files');
+
+    // The board's lines, colored by what happened under their day headings (Sample Job B has today's and yesterday's).
+    await openAs(page, 'pm', '/p/job-b/board');
+    await expect(page.locator('[data-testid="board-line"][data-tone="not_approved"]').first()).toBeVisible();
+    await page.getByTestId('board-day').first().scrollIntoViewIfNeeded();
+    await shot(page, '12-board');
   });
 });

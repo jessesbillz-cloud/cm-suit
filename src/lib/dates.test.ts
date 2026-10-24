@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { endOfDayInZone, formatDay, formatInZone, fromZonedInput, todayInZone, toZonedInput } from './dates';
+import { dayHeading, endOfDayInZone, formatDay, formatInZone, fromZonedInput, todayInZone, toZonedInput } from './dates';
 
 const LA = 'America/Los_Angeles';
 
@@ -34,5 +34,13 @@ describe('dates', () => {
     expect(toZonedInput('2026-10-15T21:00:00Z', 'America/New_York')).toBe('2026-10-15T17:00');
     expect(fromZonedInput('', LA)).toBeNull();
     expect(() => fromZonedInput('tomorrow', LA)).toThrow();
+  });
+  it("heads a day Today, Yesterday, else its weekday and date, on the job's clock", () => {
+    // 2026-10-23 21:30 PDT = 2026-10-24 04:30 UTC: still the 23rd on the job.
+    const now = new Date('2026-10-24T04:30:00Z');
+    expect(dayHeading('2026-10-23', LA, now)).toBe('Today');
+    expect(dayHeading('2026-10-22', LA, now)).toBe('Yesterday');
+    expect(dayHeading('2026-10-20', LA, now)).toBe('Tuesday, Oct 20');
+    expect(dayHeading('2025-12-31', LA, now)).toBe('Wednesday, Dec 31, 2025');
   });
 });

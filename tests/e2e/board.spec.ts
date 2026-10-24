@@ -5,7 +5,9 @@
 // delivery #3 (two days out); job-b has "IR 12 results: Approved" about IR 12; job-a's "RFI 002 impact claimed" is about
 // RFI 002, which has two comments. The bidder has "Acknowledge addendum 1" to do; the inspector "Re-inspect CN-004"
 // (job-b). Job-a has two deliveries today, one with its time TBD. Test ids: board-line, right-column, board-item,
-// item-kind, today-panel, today-empty, cal-line, needs-you-task, comments, comment, comment-input.
+// item-kind, today-panel, today-empty, cal-line, needs-you-task, comments, comment, comment-input, board-day-heading,
+// board-line-type, board-line-bar (board-line has data-tone), ir-from-mdr. Job-b also has lines from today (an OFS not
+// approved, IR 13 requested) and yesterday (IR 8 results, copied from MDR, not approved); job-a today has RFI 003 asked.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -146,6 +148,46 @@ test.describe('message board (SPEC §7.3)', () => {
     await expect(box).toHaveValue('Sample: first line\nsecond line');
     await box.press('Enter');
     await expect(page.getByTestId('comments').getByTestId('comment')).toHaveCount(3);
+  });
+
+  test('lines read at a glance: a type word, a color and chip from lib/status, under day headings', async ({ page }) => {
+    await page.goto('/p/job-b/board');
+    const heads = page.getByTestId('board-day-heading');
+    await expect(heads.nth(0)).toHaveText('Today');
+    await expect(heads.nth(1)).toHaveText('Yesterday');
+    await expect(heads.nth(2)).toHaveText(/^\w+day, Sep 25/);
+    const line = (text: string) => page.getByTestId('board-line').filter({ hasText: text });
+
+    // OFS said no: red, its word on the chip; the bar is lib/status's not approved fill (#991B1B).
+    const no = line('OFS not approved: Sample fire damper');
+    await expect(no).toHaveAttribute('data-tone', 'not_approved');
+    await expect(no.getByTestId('board-line-type')).toHaveText('OFS');
+    await expect(no).toContainText('Not approved');
+    await expect(no.getByTestId('board-line-bar')).toHaveCSS('background-color', 'rgb(153, 27, 27)');
+    // An IR's results take the request's result: approved green (#15803D); a copy from MDR wears its mark.
+    const yes = line('IR 12 results: Approved');
+    await expect(yes).toHaveAttribute('data-tone', 'approved');
+    await expect(yes.getByTestId('board-line-type')).toHaveText('IR');
+    await expect(yes.getByTestId('board-line-bar')).toHaveCSS('background-color', 'rgb(21, 128, 61)');
+    await expect(yes.getByTestId('ir-from-mdr')).toHaveCount(0);
+    const mdr = line('IR 8 results: Not approved');
+    await expect(mdr).toHaveAttribute('data-tone', 'not_approved');
+    await expect(mdr.getByTestId('ir-from-mdr')).toBeVisible();
+    // Sent blue, waiting yellow, a line that only tells is gray with no chip.
+    await expect(line('IR 13 requested')).toHaveAttribute('data-tone', 'assigned');
+    await expect(line('IR 13 requested')).toContainText('Requested');
+    await expect(line('CN-004 opened').getByTestId('board-line-type')).toHaveText('CN');
+    await expect(line('Daily report #7')).toHaveAttribute('data-tone', 'info');
+    // Who wrote it, in muted text.
+    await expect(line('Daily report #7')).toContainText('Sample Reviewer');
+
+    await page.goto('/p/job-a/board');
+    await expect(line('RFI 003 asked')).toHaveAttribute('data-tone', 'pending');
+    // Impact claimed keeps the amber row with its words, never a chip.
+    const impact = line('RFI 002 impact claimed');
+    await expect(impact).toHaveAttribute('data-tone', 'impact');
+    await expect(impact).toContainText('Impact claimed');
+    await expect(impact).toHaveCSS('background-color', 'rgb(255, 247, 230)');
   });
 
   test('the type filter lists every kind, loaded or not', async ({ page }) => {
