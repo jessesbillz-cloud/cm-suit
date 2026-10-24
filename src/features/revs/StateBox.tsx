@@ -1,5 +1,5 @@
 // The inspection cards' one box (boxLook): a tappable button that says what it is, the whole of it in its state's color
-// (passed green with a check, requested gold, failed red, open white with a strong edge), the accent when picked, and a
+// (passed green with a check, asked for blue, failed red, open white with a strong edge), the accent when picked, and a
 // dashed white box when switched off (a wall or item not on a room's card). Big on the forms (lg), smaller on the tiles.
 import type { ReactNode } from 'react';
 import { Check } from 'lucide-react';

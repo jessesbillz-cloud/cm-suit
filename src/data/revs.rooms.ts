@@ -20,7 +20,7 @@ import * as mockRooms from './mock/revRooms';
 import { wallLineSchema, type WallLine } from './revs.types';
 import { uploadFile } from './upload';
 
-const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_name, image_file_id, position, card_at, version, deleted_at';
+const REV_ROOM_COLS = 'id, project_id, list_id, level, number, name, kind, image_name, image_file_id, position, card_at, card_locked_at, card_locked_by, version, deleted_at';
 const REV_ROOM_WALL_COLS = 'id, project_id, room_id, area_id, line, position, version, deleted_at';
 
 const roomSchema = z.object({
@@ -37,6 +37,9 @@ const roomSchema = z.object({
   position: z.number().int(),
   /** When its inspection card was set up (0101); null: never. */
   card_at: z.string().nullable(),
+  /** Locked by its last save (0119), and by whom; null: open to edit. */
+  card_locked_at: z.string().nullable(),
+  card_locked_by: z.string().nullable(),
   version: z.number().int(),
   deleted_at: z.string().nullable(),
 });

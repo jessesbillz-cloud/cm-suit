@@ -1,11 +1,12 @@
-// e2e mock of a room's inspection card (0101), with the database's rules in short form: revs.manage only; the walls
-// kept on the card (a wall left off is taken out of the room, kept in its other rooms), every item not picked on the
-// kept walls set up as not applicable (set_up marks), a picked one applicable again; a cell with a sign-off or on a live
-// request never changes, a hand N/A stays; the save answers what changed and its Undo puts it back; one item on or off
-// for one wall (on also clears a hand N/A). State lives in the revs and rooms mocks' sessionStorage.
+// e2e mock of a room's inspection card (0101, 0119), with the database's rules in short form: revs.manage only; the
+// boxes changed on Setup, each wall x item Needed or Not needed (set_up marks, Needed clears a hand N/A too); a box with
+// a sign-off or on a live request never changes; the save locks the card and answers what changed, its Undo (its
+// saver's) puts it back and unlocks; Unlock to edit and lock again; one item on or off for one wall, refused while a
+// room of the wall is locked. State lives in the revs and rooms mocks' sessionStorage.
 import { conflictError } from '../errors';
 import type { Tables } from '../database.types';
-import type { CardSaved, CardUndo } from '../revs.card';
+import type { CardCellChange, CardSaved, CardUndo } from '../revs.card';
+import { mockUser } from './index';
 import type { RevRoom } from '../revs.rooms';
 import * as mockIr from './inspections';
 import { bump, fail, must, newId, read, stamp, write, type RevMockState } from './revs';
@@ -75,49 +76,83 @@ function roomOf(id: string, version: number): RevRoom {
   return r;
 }
 
+const LOCKED = 'This card is locked. Unlock it to edit.';
+
+function putRoom(room: RevRoom): void {
+  writeRooms((x) => ({ ...x, rooms: x.rooms.map((y) => (y.id === room.id ? room : y)) }));
+}
+
+/** A mock member's name: "Sample Inspector". */
+function mockName(id: string): string {
+  const who = id.replace(/^mock-user-/, '');
+  return `Sample ${who.charAt(0).toUpperCase()}${who.slice(1)}`;
+}
+
 const liveWalls = (roomId: string) => readRooms().walls.filter((w) => w.room_id === roomId && w.deleted_at === null).map((w) => w.area_id);
 
-export async function save(room: RevRoom, areaIds: string[], itemIds: string[]): Promise<CardSaved> {
+/** rev_card_set: the boxes changed, each Needed or Not needed (Needed clears a hand N/A too), a kept box never; the
+ *  card set up and locked. Locked: refused, unless it is the same save again by whoever locked it. */
+export async function set(room: RevRoom, changes: readonly CardCellChange[]): Promise<CardSaved> {
   await delay();
-  const r = roomOf(room.id, room.version);
+  must('revs.manage');
+  const now = readRooms().rooms.find((x) => x.id === room.id);
+  if (!now) throw fail('That item no longer exists.', 'P0002');
   const s = read();
-  const items = listItems(s, r.list_id);
-  if (new Set(areaIds).size !== areaIds.length || areaIds.some((a) => !s.areas.some((x) => x.id === a && x.list_id === r.list_id && x.deleted_at === null))) {
-    throw fail('Pick the walls of this room again.');
+  const items = listItems(s, now.list_id);
+  const walls = liveWalls(now.id);
+  const keys = new Set(changes.map((c) => `${c.area_id}:${c.item_id}`));
+  if (keys.size !== changes.length || changes.some((c) => !walls.includes(c.area_id) || !items.includes(c.item_id))) {
+    throw fail('Pick the boxes of this card again.');
   }
-  if (new Set(itemIds).size !== itemIds.length || itemIds.some((i) => !items.includes(i))) throw fail('Pick the items of this list again.');
-  const before = liveWalls(r.id);
-  const walls = [
-    ...before.filter((a) => !areaIds.includes(a)).map((a) => ({ area_id: a, on: false })),
-    ...areaIds.filter((a) => !before.includes(a)).map((a) => ({ area_id: a, on: true })),
-  ];
-  setWalls(r.id, walls);
-  const live = await liveRequests(r.project_id);
+  const live = await liveRequests(now.project_id);
+  const needed = (a: string, i: string) => !s.marks.some((m) => m.area_id === a && m.item_id === i && m.deleted_at === null);
+  if (now.card_locked_at !== null) {
+    const same = now.card_locked_by === mockUser().id && changes.every((c) => kept(s, live, c.area_id, c.item_id) || needed(c.area_id, c.item_id) === c.needed);
+    if (same) return { version: now.version, undo: { walls: [], cells: [], was: now.card_at } };
+    throw fail(LOCKED, '55000');
+  }
+  const r = roomOf(room.id, room.version);
   const marks = [...s.marks];
   const cells: CardUndo['cells'] = [];
-  for (const areaId of liveWalls(r.id)) {
-    for (const itemId of items) {
-      const na = !itemIds.includes(itemId);
-      if (cell(s, marks, live, areaId, itemId, na, false)) cells.push({ area_id: areaId, item_id: itemId, na });
-    }
+  for (const c of changes) {
+    if (cell(s, marks, live, c.area_id, c.item_id, !c.needed, true)) cells.push({ area_id: c.area_id, item_id: c.item_id, na: !c.needed });
   }
   write((x) => ({ ...x, marks }));
-  const saved = bump(r, { card_at: new Date().toISOString() });
-  writeRooms((x) => ({ ...x, rooms: x.rooms.map((y) => (y.id === r.id ? saved : y)) }));
-  return { version: saved.version, undo: { walls, cells, was: r.card_at } };
+  const at = new Date().toISOString();
+  const saved = bump(r, { card_at: at, card_locked_at: at, card_locked_by: mockUser().id });
+  putRoom(saved);
+  return { version: saved.version, undo: { walls: [], cells, was: r.card_at } };
+}
+
+/** rev_card_lock: Unlock to edit or lock again; the same again answers it as it is. */
+export async function lock(room: RevRoom, locked: boolean): Promise<void> {
+  await delay();
+  must('revs.manage');
+  const now = readRooms().rooms.find((x) => x.id === room.id);
+  if (now && (now.card_locked_at !== null) === locked) return;
+  const r = roomOf(room.id, room.version);
+  putRoom(bump(r, locked ? { card_locked_at: new Date().toISOString(), card_locked_by: mockUser().id } : { card_locked_at: null, card_locked_by: null }));
+}
+
+/** rev_card_lockers: whoever locked a card of the job, by name. */
+export async function lockers(projectId: string): Promise<{ user_id: string; name: string }[]> {
+  await delay();
+  must('revs.read');
+  const ids = new Set(readRooms().rooms.filter((r) => r.project_id === projectId && r.card_locked_by !== null).map((r) => r.card_locked_by ?? ''));
+  return [...ids].map((id) => ({ user_id: id, name: mockName(id) }));
 }
 
 export async function undo(roomId: string, version: number, u: CardUndo): Promise<void> {
   await delay();
   const r = roomOf(roomId, version);
+  if (r.card_locked_by !== null && r.card_locked_by !== mockUser().id) throw fail(LOCKED, '55000');
   setWalls(r.id, u.walls.map((w) => ({ area_id: w.area_id, on: !w.on })));
   const s = read();
   const live = await liveRequests(r.project_id);
   const marks = [...s.marks];
   for (const c of u.cells) cell(s, marks, live, c.area_id, c.item_id, !c.na, false);
   write((x) => ({ ...x, marks }));
-  const back = bump(r, { card_at: u.was });
-  writeRooms((x) => ({ ...x, rooms: x.rooms.map((y) => (y.id === r.id ? back : y)) }));
+  putRoom(bump(r, { card_at: u.was, card_locked_at: null, card_locked_by: null }));
 }
 
 export async function item(areaId: string, itemId: string, on: boolean): Promise<boolean> {
@@ -129,6 +164,11 @@ export async function item(areaId: string, itemId: string, on: boolean): Promise
   if (!listItems(s, area.list_id).includes(itemId)) throw fail("Pick an item of this wall's list.");
   const live = await liveRequests(area.project_id);
   if (kept(s, live, areaId, itemId)) throw fail('This item has a sign-off or a request.');
+  const rooms = readRooms();
+  const inRooms = new Set(rooms.walls.filter((w) => w.area_id === areaId && w.deleted_at === null).map((w) => w.room_id));
+  if (rooms.rooms.some((r) => inRooms.has(r.id) && r.deleted_at === null && r.card_locked_at !== null)) {
+    throw fail("The room's card is locked. Unlock it to edit.", '55000');
+  }
   const marks = [...s.marks];
   const changed = cell(s, marks, live, areaId, itemId, !on, true);
   write((x) => ({ ...x, marks }));
