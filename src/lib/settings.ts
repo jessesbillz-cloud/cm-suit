@@ -31,6 +31,12 @@ export const PROJECT_SETTINGS_DEFAULTS = {
   /** Inspections: the words a sub confirms before an OFS request goes to the GC. Null: the database's standard wording
    *  (ir_ofs_attest_wording, 0091), which the form and the settings box read from the database. */
   ir_ofs_attest_text: null as string | null,
+  /** Inspections: the OFS route (0116). On by default: the contractor checks an OFS request before the inspector.
+   *  Stored as its opposite, so a missing key is the default (the database reads a missing key as off). */
+  ir_ofs_gc_off: false,
+  /** Inspections: the OFS route (0116). Off by default: the inspector sends to OFS. On: the inspector marks Ready and
+   *  the job's OFS requests person sends it. */
+  ir_ofs_duty_sends: false,
   /** OFS review (0106): the divisions and sections (2, 4 or 6 digits) whose RFIs and submittals are suggested fire / life
    *  safety. Null: the database's standard list (ofs_fire_default), which the settings box reads from the database. */
   ofs_fire_sections: null as string[] | null,
@@ -44,6 +50,8 @@ const projectSettingsSchema = z.object({
   ir_gc_approval: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_gc_approval),
   ir_ofs_allowed: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_allowed),
   ir_ofs_attest_text: z.string().trim().min(1).max(1000).nullable().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_attest_text),
+  ir_ofs_gc_off: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_gc_off),
+  ir_ofs_duty_sends: z.boolean().catch(PROJECT_SETTINGS_DEFAULTS.ir_ofs_duty_sends),
   ofs_fire_sections: z.array(z.string().regex(FIRE_ENTRY)).min(1).max(100).nullable().catch(PROJECT_SETTINGS_DEFAULTS.ofs_fire_sections),
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;

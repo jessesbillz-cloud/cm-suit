@@ -136,8 +136,11 @@ select is((select d -> 0 ->> 'person_name' from public.project_duties_view('c000
   'Pat Manager', 'everyone on the job sees who holds it');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- The inspector's checks, then the duty holder sends
+-- The inspector's checks, then the duty holder sends (the route where he does, 0116: the default is the inspector)
 -- ---------------------------------------------------------------------------------------------------------------------
+reset role;
+update public.projects set settings = settings || '{"ir_ofs_duty_sends": true}' where id = 'c0000000-0000-0000-0000-000000000791';
+set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000000794');
 select throws_ok($$ select public.ir_send_ofs(pg_temp.rid('A'), pg_temp.ver('A')) $$, '22023', 'The inspector checks it first.',
   'the duty holder sends what the inspector has checked');

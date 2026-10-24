@@ -146,9 +146,8 @@ select is(array[pg_temp.lines_to('a0000000-0000-0000-0000-000000000945', 'ir.ofs
                 pg_temp.lines_to('a0000000-0000-0000-0000-000000000942', 'ir.ofs_confirmed', 'A'),
                 pg_temp.lines_to('a0000000-0000-0000-0000-000000000943', 'ir.ofs_confirmed', 'A'),
                 pg_temp.lines_to('a0000000-0000-0000-0000-000000000944', 'ir.ofs_confirmed', 'A')],
-  '{1,1,1,0}'::int[], 'a board line to the requester, the designated person and the sender, never to himself');
-select ok(pg_temp.summary('A', 'ir.ofs_confirmed')
-          like 'OFS IR #____ confirmed ___ ___ %, 8:00 AM', 'the line says the OFS number and the day and time');
+  '{0,0,0,0}'::int[], 'no board line for a confirm (0116): his schedule and the calendar show it');
+select is(pg_temp.summary('A', 'ir.ofs_confirmed'), null, 'none of any kind');
 
 -- Pick another time on B: it moves, waits on the requester, with a Needs you task.
 select public.ir_ofs_propose(pg_temp.rid('B'), pg_temp.ver('B'), pg_temp.d(4), '13:00', 'Sample: mornings are full');
@@ -157,9 +156,9 @@ select is(array[(pg_temp.req('B')).status, (pg_temp.req('B')).ofs_sched, (pg_tem
   array['pending', 'proposed', pg_temp.d(4)::text, '13:00:00', 'Sample: mornings are full'],
   'Pick another time moves it, waiting on the requester, with his note');
 select is(pg_temp.sched(), '{A:confirmed,B:proposed,E:asked}'::text[], 'the schedule shows each state');
-select is(pg_temp.open_tasks('B'), '{a0000000-0000-0000-0000-000000000942,a0000000-0000-0000-0000-000000000945}'::uuid[],
-  'Needs you: the requester and the designated person');
-select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000945', 'ir.ofs_proposed', 'B'), 1, 'and a board line to the requester');
+select is(pg_temp.open_tasks('B'), '{a0000000-0000-0000-0000-000000000942}'::uuid[],
+  'Needs you: one task, the designated person''s (0116)');
+select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000945', 'ir.ofs_proposed', 'B'), 0, 'and no board line (0116)');
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- Accept: the requester (or the designated person, or the inspector), never the fire marshal
@@ -172,7 +171,7 @@ select public.ir_ofs_accept(pg_temp.rid('B'), pg_temp.ver('B'));
 select is(array[(pg_temp.req('B')).status, (pg_temp.req('B')).ofs_sched, ((pg_temp.req('B')).ofs_sched_by = auth.uid())::text],
   '{confirmed,accepted,true}'::text[], 'Accept confirms it at that time, recorded as the requester''s');
 select is(pg_temp.open_tasks('B'), '{}'::uuid[], 'the Needs you tasks are done');
-select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000944', 'ir.ofs_accepted', 'B'), 1, 'the fire marshal hears');
+select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000944', 'ir.ofs_accepted', 'B'), 0, 'no board line: his schedule shows it (0116)');
 select throws_ok($$ select public.ir_ofs_accept(pg_temp.rid('B'), pg_temp.ver('B')) $$, '22023', 'There is no new time to accept.',
   'nothing left to accept');
 
@@ -185,7 +184,7 @@ select is((public.ir_ofs_accept(pg_temp.rid('B'), pg_temp.ver('B'))).ofs_sched, 
 -- Ask again: the requester's Move clears the proposal and its tasks, back to Asked.
 select pg_temp.login('a0000000-0000-0000-0000-000000000944');
 select public.ir_ofs_propose(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(6), '14:00');
-select is(cardinality(pg_temp.open_tasks('A')), 2, 'a new time on a confirmed one asks again');
+select is(cardinality(pg_temp.open_tasks('A')), 1, 'a new time on a confirmed one asks again');
 select pg_temp.login('a0000000-0000-0000-0000-000000000945');
 select public.ir_move(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(7), '08:00', 'timed', 60);
 select is(array[(pg_temp.req('A')).status, coalesce((pg_temp.req('A')).ofs_sched, 'none'),
@@ -193,7 +192,7 @@ select is(array[(pg_temp.req('A')).status, coalesce((pg_temp.req('A')).ofs_sched
   '{pending,none,asked}'::text[], 'ask again: the requester''s Move clears the proposal')
 ;
 select is(pg_temp.open_tasks('A'), '{}'::uuid[], 'and its tasks');
-select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000944', 'ir.moved', 'A'), 1, 'the fire marshal hears the new ask');
+select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000944', 'ir.moved', 'A'), 0, 'the new ask is on his schedule, no line (0116)');
 
 -- The history: every answer with who gave it.
 reset role;

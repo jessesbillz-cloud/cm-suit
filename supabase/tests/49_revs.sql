@@ -390,8 +390,8 @@ select is((select array[sheet_file_id::text, page::text, strokes::text, stale::t
 select is((pg_temp.ofs(array['w_shaft', 'w_corr', 'w_elev'], array['i_stuff', 'i_spray'])).id, pg_temp.rid('A'),
   'the same request again within 10 minutes is the first one');
 select pg_temp.login('a0000000-0000-0000-0000-000000000497');
-select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.gc_review'
-                   and summary like 'IR 1 (OFS 1) to review · Sample Firestop Co · %'), 'board: to the GC, with the OFS number');
+select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.ofs_filed'
+                   and summary like 'OFS #0001 filed · Sample Firestop Co · %'), 'board: to the GC, with the OFS number (0116)');
 select ok(exists (select 1 from public.calendar_entries where source_type = 'inspection_request' and source_id = pg_temp.rid('A')
                    and kind = 'inspections'), 'calendar: on the inspection calendar like any request');
 select pg_temp.login('a0000000-0000-0000-0000-000000000494');

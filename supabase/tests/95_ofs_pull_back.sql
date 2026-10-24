@@ -187,13 +187,10 @@ select is((select x -> 'sched' ->> 'state' from jsonb_array_elements(public.ofs_
 reset role;
 select is(split_part(public.ir_ofs_place(pg_temp.rid('Q')), ' · ', 1), '2 walls',
   'the schedule and calendar line count only the walls still on it');
-select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000953', 'ir.pulled_back'),
-  array['OFS #' || lpad((pg_temp.req('Q')).ofs_number::text, 4, '0') || ': 1 item taken off by Sam Sub',
-        'OFS #' || lpad((pg_temp.req('Q')).ofs_number::text, 4, '0') || ': 1 wall taken off by Penny Engineer'],
-  'the fire marshal gets one board line each time');
-select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000954', 'ir.pulled_back'),
-  array['OFS #' || lpad((pg_temp.req('Q')).ofs_number::text, 4, '0') || ': 1 wall taken off by Penny Engineer'],
-  'the requester hears when someone else took one off');
+select is(cardinality(pg_temp.lines_to('a0000000-0000-0000-0000-000000000953', 'ir.pulled_back')), 0,
+  'no board line for walls taken off (0116): the request and its map show it');
+select is(cardinality(pg_temp.lines_to('a0000000-0000-0000-0000-000000000954', 'ir.pulled_back')), 0,
+  'nor for the requester');
 select is(pg_temp.lines_to('a0000000-0000-0000-0000-000000000952', 'ir.pulled_back'), '{}'::text[],
   'the inspector does not: it is with OFS');
 set local role authenticated;

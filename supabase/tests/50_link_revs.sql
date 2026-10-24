@@ -197,9 +197,9 @@ select is((select array_agg(a.name || ' ' || i.name || ' ' || c.color || ' ' || 
   'submit: a cell per wall x item, the N/A one skipped, colors by item order, no member behind them');
 select is((select array[sheet_file_id::text, version::text, (updated_by is null)::text] from public.ir_maps where request_id = pg_temp.rid('S1')),
   array['e0000000-0000-0000-0000-000000000501', '1', 'true'], 'submit: the map starts on the first wall''s sheet');
-select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('S1') and kind = 'ir.gc_review'
-                  and summary like 'IR 1 (OFS 1) to review · Sample Visitor (Sample Firestop Co) · %'),
-  'submit: the board line names the OFS number and the visitor');
+select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('S1') and kind = 'ir.ofs_filed'
+                  and summary like 'OFS #0001 filed · Sample Visitor (Sample Firestop Co) · %'),
+  'submit: the board line names the OFS number and the visitor (0116)');
 select ok(exists (select 1 from public.audit_events where action = 'request_link.submit' and entity_id = pg_temp.rid('S1')
                   and actor_kind = 'public_link' and details->>'cells' = '5' and details->>'ofs_number' = '1'),
   'submit: audited as the public link, with its cells');

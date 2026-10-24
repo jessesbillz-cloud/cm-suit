@@ -14,11 +14,41 @@ Never compute a number in the client: IR and OFS IR numbers come from the databa
 | Role in the steps | Holds (role_permissions) |
 | --- | --- |
 | Requester (sub or GC) | `ir.request`, `revs.read` |
-| GC | `ir.gc_approve` |
+| GC (the contractor step) | `ir.gc_approve`: project_admin, pm, superintendent, pe (0116) |
 | Inspector (IOR) | `ir.decide` |
-| OFS sender | the inspector, or the job's OFS requests duty holder (`ir_ofs_sender`) |
+| OFS sender | the job's route says (0116): the inspector by default, or the job's OFS requests duty holder after the inspector's Ready |
 | Fire marshal (deputy) | `ir.ofs_decide`, `ir.ofs_view` |
 | Takes walls off (Not ready) | its requester (`ir.request`), the job's OFS requests duty holder, or `ir.gc_approve`; never the fire marshal (`ir_may_pull_back`) |
+
+## The job's route (0116)
+
+Set in Settings > Job by whoever has `project.manage`, stored in `projects.settings` (defaults in `src/lib/settings.ts`,
+a missing key is off):
+
+| Setting | Off (default) | On |
+| --- | --- | --- |
+| `ir_ofs_gc_off` | the contractor checks a sub's request (step 4) | no contractor step: a new request goes straight to the inspector |
+| `ir_ofs_duty_sends` | the inspector sends (step 6, his Send is his Ready, step 5 is refused) | the inspector marks Ready (step 5), the duty holder sends (step 6), while a duty holder is picked |
+
+Every job starts on Jesse's route: Contractor checks > Inspector sends > Fire marshal. `rpc/ir_ofs_chain` answers
+`route` (`{ "gc": true, "sender": "inspector" | "duty" }`, the sender as it is now) and `step` (where the request is:
+`gc`, `ready`, `si`, `send`, or null once sent). The request page and the batch show the route on one line.
+
+**Whose turn** (`ir_ofs_turn`): at `gc`, the duty holder while he may do the contractor step, else every GC approver;
+at `send` on the duty route, the duty holder; else the inspector who has it, else every inspector. Only that person
+gets the board line and the Needs you line.
+
+**What posts a board line** about an OFS request (nothing else does, `ir_board_keeps` in `post_activity`):
+
+| Kind | When | To |
+| --- | --- | --- |
+| `ir.ofs_filed` | filed, or passed to the next person ("checked", "ready to send") | the one whose turn it is now |
+| `ir.ofs_sent` | sent to OFS | the fire marshal (`ir.ofs_decide`) and the requester |
+| `ir.returned` | the contractor returns it | the requester |
+| `ir.results` | the fire marshal sends the results (step 12) | the people he picked |
+
+A batch posts one line per step ("Batch of 9 sent to OFS · Level 01 · Top of wall"). Nothing in the flow sends email
+except step 12, which a person presses.
 
 ## Inputs to read first (no writes)
 
@@ -64,7 +94,8 @@ B6. **Send.** `rpc/rev_basket_send`
     Leave out `p_start_time` for Flexible. The inspector filing it himself adds `"p_inspector_ack": true`. Whoever
     sends OFS requests (`may_number` true) may add `"p_ofs_numbers": [<n>, ...]`, one per group in B5's order, each
     unused on the job. After: one `inspection_requests` row per group, each made by `ir_submit_ofs` exactly as step 2
-    (same rules, statements and first status), each with its own OFS number and map; the basket is empty; the answer
+    (same rules, statements and first status), each with its own OFS number and map; one board line for the batch
+    ("Batch of 9 filed", to the one whose turn it is, 0116); the basket is empty; the answer
     is `{ "batch_id", "requests": [{id, number, ofs_number, items, status, version}] }`. A stale `version` answers
     `40001` (read B5 again). The same call again with the same version answers the same batch and files nothing.
 
@@ -111,17 +142,22 @@ wall of the job has brings its rating, UL design and sheet number. Usable in B2 
    Then `functions/v1/ir-map` `{ "action": "render", "request_id": "<id>" }`. After: `ir_maps.map_file_id` set.
 
 4. **GC checks it Ready.** `rpc/ir_ofs_check`
-   `{ "p_request_id", "p_version", "p_check": "gc", "p_on": true }`. After: `status = 'pending'` (with the inspector).
-   A request filed by the GC skips this step (the filing is the GC's Ready).
+   `{ "p_request_id", "p_version", "p_check": "gc", "p_on": true }`. After: `status = 'pending'` (with the inspector),
+   and the inspector's board line ("OFS #0097 checked"). A request filed by a GC approver (a PE too, 0116) skips this
+   step (the filing is the GC's Ready), and so does every request on a job whose route has no contractor step.
 
-5. **Inspector checks it Ready.** `rpc/ir_ofs_check` `{ "p_request_id", "p_version", "p_check": "ready", "p_on": true }`.
+5. **Inspector checks it Ready (the duty route only).** `rpc/ir_ofs_check`
+   `{ "p_request_id", "p_version", "p_check": "ready", "p_on": true }`. On the default route the inspector sends it
+   himself (step 6) and his send is his Ready: this call answers 22023 "On this job the inspector sends it to OFS."
    When `special_required` is true, also `{ ..., "p_check": "si", "p_on": true, "p_file_id": "<the special inspector's
-   report, a file of this job>" }`. When the inspector sends it himself (step 6), his send is his Ready: skip this step.
+   report, a file of this job>" }` (on the default route, before he sends, no Ready first).
 
 6. **OFS sender sends it to OFS.** Optional first, the OFS IR number the fire marshal gave:
    `rpc/ir_ofs_number_set` `{ "p_request_id", "p_version", "p_number": <1..999999> }`.
-   Then `rpc/ir_send_ofs` `{ "p_request_id", "p_version" }`. After: `ofs_sent_at` set, `status = 'pending'`, the fire
-   marshal is told. Undo until he acts: `rpc/ir_unsend_ofs` `{ "p_request_id", "p_version" }`.
+   Then `rpc/ir_send_ofs` `{ "p_request_id", "p_version" }`, by the sender the route names (anyone else: 22023 "On this
+   job the inspector sends it to OFS." or "On this job the contractor's OFS person sends it to OFS."). After:
+   `ofs_sent_at` set, `status = 'pending'`, one board line to the fire marshal and the requester. Undo until he acts:
+   `rpc/ir_unsend_ofs` `{ "p_request_id", "p_version" }`.
 
 7. **Fire marshal answers the time (0108).** Read his schedule first: `rpc/ofs_schedule`
    `{ "p_from": "yyyy-MM-dd", "p_to": "yyyy-MM-dd" }` (at most 62 days; add `"p_project_id"` for one job). Each row has
@@ -130,26 +166,25 @@ wall of the job has brings its rating, UL design and sheet number. Usable in B2 
    in the same call.
 
    7a. **Confirm the asked time.** `rpc/ir_confirm` `{ "p_request_id", "p_version", "p_note": "<optional>" }`.
-       After: `status = 'confirmed'`, `ofs_sched = 'confirmed'`, `ofs_sched_by` = him, `ofs_sched_at` set. The requester,
-       the job's OFS duty holder and whoever sent it get a board line `ir.ofs_confirmed` ("OFS IR #0097 confirmed Tue
-       Oct 27, 9:00 AM"). Go to step 10.
+       After: `status = 'confirmed'`, `ofs_sched = 'confirmed'`, `ofs_sched_by` = him, `ofs_sched_at` set. No board line
+       (0116): the schedule and the calendar show it. Go to step 10.
 
    7b. **JUDGMENT: pick another time.** `rpc/ir_ofs_propose`
        `{ "p_request_id", "p_version", "p_date": "yyyy-MM-dd", "p_time": "HH:mm", "p_note": "<optional, up to 500>" }`.
        The day is today or later in the job's time zone; the time is on the hour or half hour; not the asked time
        (that is 7a). After: the request is at that day and time (`duration_kind = 'timed'`), `status = 'pending'`,
-       `ofs_sched = 'proposed'`. The requester and the duty holder get a board line `ir.ofs_proposed` and a Needs you
-       task `ir.ofs_time`; the sender gets the board line. Go to 7d.
+       `ofs_sched = 'proposed'`. One Needs you task `ir.ofs_time`, for one person: the job's OFS duty holder, else the
+       requester, else whoever sent it. No board line (0116). Go to 7d.
 
    7c. **Postpone** (as before). `rpc/ir_postpone` `{ "p_request_id", "p_version", "p_reason", "p_note", "p_until" }`.
        Clears any answer. A later 7a or 7b brings it back.
 
    7d. **Requester (or the duty holder, or the inspector) accepts the new time.** `rpc/ir_ofs_accept`
        `{ "p_request_id", "p_version" }`. Refused with 22023 when nothing waits to be accepted, 42501 for the fire
-       marshal himself. After: `status = 'confirmed'`, `ofs_sched = 'accepted'`, the tasks done, the fire marshal gets
-       `ir.ofs_accepted`. **Or ask again:** the requester's `rpc/ir_move` `{ "p_request_id", "p_version",
+       marshal himself. After: `status = 'confirmed'`, `ofs_sched = 'accepted'`, the task done (his schedule shows it,
+       no board line). **Or ask again:** the requester's `rpc/ir_move` `{ "p_request_id", "p_version",
        "p_request_date", "p_start_time", "p_duration_kind", "p_duration_min" }`: back to `asked`, the proposal and its
-       tasks cleared, the fire marshal gets `ir.moved`. Back to step 7.
+       task cleared, back on the fire marshal's schedule as asked. Back to step 7.
 
    Every answer is in the request's history (`ir_events.action` `confirm`, `ofs_propose`, `ofs_accept`, `move`, with
    the actor) and the audit log. The fire marshal's subscribed calendar (Calendar > Subscribe) carries one line per
@@ -164,10 +199,8 @@ wall of the job has brings its rating, UL design and sheet number. Usable in B2 
    ```
    Each cell must be on the request now. After: those `ir_rev_items` rows have `pulled_at` set (kept, never deleted)
    and every reader leaves them out: `rev_status` shows them `open` again (as if never asked for), the request's
-   `items` line, map legend and title no longer name them, and the map loses their strokes. The fire marshal (once it
-   is with OFS, else the inspector) gets one board line, `ir.pulled_back` "OFS #0097: 2 walls taken off by <name>";
-   the requester gets it when someone else did it. Audited (`ir.rev_pull_back`, with the cells and the strokes taken
-   off). Every cell off: `status = 'withdrawn'` (board line `ir.withdrawn`), and `ir_restore` refuses it.
+   `items` line, map legend and title no longer name them, and the map loses their strokes. No board line (0116): the
+   request and its map show it. Audited (`ir.rev_pull_back`, with the cells and the strokes taken off). Every cell off: `status = 'withdrawn'`, and `ir_restore` refuses it. No board line for either (0116).
    Refused once a result is recorded on the request or any of its cells: "The results are in."
 
 9. **Undo of step 8.** `rpc/ir_rev_put_back` with the same body and the version step 8 returned. After: the same
@@ -204,16 +237,18 @@ The steps 4 to 6 for every request of a batch (B6) at once. Each request still w
 the batch can also be done on its own.
 
 S1. **Read the batches waiting on me.** `rpc/ir_batches_waiting` `{ "p_project_id": "<job>" }` (leave it out: all my
-    jobs). Each: `{ "batch_id", "project_id", "size", "items", "step", "requests": [{id, number, ofs_number, items,
-    status, result, helper_id, ofs_sent_at, version, waits}] }`. `step` is the one I take on it now: `gc` (step 4),
-    `send` (step 6: the inspector, or the duty holder once the inspector checked it), or `ready` (step 5), the earliest
-    with a request waiting on me. `waits` marks those requests. One batch: `rpc/ir_batch_get` `{ "p_batch_id" }`
+    jobs): the batches of two or more where it is my turn (0116) on a request that waits on me, one Needs you line
+    each. Each: `{ "batch_id", "project_id", "size", "items", "step", "route", "requests": [{id, number, ofs_number,
+    items, status, result, helper_id, ofs_sent_at, version, waits}] }`. `step` is the one I take on it now: `gc`
+    (step 4), `send` (step 6, by the sender the route names), or `ready` (step 5, the duty route only), the earliest
+    with a request waiting on me. `waits` marks those requests. `route` is the job's (see The job's route). One batch: `rpc/ir_batch_get` `{ "p_batch_id" }`
     (the batch of a request: B7).
 
 S2. **The step for the batch.** `rpc/ir_batch_step`
     `{ "p_batch_id": "<batch>", "p_step": "gc"|"ready"|"send", "p_versions": { "<request id>": <version>, ... } }`
     with the version of every request that `waits` in S1. After: each of them as after its single step (4, 5 or 6,
-    the same function, the same board lines), the answer `{ "batch_id", "step", "done": [{id, number, ofs_number,
+    the same function), one board line for the batch ("Batch of 9 checked", "Batch of 9 ready to send", "Batch of 9
+    sent to OFS") instead of one per request, the answer `{ "batch_id", "step", "done": [{id, number, ofs_number,
     status, version}], "skipped": ["<request id>", ...] }`. All or nothing: a stale version, or a request waiting on
     me that is not in `p_versions`, answers `40001` and changes nothing (read S1 again). A request past the step is
     skipped, so the same call again changes nothing. A copy from My Daily Reports (0112, view only) never waits on anyone: it is skipped too. Without the step's right: `42501`. The fire marshal's steps (7 to

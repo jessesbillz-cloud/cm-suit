@@ -1,8 +1,9 @@
-// e2e mock of the batch steps (0114) with the database's rules in short form: a request waits on me at a step by the
-// single button's own gates (the GC step while it is with the GC, the inspector's Ready while it is his and unchecked,
-// Send to OFS for the inspector on his own word and for the duty holder once the inspector checked it); the step I take
-// on a batch is the earliest with requests waiting on me; the step for the batch runs the single step (mock/inspections
-// rpc) on each waiting request with its version, all or nothing, and skips what is past the step.
+// e2e mock of the batch steps (0114) with the database's rules in short form: a request waits on me at a step when it
+// is at that step of the job's route (0116, mock/ofsRules ofsStep) and I may take it (the GC step, the inspector's Ready
+// while it is his, Send to OFS for whoever sends on this route); the step I take on a batch is the earliest with
+// requests waiting on me; Needs you lists it only when it is my turn on one of them (ofsRules turn); the step for the
+// batch runs the single step (mock/inspections rpc) on each waiting request with its version, all or nothing, and skips
+// what is past the step.
 import type { IrRowRaw } from '../inspections.types';
 import type { BatchStep, BatchStepAnswer, IrBatch } from '../inspections.batch';
 import { conflictError } from '../errors';
@@ -10,24 +11,21 @@ import { holder } from './duties';
 import { mockUser } from './index';
 import * as mockIr from './inspections';
 import { forbidden, holds, maySee, notFound, ownerOk } from './irRules';
+import { ofsStep, route, turn } from './ofsRules';
 import { batchIds, batchRequests } from './revBasket';
 import { read as readRevs } from './revs';
 import { delay } from './store';
 
 const ORDER: readonly BatchStep[] = ['gc', 'send', 'ready'];
-const WITH_INSPECTOR: readonly string[] = ['pending', 'postponed'];
 
 const sender = (me: string, projectId: string) => holds(me, 'ir.decide') || holder(projectId) === me;
 
-/** ir_batch_waits */
+/** ir_batch_waits: at this step of its route (never a copy from My Daily Reports, 0112), and mine to take (ir_ofs_may). */
 function waits(r: IrRowRaw, step: BatchStep, me: string): boolean {
-  // A copy from My Daily Reports (0112) is view only: never acted on.
-  if (r.kind !== 'ofs' || r.mdr_id !== null || r.ofs_sent_at !== null) return false;
-  if (step === 'gc') return ['gc_review', 'returned'].includes(r.status) && holds(me, 'ir.gc_approve');
-  if (!WITH_INSPECTOR.includes(r.status)) return false;
-  if (step === 'ready') return r.ofs_ready_at === null && holds(me, 'ir.decide') && ownerOk(me, r);
-  if (!sender(me, r.project_id)) return false;
-  return holds(me, 'ir.decide') ? ownerOk(me, r) : r.ofs_ready_at !== null && (r.special_required !== true || r.ofs_si_at !== null);
+  if (ofsStep(r) !== step) return false;
+  if (step === 'gc') return holds(me, 'ir.gc_approve');
+  if (step === 'ready') return holds(me, 'ir.decide') && ownerOk(me, r);
+  return route(r.project_id).sender === 'duty' ? holder(r.project_id) === me : holds(me, 'ir.decide') && ownerOk(me, r);
 }
 
 const byNumber = (a: IrRowRaw, b: IrRowRaw) => (a.ofs_number ?? 0) - (b.ofs_number ?? 0) || a.number - b.number;
@@ -75,6 +73,7 @@ function view(batchId: string): IrBatch | null {
     size: rows.length,
     items: itemsLine(rows.map((r) => r.id)),
     step,
+    route: route(first.project_id),
     requests: rows.map((r) => ({
       id: r.id, number: r.number, ofs_number: r.ofs_number, items: r.items, status: r.status, result: r.result,
       helper_id: r.helper_id, ofs_sent_at: r.ofs_sent_at, version: r.version, waits: step !== null && waits(r, step, me),
@@ -90,11 +89,20 @@ export async function get(batchId: string): Promise<IrBatch> {
   return b;
 }
 
+/** My turn on a request of the batch that waits on me (ir_batches_waiting, 0116). */
+function myTurn(b: IrBatch, me: string): boolean {
+  const waiting = new Set(b.requests.filter((x) => x.waits).map((x) => x.id));
+  return rowsOf(b.batch_id).some((r) => waiting.has(r.id) && turn(r).includes(me));
+}
+
 /** ir_batches_waiting */
 export async function waiting(projectId: string | null): Promise<IrBatch[]> {
   await delay();
+  const me = mockUser().id;
   const all = batchIds().map((id) => view(id));
-  return all.filter((b): b is IrBatch => b !== null && b.step !== null && b.size >= 2 && (projectId === null || b.project_id === projectId));
+  return all.filter(
+    (b): b is IrBatch => b !== null && b.step !== null && b.size >= 2 && (projectId === null || b.project_id === projectId) && myTurn(b, me),
+  );
 }
 
 /** ir_batch_step */

@@ -57,7 +57,10 @@ const TONE: Record<string, [LineTone, string]> = {
   'ir.ofs': ['assigned', 'Sent'],
   'ir.ofs_accepted': ['confirmed', 'Accepted'],
   'ir.ofs_confirmed': ['confirmed', 'Confirmed'],
+  // 0116: filed or passed on (filed, checked, ready to send), only to the one whose turn it is now.
+  'ir.ofs_filed': ['pending', 'Your turn'],
   'ir.ofs_proposed': ['pending', 'New time'],
+  'ir.ofs_sent': ['assigned', 'Sent'],
   'ir.postponed': ['postponed', 'Postponed'],
   'ir.pulled_back': ['cancelled', 'Pulled back'],
   'ir.requested': ['assigned', 'Requested'],

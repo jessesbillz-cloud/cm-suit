@@ -35,7 +35,7 @@ const MATRIX: Record<string, readonly Role[]> = {
   'dailies.write': ['project_admin', 'pm', 'pe', 'superintendent', 'foreman', 'inspector', 'special_inspector', 'inspector_admin'],
   'ir.request': ['sub', 'superintendent', 'foreman', 'pe', 'project_admin', 'inspector', 'inspector_admin', 'requester'],
   'ir.decide': ['inspector', 'inspector_admin'],
-  'ir.gc_approve': ['project_admin', 'pm', 'superintendent', 'inspector_admin'],
+  'ir.gc_approve': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector_admin'],
   'ir.view_all': ['project_admin', 'pm', 'pe', 'superintendent', 'inspector', 'owner_rep', 'inspector_admin'],
   'deliveries.manage': ['superintendent', 'pm', 'project_admin', 'inspector_admin'],
   'corrections.close': ['inspector', 'inspector_admin'],

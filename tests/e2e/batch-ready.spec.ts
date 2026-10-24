@@ -3,7 +3,10 @@
 // three walls: top of wall on room 205's two walls (Level 02, one sheet page) and cavity spray on room 110's corridor
 // wall (Level 01), so two OFS requests in one batch. The GC ('pm') taps Ready all once, the inspector Send all to OFS
 // once, and both requests are with the fire marshal ('ahj').
-// Test ids: needs-you-batch, batch-step (data-step), batch-open, ir-batch, ir-batch-line, ir-batch-request (data-waits).
+// One Needs you line per batch, only for the one whose turn it is on the job's route (0116), and the route under the
+// batch's line.
+// Test ids: needs-you-batch, batch-step (data-step), batch-open, ir-batch, ir-batch-line, ir-batch-route,
+// ir-batch-request (data-waits).
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -67,6 +70,7 @@ test.describe('a batch, one tap per step', () => {
     const panel = page.getByTestId('ir-batch');
     await expect(panel.getByTestId('ir-batch-line')).toContainText('Batch of 2');
     await expect(panel.getByTestId('ir-batch-request')).toHaveCount(2);
+    await expect(panel.getByTestId('ir-batch-route')).toHaveText(/Contractor checks.*Inspector sends.*Fire marshal/);
     const url = new URL(page.url()).pathname;
 
     // The inspector: Send all to OFS, once.
@@ -81,5 +85,31 @@ test.describe('a batch, one tap per step', () => {
     await openAs(page, 'ahj', url);
     await expect(page.getByTestId('ir-batch').getByTestId('ir-batch-request')).toHaveCount(2);
     await expect(page.getByTestId('ir-batch').getByTestId('batch-step')).toHaveCount(0);
+  });
+
+  test('a batch is one Needs you line, for the one whose turn it is', async ({ page }) => {
+    test.setTimeout(90_000);
+    await sendBatch(page);
+
+    // With the contractor: not the inspector's turn yet.
+    await openAs(page, 'inspector', '/p/job-s/board');
+    await expect(page.getByTestId('needs-you')).toBeVisible();
+    await expect(page.getByTestId('needs-you-count')).toBeVisible();
+    await expect(page.getByTestId('needs-you-batch')).toHaveCount(0);
+
+    // The GC: two requests, one line, no task line for either of them.
+    await openAs(page, 'pm', '/p/job-s/board');
+    await expect(page.getByTestId('needs-you-batch')).toHaveCount(1);
+    await expect(page.getByTestId('needs-you-task')).toHaveCount(0);
+    const step = page.getByTestId('needs-you-batch').getByTestId('batch-step');
+    await expect(step).toHaveAttribute('data-step', 'gc');
+    await step.click();
+    // Done (the mock 'pm' also inspects, so Send is his next).
+    await expect(step).toHaveAttribute('data-step', 'send');
+
+    // Now it is the inspector's: one line.
+    await openAs(page, 'inspector', '/p/job-s/board');
+    await expect(page.getByTestId('needs-you-batch')).toHaveCount(1);
+    await expect(page.getByTestId('needs-you-batch').getByTestId('batch-step')).toHaveAttribute('data-step', 'send');
   });
 });
