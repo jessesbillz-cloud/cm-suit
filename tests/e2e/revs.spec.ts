@@ -165,7 +165,7 @@ test.describe('revs', () => {
     await expect(page.getByTestId('rev-level-all')).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test('phone: a wall is its own screen; the drawing stays in view while the items scroll; Add and the bar in thumb reach', async ({ page }, testInfo) => {
+  test('phone: a wall is its own screen; a tap on an item far down brings the drawing back; Add and the bar in thumb reach', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'phone', 'Phone only.');
     await openAs(page, 'pm', '/p/job-s/revs/room-mock-room-110');
     await page.getByTestId('rev-room-walls').getByTestId('rev-wall-mock-rev-area-1').getByTestId('rev-wall-open').click();
@@ -181,7 +181,7 @@ test.describe('revs', () => {
     await add.click();
     await expect(page.getByTestId('basket-bar')).toBeInViewport();
 
-    // The last item, far down: the drawing is still on screen to show it.
+    // The last item, far down: one scroll (Oct 23), so the page brings the drawing back to show it.
     await wall.getByTestId('rev-item-mock-rev-item-7-1').click();
     await expect(drawing).toHaveAttribute('data-focus', 'whole_wall');
     await expect(drawing).toBeInViewport();

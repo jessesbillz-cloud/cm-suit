@@ -3,6 +3,7 @@
 // ir_decider), where a new request starts (ir_first_status), and each step with its refusals in the database's own
 // words. Pure: mock/inspections applies them to its stored requests.
 import { DataError } from '../errors';
+import type { OfsRouteInfo } from '../inspections.ofs';
 import type { IrRowRaw } from '../inspections.types';
 
 type Row = IrRowRaw;
@@ -106,13 +107,16 @@ interface JobFacts {
   gcStep: boolean;
   /** Somebody active on the job can do the GC step. */
   gcApprover: boolean;
+  /** The job's OFS route has the contractor check (0116: not ir_ofs_gc_off). */
+  ofsCheck: boolean;
 }
 
-/** ir_first_status: where a new request starts, by who files it (null: a visitor on the link) and its kind. */
+/** ir_first_status: where a new request starts, by who files it (null: a visitor on the link) and its kind. An OFS
+ *  request follows the job's route (0116). */
 export function firstStatus(me: string | null, kind: string, job: JobFacts): 'pending' | 'gc_review' {
   if (holds(me, 'ir.decide') || holds(me, 'ir.gc_approve')) return 'pending';
-  if (job.gcStep) return 'gc_review';
-  return kind === 'ofs' && job.gcApprover ? 'gc_review' : 'pending';
+  if (kind === 'ofs') return job.ofsCheck && (job.gcStep || job.gcApprover) ? 'gc_review' : 'pending';
+  return job.gcStep ? 'gc_review' : 'pending';
 }
 
 /** What a step reads beyond the request and its arguments. */
@@ -127,6 +131,10 @@ interface StepContext {
   permits: { manage: boolean; read: boolean };
   /** ir_ofs_sender (0091): I am the inspector, or I hold the job's OFS requests duty. */
   sender: boolean;
+  /** I hold the job's OFS requests duty. */
+  holder: boolean;
+  /** The job's OFS route (0116, ir_ofs_route). */
+  route: OfsRouteInfo;
   /** Another request of the job has this OFS number. */
   numberTaken: (n: number) => boolean;
 }
@@ -221,16 +229,19 @@ export const STEPS: Record<string, Step> = {
     return { status: approve ? 'pending' : 'returned', gc_by: c.me, gc_at: c.now, gc_note: note(a, 'p_note') };
   },
   // The inspector sends an OFS request to OFS (from pending, or from his own postponement): the deputy's from here.
-  // The duty holder sends one the inspector has checked (0091). The inspector's own send is his Ready.
+  // Where the job's route says so (0116), the duty holder sends one the inspector has checked instead. The inspector's
+  // own send is his Ready.
   ir_send_ofs: (r, _a, c) => {
-    const inspector = holds(c.me, 'ir.decide');
+    const duty = c.route.sender === 'duty';
     if (!c.sender) throw forbidden();
     if (r.kind !== 'ofs') throw refuse('Only an OFS request goes to OFS.');
     if (r.ofs_sent_at !== null) return null;
-    if (inspector && !ownerOk(c.me, r)) throw forbidden();
+    if (duty && !c.holder) throw refuse("On this job the contractor's OFS person sends it to OFS.");
+    if (!duty && !holds(c.me, 'ir.decide')) throw refuse('On this job the inspector sends it to OFS.');
+    if (!duty && !ownerOk(c.me, r)) throw forbidden();
     if (r.status !== 'pending' && r.status !== 'postponed') throw refuse('This request is not with the inspector.');
-    if (!inspector && r.ofs_ready_at === null) throw refuse('The inspector checks it first.');
-    if (!inspector && r.special_required === true && r.ofs_si_at === null) {
+    if (duty && r.ofs_ready_at === null) throw refuse('The inspector checks it first.');
+    if (duty && r.special_required === true && r.ofs_si_at === null) {
       throw refuse('The inspector checks the special inspection report first.');
     }
     return {

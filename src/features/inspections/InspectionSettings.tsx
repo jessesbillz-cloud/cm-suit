@@ -1,6 +1,7 @@
 // Settings > Job, when Inspections is on: the GC approval step (off by default), OFS as a request type, and with OFS on
-// the words a sub confirms before an OFS request goes (0091: empty is the standard wording, shown as the placeholder) and
-// the fire / life safety sections whose RFIs and submittals go to OFS (0106: empty is the standard list).
+// the job's OFS route (0116: who checks and who sends), the words a sub confirms before an OFS request goes (0091: empty
+// is the standard wording, shown as the placeholder) and the fire / life safety sections whose RFIs and submittals go to
+// OFS (0106: empty is the standard list).
 // Saved as I go, through the job's one settings schema (lib/settings) with the job's version check.
 import { useState } from 'react';
 import { messageOf } from '../../data/errors';
@@ -10,8 +11,9 @@ import { useSaveProject } from '../../data/jobs.mutations';
 import type { ProjectWithSettings } from '../../data/queries';
 import { parseFireList } from '../../lib/settings';
 import { CheckField, FIELD_AREA, FIELD_CONTROL, FIELD_LABEL } from '../../ui/Fields';
+import { OfsRouteSetting } from './OfsRouteSetting';
 
-type Key = 'ir_gc_approval' | 'ir_ofs_allowed' | 'ir_ofs_attest_text' | 'ofs_fire_sections';
+type Key = 'ir_gc_approval' | 'ir_ofs_allowed' | 'ir_ofs_gc_off' | 'ir_ofs_duty_sends' | 'ir_ofs_attest_text' | 'ofs_fire_sections';
 type Value = boolean | string | string[] | null;
 
 function asObject(v: unknown): Record<string, unknown> {
@@ -58,6 +60,9 @@ export function InspectionSettings({ row }: { row: ProjectWithSettings }) {
           }}
         />
       </div>
+      {ofs ? (
+        <OfsRouteSetting gcOff={row.parsedSettings.ir_ofs_gc_off} dutySends={row.parsedSettings.ir_ofs_duty_sends} onChange={set} />
+      ) : null}
       {ofs ? (
         <label className={`${FIELD_LABEL} mt-2`}>
           OFS attestation

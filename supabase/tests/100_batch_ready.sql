@@ -108,17 +108,24 @@ select pg_temp.login('a0000000-0000-0000-0000-000000001143');
 select throws_ok($$ select public.ir_batch_get(pg_temp.batch()) $$, 'P0002', 'not_found', 'the fire marshal reads none of it yet');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- The GC Readies one by hand. The inspector and the duty holder act only on it.
+-- The GC Readies one by hand. The inspector and the duty holder act only on it (on the route where the duty holder
+-- sends, 0116). Needs you lists the batch for the one whose turn it is: the duty holder, a PE who may do the GC step.
 -- ---------------------------------------------------------------------------------------------------------------------
+reset role;
+update public.projects set settings = settings || '{"ir_ofs_duty_sends": true}' where id = 'c0000000-0000-0000-0000-000000001141';
+set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000001146');
 select lives_ok($$ select public.ir_ofs_check(pg_temp.rid('R1'), pg_temp.ver('R1'), 'gc', true) $$, 'the GC checks R1 Ready by hand');
-select is((select jsonb_array_length(j) from public.ir_batches_waiting('c0000000-0000-0000-0000-000000001141') j), 1, 'the GC has the batch waiting');
-select is((public.ir_batches_waiting('c0000000-0000-0000-0000-000000001141')) -> 0 ->> 'step', 'gc', 'at the GC step');
+select is(public.ir_batches_waiting('c0000000-0000-0000-0000-000000001141'), '[]'::jsonb,
+  'not in the PM''s Needs you: the turn is the duty holder''s');
+select pg_temp.login('a0000000-0000-0000-0000-000000001147');
+select is((public.ir_batches_waiting('c0000000-0000-0000-0000-000000001141')) -> 0 ->> 'step', 'gc', 'the duty holder has it, at the GC step');
+select pg_temp.login('a0000000-0000-0000-0000-000000001146');
 select is((select count(*)::int from jsonb_array_elements(public.ir_batch_get(pg_temp.batch()) -> 'requests') r where (r ->> 'waits')::boolean),
   2, 'two of its three wait on him');
 
 select pg_temp.login('a0000000-0000-0000-0000-000000001142');
-select is((public.ir_batch_get(pg_temp.batch())) ->> 'step', 'send', 'the inspector''s step is Send to OFS');
+select is((public.ir_batch_get(pg_temp.batch())) ->> 'step', 'ready', 'the inspector''s step is Ready');
 select is(pg_temp.keys((select jsonb_agg(r) from jsonb_array_elements(public.ir_batch_get(pg_temp.batch()) -> 'requests') r
                         where (r ->> 'waits')::boolean)), array['R1'], 'only R1 waits on him');
 select is(pg_temp.keys((public.ir_batch_step(pg_temp.batch(), 'ready', pg_temp.vers(array['R1']))) -> 'done'), array['R1'],
@@ -135,8 +142,12 @@ select is(pg_temp.keys((select v from step) -> 'skipped'), array['R2', 'R3'], 'a
 select isnt((pg_temp.req('R1')).ofs_sent_at, null, 'R1 is with OFS');
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- The GC's Ready all: the version check refuses all, then all at once, then the same tap again is safe
+-- The GC's Ready all: the version check refuses all, then all at once, then the same tap again is safe. Back on the
+-- default route: the inspector sends.
 -- ---------------------------------------------------------------------------------------------------------------------
+reset role;
+update public.projects set settings = settings - 'ir_ofs_duty_sends' where id = 'c0000000-0000-0000-0000-000000001141';
+set local role authenticated;
 select pg_temp.login('a0000000-0000-0000-0000-000000001146');
 select throws_ok($$ select public.ir_batch_step(pg_temp.batch(), 'gc',
   jsonb_build_object(pg_temp.rid('R2'), pg_temp.ver('R2'), pg_temp.rid('R3'), pg_temp.ver('R3') + 5)) $$,

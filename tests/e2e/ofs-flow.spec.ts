@@ -1,10 +1,13 @@
 // The OFS request flow (0091; Jesse, Oct 5) against the e2e mock (job-s, Sample Science Building): the sub confirms the
 // job's attestation in one small dialog (Back sends nothing), the GC checks Ready (Undo, then again), the GC's admin
-// picks who sends OFS requests on People, everyone sees who it is on the request, the inspector checks Ready and the
-// SI report (Undo in order), the sender types the OFS number and sends, and the fire marshal reads the whole chain
-// with names. Mock users: 'sub' asks, 'pm' is the GC (and its admin), 'inspector' checks, 'ahj' is the fire marshal.
+// picks who sends OFS requests on People, everyone sees who it is on the request, the job's route says the inspector
+// sends (0116, the default: no Ready box), the owner sets it in Settings > Job so the duty holder sends, the inspector
+// checks Ready and the SI report (Undo in order), the sender types the OFS number and sends, and the fire marshal reads
+// the whole chain with names. Mock users: 'sub' asks, 'pm' is the GC (and its admin, and manages the job), 'inspector'
+// checks, 'ahj' is the fire marshal.
 // Test ids: ir-attest, ir-attest-text, ir-attest-confirm, ir-attest-back, ofs-checks, ofs-<attest|gc|ready|si|sent>
-// (data-done) with -check and -undo, ofs-number, ofs-duty, duty-ofs-company, duty-ofs-person.
+// (data-done) with -check and -undo, ofs-number, ofs-duty, duty-ofs-company, duty-ofs-person, ofs-route-line (data-at),
+// ofs-route-setting, ofs-route-gc, ofs-route-sender, ofs-route-preview.
 import process from 'node:process';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -85,8 +88,26 @@ test.describe('OFS request flow', () => {
     await expect(page.getByTestId('duty-ofs-person-name')).toHaveText('Sample PM');
     await expect(page.getByTestId('duty-ofs-person')).toHaveCount(0);
 
+    // The default route: the inspector sends, so he has no Ready box; the route line marks his Send.
+    await openAs(page, 'inspector', url);
+    await expect(checks.getByTestId('ofs-route-line')).toHaveText(/Contractor checks.*Inspector sends.*Fire marshal/);
+    await expect(checks.getByTestId('ofs-route-line')).toHaveAttribute('data-at', 'send');
+    await expect(checks.getByTestId('ofs-ready')).toHaveCount(0);
+
+    // Settings > Job: the owner has the job's OFS person send after the inspector's Ready.
+    await openAs(page, 'pm', '/p/job-s/settings');
+    const setting = page.getByTestId('ofs-route-setting');
+    await expect(setting.getByTestId('ofs-route-gc')).toBeChecked();
+    await expect(setting.getByTestId('ofs-route-sender')).toHaveValue('inspector');
+    await setting.getByTestId('ofs-route-sender').selectOption('duty');
+    await expect(setting.getByTestId('ofs-route-preview')).toHaveText(/Contractor checks.*Inspector ready.*OFS person sends.*Fire marshal/);
+    await page.reload();
+    await expect(page.getByTestId('ofs-route-sender')).toHaveValue('duty');
+
     // The inspector: Ready, then the SI report; Undo in order.
     await openAs(page, 'inspector', url);
+    await expect(checks.getByTestId('ofs-route-line')).toHaveAttribute('data-at', 'inspector');
+    await expect(page.getByTestId('ir-send-ofs')).toHaveCount(0);
     await checks.getByTestId('ofs-ready-check').click();
     await expect(checks.getByTestId('ofs-ready')).toContainText('Sample Inspector');
     await checks.getByTestId('ofs-si-check').click();
