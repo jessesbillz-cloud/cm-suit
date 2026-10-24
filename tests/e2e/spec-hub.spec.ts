@@ -77,7 +77,8 @@ test.describe('spec section hub', () => {
     await dropFiles(page, ['RFI 012 - 09 29 00 Sample board joint.pdf']);
     await expect(page.getByRole('status').filter({ hasText: 'Sorted: 1 RFIs' })).toBeVisible();
 
-    await page.goto('/p/job-b/files?spec=092900');
+    await section(page, 'Submittals').click();
+    await page.getByTestId('file-row').filter({ hasText: 'Gypsum Board PD Acoustic Sealant' }).getByRole('button', { name: 'Spec 09 29 00' }).click();
     await expect(page.getByTestId('spec-section-number')).toHaveText('09 29 00');
     await expect(page.getByTestId('spec-part').first()).toBeVisible();
     const submittals = page.getByTestId('spec-hub-submittals');
