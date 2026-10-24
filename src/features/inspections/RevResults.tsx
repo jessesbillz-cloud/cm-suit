@@ -1,6 +1,6 @@
 // The deputy's result on an OFS request with walls (Jesse, Oct 22: "an easy sign-off"): what is still on the request as
 // big boxes, every one Pass to start with, and one Pass all. A tap flips a box to Fail, which asks for one line on why
-// (OSFM: not just a red circle); the button then saves them all (ir_rev_results) and the request's result follows:
+// (OSFM: not just a red circle, with the deputy's quick phrases, NoteBox 0117); the button then saves them all (ir_rev_results) and the request's result follows:
 // approved when all passed. Saving and Clear come with Undo, never a question.
 import { useState } from 'react';
 import { CheckCheck, Eraser } from 'lucide-react';
@@ -12,6 +12,7 @@ import type { IrRevItem, RevResult, RevSetup } from '../../data/revs.types';
 import { Button } from '../../ui/Button';
 import { FIELD_CONTROL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
+import { NoteBox } from '../phrases/NoteBox';
 import { StateBox } from '../revs/StateBox';
 import { CellGroupCard, LevelLine, WithSetup } from './RevCells';
 import {
@@ -120,18 +121,18 @@ function RevResultsBody({ row, cells, setup }: BodyProps) {
             const draft = draftOf(cell, edits);
             if (draft.result !== 'failed') return null;
             return (
-              <li key={`${cell.id}-why`} className="flex flex-col gap-1 px-3 py-2">
-                <span className="break-words text-[13px] font-medium text-ink-2">{label}</span>
-                <input
-                  type="text"
-                  aria-label={`${label}: why it failed`}
+              <li key={`${cell.id}-why`} className="px-3 py-2">
+                <NoteBox
+                  label={label}
+                  place="ofs_decision"
+                  single
                   placeholder="Why it failed"
                   maxLength={1000}
-                  className={draft.note.trim() === '' ? NOTE_MISSING : FIELD_CONTROL}
+                  controlClass={draft.note.trim() === '' ? NOTE_MISSING : FIELD_CONTROL}
                   value={draft.note}
-                  data-testid={`rev-note-${cell.area_id}-${cell.item_id}`}
-                  onChange={(e) => {
-                    edit(cell, { ...draft, note: e.target.value });
+                  testId={`rev-note-${cell.area_id}-${cell.item_id}`}
+                  onChange={(note) => {
+                    edit(cell, { ...draft, note });
                   }}
                 />
               </li>

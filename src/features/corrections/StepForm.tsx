@@ -1,11 +1,11 @@
 // One step on an item: mark ready (GC or sub) or the inspector's decision, with a note and up to 6 photos.
-// Undo in the toast afterwards, never "are you sure?".
+// Undo in the toast afterwards, never "are you sure?". The note takes my quick phrases (NoteBox, 0117).
 import { useState } from 'react';
 import { useCorrectionFileUpload, useCorrectionStep } from '../../data/corrections.mutations';
 import { STEP_PHOTO_LIMIT, type CorrectionRow, type CorrectionStep } from '../../data/corrections.types';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
-import { FIELD_AREA, FIELD_LABEL } from '../../ui/Fields';
+import { NoteBox } from '../phrases/NoteBox';
 import { STEP_LABELS, stepDone } from './model';
 import { PhotoPicker } from './PhotoPicker';
 import { usePhotoUploads } from './usePhotoUploads';
@@ -17,8 +17,6 @@ interface StepFormProps {
   isPhone: boolean;
   onDone: () => void;
 }
-
-const AREA = FIELD_AREA;
 
 export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
   const move = useCorrectionStep();
@@ -52,19 +50,7 @@ export function StepForm({ row, step, isPhone, onDone }: StepFormProps) {
         confirm();
       }}
     >
-      <label className={FIELD_LABEL}>
-        Note
-        <textarea
-          rows={3}
-          autoFocus={!isPhone}
-          className={AREA}
-          value={note}
-          data-testid="cn-step-note"
-          onChange={(e) => {
-            setNote(e.target.value);
-          }}
-        />
-      </label>
+      <NoteBox label="Note" place="correction" autoFocus={!isPhone} value={note} onChange={setNote} testId="cn-step-note" />
       <PhotoPicker uploads={photos} isPhone={isPhone} />
       {problem ? (
         <p role="alert" className="text-sm text-danger">

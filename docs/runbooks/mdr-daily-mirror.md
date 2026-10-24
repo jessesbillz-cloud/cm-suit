@@ -30,7 +30,8 @@ text exactly as given: never edit it, never add a `;`, never split it.
      `hidden` (deleted in MDR) and `skipped`.
    - `errors`: requests the suite refused, each with `ir_number` and `error`. The others in the batch are copied.
      Keep the list for the report. A refused request is read again on the next run.
-   - `skipped`: requests not copied on purpose (`no IR number`: MDR's oldest requests; `deleted in MDR`).
+   - `skipped`: requests not copied on purpose (`no IR number`: MDR's oldest requests; `deleted in MDR`;
+     `worked in the suite`: someone tapped Work it here on it, so the suite's copy is the suite's own now).
    - `numbers_also_on_suite_requests`: IR numbers that one of the suite's own requests also carries. Report them.
    - If the call fails as a whole (an SQL error, not an `errors` entry): stop. Do not run step 4. Report the error.
      The next run starts from the same place.
@@ -81,6 +82,39 @@ Something still `queued` or `working` after 06:00 UTC means the function is not 
 A request typed in by hand inside the adopt range is linked to the MDR request with its number (the same day first)
 instead of being copied again. MDR reuses IR numbers, so a mirrored number can appear on more than one request. The
 suite's own counter moves past every mirrored number on each import.
+
+## Worked in the suite (migration 0117)
+
+On a From MDR request, whoever decides inspections on the job (`ir.decide`) has **Work it here**: one tap makes the
+copy the suite's own request. It keeps its data, files and IR number; its MDR id moves to `mdr_source_id`, with
+`mdr_detached_at` and `mdr_detached_by`; its history says Worked here. From then on the import skips it (`skipped:
+worked in the suite`) and never copies it again: MDR's later changes to that request stay in MDR. MDR's IR PDF still
+waiting for it is not copied (refused, `Worked in the suite.`); its attachments still come.
+
+Numbers: the suite's own requests stay unique among themselves. A copy whose IR number one of the job's own requests
+already carries (hidden ones too) is refused with `IR <n> is already one of this job's own requests, so this copy stays
+view only.` It is never renumbered, because the number is on MDR's paper.
+
+The requests typed in by hand before the mirror and adopted by number (Hunter Hall's adopt range) were put back as the
+suite's own by migration 0117 itself (`mdr_back_to_own`, safe to run again). An adopted request is one whose history
+has the import's update that set its MDR id where there was none. To check or repeat, on SUITE_REF:
+
+```sql
+select public.mdr_back_to_own()
+```
+
+It answers `back_to_own` (how many it changed now, 0 on a repeat) and `number_taken` (adopted requests left as copies
+because one of the job's own requests carries their number by now).
+
+**To reverse one** (the lead, database owner only), on SUITE_REF:
+
+```sql
+select public.mdr_undo_work_here('<request id>')
+```
+
+It answers `a copy again` (or `unchanged: not worked here`). The request is view only again, marked From MDR, and the
+next MDR change to it is copied over it. What the suite did to it meanwhile (a result, a suite IR PDF) stays on it until
+then. To take MDR's version at once, change the request in MDR (any save) before the evening run.
 
 ## Turning it off
 

@@ -65,6 +65,7 @@ export function RequestDetails({ row, tz, onViewIr, onDownloadIr, downloading, v
     !walls ||
     special !== null ||
     row.requester_name !== null ||
+    row.mdr_source_id !== null ||
     Boolean(row.gc_note) ||
     Boolean(row.confirm_note) ||
     attendance !== null ||
@@ -77,6 +78,11 @@ export function RequestDetails({ row, tz, onViewIr, onDownloadIr, downloading, v
       {notes ? (
         <div className="divide-y divide-line rounded-lg border border-line">
           <ViaLink row={row} />
+          {row.mdr_source_id !== null ? (
+            <Note label="Source" testId="ir-copied-from-mdr">
+              Copied from MDR
+            </Note>
+          ) : null}
           {walls ? null : <Note label="Items">{row.items}</Note>}
           {special !== null ? (
             <Note label="Special inspection" testId="ir-special">

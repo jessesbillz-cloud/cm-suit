@@ -1,8 +1,9 @@
 // Requests copied from My Daily Reports (0112) against the e2e mock: the mock seeds IR 7 (approved) and IR 8 (not
 // approved) on Sample Job B, 45 days back, both from MDR, neither IR PDF copied yet. They show wherever requests show,
-// marked From MDR, and are view only: no step, no one-tap Confirm. 'pm' decides inspections on both sample jobs.
+// marked From MDR, and are view only: no step, no one-tap Confirm. 'pm' decides inspections on both sample jobs, so it
+// has Work it here (0117), which makes a copy the suite's own: its steps show and it is passed like any.
 // Test ids: ir-queue-<n>, ir-from-mdr, right-column, ir-result-step, ir-generate, ir-confirm, cal-day-detail, cal-request,
-// cal-line.
+// cal-line, ir-work-here, ir-copied-from-mdr, ir-result-approved, ir-outcome.
 import process from 'node:process';
 import { expect, test } from '@playwright/test';
 
@@ -42,6 +43,23 @@ test.describe('requests from My Daily Reports (0112)', () => {
     await expect(right.getByTestId('ir-result-step')).toHaveCount(0);
     await expect(right.getByTestId('ir-generate')).toHaveCount(0);
     await expect(right.getByTestId('ir-confirm')).toHaveCount(0);
+  });
+
+  test('Work it here makes a copy the suite\'s own, and it is passed like any (0117)', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'The right column is the desktop frame.');
+    await page.goto(`/p/job-b/inspections?view=day&day=${DAY}`);
+    const row = page.getByTestId('ir-queue-8');
+    await row.click();
+    const right = page.getByTestId('right-column');
+    await expect(right.getByTestId('ir-result-step')).toHaveCount(0);
+    await right.getByTestId('ir-work-here').click();
+    await expect(right.getByTestId('ir-from-mdr')).toHaveCount(0);
+    await expect(right.getByTestId('ir-work-here')).toHaveCount(0);
+    await expect(right.getByTestId('ir-copied-from-mdr')).toContainText('Copied from MDR');
+    await right.getByTestId('ir-result-approved').click();
+    await expect(right.getByTestId('ir-outcome')).toContainText('Approved');
+    await expect(row).toContainText('Approved');
+    await expect(row).not.toContainText('From MDR');
   });
 
   test('the calendar shows the copies on their day and in the week', async ({ page }, testInfo) => {

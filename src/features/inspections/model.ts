@@ -289,6 +289,9 @@ const ACTIONS: Record<string, string> = {
   // Copied from My Daily Reports (0112), and its files.
   mdr: 'From MDR',
   mdr_file: 'File from MDR',
+  // Worked here (0117), and made a copy again by the lead.
+  mdr_work_here: 'Worked here',
+  mdr_copy_again: 'Back to MDR',
   confirm: 'Confirmed',
   unconfirm: 'Back to pending',
   move: 'Moved',

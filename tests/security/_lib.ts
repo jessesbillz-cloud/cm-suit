@@ -161,6 +161,8 @@ export const PUBLIC_TABLES = [
   'ofs_items', 'ofs_decisions',
   // A company's letterhead (0110)
   'org_letterheads',
+  // Each person's quick phrases (0117)
+  'quick_phrases',
 ] as const;
 
 /** Every storage bucket created by the migrations. */
@@ -461,4 +463,16 @@ export const ORG_BRAND_RPCS: [string, Record<string, unknown>][] = [
   ['job_brand_choices', { p_project_id: ZERO_UUID }],
   ['set_job_brand', { p_project_id: ZERO_UUID, p_org_id: ZERO_UUID }],
   ['may_read_org_brand', { p_org_id: ZERO_UUID }],
+];
+
+// Work an MDR request in the suite, and quick phrases (0117).
+export const WORK_HERE_RPCS: [string, Record<string, unknown>][] = [
+  ['ir_work_here', { p_request_id: ZERO_UUID, p_version: 1 }],
+  ['quick_phrase_add', { p_key: ZERO_UUID, p_label: 'probe', p_body: 'probe' }],
+  ['quick_phrase_edit', { p_id: ZERO_UUID, p_version: 1, p_label: 'probe', p_body: 'probe', p_context: 'any' }],
+  ['quick_phrase_remove', { p_id: ZERO_UUID, p_version: 1 }],
+  ['quick_phrase_restore', { p_id: ZERO_UUID }],
+  ['quick_phrase_order', { p_ids: [ZERO_UUID] }],
+  ['mdr_back_to_own', {}],
+  ['mdr_undo_work_here', { p_request_id: ZERO_UUID }],
 ];
