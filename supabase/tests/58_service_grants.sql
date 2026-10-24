@@ -17,6 +17,7 @@ insert into want values
   ('rev_areas', 'SELECT'), ('rev_items', 'SELECT'), ('rev_lists', 'SELECT'), ('rev_marks', 'SELECT'), ('revs', 'SELECT'),
   ('rev_signoffs', 'SELECT'), ('rev_rooms', 'SELECT'), ('rev_room_walls', 'SELECT'), ('rev_photos', 'SELECT'),
   ('rev_baskets', 'SELECT'), ('rev_basket_cells', 'SELECT'), ('project_duties', 'SELECT'), ('spec_sections', 'SELECT'),
+  ('spec_section_texts', 'SELECT'), ('spec_text_queue', ''),
   ('safety_signins', 'SELECT'), ('safety_topics', 'SELECT'), ('schedule_activities', 'SELECT'),
   ('project_places', 'SELECT'), ('project_weather', 'SELECT'), ('org_letterheads', 'SELECT'),
   ('schedule_versions', 'SELECT'), ('role_permissions', 'SELECT'), ('roles', 'SELECT'), ('job_kinds', 'SELECT'),

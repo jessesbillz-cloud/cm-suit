@@ -13,7 +13,8 @@ import { RightColumn } from '../../ui/RightColumn';
 import { LoadingState } from '../../ui/States';
 import { ViewAs } from '../../ui/ViewAs';
 import { ItemView, itemHasOwnWindowButton, itemTitle } from './ItemView';
-import { DockedBoard, preloadTool, TodayPanel } from './lazyTools';
+import { DockedBoard, DockedSpecBook, preloadTool, TodayPanel } from './lazyTools';
+import { useBookDocked } from './useBookDocked';
 import { ToolView } from './ToolView';
 import type { FrameModel } from './useFrameModel';
 
@@ -24,10 +25,21 @@ interface FrameProps {
 
 interface DockedProps {
   model: FrameModel;
+  book: boolean;
 }
 
-/** The docked panel: the board beside every other tool; beside the board itself, what's on today (never the board twice). */
-function Docked({ model }: DockedProps) {
+/**
+ * The docked panel: the board beside every other tool; beside the board itself, what's on today (never the board twice);
+ * beside Files > Specs, the spec book.
+ */
+function Docked({ model, book }: DockedProps) {
+  if (book && model.loc.projectId !== null) {
+    return (
+      <Suspense fallback={<LoadingState label="Loading the spec book" />}>
+        <DockedSpecBook projectId={model.loc.projectId} />
+      </Suspense>
+    );
+  }
   if (model.loc.tool === 'board') {
     return (
       <Suspense fallback={<LoadingState label="Loading today" />}>
@@ -60,6 +72,7 @@ export function Frame({ model, folderId }: FrameProps) {
   // The tool's sub-view (Bids ?view=) names what an opened item is, and a record may sit beside a page (?side=); ?back=board
   // when a board line's "Open in ..." brought me here.
   const search: { view?: string | undefined; side?: string | undefined; back?: string | undefined } = useSearch({ strict: false });
+  const book = useBookDocked(loc.projectId, loc.tool, folderId);
   if (!choices) return null;
 
   // An item that is a page of its own (a Revs wall) fills the main area; the right column keeps its docked panel, or
@@ -68,7 +81,8 @@ export function Frame({ model, folderId }: FrameProps) {
   const side = itemInMain ? sideItem(search.side) : null;
   const itemOpen = loc.itemId !== null && !itemInMain;
   const right = itemOpen && loc.itemId !== null ? { tool: loc.tool, itemId: loc.itemId } : side;
-  const showRight = right !== null || choices.docked_panel !== 'none';
+  // The spec book shows beside Specs even when the board panel is off: it is how Specs is read.
+  const showRight = right !== null || choices.docked_panel !== 'none' || book;
   const rightCollapsed = right === null && choices.collapsed.right;
   const rightFull = showRight && !rightCollapsed && model.rightFull && (!itemInMain || side !== null);
   const closeSide =
@@ -154,7 +168,7 @@ export function Frame({ model, folderId }: FrameProps) {
           </main>
           {showRight ? (
             <RightColumn
-              title={right !== null ? itemTitle(right.tool, right.itemId, search.view) : loc.tool === 'board' ? 'Today' : 'Board'}
+              title={right !== null ? itemTitle(right.tool, right.itemId, search.view) : book ? 'Spec book' : loc.tool === 'board' ? 'Today' : 'Board'}
               collapsed={rightCollapsed}
               full={rightFull}
               onToggleCollapsed={() => {
@@ -174,7 +188,7 @@ export function Frame({ model, folderId }: FrameProps) {
               {right !== null ? (
                 <ItemView model={model} tool={right.tool} itemId={right.itemId} standalone={false} />
               ) : (
-                <Docked model={model} />
+                <Docked model={model} book={book} />
               )}
             </RightColumn>
           ) : null}

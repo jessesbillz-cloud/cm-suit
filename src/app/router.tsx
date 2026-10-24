@@ -32,8 +32,13 @@ import { RootLayout } from './RootLayout';
 interface ToolSearch {
   /** Files: the folder being viewed. */
   folder?: string;
-  /** Files: a spec section's page ("092900"), its submittals, RFIs and CCDs. */
+  /** Files: a spec section's page ("092900"): its text, then its submittals, RFIs and CCDs. */
   spec?: string;
+  /** Files > Specs (0118): the spec volume (its file) opened in the book, the section's first page in it, and the
+   * page the PDF pages show from (present: the pages in place of the text). */
+  vol?: string;
+  at?: number;
+  pages?: number;
   /** "Open in new window": render the item alone. */
   window?: '1';
   /** Arrived from another tool's record ("Open in RFIs" on the board): the top bar shows Back to it. */
@@ -78,12 +83,21 @@ function idList(v: unknown): string | undefined {
   return t && ID_LIST.test(t) ? t : undefined;
 }
 
+/** A page number in the URL (read as JSON: a number, or a string of digits). */
+function pageNo(v: unknown): number | undefined {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,5}$/.test(v) ? Number(v) : NaN;
+  return Number.isInteger(n) && n >= 1 && n <= 99_999 ? n : undefined;
+}
+
 function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   const folder = str(s['folder']);
   // A typed "101400" arrives as a number (the search is read as JSON).
   const spec = typeof s['spec'] === 'number' ? String(s['spec']).padStart(6, '0') : str(s['spec']);
   const areas = idList(s['areas']);
   const items = idList(s['items']);
+  const vol = idList(s['vol']);
+  const at = pageNo(s['at']);
+  const pages = pageNo(s['pages']);
   const view = str(s['view']);
   const pkg = str(s['pkg']);
   const day = str(s['day']);
@@ -102,6 +116,9 @@ function parseToolSearch(s: Record<string, unknown>): ToolSearch {
   return {
     ...(folder ? { folder } : {}),
     ...(spec && /^\d{6}$/.test(spec) ? { spec } : {}),
+    ...(vol && !vol.includes(',') ? { vol } : {}),
+    ...(at !== undefined ? { at } : {}),
+    ...(pages !== undefined ? { pages } : {}),
     ...(view ? { view } : {}),
     ...(pkg ? { pkg } : {}),
     ...(win ? { window: '1' as const } : {}),

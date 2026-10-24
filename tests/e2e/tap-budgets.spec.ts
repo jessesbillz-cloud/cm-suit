@@ -171,6 +171,28 @@ test.describe('tap budgets (SPEC §7.9)', () => {
     expect(await taps(page)).toBe(3);
   });
 
+  // The spec reader (0118): from the job, a spec section's text in at most 3 clicks: Files, Specs, the section (a job
+  // with one volume shows its sections at once). With two volumes the section is found by typing its number. Typing is
+  // not counted.
+  for (const [job, typed] of [['job-b', null], ['job-a', '0929']] as const) {
+    test(`spec section from the job = at most 3 clicks (${job})`, async ({ page }) => {
+      await page.goto(`/p/${job}/board`); // setup: the job
+      await expect(page.getByTestId('rail-files')).toBeVisible();
+      await resetTaps(page);
+
+      const counter = { n: 0 };
+      await tap(page.getByTestId('rail-files'), counter);
+      await tap(page.getByTestId('section').filter({ has: page.getByTestId('section-name').getByText('Specs', { exact: true }) }), counter);
+      const book = page.getByTestId('spec-book');
+      if (typed !== null) await book.getByTestId('spec-find').fill(typed);
+      await tap(book.getByTestId('spec-section-box').filter({ hasText: '09 29 00' }), counter);
+
+      await expect(page.getByTestId('main-area').getByTestId('spec-section-number')).toHaveText('09 29 00');
+      expect(counter.n).toBeLessThanOrEqual(3);
+      expect(await taps(page)).toBeLessThanOrEqual(3);
+    });
+  }
+
   // Home from inside a job is the mark, top-left (Jesse, Oct 5): one click, from any tool.
   test('home from a job = 1 click', async ({ page }) => {
     await openTool(page, 'files'); // setup: a job's tool

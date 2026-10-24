@@ -1,17 +1,19 @@
 // One section of Files on screen (0097): the header (the section and the folder it is narrowed to, the AI switch,
 // Upload), the sections (left card, a select on a phone), and the section's list. Uploads and drops are sorted by
 // their names (useSortUpload). New folder and Rename folder act on the folder on screen. Submittals' stamps read as
-// codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12). The spec section search
-// sits at the top of the sections; while it has text, or a section's page is open, that takes the list's place
-// (SpecMain). Uploads have their spec sections found first (useSubmittalNaming): Submittals asks only when neither the
-// name nor the PDF's words give one.
+// codes, or Approved / Not approved for a reader whose job is approve or not (Jesse, Oct 12). Specs (0118): the spec
+// book sits in the right column (the frame's), and a section or pages opened from it take the list's place
+// (SpecReader); on a phone the book is the Specs screen and a section its own screen with Back. Uploads have their spec
+// sections found first (useSubmittalNaming): Submittals asks only when neither the name nor the PDF's words give one.
 import { useWritableFolders } from '../../data/files';
 import type { FileSection } from '../../data/fileSections';
 import { useCanWriteFolder, useCapability, useProject } from '../../data/queries';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
-import { SearchBox } from '../../ui/SearchBox';
 import { ErrorState } from '../../ui/States';
+import { SpecBookPanel } from '../specs/BookPanel';
+import { isReading, useSpecPlace } from '../specs/specPlace';
+import { SpecReader } from '../specs/SpecReader';
 import type { SectionKind } from './classify';
 import { FilesFrame } from './FilesFrame';
 import { FolderAiToggle } from './FolderAiToggle';
@@ -20,7 +22,6 @@ import { NewFolderForm } from './NewFolderForm';
 import { RenameFolder } from './RenameFolder';
 import { SectionFiles } from './SectionFiles';
 import { SectionNav } from './SectionNav';
-import { SpecMain } from './SpecMain';
 import { hasCcds, moveTargets, shownSections, uploadFolder } from './sections';
 import { UploadButtons } from './UploadButtons';
 import { useFilesNav } from './useFilesNav';
@@ -69,7 +70,9 @@ export function SectionScreen(props: SectionScreenProps) {
   });
   const naming = useSubmittalNaming(projectId, kind, hasCcds(sections), sort);
   const where = useFilesNav(projectId);
-  const finding = where.spec !== null || where.query.trim() !== '';
+  const reading = isReading(useSpecPlace());
+  // A phone's Specs: the book first (the desktop has it in the right column).
+  const phoneBook = isPhone && kind === 'specs' && !reading;
   const shown = shownSections(sections);
   const nav = sections.filter((s) => shown.includes(s) || s.folder_id === section.folder_id);
   // Desktop: the folder's AI switch sits beside Upload. Phone: under the header, so Camera and Upload keep one row.
@@ -108,41 +111,42 @@ export function SectionScreen(props: SectionScreenProps) {
     </>
   );
   const sectionNav = <SectionNav sections={nav} current={section.folder_id} isPhone={isPhone} onPick={onSelectFolder} />;
-  // Fresh when the section or the open page changes (a section picked clears the search).
-  const specSearch = (
-    <SearchBox
-      key={`${section.folder_id}:${where.spec ?? ''}`}
-      label="Find a spec section"
-      placeholder="Spec section"
-      initial={where.query}
-      onChange={where.setQuery}
-      testId="spec-search"
-      className="w-full"
-    />
-  );
 
   return (
     <FilesFrame meta={folderPath(folders, current.id)} actions={actions} below={isPhone ? aiToggle : undefined}>
       {errors}
-      <div className={`flex gap-4 ${isPhone ? 'flex-col' : 'items-start'}`}>
+      {/* Holding the PDF pages (a file's box, data-fill), the row fills the page and the box scrolls. */}
+      <div className={`flex gap-4 has-[[data-fill]]:min-h-0 has-[[data-fill]]:flex-1 ${isPhone ? 'flex-col' : 'items-start has-[[data-fill]]:items-stretch'}`}>
         {isPhone ? (
-          <div className="flex flex-col gap-2">
-            {specSearch}
-            {sectionNav}
-            <div className="flex flex-wrap gap-1">{folderTools}</div>
-          </div>
+          reading ? null : (
+            <div className="flex flex-col gap-2">
+              {sectionNav}
+              <div className="flex flex-wrap gap-1">{folderTools}</div>
+            </div>
+          )
         ) : (
-          <Card padded={false} className="w-56 shrink-0">
+          <Card padded={false} className="w-56 shrink-0 self-start">
             <div className="p-2">
-              {specSearch}
               {sectionNav}
               {folderTools}
             </div>
           </Card>
         )}
-        <div className="min-w-0 flex-1">
-          {finding ? (
-            <SpecMain projectId={projectId} sections={sections} timeZone={project.data?.timezone ?? null} selectedFileId={selectedFileId} />
+        <div className="min-w-0 flex-1 has-[[data-fill]]:flex has-[[data-fill]]:min-h-0 has-[[data-fill]]:flex-col">
+          {reading ? (
+            <SpecReader
+              projectId={projectId}
+              sections={sections}
+              timeZone={project.data?.timezone ?? null}
+              selectedFileId={selectedFileId}
+              isPhone={isPhone}
+              onOpenFile={where.openFile}
+              onOpenRfi={where.openRfi}
+            />
+          ) : phoneBook ? (
+            <Card padded={false}>
+              <SpecBookPanel projectId={projectId} />
+            </Card>
           ) : (
             <SectionFiles
               key={section.folder_id}

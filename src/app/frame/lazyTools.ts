@@ -85,6 +85,7 @@ export const CommentsPanel = lazyRouteComponent(() =>
 // The desktop's docked panel: what's on today beside the board, the board beside every other tool.
 export const TodayPanel = lazyRouteComponent(() => import('../../features/board/TodayPanel').then((m) => ({ default: m.TodayPanel })));
 export const DockedBoard = lazyRouteComponent(() => import('../../features/board/DockedBoard').then((m) => ({ default: m.DockedBoard })));
+export const DockedSpecBook = lazyRouteComponent(() => import('../../features/specs/BookPanel').then((m) => ({ default: m.SpecBookPanel })));
 
 interface Part {
   preload?: () => Promise<void> | undefined;
