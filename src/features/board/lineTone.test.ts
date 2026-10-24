@@ -20,6 +20,9 @@ describe('board line look', () => {
     expect(lineLook('ir.results')).toEqual({ type: 'IR', tone: 'info', word: 'Results' });
     expect(lineLook('ir.moved', { ...MDR, ofs: true }).type).toBe('OFS');
     expect(lineLook('ir.ofs_proposed').type).toBe('OFS');
+    // 0116's OFS lines: filed or passed on waits on whoever gets it (yellow), sent to OFS is blue.
+    expect(lineLook('ir.ofs_filed')).toEqual({ type: 'OFS', tone: 'pending', word: 'Your turn' });
+    expect(lineLook('ir.ofs_sent')).toEqual({ type: 'OFS', tone: 'assigned', word: 'Sent' });
   });
   it('a line that only tells is gray with no chip; impact claimed keeps the amber row', () => {
     expect(lineLook('member.joined')).toEqual({ type: 'People', tone: 'info', word: null });

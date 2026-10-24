@@ -9179,6 +9179,7 @@ export type Database = {
         }
       }
       ir_batch_get: { Args: { p_batch_id: string }; Returns: Json }
+      ir_batch_items: { Args: { p_ids: string[] }; Returns: string }
       ir_batch_json: { Args: { p_batch_id: string }; Returns: Json }
       ir_batch_step: {
         Args: { p_batch_id: string; p_step: string; p_versions: Json }
@@ -9196,6 +9197,10 @@ export type Database = {
         Returns: { batch_id: string; request_id: string; size: number }[]
       }
       ir_batches_waiting: { Args: { p_project_id?: string }; Returns: Json }
+      ir_board_keeps: {
+        Args: { p_entity_id: string; p_kind: string }
+        Returns: boolean
+      }
       ir_calendar: {
         Args: { p_from: string; p_project_id: string; p_to: string }
         Returns: {
@@ -9256,6 +9261,10 @@ export type Database = {
           status_key: string
           version: number
         }[]
+      }
+      ir_cap_holders: {
+        Args: { p_cap: string; p_project_id: string }
+        Returns: string[]
       }
       ir_claim: {
         Args: { p_request_id: string; p_version: number }
@@ -10331,6 +10340,16 @@ export type Database = {
       }
       ir_ofs_attest_text: { Args: { p_project_id: string }; Returns: string }
       ir_ofs_attest_wording: { Args: { p_project_id: string }; Returns: string }
+      ir_ofs_board: {
+        Args: {
+          p_cap: string
+          p_ids: string[]
+          p_kind: string
+          p_to: string[]
+          p_verb: string
+        }
+        Returns: undefined
+      }
       ir_ofs_calendar_sync: {
         Args: { p_request_id: string }
         Returns: undefined
@@ -10436,6 +10455,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_ofs_duty_sends: { Args: { p_project_id: string }; Returns: boolean }
       ir_ofs_items_text: {
         Args: { p_area_ids: string[]; p_item_ids: string[] }
         Returns: string
@@ -10459,6 +10479,13 @@ export type Database = {
           p_sheet_file_id: string
         }
         Returns: undefined
+      }
+      ir_ofs_may: {
+        Args: {
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+          p_step: string
+        }
+        Returns: boolean
       }
       ir_ofs_next_number: { Args: { p_project_id: string }; Returns: number }
       ir_ofs_number_set: {
@@ -10641,12 +10668,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ir_ofs_route: { Args: { p_project_id: string }; Returns: Json }
       ir_ofs_sched_state: {
         Args: { p_result: string; p_sched: string; p_status: string }
         Returns: string
       }
       ir_ofs_sender: { Args: { p_project_id: string }; Returns: boolean }
       ir_ofs_side: { Args: { p_request_id: string }; Returns: string[] }
+      ir_ofs_step: {
+        Args: {
+          p_duty_sends: boolean
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+        }
+        Returns: string
+      }
       ir_ofs_tell_side: {
         Args: {
           p_kind: string
@@ -10654,6 +10689,13 @@ export type Database = {
           p_summary: string
         }
         Returns: undefined
+      }
+      ir_ofs_turn: {
+        Args: {
+          p_duty_sends: boolean
+          p_request: Database["public"]["Tables"]["inspection_requests"]["Row"]
+        }
+        Returns: string[]
       }
       ir_ofs_when: { Args: { p_date: string; p_time: string }; Returns: string }
       ir_owner_ok: {

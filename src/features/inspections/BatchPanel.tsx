@@ -1,5 +1,6 @@
-// A request filed in a batch (0113, 0114): the batch on one line ("Batch of 9 · Level 01 · Top of wall"), the one tap
-// for its requests waiting on me, and every request of it, each opening its own page (this one marked).
+// A request filed in a batch (0113, 0114): the batch on one line ("Batch of 9 · Level 01 · Top of wall"), the job's
+// route under it with my step on it marked (0116), the one tap for its requests waiting on me, and every request of it,
+// each opening its own page (this one marked).
 import { useOpenTarget } from '../../app/frame/useOpenTarget';
 import { useIrBatch } from '../../data/inspections.batch';
 import type { IrRequest } from '../../data/inspections.types';
@@ -12,6 +13,8 @@ import { ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { BatchAction } from './BatchAction';
 import { firstLine, requestChip } from './model';
+import { routeAt } from './ofsFlow';
+import { RouteLine } from './RouteLine';
 
 export function BatchPanel({ row, ofsDecide }: { row: IrRequest; ofsDecide: boolean }) {
   const openTarget = useOpenTarget();
@@ -32,6 +35,7 @@ export function BatchPanel({ row, ofsDecide }: { row: IrRequest; ofsDecide: bool
         </p>
         <BatchAction batch={b} />
       </div>
+      <RouteLine route={b.route} at={routeAt(b.step, false)} testId="ir-batch-route" />
       <ul className="flex flex-col gap-1">
         {b.requests.map((r) => {
           const chip = requestChip({ ...r, kind: 'ofs' }, ofsDecide);

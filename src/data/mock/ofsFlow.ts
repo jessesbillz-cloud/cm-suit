@@ -1,9 +1,10 @@
 // Mock reads of the OFS request flow (0091): the attestation wording a member sees before sending, and a request's chain
-// as ir_ofs_chain answers it (names from the sample people), for whoever may read the request.
+// as ir_ofs_chain answers it (names from the sample people, the job's route and where it is on it, 0116), for whoever
+// may read the request.
 import type { OfsChain, OfsStep } from '../inspections.ofs';
 import { MOCK_PEOPLE } from './fixtures';
 import { readable, serverList } from './inspections';
-import { wording } from './ofsRules';
+import { ofsStep, route, wording } from './ofsRules';
 import { delay } from './store';
 
 /** ir_ofs_attest_text */
@@ -35,5 +36,7 @@ export async function chain(requestId: string): Promise<OfsChain | null> {
     sent: step(r.ofs_sent_by, r.ofs_sent_at),
     special_required: r.special_required,
     next_number: Math.max(0, ...job.map((x) => x.ofs_number ?? 0)) + 1,
+    route: route(r.project_id),
+    step: ofsStep(r),
   };
 }

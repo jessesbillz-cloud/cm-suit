@@ -1,6 +1,6 @@
 // The OFS request flow (0091): the sub's attestation wording, the checks in order (GC Ready, inspector Ready, Special
-// inspection report), the OFS number a sender types, the chain everyone reads (the fire marshal included), and the
-// job's duties (who sends OFS requests). Every write is an RPC that runs as me with the version check.
+// inspection report), the OFS number a sender types, the chain everyone reads (the fire marshal included, with the
+// job's route and where the request is on it, 0116), and the job's duties (who sends OFS requests). Every write is an RPC that runs as me with the version check.
 import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { supabase } from './client';
@@ -13,6 +13,13 @@ import * as mock from './mock/ofsFlow';
 
 const stepSchema = z.object({ name: z.string().nullable(), at: z.string() });
 
+/** The job's OFS route (0116, ir_ofs_route): the contractor check on or off, and who sends to OFS now. */
+export const ofsRouteSchema = z.object({ gc: z.boolean(), sender: z.enum(['inspector', 'duty']) });
+export type OfsRouteInfo = z.infer<typeof ofsRouteSchema>;
+/** Where a request is on its route (ir_ofs_step): null once sent, withdrawn or done. */
+const routeStepSchema = z.enum(['gc', 'ready', 'si', 'send']).nullable();
+export type OfsRouteStep = z.infer<typeof routeStepSchema>;
+
 const ofsChainSchema = z
   .object({
     attest: stepSchema.extend({ text: z.string() }).nullable(),
@@ -23,6 +30,8 @@ const ofsChainSchema = z
     special_required: z.boolean().nullable(),
     /** One after the job's highest OFS number. */
     next_number: z.number(),
+    route: ofsRouteSchema,
+    step: routeStepSchema,
   })
   .nullable();
 export type OfsChain = NonNullable<z.infer<typeof ofsChainSchema>>;

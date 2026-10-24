@@ -1,9 +1,12 @@
 // The OFS request flow's rules for the e2e mock (0091), as the database has them: the stamps a new OFS request gets at
 // insert (the sub's attestation with the job's wording, the inspector's Ready on his own, the GC's Ready on the GC's),
 // the checks in order with their Undo, the OFS number a sender types, and the checks cleared when a request goes back
-// to the GC. mock/inspections applies them.
+// to the GC. The job's route (0116): where a request is on it and whose turn it is. mock/inspections applies them.
 import { parseProjectSettings } from '../../lib/settings';
+import type { OfsRouteInfo, OfsRouteStep } from '../inspections.ofs';
 import type { IrRowRaw } from '../inspections.types';
+import { holder } from './duties';
+import { MOCK_PEOPLE } from './fixtures';
 import { forbidden, holds, opt, ownerOk, refuse, type Step } from './irRules';
 import { projectSettings } from './jobs';
 
@@ -17,6 +20,37 @@ const WITH_OFS_NOW = 'OFS has this one now.';
 /** ir_ofs_attest_wording: the job's own words, or the standard ones. */
 export function wording(projectId: string): string {
   return parseProjectSettings(projectSettings(projectId)).ir_ofs_attest_text ?? STANDARD_ATTEST;
+}
+
+/** ir_ofs_route: the contractor check, and who sends to OFS now (the duty holder only while one is picked). */
+export function route(projectId: string): OfsRouteInfo {
+  const s = parseProjectSettings(projectSettings(projectId));
+  return { gc: !s.ir_ofs_gc_off, sender: s.ir_ofs_duty_sends && holder(projectId) !== null ? 'duty' : 'inspector' };
+}
+
+/** ir_ofs_step: where a request is on its job's route. */
+export function ofsStep(r: Row): OfsRouteStep {
+  if (r.kind !== 'ofs' || r.mdr_id !== null || r.ofs_sent_at !== null) return null;
+  if (AT_GC.includes(r.status)) return 'gc';
+  if (r.status !== 'pending' && r.status !== 'postponed') return null;
+  if (route(r.project_id).sender === 'inspector') return 'send';
+  if (r.ofs_ready_at === null) return 'ready';
+  return r.special_required === true && r.ofs_si_at === null ? 'si' : 'send';
+}
+
+function holdersOf(cap: string): string[] {
+  return MOCK_PEOPLE.filter((p) => p.status === 'active' && p.user_id !== null && holds(p.user_id, cap)).map((p) => p.user_id ?? '');
+}
+
+/** ir_ofs_turn: the duty holder at the contractor step (while he may do it) and at his send, else the inspector who has
+ *  it, else every inspector. A returned request is nobody's turn here. */
+export function turn(r: Row): string[] {
+  const step = ofsStep(r);
+  const duty = holder(r.project_id);
+  if (step === null || r.status === 'returned') return [];
+  if (step === 'gc') return duty !== null && holds(duty, 'ir.gc_approve') ? [duty] : holdersOf('ir.gc_approve');
+  if (step === 'send' && route(r.project_id).sender === 'duty' && duty !== null) return [duty];
+  return r.owner_id !== null && holds(r.owner_id, 'ir.decide') ? [r.owner_id] : holdersOf('ir.decide');
 }
 
 /** tg_ir_ofs_stamp at insert. `by` null: a visitor on the link. */
@@ -54,17 +88,19 @@ export const OFS_STEPS: Record<string, Step> = {
     if (check === 'gc') return gcCheck(r, on, c.me, c.now);
     if (!holds(c.me, 'ir.decide')) throw forbidden();
     if ([...AT_GC, 'withdrawn'].includes(r.status)) throw refuse('This request is not with the inspector.');
+    const readyStep = c.route.sender === 'duty';
     if (check === 'ready') {
       if (r.ofs_sent_at !== null) throw refuse(WITH_OFS_NOW);
       if (!ownerOk(c.me, r)) throw forbidden();
       if (on === (r.ofs_ready_at !== null)) return null;
+      if (on && !readyStep) throw refuse('On this job the inspector sends it to OFS.');
       if (!on && r.ofs_si_at !== null) throw refuse('Undo the special inspection report first.');
       return on ? { ofs_ready_by: c.me, ofs_ready_at: c.now } : { ofs_ready_by: null, ofs_ready_at: null };
     }
     if (r.special_required !== true) throw refuse('No special inspection on this request.');
     const untouched = r.status === 'pending' && r.owner_id === null && r.result === null && !c.wallResult;
     if (r.ofs_sent_at !== null && !untouched) throw refuse(WITH_OFS_NOW);
-    if (on && r.ofs_ready_at === null && r.ofs_sent_at === null) throw refuse('Check Ready first.');
+    if (on && readyStep && r.ofs_ready_at === null && r.ofs_sent_at === null) throw refuse('Check Ready first.');
     const file = opt(a, 'p_file_id');
     if (!on) return r.ofs_si_at === null ? null : { ofs_si_by: null, ofs_si_at: null, ofs_si_file_id: null };
     if (r.ofs_si_at !== null && (file === null || file === r.ofs_si_file_id)) return null;
