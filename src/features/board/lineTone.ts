@@ -83,6 +83,9 @@ const TONE: Record<string, [LineTone, string]> = {
   'schedule.update_due': ['pending', 'Due'],
 };
 
+/** A line that only tells: gray, no chip. */
+const NEUTRAL: [LineTone, string] = ['info', ''];
+
 function results(facts: RequestFacts | null): [LineTone, string] {
   if (facts?.result === 'approved') return ['approved', 'Approved'];
   if (facts?.result === 'not_approved') return ['not_approved', 'Not approved'];
@@ -94,6 +97,6 @@ export function lineLook(kind: string, facts: RequestFacts | null = null): LineL
   const first = kind.split('.')[0] ?? '';
   const ofs = first === 'ofs' || kind.startsWith('ir.ofs') || (first === 'ir' && facts?.ofs === true);
   const type = ofs ? 'OFS' : (TYPE[first] ?? 'Note');
-  const [tone, word] = kind === 'ir.results' ? results(facts) : (TONE[kind] ?? ['info', '']);
+  const [tone, word] = kind === 'ir.results' ? results(facts) : (TONE[kind] ?? NEUTRAL);
   return { type, tone, word: word === '' ? null : word };
 }
