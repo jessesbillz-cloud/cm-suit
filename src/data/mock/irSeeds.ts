@@ -171,6 +171,11 @@ export function permitJobRequests(today: string): IrRowRaw[] {
   });
 }
 
+/** A request copied from MDR (IR 7 or 8 below): a mock board line points at IR 8. */
+export function mirroredId(n: number): string {
+  return `mock-ir-mdr-${String(n)}`;
+}
+
 /** Two requests copied from My Daily Reports on Sample Job B, 45 days back (0112), view only: one approved, one not
  *  approved, neither IR PDF copied yet. MDR's own numbers, below the job's. No requester account, MDR's requester by name. */
 export function mirroredRequests(today: string): IrRowRaw[] {
@@ -179,7 +184,7 @@ export function mirroredRequests(today: string): IrRowRaw[] {
   return [7, 8].map((n, k) => {
     const r = base(n, k * 2);
     return {
-      ...r, id: `mock-ir-mdr-${String(n)}`, kind: 'ior', special_kind_id: null, requested_by: null, created_by: null,
+      ...r, id: mirroredId(n), kind: 'ior', special_kind_id: null, requested_by: null, created_by: null,
       requester_name: 'Sample MDR Requester', owner_id: null, signed_by: null, ir_file_id: null, content_hash: null, signed_at: null,
       status: 'confirmed', items: n === 7 ? 'Sample deck screws, level 1' : 'Sample duct leakage test',
       mdr_id: `mock-mdr-${String(n)}`, mdr_updated_at: `${day}T23:00:00Z`,

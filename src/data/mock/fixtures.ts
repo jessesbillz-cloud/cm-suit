@@ -2,7 +2,8 @@
 import type { ActivityRow, BoardLine, FileRow, MyOrg, MyProject, Person, ProfileRow, RoleRow, TaskRow } from '../types';
 import { SEED_CN_ID, SEED_DAILY_ID, SEED_FILES, SEED_IR_ID, SEED_RFI_ID } from './boardSeeds';
 import { SECTION_SEED_FILES } from './fileSeeds';
-import { IR_SEED_FILES } from './irSeeds';
+import { startOfDayInZone, todayInZone } from '../../lib/dates';
+import { IR_SEED_FILES, mirroredId } from './irSeeds';
 import { PERMIT_JOB_FILES } from './permitJobs';
 
 const TZ = 'America/Los_Angeles';
@@ -111,16 +112,32 @@ const LINE_SEEDS: LineSeed[] = [
   ['job-a', 'rfi.impact_claimed', 'RFI 002 impact claimed: Sample storefront head anchor spacing at grid C', 'rfi', SEED_RFI_ID],
 ];
 
-export const MOCK_ACTIVITY: ActivityRow[] = LINE_SEEDS.map(([project_id, kind, summary, entity_type, entity_id], i) => ({
-  id: `line-${String(i + 1)}`,
-  project_id,
-  kind,
-  summary,
-  entity_type,
-  entity_id,
-  actor_user_id: 'mock-someone',
-  created_at: new Date(LINE_BASE - i * 3_600_000).toISOString(),
-}));
+/** Lines from today and yesterday on the jobs' clock, so the board's day headings and colors show (Jesse, Oct 23):
+ *  an OFS no, a request sent, an RFI waiting on an answer, then yesterday a not approved IR copied from MDR. */
+const RECENT_SEEDS: [day: 0 | -1, ...seed: LineSeed][] = [
+  [0, 'job-b', 'ofs.not_approved', 'OFS not approved: Sample fire damper submittal · Sample listing missing', 'file', 'job-b-file-1'],
+  [0, 'job-b', 'ir.requested', 'IR 13 requested', null, null],
+  [0, 'job-a', 'rfi.asked', 'RFI 003 asked: Sample door hardware at stair 2', null, null],
+  [-1, 'job-b', 'ir.results', 'IR 8 results: Not approved', 'inspection_request', mirroredId(8)],
+  [-1, 'job-b', 'ir.ofs_confirmed', 'OFS IR 3 confirmed Thu 9:00 AM', null, null],
+];
+
+/** Today's lines fall between midnight and now (never ahead of the clock); yesterday's in its evening. */
+function recentAt(day: 0 | -1, i: number, now = Date.now()): string {
+  const start = Date.parse(startOfDayInZone(todayInZone(TZ, new Date(now)), TZ));
+  const at = day === 0 ? start + ((now - start) * (10 - i)) / 10 : start - (i + 1) * 3_600_000;
+  return new Date(at).toISOString();
+}
+
+function activityRow([project_id, kind, summary, entity_type, entity_id]: LineSeed, id: number, created_at: string): ActivityRow {
+  return { id: `line-${String(id)}`, project_id, kind, summary, entity_type, entity_id, actor_user_id: 'mock-someone', created_at };
+}
+
+/** Newest first, as board_feed answers. */
+export const MOCK_ACTIVITY: ActivityRow[] = [
+  ...LINE_SEEDS.map((seed, i) => activityRow(seed, i + 1, new Date(LINE_BASE - i * 3_600_000).toISOString())),
+  ...RECENT_SEEDS.map(([day, ...seed], i) => activityRow(seed, LINE_SEEDS.length + i + 1, recentAt(day, i))),
+].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
 export function toBoardLine(a: ActivityRow, unread: boolean): BoardLine {
   const project = MOCK_PROJECTS.find((p) => p.project_id === a.project_id);
