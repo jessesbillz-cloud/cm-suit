@@ -70,7 +70,8 @@ $$;
 revoke execute on function public.tg_ir_mdr_view_only() from public, anon, authenticated;
 
 -- One request: the copy becomes the suite's own. MDR's IR PDF still waiting to be copied is not taken (the suite makes
--- its own now), its attachments still come.
+-- its own now), its attachments still come. Quiet (app.ir_quiet, 0116): becoming the suite's own is not a filing, so
+-- no board line and no Needs you comes of it.
 create or replace function public.mdr_detach_row(p_id uuid, p_by uuid)
 returns public.inspection_requests
 language plpgsql
@@ -79,12 +80,14 @@ as $$
 declare r public.inspection_requests;
 begin
   perform set_config('app.mdr_detach', 'on', true);
+  perform set_config('app.ir_quiet', 'on', true);
   perform set_config('app.ir_action', 'mdr_work_here', true);
   update public.inspection_requests
      set mdr_source_id = mdr_id, mdr_id = null, mdr_detached_at = now(), mdr_detached_by = p_by
    where id = p_id and mdr_id is not null
   returning * into r;
   perform set_config('app.mdr_detach', '', true);
+  perform set_config('app.ir_quiet', '', true);
   perform set_config('app.ir_action', '', true);
   update public.mdr_file_queue
      set status = 'refused', error = 'Worked in the suite.', updated_at = now()

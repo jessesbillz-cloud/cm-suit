@@ -1,5 +1,5 @@
 begin;
-select plan(43);
+select plan(45);
 -- Migration 0117 (Jesse, Oct 23: "can't do anything - it gives me a view like the GC"). Whoever decides inspections on
 -- the job turns a copy from MDR into the suite's own request (ir_work_here): data, files and number kept, the MDR id
 -- kept apart, audited. The import never touches it again. A number the job's own requests already carry is refused,
@@ -135,6 +135,21 @@ select is((select w.version from public.ir_work_here((pg_temp.ir('1024')).id, 1)
   'the same tap again answers the row, changing nothing');
 select is((select from_mdr from public.calendar_inspections('c0000000-0000-0000-0000-000000001021', '2026-09-22', '2026-09-22')
             where id = (pg_temp.ir('1024')).id), false, 'the calendar no longer marks it from MDR');
+
+-- An OFS copy still with the contractor, worked here: no board line, no Needs you (0116's OFS lines stay quiet).
+reset role;
+select is((public.mdr_import_requests(jsonb_build_array(
+  '{"id":"20000000-0000-0000-0000-000000001028","job_id":"f0000000-0000-0000-0000-000000001021","ir_number":347,"inspection_types":["OFS"],"inspection_date":"2026-09-24","inspection_time":"09:00:00","duration":60,"flexible_display":"","status":"gc_review","notes":"OFS at the GC","file_urls":[],"updated_at":"2026-09-24T18:00:00+00"}'::jsonb)))->'counts',
+  '{"inserted": 1}'::jsonb, 'an OFS copy waiting on the GC');
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000001022');
+select public.ir_work_here((pg_temp.ir('1028')).id, (pg_temp.ir('1028')).version);
+reset role;
+select is((select count(*)::int from public.activity where entity_id = (pg_temp.ir('1028')).id)
+          + (select count(*)::int from public.tasks where entity_id = (pg_temp.ir('1028')).id),
+  0, 'worked here quietly: no board line, no Needs you');
+set local role authenticated;
+select pg_temp.login('a0000000-0000-0000-0000-000000001022');
 
 select throws_ok(format('select public.ir_work_here(%L, 1)', '10000000-0000-0000-0000-000000001022'),
   '22023', 'This request is already the suite''s own.', 'a request filed in the suite is refused');
