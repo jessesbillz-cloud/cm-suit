@@ -26,6 +26,8 @@ export const STATUS = {
   corrected: { label: 'Corrected', fg: '#115E59', bg: '#CCFBF1', dot: '#14B8A6', solid: '#0D9488', onSolid: '#FFFFFF' },
   // Past its due date: red text (never amber, which means "impact claimed").
   late: { label: 'Late', fg: '#B91C1C', bg: '#FDE8E8', dot: '#B91C1C', solid: '#991B1B', onSolid: '#FFFFFF' },
+  // A board line that only tells (a file added, someone joined, a daily submitted): neutral gray (features/board/lineTone).
+  info: { label: 'Info', fg: '#374151', bg: '#F3F4F6', dot: '#9CA3AF', solid: '#A7A9AC', onSolid: '#111827' },
 } as const;
 
 export type StatusKey = keyof typeof STATUS;
