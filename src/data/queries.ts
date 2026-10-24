@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import {
   infiniteQueryOptions,
+  queryOptions,
   skipToken,
   useInfiniteQuery,
   useQueries,
@@ -230,14 +231,19 @@ export function useFilesById(ids: readonly string[]): FileRow[] {
   });
 }
 
-export function usePeopleDisplay(projectId: string | null) {
-  return useQuery({
+/** A job's people as I may see them (people_display): one query, shared by every screen that names someone. */
+export function peopleQuery(projectId: string | null) {
+  return queryOptions({
     queryKey: qk.people(projectId ?? ''),
     queryFn: projectId
       ? async (): Promise<Person[]> =>
           isMock() ? mock.people() : throwIfError(await supabase.rpc('people_display', { p_project_id: projectId }))
       : skipToken,
   });
+}
+
+export function usePeopleDisplay(projectId: string | null) {
+  return useQuery(peopleQuery(projectId));
 }
 
 export function useRoles() {

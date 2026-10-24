@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(37);
 -- Migration 0101 (Jesse, Oct 12: pick what a room's walls need, "everything else should just go away"). A room's card:
 -- only a manager (revs.manage) sets it up, a reader, another job's manager and anon cannot. Saved, a wall left off
 -- leaves the room (it stays in its other room), every item not picked on the kept walls is set up as not applicable
@@ -143,6 +143,8 @@ select is(array[pg_temp.card_marks(), pg_temp.hand_marks()], array[0, 1], '... t
 select ok((select card_at is null from public.rev_rooms where id = pg_temp.rid('R')), '... the card is not set up again');
 select lives_ok($$ select public.rev_card_save(pg_temp.rid('R'), pg_temp.room_ver(), array[pg_temp.rid('A'), pg_temp.rid('B')],
   array[pg_temp.rid('spray')]) $$, 'saved again');
+-- Each save locks the card (0119): unlocked to edit again.
+select lives_ok($$ select public.rev_card_lock(pg_temp.rid('R'), pg_temp.room_ver(), false) $$, 'unlocked to edit');
 select is((public.rev_card_save(pg_temp.rid('R'), pg_temp.room_ver(), array[pg_temp.rid('A'), pg_temp.rid('B')],
   array[pg_temp.rid('spray'), pg_temp.rid('stuff')]) -> 'cells'),
   jsonb_build_array(jsonb_build_object('area_id', pg_temp.rid('B'), 'item_id', pg_temp.rid('stuff'), 'na', false)),
@@ -152,6 +154,7 @@ select is(array[pg_temp.st('B', 'stuff'), pg_temp.st('B', 'frame')], array['open
 -- ---------------------------------------------------------------------------------------------------------------
 -- One item for one wall
 -- ---------------------------------------------------------------------------------------------------------------
+select lives_ok($$ select public.rev_card_lock(pg_temp.rid('R'), pg_temp.room_ver(), false) $$, 'unlocked to switch items');
 select is(public.rev_card_item(pg_temp.rid('B'), pg_temp.rid('frame'), true) ->> 'changed', 'true', 'B''s framing switched on');
 select is(pg_temp.st('B', 'frame'), 'open', '... it needs it');
 select throws_ok($$ select public.rev_card_item(pg_temp.rid('B'), pg_temp.rid('tow'), false) $$, '22023',

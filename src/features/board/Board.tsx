@@ -1,4 +1,5 @@
-// The message board (SPEC §7.3): the default main area. One line per event, newest first, unread bold,
+// The message board (SPEC §7.3): the default main area. One line per event, newest first under day headings, colored by
+// what happened (BoardLines), unread bold,
 // scrolls back forever, filter by type (and by job via the picker), click opens the line in the right column. The type
 // filter lists every kind (boardKinds); with one picked, older pages load by themselves until a line of it shows.
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
 import { TOOL_META } from '../../ui/tools';
 import { filterKinds } from './boardKinds';
-import { BoardLineRow } from './BoardLineRow';
+import { BoardLines } from './BoardLines';
 import { HomeCards } from './home/HomeCards';
 import { NeedsYou } from './NeedsYou';
 import { OfsDesk } from '../ofs/OfsDesk';
@@ -145,20 +146,7 @@ export function Board({ projectId, selectedId, whatsNewEnabled, onOpen }: BoardP
             />
           ) : null}
           {visible.length > 0 ? (
-            <ul className="divide-y divide-line">
-              {visible.map((l) => (
-                <BoardLineRow
-                  key={l.id}
-                  line={l}
-                  showJob={projectId === null}
-                  zone={zoneOf(l.project_id)}
-                  selected={l.id === selectedId}
-                  compact={false}
-                  testId="board-line"
-                  onOpen={onOpen}
-                />
-              ))}
-            </ul>
+            <BoardLines projectId={projectId} lines={visible} selectedId={selectedId} compact={false} onOpen={onOpen} />
           ) : null}
           {feed.hasNextPage ? (
             <div className="flex justify-center border-t border-line p-3">

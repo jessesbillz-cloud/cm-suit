@@ -26,9 +26,27 @@ export const STATUS = {
   corrected: { label: 'Corrected', fg: '#115E59', bg: '#CCFBF1', dot: '#14B8A6', solid: '#0D9488', onSolid: '#FFFFFF' },
   // Past its due date: red text (never amber, which means "impact claimed").
   late: { label: 'Late', fg: '#B91C1C', bg: '#FDE8E8', dot: '#B91C1C', solid: '#991B1B', onSolid: '#FFFFFF' },
+  // A board line that only tells (a file added, someone joined, a daily submitted): neutral gray (features/board/lineTone).
+  info: { label: 'Info', fg: '#374151', bg: '#F3F4F6', dot: '#9CA3AF', solid: '#A7A9AC', onSolid: '#111827' },
 } as const;
 
 export type StatusKey = keyof typeof STATUS;
+
+/**
+ * An inspection card's box, in a word and a color (Jesse, Oct 23: "I need a better way of knowing what these colors
+ * mean"): the card's Setup, the room's and the wall's boxes, the plan's wall lines and the 3-D wall all read this one
+ * map. Needed: the card asks for it (white, a strong edge). Not needed: off the card (grey). Signed off: green. Asked
+ * for: on a request sent, not inspected yet (blue). Failed: red.
+ */
+export const CARD_STATE = {
+  needed: { label: 'Needed', key: 'step_ahead' },
+  not_needed: { label: 'Not needed', key: 'cancelled' },
+  signed_off: { label: 'Signed off', key: 'approved' },
+  asked_for: { label: 'Asked for', key: 'assigned' },
+  failed: { label: 'Failed', key: 'not_approved' },
+} as const satisfies Record<string, { label: string; key: StatusKey }>;
+
+export type CardState = keyof typeof CARD_STATE;
 
 export function statusLabel(key: StatusKey): string {
   return STATUS[key].label;

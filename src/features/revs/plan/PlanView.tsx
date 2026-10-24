@@ -1,6 +1,6 @@
 // Walls on the plan (0059; Jesse, Oct 3: "We have the floor plan layout with all of the walls on it ... this wall here,
 // on grid line 7 of the electrical room"): pick the level, see its plan sheet with every wall drawn on it as a thick
-// line in its state's color (all passed green, any failed red, any requested gold, else grey) with its callout; a tap
+// line in its state's color (all passed green, any failed red, any asked for blue, else grey) with its callout; a tap
 // on a wall opens its page. Pinch or wheel to zoom, drag to pan, as on a map. Managers add walls on the plan (tap the
 // start, the end, corners, Done, name it), one after another around the building, and place a wall from its page
 // (?place=). A level with no sheet yet: a manager picks one (a plan set's page too), or starts a new level (+ Level).

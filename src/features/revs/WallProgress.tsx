@@ -1,5 +1,6 @@
-// A wall's tally as one slim bar (passed green, requested gold, failed red, the rest grey; lib/status colors) and,
+// A wall's tally as one slim bar (signed off green, asked for blue, failed red, the rest grey; lib/status's card colors) and,
 // when asked, "12 of 21 passed" beside it.
+import { CARD_STATE } from '../../lib/status';
 import { countLine, type WallCount } from './wallPage';
 
 interface WallProgressProps {
@@ -10,9 +11,9 @@ interface WallProgressProps {
 }
 
 const SEGMENTS = [
-  ['passed', 'var(--status-approved-solid)'],
-  ['requested', 'var(--status-pending-dot)'],
-  ['failed', 'var(--status-not_approved-solid)'],
+  ['passed', `var(--status-${CARD_STATE.signed_off.key}-solid)`],
+  ['requested', `var(--status-${CARD_STATE.asked_for.key}-solid)`],
+  ['failed', `var(--status-${CARD_STATE.failed.key}-solid)`],
 ] as const;
 
 export function WallProgress({ count, withLine = false, testId }: WallProgressProps) {

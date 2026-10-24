@@ -40,7 +40,7 @@ export async function addWall(v: FieldWall): Promise<{ area_id: string; room_id:
   }
   const room: RevRoom = existing ?? {
     id: newId('mock-room'), project_id: v.projectId, list_id: list.id, level: clean(v.level), number: clean(v.roomNumber),
-    name: clean(v.roomName) || 'Room', kind: 'room', image_name: null, image_file_id: null, card_at: null, version: 1, deleted_at: null,
+    name: clean(v.roomName) || 'Room', kind: 'room', image_name: null, image_file_id: null, card_at: null, card_locked_at: null, card_locked_by: null, version: 1, deleted_at: null,
     position: Math.max(0, ...rooms.rooms.map((r) => r.position)) + 1,
   };
   if (!existing) writeRooms((x) => ({ ...x, rooms: [...x.rooms, room] }));

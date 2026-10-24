@@ -8,18 +8,18 @@
 // Whoever files OFS requests adds an item for the whole room to the request being built (0113; Jesse, Oct 23: "top of
 // wall for the entire room"; RoomRequest), and adds a wall of the room on the spot (Add wall); the request's bar is at
 // the bottom. Set up card (a manager; 0101, Jesse Oct 12) opens the room's card on its own screen (CardSetup,
-// ?view=card): the walls tracked here and the items they need.
+// ?view=card): what each wall needs, then locked by its save (0119), which everyone sees here ("Locked by").
 import { useMemo, useState, type ReactNode } from 'react';
 import { useSearch } from '@tanstack/react-router';
-import { ChevronLeft, ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useCapability } from '../../../data/queries';
+import { ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useCapability, useMyProjects } from '../../../data/queries';
+import { useCardLockers, type CardLockers } from '../../../data/revs.card';
 import { useSignoffFiles } from '../../../data/revs.history';
 import { useRevSetup, useRevStatus } from '../../../data/revs.queries';
 import { useRevRooms, type RevRoom, type RevRooms } from '../../../data/revs.rooms';
 import type { RevArea, RevSetup } from '../../../data/revs.types';
 import { Button } from '../../../ui/Button';
 import { Card } from '../../../ui/Card';
-import { Icon } from '../../../ui/Icon';
 import { EmptyState, ErrorState, LoadingState } from '../../../ui/States';
 import { indexStatus, wallRevs, type StatusIndex } from '../model';
 import { indexSignoffFiles, type SignoffFiles } from '../revStrip';
@@ -30,6 +30,8 @@ import { useRevsNav } from '../useRevsNav';
 import { useSetupActions } from '../useSetupActions';
 import { useOpenRevFile } from '../useOpenRevFile';
 import { WallProgress } from '../WallProgress';
+import { BackToRevs } from './BackToRevs';
+import { CardLockLine } from './CardLockLine';
 import { CardSetup } from './CardSetup';
 import { AddRoomWall, RoomForm } from './RoomForms';
 import { RoomImage } from './RoomImage';
@@ -58,6 +60,8 @@ interface BodyProps {
   canManage: boolean;
   /** The request being built (those who file OFS requests). */
   basket: BasketApi;
+  lockers: CardLockers | undefined;
+  timeZone: string;
   isPhone: boolean;
 }
 
@@ -67,7 +71,7 @@ const FRAME_SIZE = `${FRAME} h-[32dvh] min-h-[200px] sm:h-[320px]`;
 // Full screen of nothing is no use: the slim place has none.
 const FRAME_NONE = `${FRAME} h-16 [&_div:has(>[data-testid=sheet-full])]:hidden`;
 
-function RoomBody({ projectId, room, setup, index, rooms, files, canManage, basket, isPhone }: BodyProps) {
+function RoomBody({ projectId, room, setup, index, rooms, files, canManage, basket, lockers, timeZone, isPhone }: BodyProps) {
   const nav = useRevsNav(projectId, canManage);
   const walls = useMemo(() => roomWalls(setup, index, rooms, room.id), [setup, index, rooms, room.id]);
   const count = roomCount(walls);
@@ -141,6 +145,7 @@ function RoomBody({ projectId, room, setup, index, rooms, files, canManage, bask
           ) : null}
         </div>
         <WallProgress count={count} withLine testId="rev-room-progress" />
+        <CardLockLine room={room} lockers={lockers} timeZone={timeZone} />
         <div className={`flex flex-wrap gap-2 ${isPhone ? 'flex-col' : ''}`}>
           {/* A manager adds an existing wall under Walls (AddRoomWall) or a new one in Setup. */}
           {basket.can && !canManage ? (
@@ -225,23 +230,6 @@ function firstItemOf(setup: RevSetup, index: StatusIndex, area: RevArea, revId: 
   return wallRevs(setup, index, area).find((r) => r.rev.id === revId)?.cells[0]?.item.id;
 }
 
-function BackToRevs({ projectId, canManage, level }: { projectId: string; canManage: boolean; level: string | undefined }) {
-  const nav = useRevsNav(projectId, canManage);
-  return (
-    <button
-      type="button"
-      className="-ml-1 flex h-8 items-center gap-0.5 self-start text-sm font-medium text-accent"
-      data-testid="rev-room-back"
-      onClick={() => {
-        nav.close(level);
-      }}
-    >
-      <Icon icon={ChevronLeft} size={16} />
-      Inspection cards
-    </button>
-  );
-}
-
 export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const own: { view?: string | undefined } = useSearch({ strict: false });
   const setup = useRevSetup(projectId);
@@ -250,18 +238,23 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
   const manage = useCapability(projectId, 'revs.manage');
   const basket = useBasket(projectId);
   const signoffs = useSignoffFiles(projectId);
+  const jobs = useMyProjects();
+  const lockers = useCardLockers(projectId);
   const nav = useRevsNav(projectId, manage.data === true);
   const index = useMemo(() => indexStatus(status.data ?? []), [status.data]);
   const files = useMemo(() => indexSignoffFiles(signoffs.data ?? []), [signoffs.data]);
+  const zone = jobs.data?.find((p) => p.project_id === projectId)?.timezone;
 
   let body: ReactNode;
-  const failed = [setup, status, rooms, manage, signoffs].find((q) => q.isError);
+  const failed = [setup, status, rooms, manage, signoffs, jobs].find((q) => q.isError);
   const room = rooms.data?.rooms.find((r) => r.id === roomId);
   if (failed) body = <ErrorState error={failed.error} onRetry={() => void failed.refetch()} />;
-  else if (!setup.data || !status.data || !rooms.data || manage.isPending) body = <LoadingState label="Loading the room" />;
+  else if (!setup.data || !status.data || !rooms.data || manage.isPending || zone === undefined) body = <LoadingState label="Loading the room" />;
   else if (!room) body = <EmptyState title="This room is no longer on the job." />;
   else if (own.view === 'card' && manage.data === true) {
-    body = <CardSetup key={room.id} room={room} setup={setup.data} index={index} rooms={rooms.data} isPhone={isPhone} onDone={() => { nav.openRoom(room.id, true); }} />;
+    body = (
+      <CardSetup key={room.id} room={room} setup={setup.data} index={index} rooms={rooms.data} timeZone={zone} isPhone={isPhone} onDone={() => { nav.openRoom(room.id, true); }} />
+    );
   } else {
     body = (
       <RoomBody
@@ -274,6 +267,8 @@ export function RoomPage({ projectId, roomId, isPhone }: RoomPageProps) {
         files={files}
         canManage={manage.data === true}
         basket={basket}
+        lockers={lockers.data}
+        timeZone={zone}
         isPhone={isPhone}
       />
     );

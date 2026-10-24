@@ -52,7 +52,7 @@ export function revStrip(setup: RevSetup, index: StatusIndex, area: RevArea, fil
     });
 }
 
-/** Each shown mark as a box (boxLook): done the whole box green, requested gold, failed red, open white. */
+/** Each shown mark as a box (boxLook): done the whole box green, asked for blue, failed red, open white. */
 export function markBox(mark: Exclude<CheckMark, 'na'>): BoxState {
   return mark === 'done' ? 'passed' : mark;
 }

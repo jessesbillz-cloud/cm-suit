@@ -4,7 +4,7 @@
 // the chip for each status (lib/status).
 import type { Rev, RevArea, RevItem, RevList, RevSetup, RevStatusRow } from '../../data/revs.types';
 import { formatInZone } from '../../lib/dates';
-import type { StatusKey } from '../../lib/status';
+import { CARD_STATE, type StatusKey } from '../../lib/status';
 import { levelKey } from './levels';
 
 type CellStatus = RevStatusRow['status'];
@@ -110,11 +110,11 @@ const FAILED_NOW = 'Failed — needs re-inspection';
 
 /** Each status's chip: its lib/status colors and its own word (a failed cell: FAILED_NOW). */
 const CHIPS: Record<CellStatus, { key: StatusKey; label: string }> = {
-  passed: { key: 'approved', label: 'Passed' },
-  requested: { key: 'pending', label: 'Requested' },
-  failed: { key: 'not_approved', label: FAILED_NOW },
-  open: { key: 'step_ahead', label: 'Open' },
-  na: { key: 'cancelled', label: 'N/A' },
+  passed: { key: CARD_STATE.signed_off.key, label: 'Passed' },
+  requested: CARD_STATE.asked_for,
+  failed: { key: CARD_STATE.failed.key, label: FAILED_NOW },
+  open: CARD_STATE.needed,
+  na: CARD_STATE.not_needed,
 };
 
 export function chipOf(status: CellStatus): { key: StatusKey; label: string } {

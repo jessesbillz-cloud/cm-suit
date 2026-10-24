@@ -242,7 +242,7 @@ test.describe('revs', () => {
     await expect(plan).toHaveAttribute('data-level', 'Level 02');
     await expect(page.getByTestId('plan-sheet')).toHaveAttribute('data-page', '2');
     await expect(plan.locator('[data-wall]')).toHaveCount(2);
-    await expect(plan.locator('[data-wall="mock-rev-area-5"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-pending-dot)');
+    await expect(plan.locator('[data-wall="mock-rev-area-5"] polyline').nth(1)).toHaveAttribute('stroke', 'var(--status-assigned-solid)');
 
     await plan.getByTestId('plan-wall-mock-rev-area-5').click();
     await expect(page).toHaveURL(/\/p\/job-s\/revs\/mock-rev-area-5/);
