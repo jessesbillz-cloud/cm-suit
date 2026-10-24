@@ -1,12 +1,11 @@
-// A spec section as the hub (Jesse, Oct 12: "a search bar and you can search the spec section, or click a spec section
-// and say show me all the RFIs and submittals associated with this"). The sections: the job's spec book's, and any
+// A spec section as the hub (Jesse, Oct 12: "click a spec section and say show me all the RFIs and submittals
+// associated with this"), under the section's text in the spec reader (0118). The sections: the job's spec book's, and any
 // other a submittal, RFI or CCD names (titled from the CSI list when it has them). A section's items: the Submittals,
 // RFIs (the RFI tool's whose Reference or title names it, and RFI documents filed under it) and CCDs filed under it, by
 // its 6 digits, each group newest first. A file is filed under its spec section (0105, found on upload, Jesse, Oct 12:
 // "hidden if we had to"), else its name's (fileSectionKey).
 import type { RfiRef } from '../../data/specHub';
 import type { FileRow } from '../../data/types';
-import { findSections } from '../specs/findSections';
 import { fileSectionKey, sectionKey, sectionRefs } from '../specs/sections';
 
 export interface HubSection {
@@ -16,7 +15,7 @@ export interface HubSection {
   section: string;
   /** "Gypsum Board"; empty when not known. */
   title: string;
-  /** The spec book has it (Open spec goes there). */
+  /** The spec book has it. */
   inBook: boolean;
 }
 
@@ -44,17 +43,6 @@ export function hubSections(book: readonly Titled[], named: readonly string[], c
     out.set(key, { key, section: spaced(key), title, inBook: false });
   }
   return [...out.values()].sort((a, b) => a.key.localeCompare(b.key));
-}
-
-/** The sections a search matches: digits by number ("0929"), words by title or division (findSections' rules). */
-export function matchSections(all: readonly HubSection[], query: string, divisionTitle: (d: string) => string | null): HubSection[] {
-  if (query.trim() === '') return [];
-  const found = findSections(
-    all.map((s) => ({ section: s.section, title: s.title, first_page: 0 })),
-    query,
-    divisionTitle,
-  );
-  return found.groups.flatMap((g) => g.sections.flatMap((s) => all[s.index] ?? []));
 }
 
 /** The 6 digits of every section an RFI names in its Reference line or title. */
@@ -101,15 +89,4 @@ export function hubGroups(key: string, src: HubSources): HubGroups {
     ...mine(src.rfiFiles).map((file) => ({ kind: 'file' as const, file })),
   ].sort((a, b) => at(b).localeCompare(at(a)));
   return { submittals: mine(src.submittals), rfis, ccds: mine(src.ccds) };
-}
-
-/** How many items each section has (its box's count). */
-export function hubCounts(src: HubSources): Map<string, number> {
-  const counts = new Map<string, number>();
-  const add = (key: string | null) => {
-    if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
-  };
-  for (const f of [...src.submittals, ...src.rfiFiles, ...src.ccds]) add(fileSectionKey(f));
-  for (const r of src.rfis) for (const k of new Set(rfiKeys(r))) add(k);
-  return counts;
 }

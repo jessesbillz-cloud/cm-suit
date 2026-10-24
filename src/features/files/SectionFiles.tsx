@@ -2,12 +2,14 @@
 // filter and search (ListTools), in its section's columns (RowCells), sorted by file name. It is the drop target
 // (useFileDrop), shows the upload lines, and on the rows I may change a checkbox and Delete (files_changeable, one call
 // for the list); checked rows get Move to and Delete in the list's head, and in To sort each row has its own Move to.
-// In Plans and Specs a row's name opens the file full screen at once (Jesse, Oct 5). In Submittals a section the job's
-// spec book has opens the book there, and a submittal filed under no section has Add spec section (Jesse, Oct 12).
+// In Plans a row's name opens the file full screen at once (Jesse, Oct 5), in Specs a spec book opens in the spec reader
+// (0118). In Submittals a section the job's spec book has opens the reader there, and a submittal filed under no section has Add spec section (Jesse, Oct 12).
 // Opening the list files the rows I may change under the sections their names carry (useNameSections, 0105).
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useChangeable } from '../../data/files';
 import { useSectionFiles, type FileSection } from '../../data/fileSections';
+import { specBooksQuery } from '../../data/specs';
 import { useUploadQueue } from '../../data/UploadQueue';
 import type { FolderRow } from '../../data/types';
 import { Card } from '../../ui/Card';
@@ -86,10 +88,12 @@ export function SectionFiles(props: SectionFilesProps) {
   useNameSections(projectId, stored, versions);
   const specFor = useSpecFor(projectId, kind === 'submittals');
   const openSpec = useOpenSpec(projectId);
+  const books = useQuery({ ...specBooksQuery(projectId), enabled: kind === 'specs' });
+  const bookIds = new Set(kind === 'specs' ? (books.data ?? []).map((b) => b.file_id) : []);
   const viewer = useRowViewer(
     projectId,
     rows.map((r) => r.file),
-    kind === 'specs',
+    bookIds,
     specFor,
   );
   const big = kind === 'plans' || kind === 'specs';
@@ -173,10 +177,15 @@ export function SectionFiles(props: SectionFilesProps) {
                       selected={f.id === selectedFileId}
                       downloading={download.pendingId === f.id}
                       onOpen={(id) => {
+                        // A spec book opens in the reader, its pages in this column and the book beside them.
+                        if (bookIds.has(id)) {
+                          viewer.view(id);
+                          return;
+                        }
                         props.onOpenFile(id);
                         if (big && viewer.viewable.has(id)) viewer.view(id);
                       }}
-                      onView={viewer.viewable.has(f.id) ? () => { viewer.view(f.id); } : undefined}
+                      onView={viewer.viewable.has(f.id) || bookIds.has(f.id) ? () => { viewer.view(f.id); } : undefined}
                       onDownload={(file) => {
                         download.start(file.id, file.size);
                       }}

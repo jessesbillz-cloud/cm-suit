@@ -1,5 +1,5 @@
-// A spec section number that opens the spec book full screen at that section; SpecRefs makes every section number in
-// a line of free text one of these.
+// A spec section number that opens that section in the spec reader (its text, 0118); SpecRefs makes every section
+// number in a line of free text one of these.
 import { useOpenSpec } from './useOpenSpec';
 import { sectionRefs } from './sections';
 

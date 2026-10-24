@@ -25,9 +25,14 @@ async function fetchSections(projectId: string): Promise<FileSection[]> {
   return z.array(sectionSchema).parse(throwIfError(await supabase.rpc('files_sections', { p_project_id: projectId })));
 }
 
+/** The query behind the sections (a link that lands in Specs fetches it when tapped). */
+export function fileSectionsQuery(projectId: string) {
+  return { queryKey: qk.fileSections(projectId), queryFn: () => fetchSections(projectId) };
+}
+
 /** The sections I read on this job, in their order. */
 export function useFileSections(projectId: string) {
-  return useQuery({ queryKey: qk.fileSections(projectId), queryFn: () => fetchSections(projectId) });
+  return useQuery(fileSectionsQuery(projectId));
 }
 
 async function fetchSectionFiles(folderIds: readonly string[], userId: string): Promise<FileRow[]> {

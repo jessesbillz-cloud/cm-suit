@@ -20,8 +20,8 @@
 //   <button onClick={() => { viewer.open(items, index); }}>...</button>     // a photo strip: arrows walk the list
 //   <Button onClick={() => { viewer.open([item]); }}>Full screen</Button>   // one PDF
 //   <FilePreview item={item} onOpenWindow={openWindow} />  // inline, filling a pane: New window
-//   A PDF may open at a page (`startPage`) and carry its own bar over the pages (`pageBar`) and panel beside them
-//   (`pageSide`: the spec book's sections), which get where the reader is (PageNav) and move them.
+//   A PDF may open at a page (`startPage`), show only some of its pages (`pageRange`: a spec section's) and carry its
+//   own bar over the pages (`pageBar`), which gets where the reader is (PageNav) and moves them.
 //
 // The overlay: file name, Download, Delete (only when the item has `remove`), Close; Escape and Close close it; focus
 // stays inside; left / right (and the arrows) move through the list. Photos: fitted, tap or +/- to zoom, drag to pan.
@@ -48,10 +48,10 @@ export interface ViewerItem {
   remove?: (() => void) | undefined;
   /** A PDF: the page it opens at (1, the first, when left out). */
   startPage?: number | undefined;
-  /** A PDF: a bar over its pages, drawn from where the reader is (the spec book's section picker). */
+  /** A PDF: only these pages (first to last, 1-based), e.g. a spec section's. */
+  pageRange?: { first: number; last: number } | undefined;
+  /** A PDF: a bar over its pages, drawn from where the reader is ("Spec 09 29 00" over a submittal). */
   pageBar?: ((nav: PageNav) => ReactNode) | undefined;
-  /** A PDF: a panel left of its pages (the spec book's sections, on a desktop). */
-  pageSide?: ((nav: PageNav) => ReactNode) | undefined;
 }
 
 /** Where the reader is in a PDF, and how to move: what a `pageBar` gets. */
@@ -60,8 +60,6 @@ export interface PageNav {
   page: number;
   pages: number;
   goTo: (page: number) => void;
-  /** One page's text (pdf.js), lines joined with newlines. */
-  text: (page: number) => Promise<string>;
 }
 
 interface Opened {

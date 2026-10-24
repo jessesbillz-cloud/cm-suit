@@ -591,6 +591,7 @@ Budgets marked **CI** are Playwright tests (click counts). **Manual** means Jess
 | Submit today's daily report from the report screen | ≤3 + signature confirm | CI |
 | Simple approve in "Needs you" | 1 + signature where required | CI |
 | Photo onto today's report from the job screen (iPhone) | 2 | Manual |
+| A spec section's text from the job (Files, Specs, the section; with two volumes, type its number) | ≤3 | CI |
 
 ---
 

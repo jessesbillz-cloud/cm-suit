@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RfiRef } from '../../data/specHub';
 import type { FileRow } from '../../data/types';
-import { hubCounts, hubGroups, hubSections, matchSections, namedSections, type HubSources } from './hubItems';
+import { hubGroups, hubSections, namedSections, type HubSources } from './hubItems';
 
 const file = (id: string, name: string, day: number): FileRow => ({
   id,
@@ -50,9 +50,6 @@ describe('spec section hub', () => {
       ['09 21 16', 'Sample Level 4'],
       ['09 29 00', 'Gypsum Board'],
     ]);
-    expect(matchSections(all, '0929', () => null).map((s) => s.key)).toEqual(['092900']);
-    expect(matchSections(all, 'sealants', () => null).map((s) => s.key)).toEqual(['079200']);
-    expect(matchSections(all, '', () => null)).toEqual([]);
   });
 
   it("lists a section's submittals, RFIs and CCDs, newest first", () => {
@@ -61,8 +58,6 @@ describe('spec section hub', () => {
     expect(g.rfis.map((r) => (r.kind === 'rfi' ? r.rfi.id : r.file.id))).toEqual(['t1', 'r1']);
     expect(g.ccds).toEqual([]);
     expect(hubGroups('092116', SRC).ccds.map((f) => f.id)).toEqual(['c1']);
-    expect(hubCounts(SRC).get('092900')).toBe(4);
-    expect(hubCounts(SRC).get('079200')).toBe(1);
   });
 
   it('files a document under its hidden spec section first, its name second', () => {

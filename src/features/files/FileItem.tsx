@@ -23,7 +23,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../ui/States';
 import { StatusChip } from '../../ui/StatusChip';
 import { useProjectZones } from '../board/zones';
 import { OfsPanel } from '../ofs/OfsPanel';
-import { SpecButton, SpecHubButton } from '../specs/SpecButton';
+import { SpecButton } from '../specs/SpecButton';
 import { useOpenSpec } from '../specs/useOpenSpec';
 import { useSpecFor } from '../specs/useSpecFor';
 import { EarlierVersions } from './EarlierVersions';
@@ -100,10 +100,7 @@ function FilePane({ f, onOpenWindow, onClose }: PaneProps) {
     remove !== undefined || section !== null ? (
       <>
         {section !== null ? (
-          <>
-            <SpecButton projectId={f.project_id} section={section} />
-            <SpecHubButton projectId={f.project_id} section={section} />
-          </>
+          <SpecButton projectId={f.project_id} section={section} />
         ) : null}
         {remove !== undefined ? (
           <>

@@ -69,7 +69,6 @@ describe('spec sections', () => {
       size: 1,
       page_count: 3,
       text_ready: true,
-      can_send: false,
       sections: sections.map((section, i) => ({ section, title: '', first_page: i + 1, last_page: i + 1 })),
     });
     const older = book('old', ['09 29 00', '10 28 00']);

@@ -112,7 +112,8 @@ export function PhoneShell({ model, folderId }: PhoneShellProps) {
         </>
       }
     >
-      <main data-testid="main-area" data-tool={loc.tool} className="px-2 py-3">
+      {/* A file's box on the screen (a spec section's PDF pages, data-fill): the screen fills, the box scrolls. */}
+      <main data-testid="main-area" data-tool={loc.tool} className="px-2 py-3 has-[[data-fill]]:flex has-[[data-fill]]:h-full has-[[data-fill]]:flex-col">
         <ToolView model={model} tool={loc.tool} folderId={folderId} isPhone />
       </main>
     </PanelScreen>
