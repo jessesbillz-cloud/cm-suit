@@ -94,6 +94,6 @@ describe("a wall's item lines", () => {
     expect(itemChipText(chip(1, 0))).toBe('Stuff · 0042');
     expect(itemChipText(chip(1, 2))).toBe('Beam Pockets');
     expect(itemChipName(chip(1, 0))).toBe('HOW Cavity Stuff: Passed, OFS 0042');
-    expect(itemChipName(chip(2, 0))).toBe('First Side - First Layer: Open');
+    expect(itemChipName(chip(2, 0))).toBe('First Side - First Layer: Needed');
   });
 });

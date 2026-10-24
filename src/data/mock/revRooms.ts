@@ -58,7 +58,7 @@ function seed(): State {
   const base = { project_id: JOB, version: 1, deleted_at: null };
   return {
     rooms: ROOMS.map(([id, level, number, name, kind, image, imageName], i) => ({
-      ...base, id, list_id: LIST, level, number, name, kind, image_file_id: image, image_name: imageName, position: i + 1, card_at: null,
+      ...base, id, list_id: LIST, level, number, name, kind, image_file_id: image, image_name: imageName, position: i + 1, card_at: null, card_locked_at: null, card_locked_by: null,
     })),
     walls: ROOMS.flatMap(([id, , , , , , , walls]) =>
       walls.map(([area, line], k) => ({ ...base, id: `${id}-wall-${String(area)}`, room_id: id, area_id: `mock-rev-area-${String(area)}`, line, position: k + 1 })),
