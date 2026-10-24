@@ -7,16 +7,16 @@ const count = (needed: number, passed: number, requested: number, failed: number
 const close = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 
 describe('wallTone', () => {
-  it('any failed red, any requested gold, all passed green, else neutral', () => {
+  it('any failed red, any asked for blue, all passed green, else neutral', () => {
     expect(wallTone(count(5, 3, 1, 1))).toBe('not_approved');
-    expect(wallTone(count(5, 3, 1, 0))).toBe('pending');
+    expect(wallTone(count(5, 3, 1, 0))).toBe('assigned');
     expect(wallTone(count(5, 5, 0, 0))).toBe('approved');
     expect(wallTone(count(5, 2, 0, 0))).toBeNull();
     expect(wallTone(count(0, 0, 0, 0))).toBeNull();
   });
   it('colors from lib/status, as the status bars use them', () => {
     expect(toneColor('approved')).toBe('var(--status-approved-solid)');
-    expect(toneColor('pending')).toBe('var(--status-pending-dot)');
+    expect(toneColor('assigned')).toBe('var(--status-assigned-solid)');
     expect(toneColor('not_approved')).toBe('var(--status-not_approved-solid)');
     expect(toneColor(null)).toBe('var(--status-step_ahead-fg)');
   });

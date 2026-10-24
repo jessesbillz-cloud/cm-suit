@@ -8,7 +8,7 @@ describe('a box in its state', () => {
       color: 'var(--status-approved-on-solid)',
       borderColor: 'var(--status-approved-solid)',
     });
-    expect(boxLook('requested').style?.background).toBe('var(--status-pending-solid)');
+    expect(boxLook('requested').style?.background).toBe('var(--status-assigned-solid)');
     expect(boxLook('failed').style?.background).toBe('var(--status-not_approved-solid)');
   });
 
