@@ -9,7 +9,7 @@ const wall = (n: number, level: string, name: string): RevArea => ({
   ...base, id: `a${String(n)}`, list_id: 'l1', level, name, sheet_file_id: null, sheet_page: 1, geom: null, ...NO_WALL_DETAILS, position: n,
 });
 const room = (id: string, level: string, number: string, name: string, kind: RevRoom['kind'], position: number): RevRoom => ({
-  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position, card_at: null,
+  ...base, id, list_id: 'l1', level, number, name, kind, image_name: null, image_file_id: null, position, card_at: null, card_locked_at: null, card_locked_by: null,
 });
 const link = (roomId: string, area: number, line: RevRoomWall['line'] = null): RevRoomWall => ({
   ...base, id: `${roomId}-${String(area)}`, room_id: roomId, area_id: `a${String(area)}`, line, position: area,

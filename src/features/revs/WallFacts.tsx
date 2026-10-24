@@ -1,11 +1,13 @@
 // The shown item's facts in one short line under the drawing: "Passed · IR 377 · OFS 0065 · Oct 2" (the IR opens the
-// request in Inspections), "Failed — needs re-inspection: why" in red, "Requested · IR 380", "Open", "N/A", and who does it. A manager switches
+// request in Inspections), "Failed — needs re-inspection: why" in red, "Asked for · IR 380", "Needed", "Not needed", and who does it. A manager switches
 // an open item off for this wall only ("Not needed here", 0101 rev_card_item) or back on, at once; the toast offers Undo
-// (no "are you sure"). An item with a sign-off, a request or a failure stays as it is. An item signed off before the
+// (no "are you sure"). Not while a room of the wall has its card locked (0119: unlocked on the room's card). An item
+// with a sign-off, a request or a failure stays as it is. An item signed off before the
 // app (0082) is "Done · OFS #0041 · Sep 21" with its note; a manager signs one off before (the form opens over the
 // items) or clears it.
 import { messageOf } from '../../data/errors';
 import { useCardItem } from '../../data/revs.card';
+import { useRevRooms, type RevRooms } from '../../data/revs.rooms';
 import type { RevArea } from '../../data/revs.types';
 import { useToast } from '../../ui/Toast';
 import { beforeLine, canSignBefore, cardSwitch, chipOf, irLine, signedBefore } from './model';
@@ -28,11 +30,19 @@ interface WallFactsProps {
 
 const LINK = '-my-1 min-h-8 shrink-0 rounded-md px-2 text-[13px] font-medium text-accent hover:bg-accent-soft disabled:text-ink-3/50';
 
+/** A room of the wall has its card locked (or the rooms are not in yet). */
+function lockedOn(rooms: RevRooms | undefined, areaId: string): boolean {
+  if (!rooms) return true;
+  const ids = new Set(rooms.walls.filter((w) => w.area_id === areaId).map((w) => w.room_id));
+  return rooms.rooms.some((r) => ids.has(r.id) && r.card_locked_at !== null);
+}
+
 function CardSwitch({ projectId, area, shown }: { projectId: string; area: RevArea; shown: WallItem }) {
   const item = useCardItem();
+  const rooms = useRevRooms(projectId);
   const toast = useToast();
   const to = cardSwitch(shown.cell.status);
-  if (!to) return null;
+  if (!to || lockedOn(rooms.data, area.id)) return null;
   const v = { projectId, areaId: area.id, itemId: shown.item.id };
   const name = shown.item.name;
   const failed = (e: unknown) => {

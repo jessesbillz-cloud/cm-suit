@@ -5803,6 +5803,8 @@ export type Database = {
         Row: {
           card_at: string | null
           card_by: string | null
+          card_locked_at: string | null
+          card_locked_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -5826,6 +5828,8 @@ export type Database = {
         Insert: {
           card_at?: string | null
           card_by?: string | null
+          card_locked_at?: string | null
+          card_locked_by?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -5849,6 +5853,8 @@ export type Database = {
         Update: {
           card_at?: string | null
           card_by?: string | null
+          card_locked_at?: string | null
+          card_locked_by?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -14633,6 +14639,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      rev_card_cells_check: {
+        Args: {
+          p_cells: Json
+          p_room: Database["public"]["Tables"]["rev_rooms"]["Row"]
+        }
+        Returns: undefined
+      }
       rev_card_item: {
         Args: { p_area_id: string; p_item_id: string; p_on: boolean }
         Returns: Json
@@ -14642,10 +14655,56 @@ export type Database = {
         Args: { p_area_id: string; p_item_id: string }
         Returns: boolean
       }
+      rev_card_lock: {
+        Args: { p_locked: boolean; p_room_id: string; p_version: number }
+        Returns: {
+          card_at: string | null
+          card_by: string | null
+          card_locked_at: string | null
+          card_locked_by: string | null
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          field_by: string | null
+          field_checked_at: string | null
+          field_checked_by: string | null
+          id: string
+          image_file_id: string | null
+          image_name: string | null
+          kind: string
+          level: string
+          list_id: string
+          name: string
+          number: string
+          org_id: string
+          position: number
+          project_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rev_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      rev_card_lockers: {
+        Args: { p_project_id: string }
+        Returns: {
+          name: string
+          user_id: string
+        }[]
+      }
       rev_card_managers: {
         Args: { p_project_id: string }
         Returns: string[]
       }
+      rev_card_needed: {
+        Args: { p_area_id: string; p_item_id: string }
+        Returns: boolean
+      }
+      rev_card_open: { Args: { p_locked_at: string }; Returns: undefined }
       rev_card_save: {
         Args: {
           p_area_ids: string[]
@@ -14653,6 +14712,10 @@ export type Database = {
           p_room_id: string
           p_version: number
         }
+        Returns: Json
+      }
+      rev_card_set: {
+        Args: { p_cells: Json; p_room_id: string; p_version: number }
         Returns: Json
       }
       rev_card_undo: {
@@ -15076,6 +15139,8 @@ export type Database = {
         Returns: {
           card_at: string | null
           card_by: string | null
+          card_locked_at: string | null
+          card_locked_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -15112,6 +15177,8 @@ export type Database = {
         Returns: {
           card_at: string | null
           card_by: string | null
+          card_locked_at: string | null
+          card_locked_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -15144,6 +15211,8 @@ export type Database = {
         Returns: {
           card_at: string | null
           card_by: string | null
+          card_locked_at: string | null
+          card_locked_by: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
