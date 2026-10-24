@@ -9,6 +9,8 @@ export const qk = {
   tasks: (projectId: string | null) => ['tasks', projectId ?? 'all'] as const,
   tasksAll: ['tasks'] as const,
   layout: ['user_layout'] as const,
+  /** My quick phrases (0117). */
+  phrases: ['quick_phrases'] as const,
   folders: (projectId: string) => ['folders', projectId] as const,
   files: (folderId: string) => ['files', folderId] as const,
   /** Every folder's file list (a file removed from somewhere other than Files). */

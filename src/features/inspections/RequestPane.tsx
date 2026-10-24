@@ -6,8 +6,9 @@
 // says (0116). An OFS request shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
 // shows its walls and items (with their results) and its map; until a result, whoever may takes walls off it there
 // (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal. A request copied
-// from My Daily Reports (0112) is marked From MDR and shows no step at all: it is view only. A request filed in a
-// batch lists the batch, with one tap for its requests waiting on me (BatchPanel, 0114).
+// from My Daily Reports (0112) is marked From MDR and shows no step at all: it is view only, but whoever decides
+// inspections on the job has Work it here (0117), which makes it the suite's own. A request filed in a batch lists the
+// batch, with one tap for its requests waiting on me (BatchPanel, 0114).
 import { useUser } from '../../data/auth';
 import { messageOf } from '../../data/errors';
 import { useDownloadIrFile } from '../../data/inspections.mutations';
@@ -45,6 +46,7 @@ import { RequestWallPhotos } from '../revs/photos/RequestWallPhotos';
 import { clockLabel, durationLabel } from './time';
 import { Tracker } from './Tracker';
 import { useIrAccess, type IrCan, type IrJob } from './useIrAccess';
+import { WorkHere } from './WorkHere';
 
 interface RequestPaneProps {
   projectId: string;
@@ -139,6 +141,7 @@ function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {
         <div className="rounded-lg bg-page/70 px-1 py-3">
           <Tracker steps={trackerSteps(row, job.gcStep)} />
         </div>
+        {!acts && can.decide ? <WorkHere row={row} /> : null}
         <RequestDetails
           row={row}
           tz={job.tz}

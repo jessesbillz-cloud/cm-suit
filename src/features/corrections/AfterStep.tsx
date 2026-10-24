@@ -1,15 +1,15 @@
 // What stays on the item after my own step, for as long as the database allows it (15 minutes, undo_correction): Undo
 // (a new item goes away; a step goes back), and after a one-tap Corrected / Sign off / Reopen, a note added after
-// (correction_step_note, once). Not only in the 5-second toast.
+// (correction_step_note, once), with my quick phrases (NoteBox, 0117). Not only in the 5-second toast.
 import { useState } from 'react';
 import { MessageSquarePlus, Undo2 } from 'lucide-react';
 import { useCorrectionStepNote, useUndoCorrection } from '../../data/corrections.mutations';
 import type { CorrectionHistoryRow, CorrectionRow } from '../../data/corrections.types';
 import { messageOf } from '../../data/errors';
 import { Button } from '../../ui/Button';
-import { FIELD_AREA, FIELD_LABEL } from '../../ui/Fields';
 import { useToast } from '../../ui/Toast';
 import { useBefore } from '../../ui/useBefore';
+import { NoteBox } from '../phrases/NoteBox';
 import { UNDO_MS, cnLabel, undoableStep } from './model';
 import { useCorrectionsNav } from './useCorrectionsNav';
 
@@ -30,20 +30,7 @@ function NoteForm({ row, onDone }: NoteFormProps) {
         add.mutate({ row, note }, { onSuccess: onDone });
       }}
     >
-      <label className={FIELD_LABEL}>
-        Note
-        <textarea
-          rows={3}
-          autoFocus
-          maxLength={4000}
-          className={FIELD_AREA}
-          value={note}
-          data-testid="cn-note-text"
-          onChange={(e) => {
-            setNote(e.target.value);
-          }}
-        />
-      </label>
+      <NoteBox label="Note" place="correction" autoFocus maxLength={4000} value={note} onChange={setNote} testId="cn-note-text" />
       {add.isError ? (
         <p role="alert" className="text-sm text-danger">
           {messageOf(add.error)}

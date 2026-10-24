@@ -8,6 +8,7 @@ import { qk } from './keys';
 import { isMock } from './mock';
 import { irRpc, useIrMutation, type IrRef } from './inspections.mutations';
 import * as mock from './mock/inspections';
+import * as mockWorkHere from './mock/irWorkHere';
 import { irPdfResultSchema, irSendResultSchema, type IrSendResult } from './inspections.types';
 
 const base = (row: IrRef) => ({ p_request_id: row.id, p_version: row.version });
@@ -70,6 +71,11 @@ export function useAssignHelper() {
   return useIrMutation((v: { row: IrRef; helperId: string | null }) =>
     irRpc('ir_assign_helper', { ...base(v.row), ...(v.helperId ? { p_helper_id: v.helperId } : {}) }),
   );
+}
+
+/** Work it here (0117): a copy from MDR becomes the suite's own request, for whoever decides inspections on the job. */
+export function useWorkHere() {
+  return useIrMutation((row: IrRef) => (isMock() ? mockWorkHere.workHere(base(row)) : irRpc('ir_work_here', base(row))));
 }
 
 export function useClaimIr() {

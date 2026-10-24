@@ -302,9 +302,10 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
   return next;
 }
 
-/** A request changed by its walls (mock/revRequests: taken off or put back, 0109): the version check, the history line. */
-export function patchRequest(requestId: string, version: number, patch: Partial<IrRowRaw>, action: string): IrRowRaw {
-  const current = unmirrored(readable(requestId));
+/** A request changed by its walls (mock/revRequests: taken off or put back, 0109), or a copy from MDR worked here
+ *  (`copy`, mock/irWorkHere, 0117): the version check, the history line. */
+export function patchRequest(requestId: string, version: number, patch: Partial<IrRowRaw>, action: string, copy = false): IrRowRaw {
+  const current = copy ? readable(requestId) : unmirrored(readable(requestId));
   if (current.version !== version) throw conflictError();
   const now = new Date().toISOString();
   const next: IrRowRaw = { ...current, ...patch, version: current.version + 1, updated_at: now };

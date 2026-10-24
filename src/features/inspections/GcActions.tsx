@@ -1,12 +1,13 @@
 // The GC step (the job has it on, or the request is an OFS one: those always take it): approve, or return with a reason.
-// On an OFS request the approval is the GC Ready check in its chain (OfsChecks, 0091), so only Return is here.
+// On an OFS request the approval is the GC Ready check in its chain (OfsChecks, 0091), so only Return is here. The
+// reason takes the GC's quick phrases (NoteBox, 0117).
 import { useState } from 'react';
 import { Check, CornerUpLeft } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useGcDecide } from '../../data/inspections.mutations';
 import type { IrRequest } from '../../data/inspections.types';
 import { Button } from '../../ui/Button';
-import { TextField } from '../../ui/Fields';
+import { NoteBox } from '../phrases/NoteBox';
 
 export function GcActions({ row }: { row: IrRequest }) {
   const decide = useGcDecide();
@@ -39,7 +40,7 @@ export function GcActions({ row }: { row: IrRequest }) {
       </div>
       {returning ? (
         <div className="flex flex-wrap items-end gap-2">
-          <TextField label="Reason" value={reason} onChange={setReason} className="flex-1" autoFocus />
+          <NoteBox label="Reason" place="gc_return" single maxLength={1000} value={reason} onChange={setReason} className="min-w-0 flex-1" autoFocus testId="ir-gc-reason" />
           <Button
             disabled={reason.trim() === ''}
             loading={decide.isPending && !decide.variables.approve}

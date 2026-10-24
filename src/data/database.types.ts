@@ -2685,7 +2685,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -2758,7 +2761,10 @@ export type Database = {
           ir_file_id?: string | null
           items: string
           kind: string
+          mdr_detached_at?: string | null
+          mdr_detached_by?: string | null
           mdr_id?: string | null
+          mdr_source_id?: string | null
           mdr_updated_at?: string | null
           notice_ack_at: string
           number: number
@@ -2831,7 +2837,10 @@ export type Database = {
           ir_file_id?: string | null
           items?: string
           kind?: string
+          mdr_detached_at?: string | null
+          mdr_detached_by?: string | null
           mdr_id?: string | null
+          mdr_source_id?: string | null
           mdr_updated_at?: string | null
           notice_ack_at?: string
           number?: number
@@ -4865,6 +4874,48 @@ export type Database = {
           last_success_at?: string | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      quick_phrases: {
+        Row: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          add_key: string
+          body: string
+          context: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label: string
+          owner_id: string
+          sort?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          add_key?: string
+          body?: string
+          context?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label?: string
+          owner_id?: string
+          sort?: number
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -9032,7 +9083,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9120,7 +9174,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9290,7 +9347,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9372,7 +9432,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9458,7 +9521,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9540,7 +9606,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9622,7 +9691,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9720,7 +9792,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9808,7 +9883,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -9895,7 +9973,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10084,7 +10165,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10198,7 +10282,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10280,7 +10367,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10397,7 +10487,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10512,7 +10605,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10610,7 +10706,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10742,7 +10841,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10857,7 +10959,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -10940,7 +11045,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11022,7 +11130,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11104,7 +11215,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11190,7 +11304,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11272,7 +11389,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11360,7 +11480,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11450,7 +11573,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11554,7 +11680,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11650,7 +11779,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11744,7 +11876,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11838,7 +11973,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -11941,7 +12079,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -12023,7 +12164,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -12109,7 +12253,95 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
+          mdr_updated_at: string | null
+          notice_ack_at: string
+          number: number
+          ofs_attest_at: string | null
+          ofs_attest_by: string | null
+          ofs_attest_text: string | null
+          ofs_number: number | null
+          ofs_ready_at: string | null
+          ofs_ready_by: string | null
+          ofs_sched: string | null
+          ofs_sched_at: string | null
+          ofs_sched_by: string | null
+          ofs_sched_note: string | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          ofs_si_at: string | null
+          ofs_si_by: string | null
+          ofs_si_file_id: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ir_work_here: {
+        Args: { p_request_id: string; p_version: number }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
+          mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number
@@ -12505,6 +12737,92 @@ export type Database = {
       }
       mark_invite_opened: { Args: { p_project_id: string }; Returns: undefined }
       may_read_org_brand: { Args: { p_org_id: string }; Returns: boolean }
+      mdr_back_to_own: { Args: never; Returns: Json }
+      mdr_detach_row: {
+        Args: { p_by: string; p_id: string }
+        Returns: {
+          attachment_ids: string[]
+          attendance: string | null
+          company: string
+          confirm_note: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_kind: string
+          duration_min: number | null
+          gc_at: string | null
+          gc_by: string | null
+          gc_note: string | null
+          helper_at: string | null
+          helper_id: string | null
+          helper_note: string | null
+          helper_report: string | null
+          id: string
+          ir_file_id: string | null
+          items: string
+          kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
+          mdr_id: string | null
+          mdr_source_id: string | null
+          mdr_updated_at: string | null
+          notice_ack_at: string
+          number: number
+          ofs_attest_at: string | null
+          ofs_attest_by: string | null
+          ofs_attest_text: string | null
+          ofs_number: number | null
+          ofs_ready_at: string | null
+          ofs_ready_by: string | null
+          ofs_sched: string | null
+          ofs_sched_at: string | null
+          ofs_sched_by: string | null
+          ofs_sched_note: string | null
+          ofs_sent_at: string | null
+          ofs_sent_by: string | null
+          ofs_si_at: string | null
+          ofs_si_by: string | null
+          ofs_si_file_id: string | null
+          org_id: string
+          owner_id: string | null
+          pdf_postponed: boolean
+          pdf_stale: boolean
+          permit_id: string | null
+          postpone_count: number
+          postpone_note: string | null
+          postpone_reason: string | null
+          postpone_until: string | null
+          postponed_at: string | null
+          project_id: string
+          request_date: string
+          requested_by: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          result: string | null
+          result_at: string | null
+          result_by: string | null
+          result_note: string | null
+          result_photo_ids: string[]
+          results_sent_at: string | null
+          signed_at: string | null
+          signed_by: string | null
+          special_kind_id: string | null
+          special_required: boolean | null
+          start_time: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inspection_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mdr_file_claim: {
         Args: { p_limit: number }
         Returns: {
@@ -12553,6 +12871,7 @@ export type Database = {
       mdr_sane_date: { Args: { p_value: string }; Returns: string }
       mdr_sync_begin: { Args: never; Returns: Json }
       mdr_sync_end: { Args: never; Returns: Json }
+      mdr_undo_work_here: { Args: { p_request_id: string }; Returns: string }
       merge_sub_contacts: {
         Args: { p_existing: Json; p_incoming: Json }
         Returns: Json
@@ -13485,6 +13804,132 @@ export type Database = {
           worker_stale: boolean
         }[]
       }
+      quick_phrase_add: {
+        Args: {
+          p_body: string
+          p_context?: string
+          p_key: string
+          p_label: string
+        }
+        Returns: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quick_phrases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      quick_phrase_check: {
+        Args: { p_body: string; p_context: string; p_label: string }
+        Returns: undefined
+      }
+      quick_phrase_edit: {
+        Args: {
+          p_body: string
+          p_context: string
+          p_id: string
+          p_label: string
+          p_version: number
+        }
+        Returns: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quick_phrases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      quick_phrase_order: {
+        Args: { p_ids: string[] }
+        Returns: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "quick_phrases"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      quick_phrase_remove: {
+        Args: { p_id: string; p_version: number }
+        Returns: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quick_phrases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      quick_phrase_restore: {
+        Args: { p_id: string }
+        Returns: {
+          add_key: string
+          body: string
+          context: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          owner_id: string
+          sort: number
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "quick_phrases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      quick_phrase_room: { Args: { p_owner: string }; Returns: undefined }
       record_cslb_check: {
         Args: { p_status: string; p_sub_id: string; p_version: number }
         Returns: {
@@ -17081,7 +17526,10 @@ export type Database = {
           ir_file_id: string | null
           items: string
           kind: string
+          mdr_detached_at: string | null
+          mdr_detached_by: string | null
           mdr_id: string | null
+          mdr_source_id: string | null
           mdr_updated_at: string | null
           notice_ack_at: string
           number: number

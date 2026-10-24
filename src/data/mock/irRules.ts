@@ -16,7 +16,7 @@ export const NO_OFS_CHECKS = {
 } as const;
 
 /** A request filed in the suite, not copied from My Daily Reports (0112). */
-export const NOT_MIRRORED = { mdr_id: null, mdr_updated_at: null } as const;
+export const NOT_MIRRORED = { mdr_id: null, mdr_updated_at: null, mdr_source_id: null, mdr_detached_at: null, mdr_detached_by: null } as const;
 
 /** A request copied from MDR is view only (0112): every step refuses it, in the database's words (ir_for_update). */
 export function unmirrored<T extends Pick<Row, 'mdr_id'>>(r: T): T {

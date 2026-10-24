@@ -37,7 +37,8 @@ type IrRpcName =
   | 'ir_ofs_check'
   | 'ir_ofs_number_set'
   | 'ir_ofs_propose'
-  | 'ir_ofs_accept';
+  | 'ir_ofs_accept'
+  | 'ir_work_here';
 
 /** The request fields a write needs: which one, and the version I saw (the database refuses a stale one). */
 export type IrRef = Pick<IrRequest, 'id' | 'version' | 'project_id'>;
