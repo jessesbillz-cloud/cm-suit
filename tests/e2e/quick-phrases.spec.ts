@@ -1,6 +1,7 @@
 // Quick phrases (0117; Jesse, Oct 23: "save whatever they want as their own quick button ... all I've got to do is tap
 // it and it says the same thing every time") against the e2e mock. None ship. 'pm' works MDR's IR 7 (Sample Job B, 45
-// days back, approved) here, saves a quick button from its pass note, and one tap puts the phrase in the note, saved.
+// days back, approved, its note already written) here, saves a quick button from the tiny form, and one tap puts the
+// phrase on a new line of the note, saved.
 // Holding it (a right-click here) opens it: Remove, with Undo.
 // Test ids: ir-queue-<n>, right-column, ir-work-here, ir-result-step, phrase-new, phrase-form, phrase-text, phrase-name,
 // phrase-save, phrase-chip, phrase-remove, ir-result-note, ir-outcome.
@@ -58,7 +59,8 @@ test.describe('quick phrases (0117)', () => {
       (window as unknown as TapWindow).__taps = 0;
     });
     await chip.click();
-    await expect(step.getByTestId('ir-result-note')).toHaveValue(PHRASE);
+    // IR 7's note already says something: the phrase goes on a new line after it.
+    await expect(step.getByTestId('ir-result-note')).toHaveValue(/(^|\n)Inspected per sample detail 3\. OK to cover\.$/);
     await expect(right.getByTestId('ir-outcome')).toContainText('OK to cover.');
     expect(await page.evaluate(() => (window as unknown as TapWindow).__taps)).toBeLessThanOrEqual(1);
 
