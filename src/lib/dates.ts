@@ -59,3 +59,12 @@ export function weekStartInZone(tz: string, now: Date = new Date()): string {
   const monday = format(subDays(parseISO(todayInZone(tz, now)), isoWeekday - 1), 'yyyy-MM-dd');
   return fromZonedTime(`${monday}T00:00:00`, tz).toISOString();
 }
+
+/** A day's heading in a list grouped by day (the board): Today, Yesterday, else the weekday and date (the year when
+ *  it isn't this year), all in the given zone. `day` is yyyy-MM-dd. */
+export function dayHeading(day: string, tz: string, now: Date = new Date()): string {
+  const today = todayInZone(tz, now);
+  if (day === today) return 'Today';
+  if (day === format(subDays(parseISO(today), 1), 'yyyy-MM-dd')) return 'Yesterday';
+  return formatDay(day, day.slice(0, 4) === today.slice(0, 4) ? 'EEEE, MMM d' : 'EEEE, MMM d, yyyy');
+}
