@@ -1,11 +1,13 @@
 // One wall's own inspection page (Jesse, Oct 3: "the whole wall gets built out on its own inspection page ... a 3-D
 // version of it sitting there"; Oct 23: "I liked the 3-D image of the wall front and center ... click a wall and boom,
-// there's its 3-D version"). One compact line (its name, tag and tally), then the 3-D wall large with each part tinted
-// by its state: beside the items on a desktop (most of the screen), held at the top half on a phone or iPad while the
-// items scroll under it. The items are big boxes in their state grouped by rev (WallItems): a tap shows the item on
-// the wall with a leader and its facts under the drawing, a tap on the wall shows that part's item. Whoever files OFS
-// requests has Add under each box still to ask for: it goes in the request being built (0113), whose bar is at the
-// bottom. Everything else is below, quiet: its details and sheet, where it is in its room and on the plan, its
+// there's its 3-D version"). One compact line (its name, tag and tally), then the 3-D wall at the top with each part
+// tinted by its state, sized so the line, the drawing and the first row of items fit the first screen. One scroll
+// (Jesse, Oct 23, 18:51: "I don't like the double scrolling ... shrink the wall down so it all fits on one screen at
+// the top"): nothing is held in place; the items scroll with the page under the drawing. The items are big boxes in
+// their state grouped by rev (WallItems): a tap shows the item on the wall with a leader and its facts under the
+// drawing (the page brings the drawing back when it is off screen), a tap on the wall shows that part's item. Whoever
+// files OFS requests has Add under each box still to ask for: it goes in the request being built (0113), whose bar is
+// at the bottom. Everything else is below, quiet: its details and sheet, where it is in its room and on the plan, its
 // photos and every inspection per item. A manager renames or removes the wall from the top line (Undo), checks one
 // added on the spot (Confirm), and signs items or a whole rev off before the app (0082). Opened from an item's chip on
 // its room's row (?item=), that item is shown. Opened from a room, Back goes to the room, else to its level. In its own
@@ -33,6 +35,7 @@ import { WallRoomPick } from './room/WallRoomPick';
 import { roomLabel } from './rooms';
 import { useOpenRevFile } from './useOpenRevFile';
 import { useRevsNav } from './useRevsNav';
+import { useShowWall } from './useShowWall';
 import { Wall3D } from './wall3d/Wall3D';
 import { useWidth } from './wall3d/useWidth';
 import { SignoffForm, useSignoffActions, type SignTarget } from './WallBefore';
@@ -78,6 +81,7 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, basket, 
   // Beside the page on a desktop; on a phone (or alone in a window) the request is its own screen, a file the viewer.
   const beside = !isPhone && !alone;
   const [frame, width] = useWidth(isPhone ? 390 : 800);
+  const [stage, showWall] = useShowWall();
   const history = useWallHistory(projectId, area.id);
   const confirm = useConfirmFieldWall();
   const checking = canManage && needsCheck(area);
@@ -98,14 +102,17 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, basket, 
   const before = useSignoffActions(projectId, area.id);
   const shown = items.find((i) => i.item.id === pick.focus) ?? null;
   const count = countOf(items.map((i) => i.cell.status));
-  // Side by side only with room for both; else the drawing over the items, held at the top, like a phone.
+  // The drawing's height: at most its shape allows at the column's width, and short enough that the top line, the
+  // drawing, its facts and the first row of items share the first screen.
   const wide = !isPhone && width >= 1000;
+  const wallHeight = isPhone ? '44dvh' : `max(240px, min(${wide ? '55dvh' : '50dvh'}, 100dvh - 340px))`;
   const openFile = useOpenRevFile(projectId, beside ? (fileId) => { nav.openBeside(area.id, { fileId }); } : undefined);
   // The decided request opens only for those who may read it (rev_wall_history's can_open).
   const canOpen = (requestId: string) => history.data?.some((r) => r.request_id === requestId && r.can_open) ?? false;
   const manage = useWallManage({ projectId, area, setup, isPhone, onRemoved: () => { nav.close(area.level.trim()); } });
   const onTap = (item: WallItem) => {
     setPick({ focus: item.item.id, part: item.part });
+    showWall();
   };
   // Where it is in its room (not again when it was opened from the room: Back goes there), and on the plan.
   const where: ReactNode = (
@@ -149,43 +156,40 @@ function WallBody({ projectId, area, setup, index, timeZone, canManage, basket, 
         />
       ) : null}
       {manage.form}
-      <div className={wide ? 'grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-start gap-6' : 'flex flex-col gap-3'}>
-        <div className={`sticky top-0 z-10 flex flex-col gap-1 bg-card ${isPhone ? '-mx-4 border-b-2 border-ink px-4 pb-2' : wide ? '' : 'border-b-2 border-ink pb-2'}`}>
-          <Wall3D
-            states={states}
-            focus={pick.part ?? undefined}
-            focusLabel={shown?.item.name}
-            onPick={(part) => { setPick(tapPart(pick, part, items)); }}
-            // Front and center: most of a desktop window, the top half of a phone or iPad.
-            maxHeight={wide ? 'max(320px, 100dvh - 260px)' : isPhone ? '46dvh' : '54dvh'}
-            testId="rev-wall-3d"
-          />
-          <WallFacts
-            projectId={projectId}
-            area={area}
-            shown={shown}
-            timeZone={timeZone}
-            canManage={canManage}
-            onOpenRequest={nav.openRequest}
-            canOpen={canOpen}
-            onSignBefore={(i) => { setSigning({ itemIds: [i.item.id], label: i.item.name }); }}
-            onClearBefore={(i) => { before.clear({ itemIds: [i.item.id], label: i.item.name }); }}
-          />
-        </div>
-        {/* An item scrolled to lands clear of the drawing held at the top and the bar below. */}
-        <div className={wide ? undefined : isPhone ? '[&_button]:scroll-mb-28 [&_button]:scroll-mt-[calc(46dvh+7rem)]' : '[&_button]:scroll-mb-28 [&_button]:scroll-mt-[calc(54dvh+7rem)]'}>
-          {signing ? (
-            <SignoffForm key={signing.itemIds.join(',')} target={signing} onSave={(v) => before.set(signing, v)} onCancel={() => { setSigning(null); }} />
-          ) : null}
-          <WallItems
-            revs={revs}
-            items={items}
-            pick={pick}
-            onTap={onTap}
-            basket={wallBasket}
-            onSignRev={canManage ? (rev, itemIds) => { setSigning({ itemIds, label: `Rev ${String(rev.number)} · ${rev.name}` }); } : undefined}
-          />
-        </div>
+      <div ref={stage} className="flex flex-col gap-1" data-testid="rev-wall-stage">
+        <Wall3D
+          states={states}
+          focus={pick.part ?? undefined}
+          focusLabel={shown?.item.name}
+          onPick={(part) => { setPick(tapPart(pick, part, items)); }}
+          maxHeight={wallHeight}
+          testId="rev-wall-3d"
+        />
+        <WallFacts
+          projectId={projectId}
+          area={area}
+          shown={shown}
+          timeZone={timeZone}
+          canManage={canManage}
+          onOpenRequest={nav.openRequest}
+          canOpen={canOpen}
+          onSignBefore={(i) => { setSigning({ itemIds: [i.item.id], label: i.item.name }); }}
+          onClearBefore={(i) => { before.clear({ itemIds: [i.item.id], label: i.item.name }); }}
+        />
+      </div>
+      {signing ? (
+        <SignoffForm key={signing.itemIds.join(',')} target={signing} onSave={(v) => before.set(signing, v)} onCancel={() => { setSigning(null); }} />
+      ) : null}
+      {/* An item scrolled to lands clear of the request's bar at the bottom. */}
+      <div className="mt-1 [&_button]:scroll-mb-28">
+        <WallItems
+          revs={revs}
+          items={items}
+          pick={pick}
+          onTap={onTap}
+          basket={wallBasket}
+          onSignRev={canManage ? (rev, itemIds) => { setSigning({ itemIds, label: `Rev ${String(rev.number)} · ${rev.name}` }); } : undefined}
+        />
       </div>
       <WallInfo
         projectId={projectId}
