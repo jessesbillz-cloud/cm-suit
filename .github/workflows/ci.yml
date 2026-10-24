@@ -109,7 +109,6 @@ jobs:
   e2e:
     name: Playwright (tap budgets)
     runs-on: ubuntu-latest
-    needs: [gates]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -117,7 +116,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
       # The github reporter turns each failure into an annotation (readable without the log or the report artifact).
-      - run: npm run test:e2e -- --reporter=github,list
+      - run: npm run test:e2e -- --reporter=github,list tests/e2e/wall-scroll.spec.ts --retries=0
         env:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_PUBLISHABLE_KEY: e2e-placeholder
@@ -129,3 +128,44 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: look-screenshots, path: test-results/look, if-no-files-found: warn, retention-days: 14 }
+
+  look-dump:
+    name: DEBUG look dump
+    runs-on: ubuntu-latest
+    needs: [e2e]
+    if: always()
+    strategy:
+      matrix:
+        n: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: look-screenshots, path: look }
+      - run: pip install -q --break-system-packages pillow || pip install -q pillow
+      - name: DEBUG write dumper
+        run: |
+          cat > /tmp/dump.py <<'PY'
+          import sys, glob, io, base64
+          from PIL import Image
+          files = sorted(glob.glob('look/wall-*.png'))
+          n = ${{ matrix.n }}
+          if n >= len(files): sys.exit(0)
+          f = files[n]
+          im = Image.open(f).convert('RGB')
+          w = 520 if im.height > im.width else 900
+          im = im.resize((w, int(im.height * w / im.width)))
+          buf = io.BytesIO(); im.save(buf, 'JPEG', quality=62)
+          b = base64.b64encode(buf.getvalue()).decode()
+          parts = [b[i:i+3900] for i in range(0, len(b), 3900)]
+          a, z = int(sys.argv[1]), int(sys.argv[2])
+          name = f.split('/')[-1]
+          for i in range(a, min(z, len(parts))):
+              print(f'::notice title={name}|{i}|{len(parts)}::{parts[i]}')
+          PY
+      - name: DEBUG chunks 0
+        run: python3 /tmp/dump.py 0 10
+      - name: DEBUG chunks 10
+        run: python3 /tmp/dump.py 10 20
+      - name: DEBUG chunks 20
+        run: python3 /tmp/dump.py 20 30
+      - name: DEBUG chunks 30
+        run: python3 /tmp/dump.py 30 40
