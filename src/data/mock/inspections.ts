@@ -202,16 +202,11 @@ function withOfs(row: IrRowRaw, s: IrState): IrRowRaw {
   return { ...row, ofs_number: Math.max(0, ...used) + 1 };
 }
 
-/** What ir_first_status reads of the job: its GC step setting, whether somebody active can do the GC step, and whether
- *  its OFS route has the contractor check (0116). */
+/** What ir_first_status reads of the job: its GC step, whether somebody active can do it, its OFS route's check (0116). */
 function jobFacts(projectId: string): { gcStep: boolean; gcApprover: boolean; ofsCheck: boolean } {
-  const revoked = readMock().revoked;
   const settings = parseProjectSettings(projectSettings(projectId));
-  return {
-    gcStep: settings.ir_gc_approval,
-    ofsCheck: !settings.ir_ofs_gc_off,
-    gcApprover: MOCK_PEOPLE.some((p) => p.status === 'active' && !revoked.includes(p.member_id) && holds(p.user_id, 'ir.gc_approve')),
-  };
+  const gcApprover = MOCK_PEOPLE.some((p) => p.status === 'active' && !readMock().revoked.includes(p.member_id) && holds(p.user_id, 'ir.gc_approve'));
+  return { gcStep: settings.ir_gc_approval, ofsCheck: !settings.ir_ofs_gc_off, gcApprover };
 }
 
 /**
@@ -290,8 +285,7 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
     wallResult: readRevs().cells.some((c) => c.request_id === current.id && c.result !== null),
     permits: { manage: hasPermitRight('permits.manage'), read: hasPermitRight('permits.read') },
     sender: holds(me, 'ir.decide') || holder(current.project_id) === me,
-    holder: holder(current.project_id) === me,
-    route: route(current.project_id),
+    holder: holder(current.project_id) === me, route: route(current.project_id),
     numberTaken: (n) => read().requests.some((r) => r.project_id === current.project_id && r.id !== current.id && r.ofs_number === n),
   });
   if (change === null) return current;
