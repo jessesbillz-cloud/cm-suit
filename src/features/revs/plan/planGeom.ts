@@ -5,23 +5,23 @@
 // corner already drawn, or square to the last point), the part of the sheet a thumbnail shows, and a level's sheets.
 // Pure; tested in planGeom.test.ts.
 import type { RevArea, WallLine } from '../../../data/revs.types';
-import type { StatusKey } from '../../../lib/status';
+import { CARD_STATE, type StatusKey } from '../../../lib/status';
 import type { WallCount } from '../wallPage';
 
 export type Pt = [number, number];
 
-/** A wall's color on the plan (lib/status): any failed red, any requested gold, all passed green; null = neutral. */
+/** A wall's color on the plan (lib/status's card colors): any failed red, any asked for blue, all signed off green;
+ *  null = neutral. */
 export function wallTone(c: WallCount): StatusKey | null {
-  if (c.failed > 0) return 'not_approved';
-  if (c.requested > 0) return 'pending';
-  if (c.needed > 0 && c.passed === c.needed) return 'approved';
+  if (c.failed > 0) return CARD_STATE.failed.key;
+  if (c.requested > 0) return CARD_STATE.asked_for.key;
+  if (c.needed > 0 && c.passed === c.needed) return CARD_STATE.signed_off.key;
   return null;
 }
 
 /** The tone as a color, the one each status bar uses (WallProgress); neutral is a grey that reads on a drawing. */
 export function toneColor(tone: StatusKey | null): string {
   if (tone === null) return 'var(--status-step_ahead-fg)';
-  if (tone === 'pending') return 'var(--status-pending-dot)';
   return `var(--status-${tone}-solid)`;
 }
 

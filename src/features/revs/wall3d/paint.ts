@@ -1,7 +1,7 @@
 // How each piece of the 3-D wall is painted: a light grey line drawing by material, or tinted by its state with the
-// lib/status colors (passed green, requested gold, failed red; N/A faded). Faces are shaded darker by how they face
+// lib/status colors (passed green, asked for blue, failed red; N/A faded). Faces are shaded darker by how they face
 // the light. Pure.
-import { STATUS } from '../../../lib/status';
+import { CARD_STATE, STATUS } from '../../../lib/status';
 import type { Material } from './assembly';
 
 export type PartState = 'passed' | 'requested' | 'failed' | 'open' | 'na';
@@ -51,9 +51,9 @@ const MATERIAL_FILL: Record<Material, string> = {
 };
 
 const TINTS: Record<'passed' | 'requested' | 'failed', (typeof STATUS)[keyof typeof STATUS]> = {
-  passed: STATUS.approved,
-  requested: STATUS.pending,
-  failed: STATUS.not_approved,
+  passed: STATUS[CARD_STATE.signed_off.key],
+  requested: STATUS[CARD_STATE.asked_for.key],
+  failed: STATUS[CARD_STATE.failed.key],
 };
 
 /** The deck's steel sheet and the beam: a shade darker than the studs, so the sheet's wave and the beam's I read. */

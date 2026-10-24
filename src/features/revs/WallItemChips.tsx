@@ -1,6 +1,6 @@
 // A wall's items (itemLines) on its Walls tile (Jesse, Oct 8: "each of those inspectable items should be on that first
 // page"): per rev it needs, the rev written out ("Rev 1 · HOW - Cavity") over its items as boxes, each the whole box in
-// its state (StateBox: passed green with its OFS number, requested gold, failed red, open white). Items not applicable
+// its state (StateBox: passed green with its OFS number, asked for blue, failed red, open white). Items not applicable
 // on the wall are not shown. Every box does something: the caller says what (a passed one with its OFS IR on file
 // opens it, the rest the wall at that item). Each says its whole name when spoken or hovered. The boxes sit over the
 // card's stretched open button; the rest of the card still opens the wall.

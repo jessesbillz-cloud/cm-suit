@@ -1,7 +1,7 @@
 // A wall's revs as one strip of boxes (revStrip): on a room's rows by the rev's name (Jesse, Oct 11: "bubbles you
 // click" for each wall, a tap opens the wall on its model). The wall's own page has its revs once, with their items
 // (WallItems; Jesse, Oct 12), and the Walls tiles show its items instead (WallItemChips). Each box is filled with its
-// state (StateBox, Jesse Oct 12: "the whole box should be green"): done green with a check, requested gold, failed red,
+// state (StateBox, Jesse Oct 12: "the whole box should be green"): done green with a check, asked for blue, failed red,
 // open white. A rev the wall doesn't need has no box. Every box does something: the caller says what (a done one with
 // its OFS IR on file opens it, the rest the wall). Each says it all when spoken or hovered.
 import { chipName, chipText, markBox, type ChipLabel, type StripChip } from './revStrip';

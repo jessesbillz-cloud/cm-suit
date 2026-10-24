@@ -28,7 +28,7 @@ const SETUP: RevSetup = {
 // North: top of wall passed, spray failed. South: stuff asked for. East: spray not applicable.
 const STATUS = indexStatus([row('a1', 'i01', 'passed'), row('a2', 'i11', 'requested'), row('a3', 'i12', 'na'), row('a1', 'i12', 'failed')]);
 const ROOMS: RevRooms = {
-  rooms: [{ ...base, id: 'm1', list_id: 'l1', level: 'Level 03', number: '0302', name: 'Classroom', kind: 'room', image_name: null, image_file_id: null, position: 1, card_at: null }],
+  rooms: [{ ...base, id: 'm1', list_id: 'l1', level: 'Level 03', number: '0302', name: 'Classroom', kind: 'room', image_name: null, image_file_id: null, position: 1, card_at: null, card_locked_at: null, card_locked_by: null }],
   walls: [1, 2, 3].map((n) => ({ ...base, id: `w${String(n)}`, room_id: 'm1', area_id: `a${String(n)}`, line: null, position: n })),
   out: [],
 };

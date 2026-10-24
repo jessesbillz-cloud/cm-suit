@@ -4,7 +4,7 @@
 // signed off before), requested when one is asked for, else open (with how many are done). Each level has its totals:
 // per rev, the walls done of those that need it, and the walls done in every rev.
 import type { Rev, RevArea, RevList, RevSetup } from '../../data/revs.types';
-import type { StatusKey } from '../../lib/status';
+import { CARD_STATE, type StatusKey } from '../../lib/status';
 import { cellOf, levelsOf, type StatusIndex } from './model';
 
 export type CheckMark = 'done' | 'failed' | 'requested' | 'open' | 'na';
@@ -75,7 +75,7 @@ export function checklistOf(setup: RevSetup, index: StatusIndex): CheckLevel[] {
 export const MARKS: Record<CheckMark, { key: StatusKey; label: string }> = {
   done: { key: 'approved', label: 'Done' },
   failed: { key: 'not_approved', label: 'Failed' },
-  requested: { key: 'pending', label: 'Requested' },
-  open: { key: 'step_ahead', label: 'Open' },
+  requested: CARD_STATE.asked_for,
+  open: CARD_STATE.needed,
   na: { key: 'cancelled', label: 'N/A' },
 };

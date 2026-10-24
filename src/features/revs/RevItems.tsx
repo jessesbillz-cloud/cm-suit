@@ -1,7 +1,7 @@
 // The request picker's items: big boxes that just say what each one is (the room page's short name, itemLines: "Stuff"
 // under "HOW - Cavity"), under their rev's name, only the ones the picked walls need (an item not applicable on any of
 // them is not offered; Jesse, Oct 12). Each box is the whole of it in its state on those walls (StateBox): passed on
-// every one green with a check, not pickable; asked for already gold; failed last time red; open white. Three at most
+// every one green with a check, not pickable; asked for already blue; failed last time red; open white. Three at most
 // (OSFM: three colors on a sheet); a picked one is the accent and carries its map color, so the picked boxes are the
 // legend.
 import type { MarkupColor } from '../../lib/markup';
