@@ -20,6 +20,10 @@ describe('settings', () => {
     expect(parseProjectSettings({ ir_ofs_attest_text: '   ' }).ir_ofs_attest_text).toBeNull();
     expect(parseProjectSettings({ ir_ofs_attest_text: ' Sample VIS wording ' }).ir_ofs_attest_text).toBe('Sample VIS wording');
   });
+  it("the OFS route defaults to Jesse's: the contractor checks, the inspector sends (0116)", () => {
+    expect(parseProjectSettings({})).toMatchObject({ ir_ofs_gc_off: false, ir_ofs_duty_sends: false });
+    expect(parseProjectSettings({ ir_ofs_gc_off: true, ir_ofs_duty_sends: 'yes' })).toMatchObject({ ir_ofs_gc_off: true, ir_ofs_duty_sends: false });
+  });
   it("the job's fire list: its own entries, else the standard one (null); typed with commas or spaces in a section", () => {
     expect(parseProjectSettings({ ofs_fire_sections: ['21', '0784', '078100'] }).ofs_fire_sections).toEqual(['21', '0784', '078100']);
     expect(parseProjectSettings({ ofs_fire_sections: ['nope'] }).ofs_fire_sections).toBeNull();

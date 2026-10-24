@@ -2,8 +2,8 @@
 // Result; an OFS request adds OFS before the result), the notes, "View IR" once done, history behind one link, and
 // what I may do: move or withdraw my own, the GC step, the steps of whoever decides it now (model decidesRequest: the
 // inspector, or the deputy once an OFS request is sent to OFS). On an OFS request the inspector only sends it on or
-// postpones it (OfsRoute), and the job's OFS duty holder sends it once the inspector has checked it. An OFS request
-// shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
+// postpones it (OfsRoute), or the job's OFS duty holder sends it once the inspector has checked it, as the job's route
+// says (0116). An OFS request shows its chain and checks (OfsChecks, 0091). The database decides each one again. An OFS request with walls also
 // shows its walls and items (with their results) and its map; until a result, whoever may takes walls off it there
 // (PullBack, 0109: the requester, the job's OFS duty holder, the GC step), never the fire marshal. A request copied
 // from My Daily Reports (0112) is marked From MDR and shows no step at all: it is view only. A request filed in a
@@ -75,7 +75,7 @@ function DeciderSteps({ row, can, me, jobName, revs, holder }: DeciderStepsProps
   const decides = decidesRequest(row, can);
   if (row.kind !== 'ofs') return decides ? <InspectorPanel row={row} me={me} jobName={jobName} revs={revs} /> : null;
   if (decides && !routesOnly(row)) return <InspectorPanel row={row} me={me} jobName={jobName} revs={revs} helper={false} />;
-  return can.decide || holder ? <OfsRoute row={row} me={me} revs={revs} inspector={can.decide} /> : null;
+  return can.decide || holder ? <OfsRoute row={row} me={me} revs={revs} inspector={can.decide} holder={holder} /> : null;
 }
 
 function RequestBody({ row, can, job, onOpenWindow }: BodyProps) {

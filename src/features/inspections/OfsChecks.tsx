@@ -1,7 +1,8 @@
-// An OFS request's chain (0091), what everyone who reads it sees, the fire marshal included: the sub's attestation, then
-// the checks in order, each one tap for whoever does it (GC Ready, inspector Ready, SI report when a special inspection
-// is required) and Undo for them while the next step has not happened, then the send. Who sends OFS requests on this
-// job shows under it. The database decides each tap again.
+// An OFS request's chain (0091), what everyone who reads it sees, the fire marshal included: the job's route on one line
+// with where the request is on it (0116), the sub's attestation, then the checks in order, each one tap for whoever
+// does it (GC Ready while the route has the contractor check, inspector Ready where the duty holder sends, SI report
+// when a special inspection is required) and Undo for them while the next step has not happened, then the send. Who
+// sends OFS requests on this job shows under it. The database decides each tap again.
 import { Square, SquareCheck, Undo2 } from 'lucide-react';
 import { messageOf } from '../../data/errors';
 import { useOfsChain, useOfsCheck, type OfsCheck, type OfsStep } from '../../data/inspections.ofs';
@@ -12,8 +13,9 @@ import { Icon } from '../../ui/Icon';
 import { PaneSection } from '../../ui/ReadingPane';
 import { ErrorState, LoadingState } from '../../ui/States';
 import { useToast } from '../../ui/Toast';
-import { ofsCheckRights } from './ofsFlow';
+import { ofsCheckRights, routeAt } from './ofsFlow';
 import { OfsNumberField } from './OfsNumberField';
+import { RouteLine } from './RouteLine';
 import type { IrCan } from './useIrAccess';
 
 interface OfsChecksProps {
@@ -91,7 +93,7 @@ export function OfsChecks({ row, can, me, tz, sender, holderName }: OfsChecksPro
   if (chain.isPending) return <LoadingState label="Loading the checks" />;
   const c = chain.data;
   if (c === null) return null;
-  const rights = ofsCheckRights(row, can, me);
+  const rights = ofsCheckRights(row, can, me, c.route);
   const busy = check.isPending;
   const tap = (which: OfsCheck, on: boolean) => () => {
     check.mutate(
@@ -106,15 +108,20 @@ export function OfsChecks({ row, can, me, tz, sender, holderName }: OfsChecksPro
 
   return (
     <PaneSection title="OFS" testId="ofs-checks">
+      <RouteLine route={c.route} at={routeAt(c.step, c.sent !== null)} />
       {sender && row.signed_at === null && row.status !== 'withdrawn' ? <OfsNumberField key={`${row.id}:${String(row.ofs_number)}`} row={row} /> : null}
       <ul className="flex flex-col divide-y divide-line">
         {c.attest ? (
           <Line label="Attested" step={c.attest} tz={tz} testId="ofs-attest" onCheck={null} onUndo={null} busy={false} detail={c.attest.text} />
         ) : null}
-        <Line label="GC ready" step={c.gc} tz={tz} testId="ofs-gc" busy={busy}
-          onCheck={rights.gc ? tap('gc', true) : null} onUndo={rights.gcUndo ? tap('gc', false) : null} />
-        <Line label="Inspector ready" step={c.ready} tz={tz} testId="ofs-ready" busy={busy}
-          onCheck={rights.ready ? tap('ready', true) : null} onUndo={rights.readyUndo ? tap('ready', false) : null} />
+        {c.route.gc || c.gc !== null ? (
+          <Line label="GC ready" step={c.gc} tz={tz} testId="ofs-gc" busy={busy}
+            onCheck={rights.gc ? tap('gc', true) : null} onUndo={rights.gcUndo ? tap('gc', false) : null} />
+        ) : null}
+        {c.route.sender === 'duty' ? (
+          <Line label="Inspector ready" step={c.ready} tz={tz} testId="ofs-ready" busy={busy}
+            onCheck={rights.ready ? tap('ready', true) : null} onUndo={rights.readyUndo ? tap('ready', false) : null} />
+        ) : null}
         {c.special_required ? (
           <Line label="SI report" step={c.si} tz={tz} testId="ofs-si" busy={busy}
             onCheck={rights.si ? tap('si', true) : null} onUndo={rights.siUndo ? tap('si', false) : null} />

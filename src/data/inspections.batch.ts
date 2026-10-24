@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { supabase } from './client';
 import { throwIfError } from './errors';
 import { qk } from './keys';
+import { ofsRouteSchema } from './inspections.ofs';
 import { isMock } from './mock';
 import * as mock from './mock/irBatch';
 
@@ -22,6 +23,8 @@ const batchSchema = z.object({
   items: z.string(),
   /** The step I take on it now, or null when none of it waits on me. */
   step: stepSchema.nullable(),
+  /** The job's OFS route (0116). */
+  route: ofsRouteSchema,
   requests: z.array(
     z.object({
       id: z.string(),

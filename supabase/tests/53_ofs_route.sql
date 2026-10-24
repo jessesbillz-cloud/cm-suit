@@ -145,7 +145,7 @@ select is(array[(pg_temp.req('A')).status, ((pg_temp.req('A')).ofs_sent_at is nu
 insert into ids select 'W', (public.ir_submit_ofs('c0000000-0000-0000-0000-000000000541', 'Sample Firestop Co', pg_temp.d(3), true,
   array[pg_temp.rid('wA'), pg_temp.rid('wB')], array[pg_temp.rid('tow')], null, '09:00', 'timed', 60, '{}', false)).id;
 select is((pg_temp.req('W')).status, 'gc_review', 'the revs request too');
-select is(pg_temp.lines('a0000000-0000-0000-0000-000000000545', 'A'), array['ir.gc_review'], 'board: the GC is told');
+select is(pg_temp.lines('a0000000-0000-0000-0000-000000000545', 'A'), array['ir.ofs_filed'], 'board: the GC is told (0116: filed)');
 select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A'), '{}'::text[], 'board: the deputy is not');
 select pg_temp.login('a0000000-0000-0000-0000-000000000541');
 insert into ids select 'G', (pg_temp.ask('ofs', 'Fire pump test', false)).id;
@@ -158,7 +158,7 @@ insert into ids select 'N', (pg_temp.ask('ofs', 'Damper test', false, true)).id;
 select is(array[(pg_temp.req('N')).status, ((pg_temp.req('N')).ofs_sent_at is not null)::text,
                 ((pg_temp.req('N')).ofs_sent_by = 'a0000000-0000-0000-0000-000000000542')::text, ((pg_temp.req('N')).owner_id is null)::text],
   array['pending', 'true', 'true', 'true'], '... and goes straight to OFS, sent by him');
-select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'N'), array['ir.ofs'], 'board: the deputy is told');
+select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'N'), array['ir.ofs_sent'], 'board: the deputy is told (0116: sent)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000542');
 insert into ids select 'O', (pg_temp.ask('ior', 'The inspector''s own IOR request')).id;
 select is(array[(pg_temp.req('O')).status, ((pg_temp.req('O')).ofs_sent_at is null)::text], array['pending', 'true'],
@@ -189,7 +189,7 @@ select is((public.ir_move(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(4), '08:
 select pg_temp.login('a0000000-0000-0000-0000-000000000545');
 select is((public.ir_gc_decide(pg_temp.rid('A'), pg_temp.ver('A'), true)).status, 'pending', 'the GC confirms: with the inspector');
 select public.ir_gc_decide(pg_temp.rid('W'), pg_temp.ver('W'), true);
-select ok('ir.requested' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000542', 'A')), 'board: the inspector is told');
+select ok('ir.ofs_filed' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000542', 'A')), 'board: the inspector is told (0116: checked)');
 select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A'), '{}'::text[], 'board: still nothing for the deputy');
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -245,10 +245,10 @@ select is((select array[(r).status, ((r).ofs_sent_at is not null)::text, ((r).of
 select is((public.ir_send_ofs(pg_temp.rid('A'), pg_temp.ver('A'))).id, pg_temp.rid('A'), 'sending again changes nothing');
 select ok(exists (select 1 from public.ir_events where request_id = pg_temp.rid('A') and action = 'send_ofs'
                      and actor_id = 'a0000000-0000-0000-0000-000000000542'), 'history: the send, by the inspector');
-select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A'), array['ir.ofs'], 'board: the deputy is told now');
-select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.ofs'
-                     and summary like 'IR % (OFS %) for OFS · Sample Firestop Co · %'), 'board: with both numbers');
-select ok('ir.ofs' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000544', 'A')), 'board: the requester is told it went to OFS');
+select is(pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A'), array['ir.ofs_sent'], 'board: the deputy is told now');
+select ok(exists (select 1 from public.activity where entity_id = pg_temp.rid('A') and kind = 'ir.ofs_sent'
+                     and summary like 'OFS #% sent to OFS · Sample Firestop Co · %'), 'board: with the OFS number');
+select ok('ir.ofs_sent' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000544', 'A')), 'board: the requester is told it went to OFS');
 
 -- Undo of the send
 select pg_temp.login('a0000000-0000-0000-0000-000000000546');
@@ -307,7 +307,7 @@ select is((public.ir_postpone(pg_temp.rid('A'), pg_temp.ver('A'), 'weather')).st
 select pg_temp.login('a0000000-0000-0000-0000-000000000544');
 select is((select array[(r).status, ((r).ofs_sent_at is not null)::text] from (select public.ir_move(pg_temp.rid('A'), pg_temp.ver('A'), pg_temp.d(7), '08:00', 'timed', 60) as r) x),
   array['pending', 'true'], 'the sub picks a new day: back with the deputy (still with OFS)');
-select ok('ir.moved' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A')), 'board: the deputy is told of the move');
+select ok(not ('ir.moved' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'A'))), 'board: no line for a move (0116)');
 select ok(not ('ir.moved' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000546', 'A'))), 'board: the inspectors are not');
 select pg_temp.login('a0000000-0000-0000-0000-000000000543');
 select is((public.ir_set_attendance(pg_temp.rid('A'), pg_temp.ver('A'), 'be_present')).attendance, 'be_present', 'the deputy sets attendance');
@@ -429,7 +429,7 @@ select is((public.ir_confirm(pg_temp.rid('O'), pg_temp.ver('O'))).status, 'confi
 select public.ir_send_ofs(pg_temp.rid('G'), pg_temp.ver('G'));
 select pg_temp.login('a0000000-0000-0000-0000-000000000541');
 select is((public.ir_withdraw(pg_temp.rid('G'), pg_temp.ver('G'))).status, 'withdrawn', 'the GC withdraws their sent request');
-select ok('ir.withdrawn' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'G')), 'board: the deputy is told');
+select ok(not ('ir.withdrawn' = any (pg_temp.lines('a0000000-0000-0000-0000-000000000543', 'G'))), 'board: no line for a withdrawal (0116)');
 select pg_temp.login('a0000000-0000-0000-0000-000000000541');
 select is((select array[(r).status, ((r).ofs_sent_at is not null)::text] from (select public.ir_restore(pg_temp.rid('G'), pg_temp.ver('G')) as r) x),
   array['pending', 'true'], 'restored: it skipped the GC step, so it is with OFS again');

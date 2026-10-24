@@ -15,7 +15,7 @@ import { mirroredRequests, permitJobRequests, seedBlocks, seedRequests } from '.
 import { mockUser } from './index';
 import { holder } from './duties';
 import { NOT_MIRRORED, NO_OFS_CHECKS, STEPS, actionOf, firstStatus, forbidden, holds, maySee, mustDecide, notFound, opt, ownerOk, refuse, unmirrored, type Args } from './irRules';
-import { OFS_STEPS, backToGc, stampOnFile } from './ofsRules';
+import { OFS_STEPS, backToGc, route, stampOnFile } from './ofsRules';
 import { SCHED_STEPS, confirmAnswer, schedAfter } from './ofsSchedRules';
 import { projectSettings } from './jobs';
 import { has as hasPermitRight } from './permitStore';
@@ -202,11 +202,14 @@ function withOfs(row: IrRowRaw, s: IrState): IrRowRaw {
   return { ...row, ofs_number: Math.max(0, ...used) + 1 };
 }
 
-/** What ir_first_status reads of the job: its GC step setting, and whether somebody active can do the GC step. */
-function jobFacts(projectId: string): { gcStep: boolean; gcApprover: boolean } {
+/** What ir_first_status reads of the job: its GC step setting, whether somebody active can do the GC step, and whether
+ *  its OFS route has the contractor check (0116). */
+function jobFacts(projectId: string): { gcStep: boolean; gcApprover: boolean; ofsCheck: boolean } {
   const revoked = readMock().revoked;
+  const settings = parseProjectSettings(projectSettings(projectId));
   return {
-    gcStep: parseProjectSettings(projectSettings(projectId)).ir_gc_approval,
+    gcStep: settings.ir_gc_approval,
+    ofsCheck: !settings.ir_ofs_gc_off,
     gcApprover: MOCK_PEOPLE.some((p) => p.status === 'active' && !revoked.includes(p.member_id) && holds(p.user_id, 'ir.gc_approve')),
   };
 }
@@ -287,6 +290,8 @@ export async function rpc(name: string, a: Args): Promise<IrRowRaw> {
     wallResult: readRevs().cells.some((c) => c.request_id === current.id && c.result !== null),
     permits: { manage: hasPermitRight('permits.manage'), read: hasPermitRight('permits.read') },
     sender: holds(me, 'ir.decide') || holder(current.project_id) === me,
+    holder: holder(current.project_id) === me,
+    route: route(current.project_id),
     numberTaken: (n) => read().requests.some((r) => r.project_id === current.project_id && r.id !== current.id && r.ofs_number === n),
   });
   if (change === null) return current;
